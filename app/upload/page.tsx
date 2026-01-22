@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type Student = { id: string; name: string; studentRef?: string | null };
@@ -128,9 +128,9 @@ export default function UploadPage() {
             {busy ? "Uploading..." : "Upload"}
           </button>
 
-          <a href="/submissions" style={{ color: "#111827", textDecoration: "underline" }}>
+          <Link href="/submissions" style={{ color: "#111827", textDecoration: "underline" }}>
             View submissions
-          </a>
+          </Link>
         </div>
 
         {msg && (

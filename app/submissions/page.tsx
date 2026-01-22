@@ -77,7 +77,11 @@ export default function SubmissionsPage() {
           <tbody>
             {items.map((s) => (
               <tr key={s.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                <td style={{ padding: 10 }}>{s.filename}</td>
+                <td style={{ padding: 10 }}>
+                  <a href={`/submissions/${s.id}`} style={{ textDecoration: "underline", color: "#111827" }}>
+                    {s.filename}
+                  </a>
+                </td>
                 <td style={{ padding: 10 }}>{s.student?.name ?? "-"}</td>
                 <td style={{ padding: 10 }}>
                   {s.assignment

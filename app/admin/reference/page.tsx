@@ -137,31 +137,37 @@ export default function ReferenceAdminPage() {
 
   // Keep raw JSON in sync when selecting a document
   useEffect(() => {
-    if (!selectedDoc) {
-      setRawJson("");
-      setBriefUnitId("");
-      setMapSelected({});
-      return;
-    }
-    const draft = selectedDoc.extractedJson;
-    setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
+  if (!selectedDoc) {
+    setRawJson("");
+    setBriefUnitId("");
+    setMapSelected({});
+    return;
+  }
 
-    // Brief: preselect mapping (best-effort)
-    if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
-      setAssignmentCodeInput((draft.assignmentCode || "").toString());
-      const unitGuess: string | undefined = draft.unitCodeGuess;
-      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess) : null;
-      setBriefUnitId(unit?.id || "");
+  const draft = selectedDoc.extractedJson;
+  setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
 
-      const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) => x.toUpperCase());
-      const sel: Record<string, boolean> = {};
-      for (const c of allCriteria) {
-        if (unit && c.learningOutcome.unitId !== unit.id) continue;
-        if (codes.includes(c.acCode.toUpperCase())) sel[c.acCode] = true;
-      }
-      setMapSelected(sel);
+  // Brief: preselect mapping (best-effort)
+  if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
+    setAssignmentCodeInput((draft.assignmentCode || "").toString());
+
+    const unitGuess: string | undefined = draft.unitCodeGuess;
+    const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess) : null;
+    setBriefUnitId(unit?.id || "");
+
+    const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) =>
+      x.toUpperCase()
+    );
+
+    const sel: Record<string, boolean> = {};
+    for (const c of allCriteria) {
+      if (unit && c.learningOutcome.unitId !== unit.id) continue;
+      if (codes.includes(c.acCode.toUpperCase())) sel[c.acCode] = true;
     }
-  }, [selectedDocId, documents, units, allCriteria]);
+    setMapSelected(sel);
+  }
+}, [selectedDoc, units, allCriteria]);
+
 
   async function uploadDoc() {
     setError(null);

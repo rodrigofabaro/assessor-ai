@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { briefId: string } }
-) {
+type RouteContext = {
+  params: Promise<{ briefId: string }>;
+};
+
+export async function POST(req: Request, ctx: RouteContext) {
   try {
-    const { briefId } = params;
+    const { briefId } = await ctx.params;
+
+    if (!briefId) {
+      return NextResponse.json({ error: "Missing briefId" }, { status: 400 });
+    }
+
     const body = await req.json();
-    const criterionIds = Array.isArray(body.criterionIds) ? body.criterionIds.map(String) : [];
+    const criterionIds: string[] = Array.isArray(body?.criterionIds)
+      ? body.criterionIds.map(String)
+      : [];
 
     // Replace existing mapping with the provided list
     await prisma.assignmentCriterionMap.deleteMany({
@@ -17,7 +25,7 @@ export async function POST(
 
     if (criterionIds.length > 0) {
       await prisma.assignmentCriterionMap.createMany({
-        data: criterionIds.map((assessmentCriterionId: string) => ({
+        data: criterionIds.map((assessmentCriterionId) => ({
           assignmentBriefId: briefId,
           assessmentCriterionId,
         })),
@@ -28,7 +36,11 @@ export async function POST(
       where: { id: briefId },
       include: {
         unit: true,
-        criteriaMaps: { include: { assessmentCriterion: { include: { learningOutcome: true } } } },
+        criteriaMaps: {
+          include: {
+            assessmentCriterion: { include: { learningOutcome: true } },
+          },
+        },
       },
     });
 

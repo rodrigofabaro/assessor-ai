@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: Request,
-  { params }: { params: { loId: string } }
+  { params }: { params: Promise<{ loId: string }> }
 ) {
   try {
-    const { loId } = params;
+    const { loId } = await params;
     const body = await req.json();
 
     const acCode = String(body.acCode || "").trim().toUpperCase();
