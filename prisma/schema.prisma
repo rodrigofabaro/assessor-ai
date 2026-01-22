@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubmissionStatus {
+  UPLOADED
+  EXTRACTING
+  ASSESSING
+  MARKING
+  DONE
+  FAILED
+}
+
+model Student {
+  id        String      @id @default(uuid())
+  name      String
+  studentRef String?    // optional: your internal ID / reg number
+  email     String?     @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  submissions Submission[]
+}
+
+model Assignment {
+  id          String      @id @default(uuid())
+  unitCode    String      // e.g. "4017"
+  title       String      // e.g. "Quality Control Tools and Costing"
+  assignmentRef String?   // e.g. "A1", "A2"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  submissions Submission[]
+}
+
+model Submission {
+  id             String           @id @default(uuid())
+  filename       String
+  storedFilename String
+  storagePath    String           // local path for dev; later becomes object storage key/url
+  status         SubmissionStatus @default(UPLOADED)
+
+  uploadedAt     DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  studentId      String
+  assignmentId   String
+  student        Student          @relation(fields: [studentId], references: [id])
+  assignment     Assignment       @relation(fields: [assignmentId], references: [id])
+
+  // Later steps (we’ll fill these in)
+  extractedText  String?
+  assessments    Assessment[]
+}
+
+model Assessment {
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Core output (later)
+  overallGrade  String?  // Pass/Merit/Distinction/Fail etc
+  feedbackText  String?
+  resultJson    Json?
+
+  // Files (later)
+  annotatedPdfPath String?
+
+  // Relations
+  submissionId  String
+  submission    Submission @relation(fields: [submissionId], references: [id])
+}
