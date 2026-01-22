@@ -39,6 +39,11 @@ model Assignment {
   assignmentBriefId String?
   assignmentBrief   AssignmentBrief? @relation(fields: [assignmentBriefId], references: [id])
 
+  // Phase 2.5: binding to locked references (admin-controlled)
+  bindingStatus RecordStatus @default(DRAFT)
+  bindingLockedAt DateTime?
+  bindingLockedBy String?
+
   submissions Submission[]
 
   @@index([assignmentBriefId])

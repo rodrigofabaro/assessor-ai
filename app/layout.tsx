@@ -29,6 +29,7 @@ export default function RootLayout({
             <Link href="/upload">Upload</Link>
             <Link href="/submissions">Submissions</Link>
             <Link href="/admin/reference">Admin: Reference</Link>
+            <Link href="/admin/bindings">Admin: Bindings</Link>
           </nav>
         </header>
         <main style={{ padding: 16 }}>{children}</main>
