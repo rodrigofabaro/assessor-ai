@@ -34,3 +34,38 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Assessor AI Phases
+
+### Phase 1 (done)
+- Student + assignment records
+- Single/batch submission upload
+- Submissions list + status
+
+### Phase 2 (reference library) — included in this build
+Adds an admin area to upload **unit specs**, **assignment briefs**, and optional **rubrics**, then build structured:
+- Units
+- Learning Outcomes (LO1, LO2...)
+- Assessment Criteria (P/M/D codes)
+- Assignment brief → criteria mapping
+
+#### Setup (Phase 2)
+1. Update your database with Prisma migrations:
+
+```bash
+npx prisma migrate dev --name phase2_reference_library
+npx prisma generate
+```
+
+2. Start the dev server:
+
+```bash
+npm run dev
+```
+
+3. Open:
+- `/admin/reference` to manage reference documents + criteria
+- `/upload` to upload student submissions (Phase 1)
+
+> Reference document uploads are stored in `reference_uploads/` in local dev.

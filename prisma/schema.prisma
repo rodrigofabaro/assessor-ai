@@ -17,62 +17,175 @@ enum SubmissionStatus {
 }
 
 model Student {
-  id        String      @id @default(uuid())
-  name      String
-  studentRef String?    // optional: your internal ID / reg number
-  email     String?     @unique
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id         String   @id @default(uuid())
+  name       String
+  studentRef String? // optional: your internal ID / reg number
+  email      String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   submissions Submission[]
 }
 
 model Assignment {
-  id          String      @id @default(uuid())
-  unitCode    String      // e.g. "4017"
-  title       String      // e.g. "Quality Control Tools and Costing"
-  assignmentRef String?   // e.g. "A1", "A2"
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String   @id @default(uuid())
+  unitCode      String // e.g. "4017"
+  title         String // e.g. "Quality Control Tools and Costing"
+  assignmentRef String? // e.g. "A1", "A2"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Link to reference brief (Phase 2)
+  assignmentBriefId String?
+  assignmentBrief   AssignmentBrief? @relation(fields: [assignmentBriefId], references: [id])
 
   submissions Submission[]
+
+  @@index([assignmentBriefId])
 }
 
 model Submission {
   id             String           @id @default(uuid())
   filename       String
   storedFilename String
-  storagePath    String           // local path for dev; later becomes object storage key/url
+  storagePath    String // local path for dev; later becomes object storage key/url
   status         SubmissionStatus @default(UPLOADED)
 
-  uploadedAt     DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relations
-  studentId      String
-  assignmentId   String
-  student        Student          @relation(fields: [studentId], references: [id])
-  assignment     Assignment       @relation(fields: [assignmentId], references: [id])
+  studentId    String
+  assignmentId String
+  student      Student    @relation(fields: [studentId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
 
   // Later steps (we’ll fill these in)
-  extractedText  String?
-  assessments    Assessment[]
+  extractedText String?
+  assessments   Assessment[]
 }
 
 model Assessment {
-  id            String   @id @default(uuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Core output (later)
-  overallGrade  String?  // Pass/Merit/Distinction/Fail etc
-  feedbackText  String?
-  resultJson    Json?
+  overallGrade String? // Pass/Merit/Distinction/Fail etc
+  feedbackText String?
+  resultJson   Json?
 
   // Files (later)
   annotatedPdfPath String?
 
   // Relations
-  submissionId  String
-  submission    Submission @relation(fields: [submissionId], references: [id])
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id])
+}
+
+enum ReferenceDocumentType {
+  SPEC
+  BRIEF
+  RUBRIC
+}
+
+enum GradeBand {
+  PASS
+  MERIT
+  DISTINCTION
+}
+
+model ReferenceDocument {
+  id               String                @id @default(uuid())
+  type             ReferenceDocumentType
+  title            String
+  version          Int                   @default(1)
+  originalFilename String
+  storedFilename   String
+  storagePath      String
+  checksumSha256   String
+  uploadedAt       DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  // Relations
+  unitsAsSpec Unit[]            @relation("SpecDocUnits")
+  briefsAsDoc AssignmentBrief[] @relation("BriefDocBriefs")
+}
+
+model Unit {
+  id        String   @id @default(uuid())
+  unitCode  String
+  unitTitle String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Spec doc
+  specDocumentId String?
+  specDocument   ReferenceDocument? @relation("SpecDocUnits", fields: [specDocumentId], references: [id])
+
+  learningOutcomes LearningOutcome[]
+  assignmentBriefs AssignmentBrief[]
+}
+
+model LearningOutcome {
+  id          String   @id @default(uuid())
+  loCode      String // e.g. "LO1"
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id])
+
+  criteria AssessmentCriterion[]
+
+  @@unique([unitId, loCode])
+}
+
+model AssessmentCriterion {
+  id          String    @id @default(uuid())
+  acCode      String // e.g. "P1", "M2", "D1"
+  gradeBand   GradeBand
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  learningOutcomeId String
+  learningOutcome   LearningOutcome @relation(fields: [learningOutcomeId], references: [id])
+
+  assignmentMaps AssignmentCriterionMap[]
+
+  @@unique([learningOutcomeId, acCode])
+}
+
+model AssignmentBrief {
+  id             String   @id @default(uuid())
+  assignmentCode String // e.g. "A1"
+  title          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id])
+
+  briefDocumentId String?
+  briefDocument   ReferenceDocument? @relation("BriefDocBriefs", fields: [briefDocumentId], references: [id])
+
+  criteriaMaps AssignmentCriterionMap[]
+  assignments  Assignment[] // operational assignments can point here
+
+  @@unique([unitId, assignmentCode])
+}
+
+model AssignmentCriterionMap {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  assignmentBriefId     String
+  assessmentCriterionId String
+
+  assignmentBrief     AssignmentBrief     @relation(fields: [assignmentBriefId], references: [id])
+  assessmentCriterion AssessmentCriterion @relation(fields: [assessmentCriterionId], references: [id])
+
+  @@unique([assignmentBriefId, assessmentCriterionId])
 }
