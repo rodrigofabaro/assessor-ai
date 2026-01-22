@@ -458,16 +458,26 @@ function SpecPreview({ draft }: { draft: any }) {
             <tr style={{ background: "#f9fafb", textAlign: "left" }}>
               <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>LO</th>
               <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Description</th>
-              <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Criteria codes</th>
+              <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Criteria</th>
             </tr>
           </thead>
           <tbody>
-            {los.map((lo: any) => (
-              <tr key={lo.loCode} style={{ borderBottom: "1px solid #f3f4f6" }}>
+            {los.map((lo: any, idx: number) => (
+              <tr key={`${lo.loCode}-${idx}`} style={{ borderBottom: "1px solid #f3f4f6" }}>
                 <td style={{ padding: 8, fontWeight: 700, verticalAlign: "top" }}>{lo.loCode}</td>
                 <td style={{ padding: 8, verticalAlign: "top" }}>{lo.description || ""}</td>
                 <td style={{ padding: 8, verticalAlign: "top" }}>
-                  {(lo.criteria || []).map((c: any) => c.acCode).join(", ") || "(none)"}
+                  {(lo.criteria || []).length ? (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {(lo.criteria || []).map((c: any, cidx: number) => (
+                        <li key={`${c.acCode}-${cidx}`}>
+                          <b>{c.acCode}</b> — {c.description || ""}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "(none)"
+                  )}
                 </td>
               </tr>
             ))}

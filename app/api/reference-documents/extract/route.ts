@@ -6,6 +6,8 @@ import pdf from "pdf-parse";
 
 import { parseBriefText, parseSpecText, type ExtractDraft } from "@/lib/referenceParser";
 
+
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -39,6 +41,25 @@ export async function POST(req: Request) {
     const buf = fs.readFileSync(storagePath);
     const parsed = await pdf(buf);
     const text = parsed.text || "";
+
+// 🔎 DEBUG: inspect how pdf-parse outputs the LO/AC table
+if (doc.type === "SPEC") {
+  const anchor = "learning outcomes and assessment criteria";
+  const lower = text.toLowerCase();
+  const start = lower.indexOf(anchor);
+
+  if (start === -1) {
+    console.log("[SPEC DEBUG] Anchor NOT found");
+    console.log("[SPEC DEBUG] First 1000 chars:\n", text.slice(0, 1000));
+  } else {
+    console.log(
+      "[SPEC DEBUG] LO/AC table snippet:\n",
+      text.slice(start, start + 2500)
+    );
+  }
+}
+
+
 
     let draft: ExtractDraft;
     if (doc.type === "SPEC") draft = parseSpecText(text);
@@ -75,3 +96,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Extraction failed" }, { status: 500 });
   }
 }
+
+
+
