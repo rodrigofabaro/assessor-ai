@@ -17,25 +17,25 @@ enum SubmissionStatus {
 }
 
 model Student {
-  id         String   @id @default(uuid())
-  name       String
-  studentRef String? // optional: your internal ID / reg number
-  email      String?  @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String      @id @default(uuid())
+  name      String
+  studentRef String?    // optional: your internal ID / reg number
+  email     String?     @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   submissions Submission[]
 }
 
 model Assignment {
-  id            String   @id @default(uuid())
-  unitCode      String // e.g. "4017"
-  title         String // e.g. "Quality Control Tools and Costing"
-  assignmentRef String? // e.g. "A1", "A2"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String      @id @default(uuid())
+  unitCode    String      // e.g. "4017"
+  title       String      // e.g. "Quality Control Tools and Costing"
+  assignmentRef String?   // e.g. "A1", "A2"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  // Link to reference brief (Phase 2)
+  // Phase 2 linkage: operational assignments can reference a locked brief (A1/A2...)
   assignmentBriefId String?
   assignmentBrief   AssignmentBrief? @relation(fields: [assignmentBriefId], references: [id])
 
@@ -48,45 +48,64 @@ model Submission {
   id             String           @id @default(uuid())
   filename       String
   storedFilename String
-  storagePath    String // local path for dev; later becomes object storage key/url
+  storagePath    String           // local path for dev; later becomes object storage key/url
   status         SubmissionStatus @default(UPLOADED)
 
-  uploadedAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  uploadedAt     DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   // Relations
-  studentId    String
-  assignmentId String
-  student      Student    @relation(fields: [studentId], references: [id])
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  studentId      String
+  assignmentId   String
+  student        Student          @relation(fields: [studentId], references: [id])
+  assignment     Assignment       @relation(fields: [assignmentId], references: [id])
 
   // Later steps (we’ll fill these in)
-  extractedText String?
-  assessments   Assessment[]
+  extractedText  String?
+  assessments    Assessment[]
 }
 
 model Assessment {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Core output (later)
-  overallGrade String? // Pass/Merit/Distinction/Fail etc
-  feedbackText String?
-  resultJson   Json?
+  overallGrade  String?  // Pass/Merit/Distinction/Fail etc
+  feedbackText  String?
+  resultJson    Json?
 
   // Files (later)
   annotatedPdfPath String?
 
   // Relations
-  submissionId String
-  submission   Submission @relation(fields: [submissionId], references: [id])
+  submissionId  String
+  submission    Submission @relation(fields: [submissionId], references: [id])
 }
+
 
 enum ReferenceDocumentType {
   SPEC
   BRIEF
   RUBRIC
+}
+
+enum ReferenceDocumentStatus {
+  UPLOADED
+  EXTRACTED
+  REVIEWED
+  LOCKED
+  FAILED
+}
+
+enum RecordStatus {
+  DRAFT
+  LOCKED
+}
+
+enum MapSource {
+  AUTO_FROM_BRIEF
+  MANUAL_OVERRIDE
 }
 
 enum GradeBand {
@@ -95,29 +114,45 @@ enum GradeBand {
   DISTINCTION
 }
 
+
 model ReferenceDocument {
-  id               String                @id @default(uuid())
+  id               String               @id @default(uuid())
   type             ReferenceDocumentType
+  status           ReferenceDocumentStatus @default(UPLOADED)
   title            String
-  version          Int                   @default(1)
+  version          Int                  @default(1)
   originalFilename String
   storedFilename   String
   storagePath      String
   checksumSha256   String
-  uploadedAt       DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  uploadedAt       DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  // Extraction + review (Phase 2.2)
+  extractedJson      Json?
+  extractionWarnings Json?
+  sourceMeta         Json?
+  lockedAt           DateTime?
+  lockedBy           String?
 
   // Relations
-  unitsAsSpec Unit[]            @relation("SpecDocUnits")
-  briefsAsDoc AssignmentBrief[] @relation("BriefDocBriefs")
+  unitsAsSpec      Unit[]               @relation("SpecDocUnits")
+  briefsAsDoc      AssignmentBrief[]    @relation("BriefDocBriefs")
 }
 
 model Unit {
-  id        String   @id @default(uuid())
-  unitCode  String
-  unitTitle String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String           @id @default(uuid())
+  unitCode       String
+  unitTitle      String
+  status         RecordStatus     @default(DRAFT)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Useful spec labels (e.g. "Issue 5 – June 2025")
+  specIssue         String?
+  specVersionLabel  String?
+  lockedAt          DateTime?
+  lockedBy          String?
 
   // Spec doc
   specDocumentId String?
@@ -129,63 +164,73 @@ model Unit {
 
 model LearningOutcome {
   id          String   @id @default(uuid())
-  loCode      String // e.g. "LO1"
+  loCode      String   // e.g. "LO1"
   description String
+  // Long-form context (Essential Content), not assessment wording
+  essentialContent String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  unitId String
-  unit   Unit   @relation(fields: [unitId], references: [id])
+  unitId      String
+  unit        Unit     @relation(fields: [unitId], references: [id])
 
-  criteria AssessmentCriterion[]
+  criteria    AssessmentCriterion[]
 
   @@unique([unitId, loCode])
 }
 
 model AssessmentCriterion {
-  id          String    @id @default(uuid())
-  acCode      String // e.g. "P1", "M2", "D1"
-  gradeBand   GradeBand
-  description String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  acCode          String    // e.g. "P1", "M2", "D1"
+  gradeBand       GradeBand
+  description     String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   learningOutcomeId String
   learningOutcome   LearningOutcome @relation(fields: [learningOutcomeId], references: [id])
 
-  assignmentMaps AssignmentCriterionMap[]
+  assignmentMaps    AssignmentCriterionMap[]
 
   @@unique([learningOutcomeId, acCode])
 }
 
 model AssignmentBrief {
-  id             String   @id @default(uuid())
-  assignmentCode String // e.g. "A1"
-  title          String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String   @id @default(uuid())
+  assignmentCode   String   // e.g. "A1"
+  title            String
+  status           RecordStatus @default(DRAFT)
+  assignmentNumber Int?
+  totalAssignments Int?
+  aiasLevel        Int?
+  lockedAt         DateTime?
+  lockedBy         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  unitId String
-  unit   Unit   @relation(fields: [unitId], references: [id])
+  unitId           String
+  unit             Unit     @relation(fields: [unitId], references: [id])
 
-  briefDocumentId String?
-  briefDocument   ReferenceDocument? @relation("BriefDocBriefs", fields: [briefDocumentId], references: [id])
+  briefDocumentId  String?
+  briefDocument    ReferenceDocument? @relation("BriefDocBriefs", fields: [briefDocumentId], references: [id])
 
-  criteriaMaps AssignmentCriterionMap[]
-  assignments  Assignment[] // operational assignments can point here
-
+  criteriaMaps     AssignmentCriterionMap[]
+  assignments      Assignment[] // operational assignments can point here
   @@unique([unitId, assignmentCode])
 }
 
 model AssignmentCriterionMap {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
+  id                   String   @id @default(uuid())
+  createdAt            DateTime @default(now())
 
-  assignmentBriefId     String
+  source               MapSource @default(AUTO_FROM_BRIEF)
+  confidence           Float?    @default(1)
+
+  assignmentBriefId    String
   assessmentCriterionId String
 
-  assignmentBrief     AssignmentBrief     @relation(fields: [assignmentBriefId], references: [id])
-  assessmentCriterion AssessmentCriterion @relation(fields: [assessmentCriterionId], references: [id])
+  assignmentBrief      AssignmentBrief    @relation(fields: [assignmentBriefId], references: [id])
+  assessmentCriterion  AssessmentCriterion @relation(fields: [assessmentCriterionId], references: [id])
 
   @@unique([assignmentBriefId, assessmentCriterionId])
 }

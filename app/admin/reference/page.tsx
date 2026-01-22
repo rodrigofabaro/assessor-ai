@@ -2,28 +2,27 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+
 type ReferenceDocument = {
   id: string;
   type: "SPEC" | "BRIEF" | "RUBRIC";
+  status: "UPLOADED" | "EXTRACTED" | "REVIEWED" | "LOCKED" | "FAILED";
   title: string;
   version: number;
   originalFilename: string;
   checksumSha256: string;
   uploadedAt: string;
-};
-
-type Criterion = {
-  id: string;
-  acCode: string;
-  gradeBand: "PASS" | "MERIT" | "DISTINCTION";
-  description: string;
-  learningOutcome: { id: string; loCode: string; unitId: string };
+  extractedJson?: any | null;
+  extractionWarnings?: any | null;
+  sourceMeta?: any | null;
+  lockedAt?: string | null;
 };
 
 type LearningOutcome = {
   id: string;
   loCode: string;
   description: string;
+  essentialContent?: string | null;
   criteria: Array<{
     id: string;
     acCode: string;
@@ -36,28 +35,16 @@ type Unit = {
   id: string;
   unitCode: string;
   unitTitle: string;
-  specDocumentId?: string | null;
+  status: "DRAFT" | "LOCKED";
   learningOutcomes: LearningOutcome[];
-  assignmentBriefs: Array<{
-    id: string;
-    assignmentCode: string;
-    title: string;
-  }>;
 };
 
-type Brief = {
+type Criterion = {
   id: string;
-  assignmentCode: string;
-  title: string;
-  unit: { id: string; unitCode: string; unitTitle: string };
-  criteriaMaps: Array<{
-    assessmentCriterion: {
-      id: string;
-      acCode: string;
-      gradeBand: "PASS" | "MERIT" | "DISTINCTION";
-      learningOutcome: { loCode: string };
-    };
-  }>;
+  acCode: string;
+  gradeBand: "PASS" | "MERIT" | "DISTINCTION";
+  description: string;
+  learningOutcome: { id: string; loCode: string; unitId: string };
 };
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -67,44 +54,52 @@ async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   return data as T;
 }
 
+function formatDate(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleString();
+}
+
+function badge(status: ReferenceDocument["status"]): { bg: string; fg: string; text: string } {
+  switch (status) {
+    case "UPLOADED":
+      return { bg: "#eef2ff", fg: "#3730a3", text: "UPLOADED" };
+    case "EXTRACTED":
+      return { bg: "#ecfeff", fg: "#155e75", text: "EXTRACTED" };
+    case "REVIEWED":
+      return { bg: "#fffbeb", fg: "#92400e", text: "REVIEWED" };
+    case "LOCKED":
+      return { bg: "#ecfdf5", fg: "#065f46", text: "LOCKED" };
+    case "FAILED":
+      return { bg: "#fef2f2", fg: "#991b1b", text: "FAILED" };
+  }
+}
+
 export default function ReferenceAdminPage() {
   const [documents, setDocuments] = useState<ReferenceDocument[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [briefs, setBriefs] = useState<Brief[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Upload doc form
+  // Upload
   const [docType, setDocType] = useState<ReferenceDocument["type"]>("SPEC");
   const [docTitle, setDocTitle] = useState("");
   const [docVersion, setDocVersion] = useState("1");
   const [docFile, setDocFile] = useState<File | null>(null);
 
-  // Create unit form
-  const [unitCode, setUnitCode] = useState("");
-  const [unitTitle, setUnitTitle] = useState("");
-  const [unitSpecDocId, setUnitSpecDocId] = useState<string>("");
+  // Review selection
+  const [selectedDocId, setSelectedDocId] = useState<string>("");
+  const selectedDoc = useMemo(
+    () => documents.find((d) => d.id === selectedDocId) || null,
+    [documents, selectedDocId]
+  );
 
-  // Add LO form
-  const [loUnitId, setLoUnitId] = useState<string>("");
-  const [loCode, setLoCode] = useState("");
-  const [loDesc, setLoDesc] = useState("");
-
-  // Add criterion form
-  const [critLoId, setCritLoId] = useState<string>("");
-  const [critCode, setCritCode] = useState("");
-  const [critBand, setCritBand] = useState<"PASS" | "MERIT" | "DISTINCTION">("PASS");
-  const [critDesc, setCritDesc] = useState("");
-
-  // Create brief form
+  // Brief mapping override
   const [briefUnitId, setBriefUnitId] = useState<string>("");
-  const [briefCode, setBriefCode] = useState("A1");
-  const [briefTitle, setBriefTitle] = useState("");
-  const [briefDocId, setBriefDocId] = useState<string>("");
-
-  // Mapping UI
-  const [mapBriefId, setMapBriefId] = useState<string>("");
   const [mapSelected, setMapSelected] = useState<Record<string, boolean>>({});
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [rawJson, setRawJson] = useState("");
+  const [assignmentCodeInput, setAssignmentCodeInput] = useState("");
 
   const allCriteria: Criterion[] = useMemo(() => {
     const out: Criterion[] = [];
@@ -118,30 +113,55 @@ export default function ReferenceAdminPage() {
         }
       }
     }
-    // order P->M->D then code
-    out.sort((a, b) => {
-      const rank = (x: string) => (x === "PASS" ? 1 : x === "MERIT" ? 2 : 3);
-      const r = rank(a.gradeBand) - rank(b.gradeBand);
-      if (r !== 0) return r;
-      return a.acCode.localeCompare(b.acCode);
-    });
+    out.sort((a, b) => a.acCode.localeCompare(b.acCode));
     return out;
   }, [units]);
 
+  const criteriaForSelectedUnit = useMemo(() => {
+    const unitId = briefUnitId || "";
+    return allCriteria.filter((c) => c.learningOutcome.unitId === unitId);
+  }, [allCriteria, briefUnitId]);
+
   async function refreshAll() {
-    const [docs, unitsRes, briefsRes] = await Promise.all([
+    const [docs, unitsRes] = await Promise.all([
       jsonFetch<{ documents: ReferenceDocument[] }>("/api/reference-documents"),
       jsonFetch<{ units: Unit[] }>("/api/units"),
-      jsonFetch<{ briefs: Brief[] }>("/api/assignment-briefs"),
     ]);
     setDocuments(docs.documents);
     setUnits(unitsRes.units);
-    setBriefs(briefsRes.briefs);
   }
 
   useEffect(() => {
     refreshAll().catch((e) => setError(String(e?.message || e)));
   }, []);
+
+  // Keep raw JSON in sync when selecting a document
+  useEffect(() => {
+    if (!selectedDoc) {
+      setRawJson("");
+      setBriefUnitId("");
+      setMapSelected({});
+      return;
+    }
+    const draft = selectedDoc.extractedJson;
+    setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
+
+    // Brief: preselect mapping (best-effort)
+    if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
+      setAssignmentCodeInput((draft.assignmentCode || "").toString());
+      const unitGuess: string | undefined = draft.unitCodeGuess;
+      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess) : null;
+      setBriefUnitId(unit?.id || "");
+
+      const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) => x.toUpperCase());
+      const sel: Record<string, boolean> = {};
+      for (const c of allCriteria) {
+        if (unit && c.learningOutcome.unitId !== unit.id) continue;
+        if (codes.includes(c.acCode.toUpperCase())) sel[c.acCode] = true;
+      }
+      setMapSelected(sel);
+    }
+  }, [selectedDocId, documents, units, allCriteria]);
 
   async function uploadDoc() {
     setError(null);
@@ -153,7 +173,6 @@ export default function ReferenceAdminPage() {
       fd.set("title", docTitle || docFile.name);
       fd.set("version", docVersion || "1");
       fd.set("file", docFile);
-
       await jsonFetch("/api/reference-documents", { method: "POST", body: fd });
       setDocTitle("");
       setDocVersion("1");
@@ -166,336 +185,407 @@ export default function ReferenceAdminPage() {
     }
   }
 
-  async function createUnit() {
+  async function extractSelected() {
     setError(null);
-    setBusy("Creating unit...");
+    if (!selectedDoc) return;
+    setBusy("Extracting draft...");
     try {
-      await jsonFetch("/api/units", {
+      await jsonFetch("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          unitCode,
-          unitTitle,
-          specDocumentId: unitSpecDocId || null,
-        }),
+        body: JSON.stringify({ documentId: selectedDoc.id }),
       });
-      setUnitCode("");
-      setUnitTitle("");
-      setUnitSpecDocId("");
       await refreshAll();
     } catch (e: any) {
-      setError(e?.message || "Create failed");
+      setError(e?.message || "Extract failed");
     } finally {
       setBusy(null);
     }
   }
 
-  async function addLO() {
+  async function lockSelected() {
     setError(null);
-    if (!loUnitId) return setError("Pick a unit first.");
-    setBusy("Adding learning outcome...");
+    if (!selectedDoc) return;
+    setBusy("Locking reference (committing to DB)...");
     try {
-      await jsonFetch(`/api/units/${loUnitId}/learning-outcomes`, {
+      let draft: any = undefined;
+      if (showRawJson && rawJson.trim()) {
+        draft = JSON.parse(rawJson);
+      }
+
+      const body: any = { documentId: selectedDoc.id };
+      if (draft) body.draft = draft;
+
+      if (selectedDoc.type === "BRIEF") {
+        if (assignmentCodeInput.trim()) body.assignmentCode = assignmentCodeInput.trim();
+        if (briefUnitId) body.unitId = briefUnitId;
+        const overrideCodes = Object.entries(mapSelected)
+          .filter(([, v]) => v)
+          .map(([k]) => k);
+        if (overrideCodes.length) body.mappingOverride = overrideCodes;
+      }
+
+      await jsonFetch("/api/reference-documents/lock", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ loCode, description: loDesc }),
+        body: JSON.stringify(body),
       });
-      setLoCode("");
-      setLoDesc("");
+
       await refreshAll();
     } catch (e: any) {
-      setError(e?.message || "Create failed");
+      setError(e?.message || "Lock failed");
     } finally {
       setBusy(null);
     }
   }
 
-  async function addCriterion() {
-    setError(null);
-    if (!critLoId) return setError("Pick a learning outcome first.");
-    setBusy("Adding criterion...");
-    try {
-      await jsonFetch(`/api/learning-outcomes/${critLoId}/criteria`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          acCode: critCode,
-          gradeBand: critBand,
-          description: critDesc,
-        }),
-      });
-      setCritCode("");
-      setCritDesc("");
-      await refreshAll();
-    } catch (e: any) {
-      setError(e?.message || "Create failed");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function createBrief() {
-    setError(null);
-    if (!briefUnitId) return setError("Pick a unit first.");
-    setBusy("Creating assignment brief...");
-    try {
-      await jsonFetch("/api/assignment-briefs", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          unitId: briefUnitId,
-          assignmentCode: briefCode,
-          title: briefTitle,
-          briefDocumentId: briefDocId || null,
-        }),
-      });
-      setBriefCode("A1");
-      setBriefTitle("");
-      setBriefDocId("");
-      await refreshAll();
-    } catch (e: any) {
-      setError(e?.message || "Create failed");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function loadBriefMapping(briefId: string) {
-    setMapBriefId(briefId);
-    const brief = briefs.find((b) => b.id === briefId);
-    const selected: Record<string, boolean> = {};
-    for (const m of brief?.criteriaMaps || []) {
-      selected[m.assessmentCriterion.id] = true;
-    }
-    setMapSelected(selected);
-  }
-
-  async function saveMapping() {
-    setError(null);
-    if (!mapBriefId) return setError("Pick a brief first.");
-    setBusy("Saving mapping...");
-    try {
-      const ids = Object.entries(mapSelected)
-        .filter(([, v]) => v)
-        .map(([k]) => k);
-
-      await jsonFetch(`/api/assignment-briefs/${mapBriefId}/map`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ criterionIds: ids }),
-      });
-      await refreshAll();
-    } catch (e: any) {
-      setError(e?.message || "Map failed");
-    } finally {
-      setBusy(null);
-    }
-  }
+  const headerStyle: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 };
+  const cardStyle: React.CSSProperties = { border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, background: "#fff" };
 
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <h1>Phase 2 — Reference Library</h1>
-      <p style={{ marginTop: 4, color: "#444" }}>
-        Upload specs/briefs and build structured LO/AC data. This becomes the
-        “ground truth” used later for AI grading + audit logs.
-      </p>
-
-      {busy && (
-        <div style={{ padding: 10, background: "#fff6d6", border: "1px solid #f1d27a", borderRadius: 8, margin: "12px 0" }}>
-          {busy}
+    <div style={{ padding: 20, maxWidth: 1150, margin: "0 auto" }}>
+      <div style={headerStyle}>
+        <div>
+          <h1 style={{ margin: 0 }}>Phase 2.2 — Reference Ingestion</h1>
+          <p style={{ margin: "6px 0 0", color: "#374151" }}>
+            Upload specs/briefs → auto-extract → review → <b>LOCK</b>. Locked references become the ground truth used later for AI grading + audit logs.
+          </p>
         </div>
-      )}
-      {error && (
-        <div style={{ padding: 10, background: "#ffe4e4", border: "1px solid #ffb3b3", borderRadius: 8, margin: "12px 0" }}>
+        <div style={{ fontSize: 12, color: "#6b7280" }}>
+          {busy ? <span>⏳ {busy}</span> : <span>Ready</span>}
+        </div>
+      </div>
+
+      {error ? (
+        <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca" }}>
           {error}
         </div>
-      )}
+      ) : null}
 
-      <section style={{ border: "1px solid #e5e5e5", borderRadius: 12, padding: 14, marginTop: 14 }}>
-        <h2 style={{ marginTop: 0 }}>1) Upload reference document</h2>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <label>
-            Type{" "}
-            <select value={docType} onChange={(e) => setDocType(e.target.value as any)}>
-              <option value="SPEC">SPEC</option>
-              <option value="BRIEF">BRIEF</option>
-              <option value="RUBRIC">RUBRIC</option>
-            </select>
-          </label>
-          <label>
-            Title{" "}
-            <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. Unit 4017 Spec" />
-          </label>
-          <label>
-            Version{" "}
-            <input value={docVersion} onChange={(e) => setDocVersion(e.target.value)} style={{ width: 80 }} />
-          </label>
-          <input type="file" accept=".pdf,.docx" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
-          <button onClick={uploadDoc}>Upload</button>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 16, marginTop: 16 }}>
+        {/* Left: Inbox + Upload */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={cardStyle}>
+            <h2 style={{ margin: "0 0 10px" }}>Upload to Reference Inbox</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 8, alignItems: "center" }}>
+              <label>Type</label>
+              <select value={docType} onChange={(e) => setDocType(e.target.value as any)}>
+                <option value="SPEC">SPEC</option>
+                <option value="BRIEF">BRIEF</option>
+                <option value="RUBRIC">RUBRIC</option>
+              </select>
 
-        <div style={{ marginTop: 10 }}>
-          <strong>Uploaded documents</strong>
-          <div style={{ marginTop: 6, fontSize: 14, color: "#444" }}>
-            {documents.length === 0 ? "None yet." : null}
+              <label>Title</label>
+              <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. Unit 4017 Spec" />
+
+              <label>Version</label>
+              <input value={docVersion} onChange={(e) => setDocVersion(e.target.value)} style={{ width: 120 }} />
+
+              <label>File</label>
+              <input type="file" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
+            </div>
+
+            <div style={{ marginTop: 10 }}>
+              <button onClick={uploadDoc} disabled={!!busy}>Upload</button>
+            </div>
           </div>
-          <ul>
-            {documents.map((d) => (
-              <li key={d.id}>
-                <b>{d.type}</b> v{d.version} — {d.title} ({d.originalFilename}){" "}
-                <span style={{ color: "#666" }}>
-                  • {new Date(d.uploadedAt).toLocaleString()}
-                </span>
-              </li>
+
+          <div style={cardStyle}>
+            <h2 style={{ margin: "0 0 10px" }}>Reference Inbox</h2>
+            <div style={{ maxHeight: 520, overflow: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
+                    <th style={{ padding: "6px 4px" }}>Status</th>
+                    <th style={{ padding: "6px 4px" }}>Type</th>
+                    <th style={{ padding: "6px 4px" }}>Title</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.map((d) => {
+                    const b = badge(d.status);
+                    const active = d.id === selectedDocId;
+                    const meta = d.sourceMeta || {};
+                    const hint = [meta.unitCode ? `Unit ${meta.unitCode}` : "", meta.assignmentCode ? meta.assignmentCode : ""].filter(Boolean).join(" • ");
+                    return (
+                      <tr
+                        key={d.id}
+                        onClick={() => setSelectedDocId(d.id)}
+                        style={{
+                          cursor: "pointer",
+                          background: active ? "#f9fafb" : "transparent",
+                          borderBottom: "1px solid #f3f4f6",
+                        }}
+                      >
+                        <td style={{ padding: "8px 4px" }}>
+                          <span style={{ padding: "2px 8px", borderRadius: 999, background: b.bg, color: b.fg, fontWeight: 600 }}>
+                            {b.text}
+                          </span>
+                        </td>
+                        <td style={{ padding: "8px 4px" }}>{d.type}</td>
+                        <td style={{ padding: "8px 4px" }}>
+                          <div style={{ fontWeight: 600 }}>{d.title}</div>
+                          <div style={{ color: "#6b7280", fontSize: 12 }}>{hint || d.originalFilename}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {documents.length === 0 ? <p style={{ color: "#6b7280" }}>No reference documents uploaded yet.</p> : null}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Review & Lock */}
+        <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <h2 style={{ margin: 0 }}>Review & Lock</h2>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={extractSelected} disabled={!selectedDoc || !!busy}>
+                Extract
+              </button>
+              <button onClick={lockSelected} disabled={!selectedDoc || !!busy}>
+                Approve & Lock
+              </button>
+            </div>
+          </div>
+
+          {!selectedDoc ? (
+            <p style={{ color: "#6b7280", marginTop: 12 }}>Select a document from the inbox to review it.</p>
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>Type</div>
+                  <div style={{ fontWeight: 700 }}>{selectedDoc.type}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>Uploaded</div>
+                  <div style={{ fontWeight: 700 }}>{formatDate(selectedDoc.uploadedAt)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>Status</div>
+                  <div style={{ fontWeight: 700 }}>{selectedDoc.status}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>Locked at</div>
+                  <div style={{ fontWeight: 700 }}>{formatDate(selectedDoc.lockedAt)}</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 12, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
+                {selectedDoc.extractionWarnings && Array.isArray(selectedDoc.extractionWarnings) && selectedDoc.extractionWarnings.length ? (
+                  <div style={{ marginBottom: 10, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
+                    <b>Warnings:</b>
+                    <ul style={{ margin: "6px 0 0 18px" }}>
+                      {selectedDoc.extractionWarnings.map((w: string, idx: number) => (
+                        <li key={idx}>{w}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {/* SPEC preview */}
+                {selectedDoc.type === "SPEC" ? (
+                  <SpecPreview draft={selectedDoc.extractedJson} />
+                ) : selectedDoc.type === "BRIEF" ? (
+                  <BriefPreview
+  draft={selectedDoc.extractedJson}
+  units={units}
+  briefUnitId={briefUnitId}
+  setBriefUnitId={setBriefUnitId}
+  criteria={criteriaForSelectedUnit}
+  mapSelected={mapSelected}
+  setMapSelected={setMapSelected}
+  assignmentCodeInput={assignmentCodeInput}
+  setAssignmentCodeInput={setAssignmentCodeInput}
+/>
+                ) : (
+                  <p style={{ color: "#6b7280" }}>RUBRIC ingestion UI lands later; for now it stays as a stored document.</p>
+                )}
+
+                <div style={{ marginTop: 14 }}>
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input type="checkbox" checked={showRawJson} onChange={(e) => setShowRawJson(e.target.checked)} />
+                    Show raw draft JSON (advanced)
+                  </label>
+                  {showRawJson ? (
+                    <textarea
+                      value={rawJson}
+                      onChange={(e) => setRawJson(e.target.value)}
+                      style={{ width: "100%", height: 220, marginTop: 8, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
+                      placeholder="Extract draft JSON will appear here after Extract."
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SpecPreview({ draft }: { draft: any }) {
+  if (!draft) return <p style={{ color: "#6b7280" }}>No draft extracted yet. Click Extract.</p>;
+  if (draft.kind !== "SPEC") return <p style={{ color: "#6b7280" }}>This draft is not a SPEC.</p>;
+
+  const unit = draft.unit || {};
+  const los = Array.isArray(draft.learningOutcomes) ? draft.learningOutcomes : [];
+  const totalCriteria = los.reduce((n: number, lo: any) => n + (lo.criteria?.length || 0), 0);
+
+  return (
+    <div>
+      <h3 style={{ margin: "0 0 8px" }}>SPEC extraction preview</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Unit</div>
+          <div style={{ fontWeight: 700 }}>{unit.unitCode || "(missing)"} — {unit.unitTitle || "(missing)"}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Spec label</div>
+          <div style={{ fontWeight: 700 }}>{unit.specVersionLabel || unit.specIssue || "(not detected)"}</div>
+        </div>
+      </div>
+      <p style={{ margin: "10px 0", color: "#374151" }}>
+        Detected <b>{los.length}</b> learning outcomes and <b>{totalCriteria}</b> assessment criteria codes.
+      </p>
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "#f9fafb", textAlign: "left" }}>
+              <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>LO</th>
+              <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Description</th>
+              <th style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Criteria codes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {los.map((lo: any) => (
+              <tr key={lo.loCode} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                <td style={{ padding: 8, fontWeight: 700, verticalAlign: "top" }}>{lo.loCode}</td>
+                <td style={{ padding: 8, verticalAlign: "top" }}>{lo.description || ""}</td>
+                <td style={{ padding: 8, verticalAlign: "top" }}>
+                  {(lo.criteria || []).map((c: any) => c.acCode).join(", ") || "(none)"}
+                </td>
+              </tr>
             ))}
-          </ul>
-        </div>
-      </section>
+          </tbody>
+        </table>
+      </div>
+      <p style={{ marginTop: 10, color: "#6b7280", fontSize: 12 }}>
+        Note: criterion statements are short by design (Pearson). Long context is stored as Essential Content per LO.
+      </p>
+    </div>
+  );
+}
 
-      <section style={{ border: "1px solid #e5e5e5", borderRadius: 12, padding: 14, marginTop: 14 }}>
-        <h2 style={{ marginTop: 0 }}>2) Create unit (link to spec doc optional)</h2>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <input value={unitCode} onChange={(e) => setUnitCode(e.target.value)} placeholder="Unit code (e.g. 4017)" />
-          <input value={unitTitle} onChange={(e) => setUnitTitle(e.target.value)} placeholder="Unit title" style={{ width: 320 }} />
-          <select value={unitSpecDocId} onChange={(e) => setUnitSpecDocId(e.target.value)}>
-            <option value="">(no spec doc linked)</option>
-            {documents
-              .filter((d) => d.type === "SPEC")
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.title} (v{d.version})
-                </option>
-              ))}
-          </select>
-          <button onClick={createUnit}>Create unit</button>
-        </div>
+function BriefPreview({
+  draft,
+  units,
+  briefUnitId,
+  setBriefUnitId,
+  criteria,
+  mapSelected,
+  setMapSelected,
+  assignmentCodeInput,
+  setAssignmentCodeInput,
+}: {
+  draft: any;
+  units: Unit[];
+  briefUnitId: string;
+  setBriefUnitId: (id: string) => void;
+  criteria: Criterion[];
+  mapSelected: Record<string, boolean>;
+  setMapSelected: (x: Record<string, boolean>) => void;
+  assignmentCodeInput: string;
+  setAssignmentCodeInput: (v: string) => void;
+}) {
+  if (!draft) return <p style={{ color: "#6b7280" }}>No draft extracted yet. Click Extract.</p>;
+  if (draft.kind !== "BRIEF") return <p style={{ color: "#6b7280" }}>This draft is not a BRIEF.</p>;
 
-        <div style={{ marginTop: 12 }}>
-          <strong>Units</strong>
-          <ul>
-            {units.map((u) => (
-              <li key={u.id}>
-                <b>{u.unitCode}</b> — {u.unitTitle}{" "}
-                {u.specDocumentId ? <span style={{ color: "#666" }}>• linked spec</span> : <span style={{ color: "#999" }}>• no spec linked</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+  const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) => String(x).toUpperCase());
+  const unitGuess = draft.unitCodeGuess ? String(draft.unitCodeGuess) : "";
 
-      <section style={{ border: "1px solid #e5e5e5", borderRadius: 12, padding: 14, marginTop: 14 }}>
-        <h2 style={{ marginTop: 0 }}>3) Add Learning Outcome (LO)</h2>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <select value={loUnitId} onChange={(e) => setLoUnitId(e.target.value)}>
-            <option value="">Select unit…</option>
-            {units.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.unitCode} — {u.unitTitle}
-              </option>
-            ))}
-          </select>
-          <input value={loCode} onChange={(e) => setLoCode(e.target.value)} placeholder="LO code (e.g. LO1)" style={{ width: 110 }} />
-          <input value={loDesc} onChange={(e) => setLoDesc(e.target.value)} placeholder="LO description" style={{ width: 520 }} />
-          <button onClick={addLO}>Add LO</button>
+  return (
+    <div>
+      <h3 style={{ margin: "0 0 8px" }}>BRIEF extraction preview</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Assignment</div>
+          <div style={{ fontWeight: 700 }}>{draft.assignmentCode || "(missing)"} — {draft.title || "(title not detected)"}</div>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Assignment code (required to lock)</div>
+            <input
+              value={assignmentCodeInput}
+              onChange={(e) => setAssignmentCodeInput(e.target.value.toUpperCase())}
+              placeholder="e.g. A1"
+              style={{ width: 120, padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 6 }}
+            />
+          </div>
+          {draft.assignmentNumber ? (
+            <div style={{ color: "#6b7280", fontSize: 12 }}>Assignment {draft.assignmentNumber} of {draft.totalAssignments || "?"}</div>
+          ) : null}
         </div>
-      </section>
-
-      <section style={{ border: "1px solid #e5e5e5", borderRadius: 12, padding: 14, marginTop: 14 }}>
-        <h2 style={{ marginTop: 0 }}>4) Add Assessment Criterion (AC)</h2>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <select value={critLoId} onChange={(e) => setCritLoId(e.target.value)}>
-            <option value="">Select LO…</option>
-            {units.flatMap((u) =>
-              u.learningOutcomes.map((lo) => (
-                <option key={lo.id} value={lo.id}>
-                  {u.unitCode} {lo.loCode}
-                </option>
-              ))
-            )}
-          </select>
-          <input value={critCode} onChange={(e) => setCritCode(e.target.value)} placeholder="AC code (P1/M1/D1)" style={{ width: 160 }} />
-          <select value={critBand} onChange={(e) => setCritBand(e.target.value as any)}>
-            <option value="PASS">PASS</option>
-            <option value="MERIT">MERIT</option>
-            <option value="DISTINCTION">DISTINCTION</option>
-          </select>
-          <input value={critDesc} onChange={(e) => setCritDesc(e.target.value)} placeholder="AC description" style={{ width: 520 }} />
-          <button onClick={addCriterion}>Add AC</button>
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Detected unit</div>
+          <div style={{ fontWeight: 700 }}>{unitGuess ? `Unit ${unitGuess}` : "(not detected)"}</div>
+          {draft.aiasLevel ? <div style={{ color: "#6b7280", fontSize: 12 }}>AIAS Level {draft.aiasLevel}</div> : null}
         </div>
-      </section>
+      </div>
 
-      <section style={{ border: "1px solid #e5e5e5", borderRadius: 12, padding: 14, marginTop: 14 }}>
-        <h2 style={{ marginTop: 0 }}>5) Create assignment brief (A1/A2...)</h2>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ marginTop: 10 }}>
+        <label style={{ fontSize: 12, color: "#6b7280" }}>Link this brief to a unit</label>
+        <div>
           <select value={briefUnitId} onChange={(e) => setBriefUnitId(e.target.value)}>
-            <option value="">Select unit…</option>
-            {units.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.unitCode} — {u.unitTitle}
-              </option>
-            ))}
-          </select>
-          <input value={briefCode} onChange={(e) => setBriefCode(e.target.value)} placeholder="A1" style={{ width: 90 }} />
-          <input value={briefTitle} onChange={(e) => setBriefTitle(e.target.value)} placeholder="Brief title" style={{ width: 360 }} />
-          <select value={briefDocId} onChange={(e) => setBriefDocId(e.target.value)}>
-            <option value="">(no brief doc linked)</option>
-            {documents
-              .filter((d) => d.type === "BRIEF")
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.title} (v{d.version})
+            <option value="">(select unit...)</option>
+            {units
+              .filter((u) => u.status === "LOCKED")
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.unitCode} — {u.unitTitle}
                 </option>
               ))}
           </select>
-          <button onClick={createBrief}>Create brief</button>
         </div>
+        <p style={{ margin: "6px 0 0", color: "#6b7280", fontSize: 12 }}>
+          Tip: briefs should lock against a <b>LOCKED</b> unit spec.
+        </p>
+      </div>
 
-        <div style={{ marginTop: 12 }}>
-          <strong>Briefs</strong>
-          <ul>
-            {briefs.map((b) => (
-              <li key={b.id}>
-                <button onClick={() => loadBriefMapping(b.id)} style={{ marginRight: 8 }}>
-                  Map ACs
-                </button>
-                <b>{b.unit.unitCode}</b> {b.assignmentCode} — {b.title}{" "}
-                <span style={{ color: "#666" }}>• mapped: {b.criteriaMaps.length}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <div style={{ marginTop: 12, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
+        <h4 style={{ margin: "0 0 6px" }}>Criteria mapping (edit before lock)</h4>
+        <p style={{ margin: "0 0 10px", color: "#374151" }}>
+          Detected codes: <b>{codes.length ? codes.join(", ") : "(none)"}</b>
+        </p>
 
-      <section style={{ border: "1px solid #e5e5e5", borderRadius: 12, padding: 14, marginTop: 14, marginBottom: 30 }}>
-        <h2 style={{ marginTop: 0 }}>6) Map criteria to a brief</h2>
-        {!mapBriefId ? (
-          <p style={{ color: "#666" }}>Pick a brief above, then map which ACs it assesses.</p>
+        {!briefUnitId ? (
+          <p style={{ color: "#6b7280" }}>Select a unit to view criteria and confirm mapping.</p>
         ) : (
-          <>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <button onClick={saveMapping}>Save mapping</button>
-              <span style={{ color: "#666" }}>
-                Selected: {Object.values(mapSelected).filter(Boolean).length} / {allCriteria.length}
-              </span>
-            </div>
-
-            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 10 }}>
-              {allCriteria.map((c) => (
-                <label key={c.id} style={{ border: "1px solid #eee", borderRadius: 10, padding: 10 }}>
-                  <input
-                    type="checkbox"
-                    checked={!!mapSelected[c.id]}
-                    onChange={(e) => setMapSelected((s) => ({ ...s, [c.id]: e.target.checked }))}
-                    style={{ marginRight: 8 }}
-                  />
-                  <b>{c.acCode}</b> ({c.gradeBand}) — <span style={{ color: "#666" }}>{c.learningOutcome.loCode}</span>
-                  <div style={{ marginTop: 6, color: "#444" }}>{c.description}</div>
-                </label>
-              ))}
-            </div>
-          </>
+          <div style={{ maxHeight: 260, overflow: "auto", border: "1px solid #e5e7eb", borderRadius: 8, padding: 10 }}>
+            {criteria.length === 0 ? (
+              <p style={{ color: "#6b7280" }}>No criteria found for that unit (is the spec locked?).</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                {criteria.map((c) => (
+                  <label key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!mapSelected[c.acCode]}
+                      onChange={(e) =>
+                        setMapSelected({ ...mapSelected, [c.acCode]: e.target.checked })
+                      }
+                    />
+                    <span style={{ fontWeight: 700 }}>{c.acCode}</span>
+                    <span style={{ color: "#6b7280", fontSize: 12 }}>{c.learningOutcome.loCode}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }
