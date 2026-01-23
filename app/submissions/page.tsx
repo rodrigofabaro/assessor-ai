@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Submission = {
@@ -11,12 +12,18 @@ type Submission = {
   assignment?: { unitCode: string; assignmentRef?: string | null; title: string };
 };
 
+function classNames(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
 export default function SubmissionsPage() {
   const [items, setItems] = useState<Submission[]>([]);
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
 
   async function load() {
     setErr("");
+    setBusy(true);
     try {
       const res = await fetch("/api/submissions");
       if (!res.ok) {
@@ -27,6 +34,8 @@ export default function SubmissionsPage() {
       setItems(data);
     } catch (e: any) {
       setErr(e?.message || String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -35,73 +44,84 @@ export default function SubmissionsPage() {
   }, []);
 
   return (
-    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700 }}>Submissions</h1>
-        <a href="/upload" style={{ color: "#111827", textDecoration: "underline" }}>
-          Upload more
-        </a>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
+          <p className="mt-2 text-sm text-zinc-600">
+            Your upload log. Phase 3 will add extraction runs, OCR flags, and confidence.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={load}
+            className={classNames(
+              "h-10 rounded-xl px-4 text-sm font-semibold",
+              busy ? "bg-zinc-200 text-zinc-700" : "border border-zinc-300 bg-white hover:bg-zinc-50"
+            )}
+            disabled={busy}
+          >
+            {busy ? "Refreshing…" : "Refresh"}
+          </button>
+          <Link
+            href="/upload"
+            className="h-10 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+          >
+            Upload more
+          </Link>
+        </div>
       </div>
 
-      <button
-        onClick={load}
-        style={{
-          marginTop: 12,
-          padding: "8px 12px",
-          borderRadius: 10,
-          border: "1px solid #d1d5db",
-          background: "white",
-          cursor: "pointer",
-        }}
-      >
-        Refresh
-      </button>
-
       {err && (
-        <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#fee2e2" }}>
-          {err}
-        </div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div>
       )}
 
-      <div style={{ overflowX: "auto", marginTop: 16 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <section className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <table className="min-w-full text-sm">
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-              <th style={{ padding: 10 }}>File</th>
-              <th style={{ padding: 10 }}>Student</th>
-              <th style={{ padding: 10 }}>Assignment</th>
-              <th style={{ padding: 10 }}>Status</th>
-              <th style={{ padding: 10 }}>Uploaded</th>
+            <tr className="border-b border-zinc-200 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <th className="py-3 pl-4 pr-4">File</th>
+              <th className="py-3 pr-4">Student</th>
+              <th className="py-3 pr-4">Assignment</th>
+              <th className="py-3 pr-4">Status</th>
+              <th className="py-3 pr-4">Uploaded</th>
             </tr>
           </thead>
           <tbody>
             {items.map((s) => (
-              <tr key={s.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                <td style={{ padding: 10 }}>
-                  <a href={`/submissions/${s.id}`} style={{ textDecoration: "underline", color: "#111827" }}>
+              <tr key={s.id} className="border-b border-zinc-100">
+                <td className="py-3 pl-4 pr-4 font-medium">
+                  <Link
+                    href={`/submissions/${s.id}`}
+                    className="underline underline-offset-4 hover:text-zinc-700"
+                  >
                     {s.filename}
-                  </a>
+                  </Link>
                 </td>
-                <td style={{ padding: 10 }}>{s.student?.name ?? "-"}</td>
-                <td style={{ padding: 10 }}>
+                <td className="py-3 pr-4 text-zinc-700">{s.student?.name ?? "-"}</td>
+                <td className="py-3 pr-4 text-zinc-700">
                   {s.assignment
                     ? `${s.assignment.unitCode} ${s.assignment.assignmentRef ?? ""} — ${s.assignment.title}`
                     : "-"}
                 </td>
-                <td style={{ padding: 10 }}>{s.status}</td>
-                <td style={{ padding: 10 }}>{new Date(s.uploadedAt).toLocaleString()}</td>
+                <td className="py-3 pr-4">
+                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-800">
+                    {s.status}
+                  </span>
+                </td>
+                <td className="py-3 pr-4 text-zinc-700">{new Date(s.uploadedAt).toLocaleString()}</td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td style={{ padding: 10 }} colSpan={5}>
+                <td className="py-10 text-center text-sm text-zinc-500" colSpan={5}>
                   No submissions yet.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }

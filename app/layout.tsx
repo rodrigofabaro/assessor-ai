@@ -13,26 +13,38 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ fontFamily: "sans-serif" }}>
-        <header
-          style={{
-            padding: "12px 16px",
-            borderBottom: "1px solid #e5e5e5",
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-          }}
-        >
-          <strong>Assessor AI</strong>
-          <nav style={{ display: "flex", gap: 12 }}>
-            <Link href="/">Home</Link>
-            <Link href="/upload">Upload</Link>
-            <Link href="/submissions">Submissions</Link>
-            <Link href="/admin/reference">Admin: Reference</Link>
-            <Link href="/admin/bindings">Admin: Bindings</Link>
-          </nav>
+      <body>
+        <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/85 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-sm font-bold text-white">
+                AI
+              </span>
+              <span className="text-base font-semibold tracking-tight">Assessor AI</span>
+            </Link>
+
+            <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              <Link className="hover:underline" href="/upload">
+                Upload
+              </Link>
+              <Link className="hover:underline" href="/submissions">
+                Submissions
+              </Link>
+              <span className="hidden text-zinc-300 md:inline">|</span>
+              <Link className="hover:underline" href="/admin/reference">
+                Reference
+              </Link>
+              <Link className="hover:underline" href="/admin/bindings">
+                Bindings
+              </Link>
+              <Link className="hover:underline" href="/admin/students">
+                Students
+              </Link>
+            </nav>
+          </div>
         </header>
-        <main style={{ padding: 16 }}>{children}</main>
+
+        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
       </body>
     </html>
   );

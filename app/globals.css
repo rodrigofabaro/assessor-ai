@@ -1,14 +1,26 @@
-* {
-  box-sizing: border-box;
+@import "tailwindcss";
+
+/*
+  Tailwind gives us the bulk of styling.
+  These are just a few global tweaks to make the app feel less "HTML 101".
+*/
+
+:root {
+  color-scheme: light;
 }
 
 html,
 body {
-  padding: 0;
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
-    sans-serif;
-  background: #f9fafb;
-  color: #111827;
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-50 text-zinc-900 antialiased;
+}
+
+/* Nicer default focus rings for keyboard users */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  border-radius: 0.5rem;
 }
