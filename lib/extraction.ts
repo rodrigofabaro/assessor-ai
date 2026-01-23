@@ -31,10 +31,10 @@ export type ExtractFileResult = {
 
 // Tunables
 const PDF_PAGE_TIMEOUT_MS = 15000;
-const MIN_CHARS_PER_PAGE = 20; // used when using PDF.js
-const MIN_TOTAL_TEXT = 50; // final “is this scanned?” truth test
+const MIN_CHARS_PER_PAGE = 20;
+const MIN_TOTAL_TEXT = 50;
 const MAX_PAGES_GUARD = 500;
-const SUBPROCESS_TEXT_MIN = 100; // accept subprocess extraction if it returns at least this many chars
+const SUBPROCESS_TEXT_MIN = 100;
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -52,58 +52,105 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   });
 }
 
-/**
- * Robustly convert PDF.js textContent items into readable text.
- * Handles PDFs where items may have empty `str` but have `chars`.
- */
-function itemsToText(items: any[]): string {
-  const parts: string[] = [];
+function itemsToText(items: any): string {
+  try {
+    const safeItems: any[] = Array.isArray(items) ? items : [];
 
-  for (const it of items) {
-    if (typeof it?.str === "string" && it.str.trim()) {
-      parts.push(it.str);
-      continue;
+    const outLines: string[] = [];
+    let line = "";
+    let lastX: number | null = null;
+    let lastY: number | null = null;
+
+    const flushLine = () => {
+      const cleaned = String(line || "").replace(/\s+/g, " ").trimEnd();
+      if (cleaned) outLines.push(cleaned);
+      line = "";
+      lastX = null;
+      lastY = null;
+    };
+
+    for (const it of safeItems) {
+      let raw = "";
+
+      if (typeof it?.str === "string") {
+        raw = it.str;
+      } else if (Array.isArray(it?.chars)) {
+        raw = it.chars
+          .map((c: any) => (typeof c?.str === "string" ? c.str : ""))
+          .join("");
+      }
+
+      if (!raw || !raw.trim()) {
+        if (it?.hasEOL) flushLine();
+        continue;
+      }
+
+      const text = String(raw).replace(/\s+/g, " ");
+
+      const tr = Array.isArray(it?.transform) ? it.transform : null;
+      const x = tr && Number.isFinite(tr[4]) ? Number(tr[4]) : 0;
+      const y = tr && Number.isFinite(tr[5]) ? Number(tr[5]) : 0;
+
+      // New line if Y jumps significantly
+      if (lastY !== null && Math.abs(y - lastY) > 5) {
+        flushLine();
+      }
+
+      if (line.length > 0 && lastX !== null) {
+        const xGap = x - lastX;
+
+        const prevChar = line.slice(-1);
+        const nextChar = text[0];
+
+        const needsSpace =
+          xGap > 3 &&
+          typeof prevChar === "string" &&
+          typeof nextChar === "string" &&
+          !/[\s([{"'/-]$/.test(prevChar) &&
+          !/[,.;:!?)}\]"']/.test(nextChar);
+
+        if (needsSpace && !line.endsWith(" ")) line += " ";
+      }
+
+      line += text;
+
+      const w = Number.isFinite(it?.width) ? Number(it.width) : 0;
+      lastX = x + (w || 0);
+      lastY = y;
+
+      if (it?.hasEOL) flushLine();
     }
 
-    if (Array.isArray(it?.chars)) {
-      const s = it.chars
-        .map((c: any) => (typeof c?.str === "string" ? c.str : ""))
-        .join("");
-      if (s.trim()) parts.push(s);
-    }
+    flushLine();
+
+    return outLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  } catch {
+    // LAST LINE OF DEFENCE: never throw from text reconstruction
+    return "";
   }
-
-  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
-/**
- * Extract JSON from stdout even if the tool prints warnings/noise.
- * We take the LAST {...} block from stdout and parse that.
- */
+
+function computeIsScannedFromPages(pages: ExtractedPageResult[]): boolean {
+  const combined = pages.map((p) => p.text || "").join("\n").trim();
+  return combined.length < MIN_TOTAL_TEXT;
+}
+
 function parseJsonFromNoisyStdout(stdout: string): any {
   const lastOpen = stdout.lastIndexOf("{");
   const lastClose = stdout.lastIndexOf("}");
   if (lastOpen === -1 || lastClose === -1 || lastClose <= lastOpen) {
     throw new Error(`No JSON object found in stdout.\nSTDOUT:\n${stdout}`);
   }
-  const jsonText = stdout.slice(lastOpen, lastClose + 1);
-  return JSON.parse(jsonText);
+  return JSON.parse(stdout.slice(lastOpen, lastClose + 1));
 }
 
-/**
- * Run pdf-parse as an external Node process.
- * This avoids Next/Webpack/module-format weirdness.
- */
 function runPdfParseInSubprocess(absPath: string): Promise<{ text: string; numpages: number | null }> {
   return new Promise((resolve, reject) => {
     const scriptPath = path.resolve(process.cwd(), "scripts", "pdf-parse-extract.mjs");
 
-    if (!fs.existsSync(scriptPath)) {
-      return reject(new Error(`Missing script: ${scriptPath}`));
-    }
-    if (!fs.existsSync(absPath)) {
-      return reject(new Error(`Missing PDF: ${absPath}`));
-    }
+    if (!fs.existsSync(scriptPath)) return reject(new Error(`Missing script: ${scriptPath}`));
+    if (!fs.existsSync(absPath)) return reject(new Error(`Missing PDF: ${absPath}`));
 
     const child = spawn(process.execPath, [scriptPath, absPath], {
       stdio: ["ignore", "pipe", "pipe"],
@@ -142,170 +189,171 @@ function runPdfParseInSubprocess(absPath: string): Promise<{ text: string; numpa
   });
 }
 
-function computeIsScannedFromPages(pages: ExtractedPageResult[]): boolean {
-  const combined = pages.map((p) => p.text || "").join("\n").trim();
-  return combined.length < MIN_TOTAL_TEXT;
-}
-
 async function extractPdf(absPath: string): Promise<ExtractFileResult> {
   const warnings: string[] = [];
+  const data = new Uint8Array(fs.readFileSync(absPath));
 
-  const buf = fs.readFileSync(absPath);
-  const data = new Uint8Array(buf);
+  // --- PDF.js (per-page) ---
+let pdfjs: any = null;
+try {
+  pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-  // ---------- Attempt 1: pdf-parse via subprocess ----------
+  // IMPORTANT: pdfjs needs a workerSrc, even in Node (it uses a "fake worker").
+  const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
+  if (pdfjs?.GlobalWorkerOptions) {
+    pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
+  }
+} catch (e: any) {
+  warnings.push(`pdfjs load failed: ${String(e?.message || e)}`);
+  pdfjs = null;
+}
+
+
+  let doc: any = null;
+
+  if (pdfjs) {
+    // Rich config first, then minimal config fallback.
+    try {
+      const cmapsDir = path.join(process.cwd(), "node_modules", "pdfjs-dist", "cmaps") + path.sep;
+      const stdFontsDir = path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts") + path.sep;
+
+      const loadingTask = pdfjs.getDocument({
+        data,
+        disableWorker: true,
+        useSystemFonts: true,
+        cMapUrl: pathToFileURL(cmapsDir).toString(),
+        cMapPacked: true,
+        standardFontDataUrl: pathToFileURL(stdFontsDir).toString(),
+      });
+
+      doc = await withTimeout(loadingTask.promise, PDF_PAGE_TIMEOUT_MS, "pdf.getDocument() (rich)");
+    } catch (e: any) {
+      warnings.push(`pdfjs open failed (rich): ${String(e?.message || e)}`);
+
+      try {
+        const loadingTask2 = pdfjs.getDocument({
+          data,
+          disableWorker: true,
+          useSystemFonts: true,
+        });
+
+        doc = await withTimeout(loadingTask2.promise, PDF_PAGE_TIMEOUT_MS, "pdf.getDocument() (minimal)");
+        warnings.push("pdfjs: opened with minimal config");
+      } catch (e2: any) {
+        warnings.push(`pdfjs open failed (minimal): ${String(e2?.message || e2)}`);
+        doc = null;
+      }
+    }
+  }
+
+  const numPages = Number(doc?.numPages ?? 0);
+
+  if (doc && numPages > MAX_PAGES_GUARD) {
+    warnings.push(`PDF too large (${numPages} pages). Guard=${MAX_PAGES_GUARD}`);
+    doc = null;
+  }
+
+  // If PDF.js opened the doc: ALWAYS return per-page structure
+  if (doc && numPages && Number.isFinite(numPages)) {
+    const pages: ExtractedPageResult[] = [];
+    let pagesWithText = 0;
+
+    for (let i = 1; i <= numPages; i++) {
+      try {
+        const page = await withTimeout(doc.getPage(i), PDF_PAGE_TIMEOUT_MS, `pdf.getPage(${i})`);
+        const viewport = page.getViewport({ scale: 1.0 });
+
+        let tc: any;
+        try {
+          tc = await withTimeout(
+            page.getTextContent({ normalizeWhitespace: true, disableCombineTextItems: false }),
+            PDF_PAGE_TIMEOUT_MS,
+            `pdf.getTextContent(${i})`
+          );
+        } catch {
+          tc = await withTimeout(page.getTextContent(), PDF_PAGE_TIMEOUT_MS, `pdf.getTextContent(${i})`);
+        }
+
+        const text = itemsToText(Array.isArray(tc?.items) ? tc.items : []);
+
+        if (text.length >= MIN_CHARS_PER_PAGE) pagesWithText++;
+
+        pages.push({
+          pageNumber: i,
+          text,
+          confidence: text ? 0.9 : 0,
+          width: Number.isFinite(viewport?.width) ? Math.round(viewport.width) : null,
+          height: Number.isFinite(viewport?.height) ? Math.round(viewport.height) : null,
+          tokens: null,
+        });
+      } catch (e: any) {
+        warnings.push(`Page ${i} extraction failed: ${String(e?.message || e)}`);
+        pages.push({ pageNumber: i, text: "", confidence: 0, width: null, height: null, tokens: null });
+      }
+    }
+
+    const isScanned = computeIsScannedFromPages(pages);
+    const fraction = pages.length ? pagesWithText / pages.length : 0;
+    const overallConfidence = isScanned ? 0 : Math.max(0.6, Math.min(0.95, fraction * 0.95));
+
+    warnings.push(`pdfjs: pages=${pages.length}, pagesWithText=${pagesWithText}`);
+
+    if (isScanned) warnings.push("PDF looks scanned/image-only: OCR will be required.");
+
+    return {
+      kind: "PDF",
+      detectedMime: "application/pdf",
+      isScanned,
+      overallConfidence,
+      pages,
+      warnings: warnings.length ? warnings : undefined,
+    };
+  }
+
+  // --- Fallback: pdf-parse subprocess ---
   try {
     const parsed = await withTimeout(runPdfParseInSubprocess(absPath), PDF_PAGE_TIMEOUT_MS, "pdf-parse subprocess");
     const text = (parsed.text ?? "").trim();
 
-    warnings.push(`pdf-parse subprocess: len=${text.length}, numpages=${parsed.numpages ?? "?"}`);
+    warnings.push(`pdf-parse: len=${text.length}, numpages=${parsed.numpages ?? "?"}`);
 
     if (text.length >= SUBPROCESS_TEXT_MIN) {
-      const pages: ExtractedPageResult[] = [
-        { pageNumber: 1, text, confidence: 0.75, width: null, height: null, tokens: null },
-      ];
+      const pageCount = Math.max(1, Number(parsed.numpages ?? 1));
+      const pages: ExtractedPageResult[] = [];
 
-      const isScanned = computeIsScannedFromPages(pages); // truth based on actual extracted text
-      const overallConfidence = isScanned ? 0 : 0.75;
+      // Keep blob on page 1, placeholders for the rest (UI + annotations need stable page anchors).
+      for (let i = 1; i <= pageCount; i++) {
+        pages.push({
+          pageNumber: i,
+          text: i === 1 ? text : "",
+          confidence: i === 1 ? 0.75 : 0,
+          width: null,
+          height: null,
+          tokens: null,
+        });
+      }
+
+      const isScanned = computeIsScannedFromPages(pages);
 
       return {
         kind: "PDF",
         detectedMime: "application/pdf",
         isScanned,
-        overallConfidence,
+        overallConfidence: isScanned ? 0 : 0.75,
         pages,
         warnings: warnings.length ? warnings : undefined,
       };
     }
   } catch (e: any) {
     warnings.push(`pdf-parse subprocess failed: ${String(e?.message || e)}`);
-    // Continue to PDF.js
-  }
-
-  // ---------- Attempt 2: PDF.js (structured per-page) ----------
-  let pdfjs: any;
-  try {
-    pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  } catch (e: any) {
-    return {
-      kind: "PDF",
-      detectedMime: "application/pdf",
-      isScanned: true,
-      overallConfidence: 0,
-      pages: [{ pageNumber: 1, text: "", confidence: 0, width: null, height: null, tokens: null }],
-      warnings: [...warnings, `PDF engine load failed (pdfjs-dist): ${String(e?.message || e)}`],
-    };
-  }
-
-  try {
-    if (pdfjs?.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
-  } catch {
-    // ignore
-  }
-
-  let doc: any;
-  try {
-    const cmapsDir = path.join(process.cwd(), "node_modules", "pdfjs-dist", "cmaps") + path.sep;
-    const stdFontsDir = path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts") + path.sep;
-
-    const loadingTask = pdfjs.getDocument({
-      data,
-      disableWorker: true,
-      useSystemFonts: true,
-      cMapUrl: pathToFileURL(cmapsDir).toString(),
-      cMapPacked: true,
-      standardFontDataUrl: pathToFileURL(stdFontsDir).toString(),
-    });
-
-    doc = await withTimeout(loadingTask.promise, PDF_PAGE_TIMEOUT_MS, "pdf.getDocument()");
-  } catch (e: any) {
-    return {
-      kind: "PDF",
-      detectedMime: "application/pdf",
-      isScanned: true,
-      overallConfidence: 0,
-      pages: [{ pageNumber: 1, text: "", confidence: 0, width: null, height: null, tokens: null }],
-      warnings: [...warnings, `PDF open failed: ${String(e?.message || e)}`],
-    };
-  }
-
-  const numPages = Number(doc?.numPages ?? 0);
-  if (!numPages || !Number.isFinite(numPages)) {
-    return {
-      kind: "PDF",
-      detectedMime: "application/pdf",
-      isScanned: true,
-      overallConfidence: 0,
-      pages: [{ pageNumber: 1, text: "", confidence: 0, width: null, height: null, tokens: null }],
-      warnings: [...warnings, "PDF has no readable pages (numPages missing/invalid)."],
-    };
-  }
-
-  if (numPages > MAX_PAGES_GUARD) {
-    return {
-      kind: "PDF",
-      detectedMime: "application/pdf",
-      isScanned: true,
-      overallConfidence: 0,
-      pages: [{ pageNumber: 1, text: "", confidence: 0, width: null, height: null, tokens: null }],
-      warnings: [...warnings, `PDF too large (${numPages} pages). Refusing extraction (guard=${MAX_PAGES_GUARD}).`],
-    };
-  }
-
-  const pages: ExtractedPageResult[] = [];
-  let pagesWithText = 0;
-
-  for (let i = 1; i <= numPages; i++) {
-    try {
-      const page = await withTimeout(doc.getPage(i), PDF_PAGE_TIMEOUT_MS, `pdf.getPage(${i})`);
-      const viewport = page.getViewport({ scale: 1.0 });
-
-      let textContent: any;
-      try {
-        textContent = await withTimeout(
-          page.getTextContent({ normalizeWhitespace: true, disableCombineTextItems: false }),
-          PDF_PAGE_TIMEOUT_MS,
-          `pdf.getTextContent(${i})`
-        );
-      } catch {
-        textContent = await withTimeout(page.getTextContent(), PDF_PAGE_TIMEOUT_MS, `pdf.getTextContent(${i})`);
-      }
-
-      const items = Array.isArray(textContent?.items) ? textContent.items : [];
-      const text = itemsToText(items);
-
-      if (text.length >= MIN_CHARS_PER_PAGE) pagesWithText++;
-
-      pages.push({
-        pageNumber: i,
-        text,
-        confidence: text ? 0.9 : 0,
-        width: Number.isFinite(viewport?.width) ? Math.round(viewport.width) : null,
-        height: Number.isFinite(viewport?.height) ? Math.round(viewport.height) : null,
-        tokens: null,
-      });
-    } catch (e: any) {
-      warnings.push(`Page ${i} extraction failed: ${String(e?.message || e)}`);
-      pages.push({ pageNumber: i, text: "", confidence: 0, width: null, height: null, tokens: null });
-    }
-  }
-
-  // FINAL truth: scanned or not based on combined extracted text
-  const isScanned = computeIsScannedFromPages(pages);
-
-  const fraction = pages.length ? pagesWithText / pages.length : 0;
-  const overallConfidence = isScanned ? 0 : Math.max(0.6, Math.min(0.95, fraction * 0.95));
-
-  if (isScanned) {
-    warnings.push("PDF appears scanned/image-only (insufficient extractable text). OCR will be required.");
   }
 
   return {
     kind: "PDF",
     detectedMime: "application/pdf",
-    isScanned,
-    overallConfidence,
-    pages,
+    isScanned: true,
+    overallConfidence: 0,
+    pages: [{ pageNumber: 1, text: "", confidence: 0, width: null, height: null, tokens: null }],
     warnings: warnings.length ? warnings : undefined,
   };
 }
