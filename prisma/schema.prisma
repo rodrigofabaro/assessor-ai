@@ -57,12 +57,12 @@ enum GradeBand {
 }
 
 model Student {
-  id         String   @id @default(uuid())
-  name       String
-  studentRef String? // optional: your internal ID / reg number
-  email      String?  @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  fullName    String?
+  email       String?  @unique
+  externalRef String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   submissions Submission[]
 }
@@ -100,7 +100,7 @@ model Submission {
   id             String           @id @default(uuid())
   filename       String
   storedFilename String
-  storagePath    String // local path for dev; later becomes object storage key/url
+  storagePath    String
   status         SubmissionStatus @default(UPLOADED)
 
   uploadedAt DateTime @default(now())
@@ -116,6 +116,16 @@ model Submission {
   extractedText  String?
   extractionRuns SubmissionExtractionRun[]
   assessments    Assessment[]
+
+  // Extraction provenance (recommended)
+  extractedTextHash String?
+  extractionVersion String?
+
+  // Manual linking audit (Phase 3.1)
+  studentLinkedAt DateTime?
+  studentLinkedBy String?
+
+  auditEvents SubmissionAuditEvent[]
 
   @@index([studentId])
   @@index([assignmentId])
@@ -299,4 +309,24 @@ model AssignmentCriterionMap {
   assessmentCriterion AssessmentCriterion @relation(fields: [assessmentCriterionId], references: [id])
 
   @@unique([assignmentBriefId, assessmentCriterionId])
+}
+
+enum AuditEventType {
+  STUDENT_LINKED
+  STUDENT_UNLINKED
+}
+
+model SubmissionAuditEvent {
+  id        String         @id @default(uuid())
+  type      AuditEventType
+  actor     String // "Rodrigo" now, later userId
+  createdAt DateTime       @default(now())
+  meta      Json?
+
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id])
+
+  @@index([submissionId])
+  @@index([type])
+  @@index([actor])
 }

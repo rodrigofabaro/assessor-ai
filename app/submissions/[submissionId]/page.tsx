@@ -43,12 +43,20 @@ type TriageInfo = {
   email?: string | null;
   sampleLines?: string[];
   warnings?: string[];
+
+  studentDetection?: {
+    detected: boolean;
+    linked: boolean;
+    source: "text" | "filename" | "email" | null;
+  };
+
   coverage?: {
     hasUnitSpec: boolean;
     hasAssignmentBrief: boolean;
     missing: string[];
   };
 };
+
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(url, opts);
