@@ -1,71 +1,60 @@
 #!/usr/bin/env node
-/**
- * Robust PDF text extraction via pdf-parse, designed to run as a standalone Node process.
- *
- * Why this exists:
- * - Next.js (and bundlers) can make pdf-parse/pdf.js imports finicky.
- * - Some pdf-parse packages run a self-test when imported as the main module (module.parent undefined),
- *   which blows up in ESM scripts.
- *
- * This script avoids those traps by:
- * - Using createRequire() so pdf-parse is loaded as a child dependency (module.parent is set).
- * - Requiring the library entry directly: pdf-parse/lib/pdf-parse.js (skips the index.js self-test path).
- *
- * Usage:
- *   node scripts/pdf-parse-extract.mjs "C:\\full\\path\\file.pdf"
- *
- * Output:
- *   JSON to stdout: { ok: true, text: "...", numpages: 11 }
- *   Errors to stderr with exit code 1.
- */
+import fs from "node:fs/promises";
+import process from "node:process";
 
-import fs from "fs";
-import path from "path";
-import { createRequire } from "module";
+// IMPORTANT:
+// Use the library entry to avoid pdf-parse's debug side-effect (it tries to read ./test/data/...)
+// which breaks in some builds.
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 
-const require = createRequire(import.meta.url);
+async function renderPageWithDelimiter(pageData) {
+  const textContent = await pageData.getTextContent({
+    normalizeWhitespace: true,
+    disableCombineTextItems: false,
+  });
 
-const inputPath = process.argv[2];
+  let lastY = null;
+  let out = "";
 
-function die(msg, err) {
-  const details = err?.stack || err?.message || String(err || "");
-  process.stderr.write(`[pdf-parse-extract] ${msg}\n${details}\n`);
-  process.exit(1);
+  for (const item of textContent.items || []) {
+    const str = (item?.str || "").trim();
+    if (!str) continue;
+
+    const y = item?.transform?.[5] ?? null;
+
+    // New line when Y changes (roughly a new row)
+    if (lastY !== null && y !== null && y !== lastY) out += "\n";
+
+    out += str + " ";
+    lastY = y;
+  }
+
+  return out.trim() + "\f";
 }
 
-if (!inputPath) {
-  die(
-    "Missing PDF path argument.\nExample: node scripts/pdf-parse-extract.mjs \"C:\\path\\file.pdf\""
+async function main() {
+  const pdfPath = process.argv[2];
+  if (!pdfPath) {
+    process.stderr.write("Usage: node pdf-parse-extract.mjs <path-to-pdf>\n");
+    process.exit(2);
+  }
+
+  const buf = await fs.readFile(pdfPath);
+  const result = await pdfParse(buf, { pagerender: renderPageWithDelimiter });
+
+  process.stdout.write(
+    JSON.stringify({
+      ok: true,
+      numpages: result.numpages,
+      text: result.text,
+      info: result.info ?? null,
+      metadata: result.metadata ?? null,
+      version: result.version ?? null,
+    })
   );
 }
 
-const absPath = path.isAbsolute(inputPath) ? inputPath : path.resolve(process.cwd(), inputPath);
-
-if (!fs.existsSync(absPath)) {
-  die(`File not found: ${absPath}`);
-}
-
-let pdfParseFn;
-try {
-  // IMPORTANT: require the library entry directly to avoid index.js "self-test" mode.
-  pdfParseFn = require("pdf-parse/lib/pdf-parse.js");
-  if (pdfParseFn?.default && typeof pdfParseFn.default === "function") pdfParseFn = pdfParseFn.default;
-} catch (e) {
-  die("Failed to load pdf-parse/lib/pdf-parse.js", e);
-}
-
-if (typeof pdfParseFn !== "function") {
-  die(`pdf-parse did not export a function (got: ${typeof pdfParseFn}).`);
-}
-
-try {
-  const buf = fs.readFileSync(absPath);
-  const parsed = await pdfParseFn(buf);
-
-  const text = String(parsed?.text || "");
-  const numpages = Number.isFinite(parsed?.numpages) ? parsed.numpages : null;
-
-  process.stdout.write(JSON.stringify({ ok: true, text, numpages }));
-} catch (e) {
-  die("Extraction failed", e);
-}
+main().catch((err) => {
+  process.stdout.write(JSON.stringify({ ok: false, error: String(err?.message || err) }));
+  process.exit(1);
+});

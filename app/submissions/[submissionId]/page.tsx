@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 type ExtractedPage = {
@@ -31,9 +31,18 @@ type Submission = {
   filename: string;
   status: string;
   uploadedAt: string;
-  student?: { name: string };
-  assignment?: { unitCode: string; assignmentRef?: string | null; title: string };
+  student?: { name: string } | null;
+  assignment?: { unitCode: string; assignmentRef?: string | null; title: string } | null;
   extractionRuns: ExtractionRun[];
+};
+
+type TriageInfo = {
+  unitCode?: string | null;
+  assignmentRef?: string | null;
+  studentName?: string | null;
+  email?: string | null;
+  sampleLines?: string[];
+  warnings?: string[];
 };
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -49,6 +58,11 @@ function countWords(s: string) {
   return t.split(/\s+/).length;
 }
 
+function sortPages(run: ExtractionRun | null) {
+  const pages = run?.pages ?? [];
+  return [...pages].sort((a, b) => a.pageNumber - b.pageNumber);
+}
+
 export default function SubmissionDetailPage() {
   const params = useParams<{ submissionId: string }>();
   const submissionId = String(params?.submissionId || "");
@@ -57,30 +71,26 @@ export default function SubmissionDetailPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
 
+  const [triageInfo, setTriageInfo] = useState<TriageInfo | null>(null); // ✅ hooks belong inside component
+
   const [viewMode, setViewMode] = useState<"single" | "continuous">("single");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  async function refresh() {
-    if (!submissionId) return;
-    const data = await jsonFetch<{ submission: Submission }>(`/api/submissions/${submissionId}`);
-    setSubmission(data.submission);
+  const refreshSeq = useRef(0);
 
-    // Reset selection safely whenever we refresh
-    setSelectedIndex(0);
-  }
+  // Robust “latest” run selection (don’t trust array order from DB)
+  const latestRun = useMemo(() => {
+    const runs = submission?.extractionRuns ?? [];
+    if (!runs.length) return null;
 
-  useEffect(() => {
-    if (!submissionId) return;
-    refresh().catch((e) => setErr(String(e?.message || e)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId]);
+    return [...runs].sort((a, b) => {
+      const aTime = new Date(a.finishedAt ?? a.startedAt).getTime();
+      const bTime = new Date(b.finishedAt ?? b.startedAt).getTime();
+      return bTime - aTime;
+    })[0];
+  }, [submission]);
 
-  const latestRun = submission?.extractionRuns?.[0] || null;
-
-  const pagesSorted = useMemo(() => {
-    const pages = latestRun?.pages ?? [];
-    return [...pages].sort((a, b) => a.pageNumber - b.pageNumber);
-  }, [latestRun]);
+  const pagesSorted = useMemo(() => sortPages(latestRun), [latestRun]);
 
   const selectedPage = useMemo(() => {
     if (!pagesSorted.length) return null;
@@ -102,6 +112,60 @@ export default function SubmissionDetailPage() {
     return selectedPage?.text || "";
   }, [pagesSorted, selectedPage, viewMode]);
 
+  async function refresh() {
+    if (!submissionId) return;
+
+    // Preserve selection by pageNumber (not index) across refreshes
+    const currentPages = pagesSorted;
+    const currentIdx = Math.min(Math.max(selectedIndex, 0), Math.max(0, currentPages.length - 1));
+    const currentSelectedPageNumber = currentPages[currentIdx]?.pageNumber ?? null;
+
+    const seq = ++refreshSeq.current;
+
+    // Cache-bust to avoid “sticky” data in dev/prod edge cases
+    const data = await jsonFetch<{ submission: Submission }>(`/api/submissions/${submissionId}?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+
+    if (seq !== refreshSeq.current) return; // ignore out-of-order responses
+    setSubmission(data.submission);
+
+    // Rebuild pages from the new response
+    const newRuns = data.submission?.extractionRuns ?? [];
+    const newLatest =
+      newRuns.length === 0
+        ? null
+        : [...newRuns].sort((a, b) => {
+            const aTime = new Date(a.finishedAt ?? a.startedAt).getTime();
+            const bTime = new Date(b.finishedAt ?? b.startedAt).getTime();
+            return bTime - aTime;
+          })[0];
+    const newPages = sortPages(newLatest);
+
+    if (!newPages.length) {
+      setSelectedIndex(0);
+      return;
+    }
+
+    if (currentSelectedPageNumber != null) {
+      const foundIdx = newPages.findIndex((p) => p.pageNumber === currentSelectedPageNumber);
+      setSelectedIndex(foundIdx >= 0 ? foundIdx : 0);
+    } else {
+      setSelectedIndex(0);
+    }
+  }
+
+  useEffect(() => {
+    if (!submissionId) return;
+    let alive = true;
+    setErr("");
+    refresh().catch((e) => alive && setErr(String(e?.message || e)));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionId]);
+
   function goPrev() {
     setSelectedIndex((i) => Math.max(0, i - 1));
   }
@@ -112,9 +176,31 @@ export default function SubmissionDetailPage() {
   async function runExtraction() {
     if (!submissionId) return;
     setErr("");
+    setTriageInfo(null);
     setBusy(true);
+
     try {
+      // 1) extraction (authoritative)
       await jsonFetch(`/api/submissions/${submissionId}/extract`, { method: "POST" });
+
+      // 2) triage (best-effort; should not block)
+      try {
+        const triageRes = await jsonFetch<{ submission: Submission; triage?: TriageInfo }>(
+          `/api/submissions/${submissionId}/triage`,
+          { method: "POST" }
+        );
+
+        setTriageInfo(triageRes.triage ?? null);
+
+        // update header immediately from triage response if provided
+        if (triageRes.submission) setSubmission(triageRes.submission);
+      } catch (e: any) {
+        setTriageInfo({
+          warnings: [`Triage request failed: ${e?.message || String(e)}`],
+        });
+      }
+
+      // 3) refresh (pull latest from GET)
       await refresh();
     } catch (e: any) {
       setErr(e?.message || String(e));
@@ -124,13 +210,7 @@ export default function SubmissionDetailPage() {
   }
 
   return (
-    <main
-      style={{
-        padding: 24,
-        maxWidth: 1280,
-        margin: "0 auto",
-      }}
-    >
+    <main style={{ padding: 24, maxWidth: 1280, margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{
@@ -143,6 +223,8 @@ export default function SubmissionDetailPage() {
       >
         <div style={{ minWidth: 320 }}>
           <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0 }}>Submission</h1>
+
+          {/* Unit and Assignment are separate */}
           <div style={{ marginTop: 10, color: "#374151", display: "grid", gap: 6 }}>
             <div>
               <b>File:</b> {submission?.filename || "-"}
@@ -151,9 +233,12 @@ export default function SubmissionDetailPage() {
               <b>Student:</b> {submission?.student?.name || "-"}
             </div>
             <div>
+              <b>Unit:</b> {submission?.assignment?.unitCode || "-"}
+            </div>
+            <div>
               <b>Assignment:</b>{" "}
               {submission?.assignment
-                ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef ?? ""} — ${submission.assignment.title}`
+                ? `${submission.assignment.assignmentRef ?? "-"} — ${submission.assignment.title}`
                 : "-"}
             </div>
             <div>
@@ -181,7 +266,7 @@ export default function SubmissionDetailPage() {
               fontWeight: 700,
             }}
           >
-            {busy ? "Extracting..." : "Run extraction"}
+            {busy ? "Extracting..." : "Extract"}
           </button>
         </div>
       </div>
@@ -193,6 +278,70 @@ export default function SubmissionDetailPage() {
       )}
 
       {err && <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#fee2e2" }}>{err}</div>}
+
+      {triageInfo && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid #e5e7eb",
+            background: "#f9fafb",
+          }}
+        >
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>Triage notes (auto-fill)</div>
+
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", color: "#111827", fontSize: 13 }}>
+            <div>
+              <b>Detected unit:</b> {triageInfo.unitCode ?? "-"}
+            </div>
+            <div>
+              <b>Detected assignment:</b> {triageInfo.assignmentRef ?? "-"}
+            </div>
+            <div>
+              <b>Detected email:</b> {triageInfo.email ?? "-"}
+            </div>
+            <div>
+              <b>Detected name:</b> {triageInfo.studentName ?? "-"}
+            </div>
+          </div>
+
+          {Array.isArray(triageInfo.warnings) && triageInfo.warnings.length > 0 && (
+            <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "#fff7ed", color: "#9a3412" }}>
+              <div style={{ fontWeight: 800, marginBottom: 6 }}>Warnings</div>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {triageInfo.warnings.map((w, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {Array.isArray(triageInfo.sampleLines) && triageInfo.sampleLines.length > 0 && (
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ cursor: "pointer", color: "#374151", fontWeight: 700 }}>
+                Show sample lines used for detection
+              </summary>
+              <pre
+                style={{
+                  marginTop: 8,
+                  whiteSpace: "pre-wrap",
+                  background: "white",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 10,
+                  padding: 10,
+                  fontSize: 12,
+                  color: "#111827",
+                }}
+              >
+                {triageInfo.sampleLines.join("\n")}
+              </pre>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Latest extraction */}
       <section style={{ marginTop: 20, padding: 16, border: "1px solid #e5e7eb", borderRadius: 14 }}>
@@ -236,16 +385,8 @@ export default function SubmissionDetailPage() {
               </div>
             )}
 
-            {/* Main panels */}
             {pagesSorted.length > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "280px 1fr",
-                  gap: 12,
-                  alignItems: "stretch",
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 12, alignItems: "stretch" }}>
                 {/* Pages list */}
                 <div
                   style={{
@@ -282,9 +423,7 @@ export default function SubmissionDetailPage() {
                           <div style={{ fontWeight: 800 }}>Page {p.pageNumber}</div>
                           <div style={{ color: "#6b7280", fontSize: 12 }}>{words.toLocaleString()} words</div>
                         </div>
-                        <div style={{ marginTop: 4, color: "#6b7280", fontSize: 12 }}>
-                          conf {p.confidence.toFixed(2)}
-                        </div>
+                        <div style={{ marginTop: 4, color: "#6b7280", fontSize: 12 }}>conf {p.confidence.toFixed(2)}</div>
                       </button>
                     );
                   })}
@@ -302,20 +441,12 @@ export default function SubmissionDetailPage() {
                     minWidth: 0,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <div style={{ fontWeight: 800 }}>Text preview</div>
 
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <button
-                        onClick={goPrev}
+                        onClick={() => setSelectedIndex((i) => Math.max(0, i - 1))}
                         disabled={selectedIndex <= 0 || viewMode === "continuous"}
                         style={{
                           padding: "6px 10px",
@@ -330,19 +461,15 @@ export default function SubmissionDetailPage() {
                       </button>
 
                       <button
-                        onClick={goNext}
+                        onClick={() => setSelectedIndex((i) => Math.min(pagesSorted.length - 1, i + 1))}
                         disabled={selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous"}
                         style={{
                           padding: "6px 10px",
                           borderRadius: 10,
                           border: "1px solid #e5e7eb",
                           background: "white",
-                          cursor:
-                            selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous"
-                              ? "not-allowed"
-                              : "pointer",
-                          opacity:
-                            selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous" ? 0.5 : 1,
+                          cursor: selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous" ? "not-allowed" : "pointer",
+                          opacity: selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous" ? 0.5 : 1,
                         }}
                       >
                         Next ▶
@@ -351,12 +478,7 @@ export default function SubmissionDetailPage() {
                       <select
                         value={viewMode}
                         onChange={(e) => setViewMode(e.target.value as any)}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 10,
-                          border: "1px solid #e5e7eb",
-                          background: "white",
-                        }}
+                        style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid #e5e7eb", background: "white" }}
                       >
                         <option value="single">Single page</option>
                         <option value="continuous">Continuous</option>

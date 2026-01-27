@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Student = { id: string; name: string; studentRef?: string | null; email?: string | null };
 type Assignment = { id: string; unitCode: string; title: string; assignmentRef?: string | null };
@@ -36,8 +36,6 @@ export default function UploadPage() {
     const a = (await aRes.json()) as Assignment[];
     setStudents(s);
     setAssignments(a);
-    if (s?.[0]?.id && !studentId) setStudentId(s[0].id);
-    if (a?.[0]?.id && !assignmentId) setAssignmentId(a[0].id);
   }
 
   useEffect(() => {
@@ -45,9 +43,7 @@ export default function UploadPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canUpload = useMemo(() => {
-    return !!studentId && !!assignmentId && files.length > 0 && !busy;
-  }, [studentId, assignmentId, files.length, busy]);
+  const canUpload = files.length > 0 && !busy;
 
   async function onUpload() {
     setBusy(true);
@@ -56,8 +52,8 @@ export default function UploadPage() {
 
     try {
       const fd = new FormData();
-      fd.append("studentId", studentId);
-      fd.append("assignmentId", assignmentId);
+      if (studentId) fd.append("studentId", studentId);
+      if (assignmentId) fd.append("assignmentId", assignmentId);
       files.forEach((f) => fd.append("files", f));
 
       const res = await fetch("/api/submissions/upload", { method: "POST", body: fd });
@@ -120,7 +116,9 @@ export default function UploadPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Upload submissions</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-600">
-          Pick a student and an assignment, then drop in one or more files (PDF/DOCX). Each file becomes its own submission record.
+          Drop in one or more files (PDF/DOCX). Student and assignment are optional — leave them as{" "}
+          <span className="font-medium">Auto / Unassigned</span> and you can confirm later from the submissions list.
+          Each file becomes its own submission record.
         </p>
       </div>
 
@@ -129,7 +127,7 @@ export default function UploadPage() {
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium" htmlFor="student">
-                Student
+                Student <span className="text-xs font-normal text-zinc-500">(optional)</span>
               </label>
               <button
                 type="button"
@@ -139,44 +137,60 @@ export default function UploadPage() {
                 + Add student
               </button>
             </div>
+
             <select
               id="student"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
               className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
             >
-              {students.length === 0 && <option value="">No students yet</option>}
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                  {s.studentRef ? ` (${s.studentRef})` : ""}
+              <option value="">Auto (from cover page) / Unassigned</option>
+              {students.length === 0 ? (
+                <option value="" disabled>
+                  No students yet
                 </option>
-              ))}
+              ) : (
+                students.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                    {s.studentRef ? ` (${s.studentRef})` : ""}
+                  </option>
+                ))
+              )}
             </select>
+
             <p className="text-xs text-zinc-500">
-              Students are stored in the database. Add them once, then reuse forever.
+              You can upload first and assign later. Adding a student here just helps matching and reporting.
             </p>
           </div>
 
           <div className="grid gap-2">
             <label className="text-sm font-medium" htmlFor="assignment">
-              Assignment
+              Assignment <span className="text-xs font-normal text-zinc-500">(optional)</span>
             </label>
+
             <select
               id="assignment"
               value={assignmentId}
               onChange={(e) => setAssignmentId(e.target.value)}
               className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
             >
-              {assignments.length === 0 && <option value="">No assignments yet</option>}
-              {assignments.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.unitCode} {a.assignmentRef ? a.assignmentRef : ""} — {a.title}
+              <option value="">Auto (from cover page) / Unassigned</option>
+              {assignments.length === 0 ? (
+                <option value="" disabled>
+                  No assignments yet
                 </option>
-              ))}
+              ) : (
+                assignments.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.unitCode} {a.assignmentRef ? a.assignmentRef : ""} — {a.title}
+                  </option>
+                ))
+              )}
             </select>
+
             <p className="text-xs text-zinc-500">
-              Tip: keep assignment titles short — they end up in logs and exports.
+              If left unassigned, you’ll confirm it later before grading (to keep results audit-safe).
             </p>
           </div>
         </div>

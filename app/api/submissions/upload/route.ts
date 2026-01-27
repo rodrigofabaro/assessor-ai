@@ -8,15 +8,20 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
-    const studentId = formData.get("studentId") as string | null;
-    const assignmentId = formData.get("assignmentId") as string | null;
+    // Treat empty strings as "not provided"
+    const rawStudentId = formData.get("studentId");
+    const rawAssignmentId = formData.get("assignmentId");
+
+    const studentId =
+      typeof rawStudentId === "string" && rawStudentId.trim() ? rawStudentId.trim() : null;
+
+    const assignmentId =
+      typeof rawAssignmentId === "string" && rawAssignmentId.trim() ? rawAssignmentId.trim() : null;
+
     const files = formData.getAll("files") as File[];
 
-    if (!studentId || !assignmentId || !files || files.length === 0) {
-      return NextResponse.json(
-        { error: "Missing studentId, assignmentId, or files" },
-        { status: 400 }
-      );
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: "Missing files" }, { status: 400 });
     }
 
     const uploadDir = path.join(process.cwd(), "uploads");
@@ -43,8 +48,8 @@ export async function POST(req: Request) {
           storedFilename,
           storagePath,
           status: "UPLOADED",
-          studentId,
-          assignmentId,
+          studentId,      // may be null (Inbox mode)
+          assignmentId,   // may be null (Inbox mode)
         },
       });
 

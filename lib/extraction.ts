@@ -318,15 +318,22 @@ try {
     warnings.push(`pdf-parse: len=${text.length}, numpages=${parsed.numpages ?? "?"}`);
 
     if (text.length >= SUBPROCESS_TEXT_MIN) {
-      const pageCount = Math.max(1, Number(parsed.numpages ?? 1));
+      // Our subprocess script appends a form-feed () delimiter per page.
+      // If present, we can provide genuine per-page text without relying on brittle heuristics.
+      const parts = text
+        .split("")
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      const pageCount = Math.max(1, parts.length || Number(parsed.numpages ?? 1));
       const pages: ExtractedPageResult[] = [];
 
-      // Keep blob on page 1, placeholders for the rest (UI + annotations need stable page anchors).
       for (let i = 1; i <= pageCount; i++) {
+        const pageText = parts.length ? parts[i - 1] ?? "" : i === 1 ? text : "";
         pages.push({
           pageNumber: i,
-          text: i === 1 ? text : "",
-          confidence: i === 1 ? 0.75 : 0,
+          text: pageText,
+          confidence: pageText ? 0.75 : 0,
           width: null,
           height: null,
           tokens: null,

@@ -124,6 +124,16 @@ export async function POST(
       },
     });
 
+    // Best-effort triage: populate studentId/assignmentId and make headers show up immediately.
+    // Do NOT fail extraction if triage fails.
+    try {
+      const triageUrl = new URL(`/api/submissions/${submissionId}/triage`, request.url);
+      await fetch(triageUrl.toString(), { method: "POST" });
+    } catch (e) {
+      console.warn("AUTO_TRIAGE_FAILED", e);
+    }
+
+
     return NextResponse.json({
       ok: true,
       runId,
