@@ -43,6 +43,11 @@ type TriageInfo = {
   email?: string | null;
   sampleLines?: string[];
   warnings?: string[];
+  coverage?: {
+    hasUnitSpec: boolean;
+    hasAssignmentBrief: boolean;
+    missing: string[];
+  };
 };
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -71,7 +76,7 @@ export default function SubmissionDetailPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
 
-  const [triageInfo, setTriageInfo] = useState<TriageInfo | null>(null); // ✅ hooks belong inside component
+  const [triageInfo, setTriageInfo] = useState<TriageInfo | null>(null);
 
   const [viewMode, setViewMode] = useState<"single" | "continuous">("single");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -166,13 +171,6 @@ export default function SubmissionDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
-  function goPrev() {
-    setSelectedIndex((i) => Math.max(0, i - 1));
-  }
-  function goNext() {
-    setSelectedIndex((i) => Math.min(pagesSorted.length - 1, i + 1));
-  }
-
   async function runExtraction() {
     if (!submissionId) return;
     setErr("");
@@ -208,6 +206,10 @@ export default function SubmissionDetailPage() {
       setBusy(false);
     }
   }
+
+  // Helpful derived: show detected unit/assignment even if not linked yet
+  const detectedUnit = triageInfo?.unitCode ?? null;
+  const detectedAssignment = triageInfo?.assignmentRef ?? null;
 
   return (
     <main style={{ padding: 24, maxWidth: 1280, margin: "0 auto" }}>
@@ -303,8 +305,62 @@ export default function SubmissionDetailPage() {
             </div>
             <div>
               <b>Detected name:</b> {triageInfo.studentName ?? "-"}
+              {triageInfo.studentDetection && (
+  <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7280" }}>
+    {triageInfo.studentDetection.linked
+      ? "✅ linked"
+      : triageInfo.studentDetection.detected
+      ? "🟡 detected (not linked)"
+      : "❌ not detected"}
+  </span>
+)}
+
             </div>
           </div>
+
+          {/* ✅ Reference coverage alarm */}
+          {triageInfo.coverage && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 10,
+                borderRadius: 10,
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                color: "#7f1d1d",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: 6 }}>Reference coverage (required for grading)</div>
+
+              <div style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                <div>
+                  <b>Detected:</b>{" "}
+                  {detectedUnit ? `Unit ${detectedUnit}` : "Unit -"}{" "}
+                  {detectedAssignment ? ` / ${detectedAssignment}` : ""}
+                </div>
+                <div>
+                  <b>Unit SPEC:</b> {triageInfo.coverage.hasUnitSpec ? "✅ Found (LOCKED)" : "❌ Missing"}
+                </div>
+                <div>
+                  <b>Assignment BRIEF:</b> {triageInfo.coverage.hasAssignmentBrief ? "✅ Found (LOCKED)" : "❌ Missing"}
+                </div>
+
+                {Array.isArray(triageInfo.coverage.missing) && triageInfo.coverage.missing.length > 0 && (
+                  <ul style={{ margin: "6px 0 0 0", paddingLeft: 18 }}>
+                    {triageInfo.coverage.missing.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {(!triageInfo.coverage.hasUnitSpec || !triageInfo.coverage.hasAssignmentBrief) && (
+                  <div style={{ marginTop: 6 }}>
+                    Grading should stay disabled until the missing references are uploaded and <b>LOCKED</b>.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {Array.isArray(triageInfo.warnings) && triageInfo.warnings.length > 0 && (
             <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "#fff7ed", color: "#9a3412" }}>
@@ -423,7 +479,9 @@ export default function SubmissionDetailPage() {
                           <div style={{ fontWeight: 800 }}>Page {p.pageNumber}</div>
                           <div style={{ color: "#6b7280", fontSize: 12 }}>{words.toLocaleString()} words</div>
                         </div>
-                        <div style={{ marginTop: 4, color: "#6b7280", fontSize: 12 }}>conf {p.confidence.toFixed(2)}</div>
+                        <div style={{ marginTop: 4, color: "#6b7280", fontSize: 12 }}>
+                          conf {p.confidence.toFixed(2)}
+                        </div>
                       </button>
                     );
                   })}
@@ -441,7 +499,15 @@ export default function SubmissionDetailPage() {
                     minWidth: 0,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 10,
+                      flexWrap: "wrap",
+                    }}
+                  >
                     <div style={{ fontWeight: 800 }}>Text preview</div>
 
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -468,8 +534,12 @@ export default function SubmissionDetailPage() {
                           borderRadius: 10,
                           border: "1px solid #e5e7eb",
                           background: "white",
-                          cursor: selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous" ? "not-allowed" : "pointer",
-                          opacity: selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous" ? 0.5 : 1,
+                          cursor:
+                            selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous"
+                              ? "not-allowed"
+                              : "pointer",
+                          opacity:
+                            selectedIndex >= pagesSorted.length - 1 || viewMode === "continuous" ? 0.5 : 1,
                         }}
                       >
                         Next ▶
@@ -478,7 +548,12 @@ export default function SubmissionDetailPage() {
                       <select
                         value={viewMode}
                         onChange={(e) => setViewMode(e.target.value as any)}
-                        style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid #e5e7eb", background: "white" }}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 10,
+                          border: "1px solid #e5e7eb",
+                          background: "white",
+                        }}
                       >
                         <option value="single">Single page</option>
                         <option value="continuous">Continuous</option>

@@ -60,7 +60,7 @@ model Student {
   id         String   @id @default(uuid())
   name       String
   studentRef String? // optional: your internal ID / reg number
-  email      String? @unique
+  email      String?  @unique
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -69,31 +69,38 @@ model Student {
 
 model Assignment {
   id            String   @id @default(uuid())
-  unitCode      String   // e.g. "4017"
-  title         String   // e.g. "Quality Control Tools and Costing"
-  assignmentRef String?  // e.g. "A1", "A2"
+  unitCode      String // e.g. "4017"
+  title         String // e.g. "Quality Control Tools and Costing"
+  assignmentRef String? // e.g. "A1", "A2"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Phase 2.5 bindings (lock state for criteria/brief binding)
-  bindingStatus   String?   // e.g. "DRAFT" | "READY" | "LOCKED"
+  // ✅ Inbox-mode / triage metadata
+  isPlaceholder       Boolean @default(false)
+  triageConfidence    Float?
+  triageSignals       Json?
+  createdFromFilename String?
+
+  // Phase 2.5 bindings
+  bindingStatus   String?
   bindingLockedBy String?
   bindingLockedAt DateTime?
 
-  // Phase 2 linkage: operational assignments can reference a locked brief (A1/A2...)
+  // Link to locked brief (optional)
   assignmentBriefId String?
   assignmentBrief   AssignmentBrief? @relation(fields: [assignmentBriefId], references: [id])
 
   submissions Submission[]
 
   @@index([assignmentBriefId])
+  @@index([unitCode, assignmentRef])
 }
 
 model Submission {
   id             String           @id @default(uuid())
   filename       String
   storedFilename String
-  storagePath    String           // local path for dev; later becomes object storage key/url
+  storagePath    String // local path for dev; later becomes object storage key/url
   status         SubmissionStatus @default(UPLOADED)
 
   uploadedAt DateTime @default(now())
@@ -105,14 +112,13 @@ model Submission {
   student      Student?    @relation(fields: [studentId], references: [id])
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
 
+  // Extraction output (Phase 3)
+  extractedText  String?
+  extractionRuns SubmissionExtractionRun[]
+  assessments    Assessment[]
+
   @@index([studentId])
   @@index([assignmentId])
-
-
-  // Extraction output (Phase 3)
-  extractedText   String?
-  extractionRuns  SubmissionExtractionRun[]
-  assessments     Assessment[]
 }
 
 model SubmissionExtractionRun {
@@ -127,9 +133,9 @@ model SubmissionExtractionRun {
   warnings   Json?
   error      String?
 
-  startedAt  DateTime @default(now())
+  startedAt  DateTime  @default(now())
   finishedAt DateTime?
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime  @updatedAt
 
   submissionId String
   submission   Submission @relation(fields: [submissionId], references: [id])
@@ -224,7 +230,7 @@ model Unit {
 
 model LearningOutcome {
   id               String   @id @default(uuid())
-  loCode           String   // e.g. "LO1"
+  loCode           String // e.g. "LO1"
   description      String
   essentialContent String?
   createdAt        DateTime @default(now())
@@ -239,12 +245,12 @@ model LearningOutcome {
 }
 
 model AssessmentCriterion {
-  id          String   @id @default(uuid())
-  acCode      String   // e.g. "P1", "M2", "D1"
+  id          String    @id @default(uuid())
+  acCode      String // e.g. "P1", "M2", "D1"
   gradeBand   GradeBand
   description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   learningOutcomeId String
   learningOutcome   LearningOutcome @relation(fields: [learningOutcomeId], references: [id])
@@ -256,7 +262,7 @@ model AssessmentCriterion {
 
 model AssignmentBrief {
   id               String       @id @default(uuid())
-  assignmentCode   String       // e.g. "A1"
+  assignmentCode   String // e.g. "A1"
   title            String
   status           RecordStatus @default(DRAFT)
   assignmentNumber Int?
@@ -286,8 +292,8 @@ model AssignmentCriterionMap {
   source     MapSource @default(AUTO_FROM_BRIEF)
   confidence Float?    @default(1)
 
-  assignmentBriefId      String
-  assessmentCriterionId  String
+  assignmentBriefId     String
+  assessmentCriterionId String
 
   assignmentBrief     AssignmentBrief     @relation(fields: [assignmentBriefId], references: [id])
   assessmentCriterion AssessmentCriterion @relation(fields: [assessmentCriterionId], references: [id])
