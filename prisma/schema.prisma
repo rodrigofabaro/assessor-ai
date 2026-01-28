@@ -105,6 +105,12 @@ model Submission {
   filename       String
   storedFilename String
   storagePath    String
+
+  // NEW: file metadata (recommended)
+  mimeType              String?
+  sizeBytes             Int?
+  sourceLastModifiedAt  DateTime?
+
   status         SubmissionStatus @default(UPLOADED)
 
   uploadedAt DateTime @default(now())
@@ -134,6 +140,7 @@ model Submission {
   @@index([studentId])
   @@index([assignmentId])
 }
+
 
 model SubmissionExtractionRun {
   id                String           @id @default(uuid())

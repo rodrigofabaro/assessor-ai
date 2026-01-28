@@ -3,48 +3,118 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+type Student = {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  externalRef: string | null;
+  courseName: string | null;
+};
+
 type Submission = {
   id: string;
   filename: string;
-  status: string;
   uploadedAt: string;
-  student?: { id: string; fullName: string; email?: string | null; externalRef?: string | null } | null;
-  assignment?: { unitCode: string; assignmentRef?: string | null; title: string } | null;
-  extractionRuns: ExtractionRun[];
+  status: string;
+  assignmentId: string | null;
+  assignment?: { title: string | null } | null;
+  studentId: string | null;
+  student?: Student | null;
 };
 
-type StudentPick = { id: string; fullName: string | null; email: string | null; externalRef: string | null };
+type TriageResponse = {
+  submission: Submission;
+  triage: {
+    studentName: string | null;
+    email: string | null;
+    sampleLines: string[];
+    warnings: string[];
+    coverage?: any;
+  };
+};
 
-
-function classNames(...xs: Array<string | false | null | undefined>) {
+function cx(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
+}
+
+function safeDate(s?: string | null) {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString();
+}
+
+async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as any)?.error || `Request failed (${res.status})`);
+  return data as T;
+}
+
+function StatusPill({ children }: { children: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700">
+      {children}
+    </span>
+  );
+}
+
+function IconButton({
+  title,
+  onClick,
+  children,
+  disabled,
+}: {
+  title: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={cx(
+        "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
+        "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50",
+        disabled && "cursor-not-allowed opacity-60"
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function SubmissionsPage() {
   const [items, setItems] = useState<Submission[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
+  const [msg, setMsg] = useState<string>("");
 
-  // Link student modal
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkForSubmissionId, setLinkForSubmissionId] = useState<string | null>(null);
+  const [unlinkedOnly, setUnlinkedOnly] = useState(false);
+
+  // Resolve drawer
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const [resolveId, setResolveId] = useState<string | null>(null);
+  const [triageBusy, setTriageBusy] = useState(false);
+  const [triage, setTriage] = useState<TriageResponse | null>(null);
+  const [triageErr, setTriageErr] = useState<string>("");
+
+  // Student search inside drawer
   const [studentQuery, setStudentQuery] = useState("");
-  const [studentOptions, setStudentOptions] = useState<StudentPick[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [linkBusy, setLinkBusy] = useState(false);
+  const [studentBusy, setStudentBusy] = useState(false);
+  const [studentResults, setStudentResults] = useState<Student[]>([]);
 
-  async function load() {
-    setErr("");
+  async function refresh() {
     setBusy(true);
+    setErr("");
+    setMsg("");
     try {
-      // cache-bust to avoid "sticky" dev/prod edge caching
-      const res = await fetch(`/api/submissions?t=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Failed to load submissions (${res.status}): ${text}`);
-      }
-      const data = (await res.json()) as Submission[];
-      setItems(Array.isArray(data) ? data : []);
+      const list = await jsonFetch<Submission[]>("/api/submissions", { cache: "no-store" });
+      setItems(Array.isArray(list) ? list : []);
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
@@ -52,253 +122,361 @@ export default function SubmissionsPage() {
     }
   }
 
-  async function loadStudentOptions(q: string) {
-    const res = await fetch(`/api/students?query=${encodeURIComponent(q)}`, { cache: "no-store" });
-    const data = await res.json().catch(() => ([]));
-    const arr: StudentPick[] = Array.isArray(data) ? data : Array.isArray((data as any)?.students) ? (data as any).students : [];
-    setStudentOptions(arr);
-  }
-
-  function openLink(submissionId: string) {
-    setErr("");
-    setLinkForSubmissionId(submissionId);
-    setStudentQuery("");
-    setStudentOptions([]);
-    setSelectedStudentId("");
-    setLinkOpen(true);
-  }
-
-  async function confirmLink() {
-    if (!linkForSubmissionId || !selectedStudentId) return;
-    setLinkBusy(true);
-    setErr("");
-    try {
-      const res = await fetch(`/api/submissions/${linkForSubmissionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId: selectedStudentId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `Failed (${res.status})`);
-
-      setLinkOpen(false);
-      await load();
-    } catch (e: any) {
-      setErr(e?.message || String(e));
-    } finally {
-      setLinkBusy(false);
-    }
-  }
-
   useEffect(() => {
-    load();
+    refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const rows = useMemo(() => items ?? [], [items]);
+  const filtered = useMemo(() => {
+    const list = Array.isArray(items) ? items : [];
+    return unlinkedOnly ? list.filter((s) => !s.studentId) : list;
+  }, [items, unlinkedOnly]);
+
+  async function openResolve(submissionId: string) {
+    setResolveId(submissionId);
+    setResolveOpen(true);
+    setTriage(null);
+    setTriageErr("");
+    setStudentQuery("");
+    setStudentResults([]);
+
+    setTriageBusy(true);
+    try {
+      const data = await jsonFetch<TriageResponse>(`/api/submissions/${submissionId}/triage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      setTriage(data);
+
+      const seed = data?.triage?.email || data?.triage?.studentName || "";
+      if (seed) {
+        setStudentQuery(seed);
+        await searchStudents(seed);
+      }
+    } catch (e: any) {
+      setTriageErr(e?.message || String(e));
+    } finally {
+      setTriageBusy(false);
+    }
+  }
+
+  async function searchStudents(q: string) {
+    const query = (q || "").trim();
+    if (!query) {
+      setStudentResults([]);
+      return;
+    }
+    setStudentBusy(true);
+    try {
+      const list = await jsonFetch<Student[]>(`/api/students?query=${encodeURIComponent(query)}`, {
+        cache: "no-store",
+      });
+      setStudentResults(Array.isArray(list) ? list : []);
+    } catch {
+      setStudentResults([]);
+    } finally {
+      setStudentBusy(false);
+    }
+  }
+
+  async function linkStudent(studentId: string) {
+    if (!resolveId) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await jsonFetch(`/api/submissions/${resolveId}/link-student`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+      setMsg("Student linked.");
+      setResolveOpen(false);
+      await refresh();
+    } catch (e: any) {
+      setErr(e?.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <main className="mx-auto max-w-6xl p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
-          <p className="mt-2 text-sm text-zinc-600">
-            Your upload log. Phase 3 adds extraction runs, OCR flags, and confidence.
+          <p className="mt-2 max-w-3xl text-sm text-zinc-600">
+            Upload log and processing status. When a submission is unlinked, use <span className="font-medium">Resolve</span> to read the file hints and attach the correct student.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={load}
-            className={classNames(
-              "h-10 rounded-xl px-4 text-sm font-semibold",
-              busy ? "bg-zinc-200 text-zinc-700" : "border border-zinc-300 bg-white hover:bg-zinc-50"
-            )}
-            disabled={busy}
-          >
-            {busy ? "Refreshing…" : "Refresh"}
-          </button>
-
+        <div className="flex flex-wrap items-center gap-2">
+          <IconButton title="Refresh" onClick={refresh} disabled={busy}>
+            ↻ <span>Refresh</span>
+          </IconButton>
           <Link
-            href="/upload"
-            className="h-10 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+            href="/submissions/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
+            title="Upload"
           >
-            Upload more
+            ⬆ <span>Upload</span>
           </Link>
         </div>
       </div>
 
-      {err && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
-
-      <section className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-200 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              <th className="py-3 pl-4 pr-4">File</th>
-              <th className="py-3 pr-4">Student</th>
-              <th className="py-3 pr-4">Unit</th>
-              <th className="py-3 pr-4">Assignment</th>
-              <th className="py-3 pr-4">Status</th>
-              <th className="py-3 pr-4">Uploaded</th>
-              <th className="py-3 pr-4 text-right">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {rows.map((s) => {
-              const unitCode = s.assignment?.unitCode ?? "-";
-              const assignmentText = s.assignment
-                ? `${s.assignment.assignmentRef ?? "-"} — ${s.assignment.title}`
-                : "-";
-
-              return (
-                <tr key={s.id} className="border-b border-zinc-100">
-                  <td className="py-3 pl-4 pr-4 font-medium">
-                    <Link href={`/submissions/${s.id}`} className="underline underline-offset-4 hover:text-zinc-700">
-                      {s.filename}
-                    </Link>
-                  </td>
-
-                  <td className="py-3 pr-4 text-zinc-700">
-                    {s.student?.id ? (
-                      <Link
-                        href={`/students/${s.student.id}`}
-                        className="font-medium underline underline-offset-4 hover:text-zinc-900"
-                      >
-                        {s.student.fullName || "Unnamed"}
-                      </Link>
-                    ) : (
-                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
-                        Unlinked
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="py-3 pr-4 text-zinc-700">{unitCode}</td>
-
-                  <td className="py-3 pr-4 text-zinc-700">{assignmentText}</td>
-
-                  <td className="py-3 pr-4">
-                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-800">
-                      {s.status}
-                    </span>
-                  </td>
-
-                  <td className="py-3 pr-4 text-zinc-700">{new Date(s.uploadedAt).toLocaleString()}</td>
-
-                  <td className="py-3 pr-4 text-right">
-                    <div className="inline-flex items-center gap-2">
-                      <Link
-                        href={`/submissions/${s.id}`}
-                        className="rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold hover:bg-zinc-50"
-                      >
-                        Open
-                      </Link>
-                      {!s.student?.id ? (
-                        <button
-                          type="button"
-                          onClick={() => openLink(s.id)}
-                          className="rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold hover:bg-zinc-50"
-                        >
-                          Link student
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {rows.length === 0 && (
-              <tr>
-                <td className="py-10 text-center text-sm text-zinc-500" colSpan={7}>
-                  No submissions yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
-
-      {linkOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => (linkBusy ? null : setLinkOpen(false))} />
-          <div className="relative w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold">Link submission to student</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Search by name, email, or AB number. This keeps your upload log clean and makes grading reports sane.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-xl px-2 py-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                onClick={() => (linkBusy ? null : setLinkOpen(false))}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  value={studentQuery}
-                  onChange={(e) => setStudentQuery(e.target.value)}
-                  placeholder="Search students..."
-                  className="h-10 flex-1 rounded-xl border border-zinc-300 px-3 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => loadStudentOptions(studentQuery).catch(() => setStudentOptions([]))}
-                  className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
-                >
-                  Search
-                </button>
-              </div>
-
-              <label className="grid gap-1">
-                <span className="text-sm font-medium">Select student</span>
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-                >
-                  <option value="">Choose…</option>
-                  {studentOptions.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {(s.fullName || "Unnamed") + (s.externalRef ? ` (${s.externalRef})` : "") + (s.email ? ` — ${s.email}` : "")}
-                    </option>
-                  ))}
-                </select>
-                <div className="text-xs text-zinc-500">
-                  Tip: if you don’t see them, add them in Admin → Students.
-                </div>
-              </label>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setLinkOpen(false)}
-                disabled={linkBusy}
-                className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmLink}
-                disabled={linkBusy || !selectedStudentId}
-                className="h-10 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
-              >
-                {linkBusy ? "Linking…" : "Link"}
-              </button>
-            </div>
-          </div>
+      {(err || msg) && (
+        <div
+          className={cx(
+            "mb-4 rounded-xl border p-3 text-sm",
+            err ? "border-red-200 bg-red-50 text-red-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          )}
+        >
+          {err || msg}
         </div>
       )}
-    </div>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-4">
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-zinc-300"
+              checked={unlinkedOnly}
+              onChange={(e) => setUnlinkedOnly(e.target.checked)}
+            />
+            Unlinked only
+          </label>
+
+          <div className="text-xs text-zinc-500">Tip: unlinked items usually need a quick resolve after batch uploads.</div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0">
+            <thead>
+              <tr className="text-left text-xs font-semibold text-zinc-700">
+                <th className="border-b border-zinc-200 bg-white px-4 py-3">File</th>
+                <th className="border-b border-zinc-200 bg-white px-4 py-3">Student</th>
+                <th className="border-b border-zinc-200 bg-white px-4 py-3">Unit</th>
+                <th className="border-b border-zinc-200 bg-white px-4 py-3">Assignment</th>
+                <th className="border-b border-zinc-200 bg-white px-4 py-3">Status</th>
+                <th className="border-b border-zinc-200 bg-white px-4 py-3">Uploaded</th>
+                <th className="border-b border-zinc-200 bg-white px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-10 text-sm text-zinc-600" colSpan={7}>
+                    {unlinkedOnly ? "No unlinked submissions." : "No submissions yet."}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((s) => (
+                  <tr key={s.id} className="text-sm">
+                    <td className="border-b border-zinc-100 px-4 py-3 font-medium text-zinc-900">
+                      <Link className="underline underline-offset-4 hover:opacity-80" href={`/submissions/${s.id}`}>
+                        {s.filename}
+                      </Link>
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-800">
+                      {s.studentId && s.student?.fullName ? (
+                        <Link className="underline underline-offset-4 hover:opacity-80" href={`/students/${s.studentId}`}>
+                          {s.student.fullName}
+                        </Link>
+                      ) : (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+                            Unlinked
+                          </span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{s.assignmentId ? String(s.assignmentId).slice(0, 4) : "—"}</td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      {s.assignment?.title || s.assignmentId || "—"}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3">
+                      <StatusPill>{s.status}</StatusPill>
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{safeDate(s.uploadedAt)}</td>
+                    <td className="border-b border-zinc-100 px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/submissions/${s.id}`}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-50"
+                          title="Open submission"
+                        >
+                          Open
+                        </Link>
+                        {!s.studentId ? (
+                          <button
+                            type="button"
+                            onClick={() => openResolve(s.id)}
+                            className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+                            title="Resolve student"
+                          >
+                            Resolve
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {resolveOpen && (
+        <div className="fixed inset-0 z-50 flex items-stretch justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => (busy ? null : setResolveOpen(false))} />
+
+          <aside className="relative h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl">
+            <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold text-zinc-500">Resolve student</div>
+                  <div className="mt-1 text-lg font-semibold text-zinc-900">Link this submission</div>
+                  <div className="mt-1 text-sm text-zinc-600">
+                    Use hints extracted from the file to find the right student record.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-xl px-2 py-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                  onClick={() => (busy ? null : setResolveOpen(false))}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4">
+              {triageErr ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{triageErr}</div>
+              ) : null}
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold">File hints</div>
+                  {triageBusy ? <div className="text-xs text-zinc-500">Reading…</div> : null}
+                </div>
+
+                <div className="mt-3 grid gap-2 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-zinc-500">Detected name</span>
+                    <span className="font-semibold text-zinc-900">{triage?.triage?.studentName || "—"}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-zinc-500">Detected email</span>
+                    <span className="font-semibold text-zinc-900">{triage?.triage?.email || "—"}</span>
+                  </div>
+                </div>
+
+                {!!triage?.triage?.warnings?.length ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="text-xs font-semibold uppercase tracking-wide">Warnings</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {triage.triage.warnings.slice(0, 5).map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {!!triage?.triage?.sampleLines?.length ? (
+                  <div className="mt-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Preview</div>
+                    <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-800">
+                      {triage.triage.sampleLines.slice(0, 30).map((line, i) => (
+                        <div key={i} className="whitespace-pre-wrap">
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-xs text-zinc-500">
+                      This is a lightweight preview, not a full render. Use <span className="font-medium">Open</span> if you need to inspect the full submission.
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
+                <div className="text-sm font-semibold">Find matching student</div>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={studentQuery}
+                    onChange={(e) => setStudentQuery(e.target.value)}
+                    placeholder="Search by name, email, AB number…"
+                    className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => searchStudents(studentQuery)}
+                    className={cx(
+                      "h-10 rounded-xl px-4 text-sm font-semibold",
+                      "border border-zinc-200 bg-white hover:bg-zinc-50",
+                      studentBusy && "opacity-60"
+                    )}
+                  >
+                    Search
+                  </button>
+                </div>
+
+                <div className="mt-3">
+                  {studentResults.length === 0 ? (
+                    <div className="text-sm text-zinc-600">No results yet.</div>
+                  ) : (
+                    <div className="divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200">
+                      {studentResults.slice(0, 12).map((st) => (
+                        <div key={st.id} className="flex items-start justify-between gap-3 p-3">
+                          <div>
+                            <div className="text-sm font-semibold text-zinc-900">{st.fullName || "—"}</div>
+                            <div className="mt-1 text-xs text-zinc-600">
+                              {[st.email, st.externalRef, st.courseName].filter(Boolean).join(" · ") || "—"}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => linkStudent(st.id)}
+                            className="h-9 rounded-xl bg-zinc-900 px-3 text-sm font-semibold text-white hover:bg-zinc-800"
+                          >
+                            Link
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 text-xs text-zinc-500">
+                  Not finding them? Create the student first in <Link className="underline underline-offset-4" href="/admin/students">Students</Link>, then come back and link.
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <Link
+                  href={resolveId ? `/submissions/${resolveId}` : "/submissions"}
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50"
+                >
+                  Open full submission
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setResolveOpen(false)}
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+    </main>
   );
 }
