@@ -39,6 +39,29 @@ export default defineConfig([
     },
   },
 
+  // ✅ UI helper libs/components and student pages (still moving fast)
+  {
+    files: [
+      "lib/**/*.ts",
+      "lib/**/*.tsx",
+      "components/**/*.ts",
+      "components/**/*.tsx",
+      "app/students/**/*.ts",
+      "app/students/**/*.tsx",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+
+  // ✅ Allow unescaped entities in a few long-form UI pages (copy blocks, quotes)
+  {
+    files: ["app/submissions/**/*.tsx", "app/submissions/**/*.ts"],
+    rules: {
+      "react/no-unescaped-entities": "off",
+    },
+  },
+
 
 
 ]);

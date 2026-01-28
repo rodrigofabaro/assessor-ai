@@ -1,77 +1,104 @@
+// lib/triageHeader.ts
+// Header/cover-page triage helpers.
+// Keep output shape aligned with the TriageExtracted type used elsewhere.
+
 export type TriageExtracted = {
-  fullName: string | null;
+  studentName: string | null;
   studentRef: string | null;
   email: string | null;
   unitCode: string | null;
   assignmentRef: string | null;
-  pearsonUnitSpecCode: string | null;
 };
 
-const WS = /\s+/g;
-
-function clean(s: string): string {
-  return s.replace(WS, " ").replace(/[\u2013\u2014]/g, "-").trim();
+function norm(s: unknown): string | null {
+  const t = String(s ?? "").trim();
+  return t ? t : null;
 }
 
-function pick(re: RegExp, text: string): string | null {
-  const m = text.match(re);
-  if (!m) return null;
-  const v = clean(String(m[1] ?? ""));
-  return v ? v.slice(0, 120) : null;
-}
+/**
+ * Extracts likely header fields from a snippet of text.
+ * This is intentionally conservative (UI assist, not grading logic).
+ */
+export function triageHeader(text: string): TriageExtracted {
+  const src = String(text ?? "");
+  const lines = src
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 80);
 
-export function parseHeader(text: string): TriageExtracted {
-  const t = (text ?? "").replace(/\r/g, "");
+  let studentName: string | null = null;
+  let studentRef: string | null = null;
+  let email: string | null = null;
+  let unitCode: string | null = null;
+  let assignmentRef: string | null = null;
 
-  const email = pick(/\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i, t);
+  // Email
+  for (const l of lines) {
+    const m = l.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    if (m?.[0]) {
+      email = m[0];
+      break;
+    }
+  }
 
-  const name =
-    pick(/(?:^|\n)\s*Name\s*:\s*([^\n]{2,120})/i, t) ??
-    pick(/(?:^|\n)\s*Student\s*Name\s*:\s*([^\n]{2,120})/i, t);
+  // Student ref (AB / TA / etc) - keep broad
+  for (const l of lines) {
+    const m =
+      l.match(/\b(?:AB|TA|ID)\s*[:#-]?\s*([A-Z0-9-]{4,})\b/i) ||
+      l.match(/\b([A-Z]{1,3}\d{4,})\b/);
+    if (m?.[1]) {
+      studentRef = m[1];
+      break;
+    }
+  }
 
-  const unitCode =
-    pick(/Unit\s*Name\s*:\s*(\d{4})\b/i, t) ??
-    pick(/Unit\s*Code\s*:\s*(\d{4})\b/i, t) ??
-    pick(/\bUnit\s+(\d{4})\b/i, t);
+  // Unit code (e.g., 4002 / 4017 / etc, or "Unit 4002")
+  for (const l of lines) {
+    const m = l.match(/\bUnit\s*(\d{4})\b/i) || l.match(/\b(\d{4})\b/);
+    if (m?.[1]) {
+      unitCode = m[1];
+      break;
+    }
+  }
 
-  const pearsonUnitSpecCode =
-    pick(/Unit\s*Code\s*:\s*([A-Z]\/\d{3}\/\d{4})/i, t) ??
-    pick(/\b([A-Z]\/\d{3}\/\d{4})\b/i, t);
+  // Assignment ref (A1/A2 etc)
+  for (const l of lines) {
+    const m = l.match(/\bA\s*(\d{1,2})\b/i) || l.match(/\b(A\d{1,2})\b/i);
+    if (m?.[1]) {
+      const raw = m[1].toUpperCase();
+      assignmentRef = raw.startsWith("A") ? raw : `A${raw}`;
+      break;
+    }
+  }
 
-  const studentRef = pick(
-    /\b(?:Student\s*Ref|Student\s*ID|Ref)\s*[:#]?\s*([A-Z]{1,3}\d{3,10})\b/i,
-    t
-  );
+  // Student name: look for "Name:" first
+  for (const l of lines) {
+    const m = l.match(/\bName\s*[:\-]\s*(.+)$/i);
+    if (m?.[1]) {
+      studentName = norm(m[1]);
+      break;
+    }
+  }
 
-  let assignmentRef =
-    pick(/Assignment\s*Title\s*:\s*([A-Z]\d{1,2})\b/i, t) ??
-    pick(/\bAssignment\s*([A-Z]\d{1,2})\b/i, t);
-
-  if (!assignmentRef) {
-    const m = t.match(/Assignment\s*(\d{1,2})\s*of\s*(\d{1,2})/i);
-    if (m?.[1]) assignmentRef = `A${m[1]}`;
+  // Fallback: first line that looks like a person name (2-4 words, no digits, no @)
+  if (!studentName) {
+    for (const l of lines) {
+      if (l.length > 60) continue;
+      if (/[0-9@]/.test(l)) continue;
+      const words = l.split(/\s+/).filter(Boolean);
+      if (words.length >= 2 && words.length <= 4) {
+        studentName = l;
+        break;
+      }
+    }
   }
 
   return {
-    name: name ?? null,
+    studentName: studentName ?? null,
     studentRef: studentRef ?? null,
     email: email ?? null,
     unitCode: unitCode ?? null,
     assignmentRef: assignmentRef ?? null,
-    pearsonUnitSpecCode: pearsonUnitSpecCode ?? null,
   };
-}
-
-export function scoreExtracted(ex: TriageExtracted): { score: number; confidence: number } {
-  let score = 0;
-  if (ex.name) score += 4;
-  if (ex.unitCode) score += 3;
-  if (ex.assignmentRef) score += 2;
-  if (ex.pearsonUnitSpecCode) score += 1;
-  if (ex.email) score += 1;
-  if (ex.studentRef) score += 1;
-
-  // Map roughly 0..12 -> 0..1
-  const confidence = Math.min(1, Math.max(0, (score - 1) / 10));
-  return { score, confidence };
 }

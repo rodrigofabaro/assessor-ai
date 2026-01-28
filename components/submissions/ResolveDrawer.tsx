@@ -64,9 +64,8 @@ export function ResolveDrawer({
 
     run();
     return () => {
-      cancelled = true  
+      cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, submissionId]);
 
   async function searchStudents(q: string) {

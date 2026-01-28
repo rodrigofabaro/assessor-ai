@@ -1,7 +1,9 @@
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 import { spawn } from "child_process";
 import { pathToFileURL } from "url";
+import type { PDFPageProxy } from "pdfjs-dist";
 
 export type ExtractedToken = {
   text: string;
@@ -36,6 +38,11 @@ const MIN_TOTAL_TEXT = 50;
 const MAX_PAGES_GUARD = 500;
 const SUBPROCESS_TEXT_MIN = 100;
 
+// Performance knobs (safe defaults)
+const PDF_PAGE_CONCURRENCY = 6;
+const LINE_Y_TOL = 4; // tolerance bucket for "same line" grouping
+const SPACE_X_GAP = 3;
+
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`Timeout: ${label} (${ms}ms)`)), ms);
@@ -52,84 +59,128 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   });
 }
 
+async function runWithLimit<T>(tasks: Array<() => Promise<T>>, limit: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+
+  async function worker() {
+    while (true) {
+      const i = next++;
+      if (i >= tasks.length) return;
+      results[i] = await tasks[i]();
+    }
+  }
+
+  const n = Math.max(1, Math.min(limit, tasks.length || 1));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
+/**
+ * Convert PDF.js text items into readable, line-broken text.
+ * Strategy:
+ *  - Pre-normalize items into {text,x,y,w,hasEOL}
+ *  - Sort once by y DESC, x ASC
+ *  - Bucket into lines by y tolerance (LINE_Y_TOL)
+ *  - Within a line, insert spaces based on x gap heuristics
+ */
 function itemsToText(items: any): string {
   try {
     const safeItems: any[] = Array.isArray(items) ? items : [];
+    if (!safeItems.length) return "";
 
-    const outLines: string[] = [];
-    let line = "";
-    let lastX: number | null = null;
-    let lastY: number | null = null;
+    type NormItem = { text: string; x: number; y: number; w: number; hasEOL: boolean };
 
-    const flushLine = () => {
-      const cleaned = String(line || "").replace(/\s+/g, " ").trimEnd();
-      if (cleaned) outLines.push(cleaned);
-      line = "";
-      lastX = null;
-      lastY = null;
-    };
-
+    const norm: NormItem[] = [];
     for (const it of safeItems) {
       let raw = "";
 
-      if (typeof it?.str === "string") {
-        raw = it.str;
-      } else if (Array.isArray(it?.chars)) {
-        raw = it.chars
-          .map((c: any) => (typeof c?.str === "string" ? c.str : ""))
-          .join("");
+      if (typeof it?.str === "string") raw = it.str;
+      else if (Array.isArray(it?.chars)) {
+        raw = it.chars.map((c: any) => (typeof c?.str === "string" ? c.str : "")).join("");
       }
 
-      if (!raw || !raw.trim()) {
-        if (it?.hasEOL) flushLine();
+      const hasEOL = !!it?.hasEOL;
+
+      const cleaned = String(raw || "").replace(/\s+/g, " ").trim();
+      if (!cleaned) {
+        // Even if no text, an explicit EOL can end a line.
+        if (hasEOL) norm.push({ text: "", x: 0, y: Number.NaN, w: 0, hasEOL: true });
         continue;
       }
-
-      const text = String(raw).replace(/\s+/g, " ");
 
       const tr = Array.isArray(it?.transform) ? it.transform : null;
       const x = tr && Number.isFinite(tr[4]) ? Number(tr[4]) : 0;
       const y = tr && Number.isFinite(tr[5]) ? Number(tr[5]) : 0;
+      const w = Number.isFinite(it?.width) ? Number(it.width) : 0;
 
-      // New line if Y jumps significantly
-      if (lastY !== null && Math.abs(y - lastY) > 5) {
-        flushLine();
+      norm.push({ text: cleaned, x, y, w, hasEOL });
+    }
+
+    // Sort once: top-to-bottom (y desc), left-to-right (x asc)
+    norm.sort((a, b) => {
+      const ay = Number.isFinite(a.y) ? a.y : -Infinity;
+      const by = Number.isFinite(b.y) ? b.y : -Infinity;
+      if (ay !== by) return by - ay;
+      return a.x - b.x;
+    });
+
+    const lines: string[] = [];
+    let curY: number | null = null;
+    let cur = "";
+    let lastX: number | null = null;
+
+    const flush = () => {
+      const s = cur.replace(/\s+/g, " ").trimEnd();
+      if (s) lines.push(s);
+      cur = "";
+      curY = null;
+      lastX = null;
+    };
+
+    for (const it of norm) {
+      // Explicit EOL marker
+      if (it.hasEOL && !it.text) {
+        flush();
+        continue;
       }
 
-      if (line.length > 0 && lastX !== null) {
-        const xGap = x - lastX;
+      // Start line
+      if (curY === null) {
+        curY = it.y;
+      } else if (Number.isFinite(it.y) && Number.isFinite(curY) && Math.abs(it.y - curY) > LINE_Y_TOL) {
+        flush();
+        curY = it.y;
+      }
 
-        const prevChar = line.slice(-1);
-        const nextChar = text[0];
+      // Space heuristic within line
+      if (cur.length > 0 && lastX !== null) {
+        const xGap = it.x - lastX;
+        const prevChar = cur.slice(-1);
+        const nextChar = it.text[0];
 
         const needsSpace =
-          xGap > 3 &&
-          typeof prevChar === "string" &&
-          typeof nextChar === "string" &&
+          xGap > SPACE_X_GAP &&
           !/[\s([{"'/-]$/.test(prevChar) &&
           !/[,.;:!?)}\]"']/.test(nextChar);
 
-        if (needsSpace && !line.endsWith(" ")) line += " ";
+        if (needsSpace && !cur.endsWith(" ")) cur += " ";
       }
 
-      line += text;
+      cur += it.text;
+      lastX = it.x + (it.w || 0);
 
-      const w = Number.isFinite(it?.width) ? Number(it.width) : 0;
-      lastX = x + (w || 0);
-      lastY = y;
-
-      if (it?.hasEOL) flushLine();
+      if (it.hasEOL) flush();
     }
 
-    flushLine();
+    flush();
 
-    return outLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   } catch {
     // LAST LINE OF DEFENCE: never throw from text reconstruction
     return "";
   }
 }
-
 
 function computeIsScannedFromPages(pages: ExtractedPageResult[]): boolean {
   const combined = pages.map((p) => p.text || "").join("\n").trim();
@@ -191,23 +242,25 @@ function runPdfParseInSubprocess(absPath: string): Promise<{ text: string; numpa
 
 async function extractPdf(absPath: string): Promise<ExtractFileResult> {
   const warnings: string[] = [];
-  const data = new Uint8Array(fs.readFileSync(absPath));
+
+  // Async read: avoids blocking the Node event loop during extraction.
+  const buf = await fsp.readFile(absPath);
+  const data = new Uint8Array(buf);
 
   // --- PDF.js (per-page) ---
-let pdfjs: any = null;
-try {
-  pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  let pdfjs: any = null;
+  try {
+    pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-  // IMPORTANT: pdfjs needs a workerSrc, even in Node (it uses a "fake worker").
-  const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
-  if (pdfjs?.GlobalWorkerOptions) {
-    pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
+    // IMPORTANT: pdfjs needs a workerSrc, even in Node (it uses a "fake worker").
+    const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
+    if (pdfjs?.GlobalWorkerOptions) {
+      pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
+    }
+  } catch (e: any) {
+    warnings.push(`pdfjs load failed: ${String(e?.message || e)}`);
+    pdfjs = null;
   }
-} catch (e: any) {
-  warnings.push(`pdfjs load failed: ${String(e?.message || e)}`);
-  pdfjs = null;
-}
-
 
   let doc: any = null;
 
@@ -253,51 +306,52 @@ try {
     doc = null;
   }
 
-  // If PDF.js opened the doc: ALWAYS return per-page structure
+  // If PDF.js opened the doc: return per-page structure (concurrency-limited)
   if (doc && numPages && Number.isFinite(numPages)) {
-    const pages: ExtractedPageResult[] = [];
-    let pagesWithText = 0;
-
-    for (let i = 1; i <= numPages; i++) {
-      try {
-        const page = await withTimeout(doc.getPage(i), PDF_PAGE_TIMEOUT_MS, `pdf.getPage(${i})`);
-        const viewport = page.getViewport({ scale: 1.0 });
-
-        let tc: any;
+    const pageCount = Math.max(1, numPages);
+    const tasks: Array<() => Promise<ExtractedPageResult>> = Array.from({ length: pageCount }, (_, idx) => {
+      const i = idx + 1;
+      return async () => {
         try {
-          tc = await withTimeout(
-            page.getTextContent({ normalizeWhitespace: true, disableCombineTextItems: false }),
-            PDF_PAGE_TIMEOUT_MS,
-            `pdf.getTextContent(${i})`
-          );
-        } catch {
-          tc = await withTimeout(page.getTextContent(), PDF_PAGE_TIMEOUT_MS, `pdf.getTextContent(${i})`);
+          const page = (await withTimeout(doc.getPage(i), PDF_PAGE_TIMEOUT_MS, `pdf.getPage(${i})`)) as PDFPageProxy;
+          const viewport = page.getViewport({ scale: 1.0 });
+
+          let tc: any;
+          try {
+            tc = await withTimeout(
+              page.getTextContent({ normalizeWhitespace: true, disableCombineTextItems: false } as any),
+              PDF_PAGE_TIMEOUT_MS,
+              `pdf.getTextContent(${i})`
+            );
+          } catch {
+            tc = await withTimeout(page.getTextContent(), PDF_PAGE_TIMEOUT_MS, `pdf.getTextContent(${i})`);
+          }
+
+          const text = itemsToText(Array.isArray(tc?.items) ? tc.items : []);
+
+          return {
+            pageNumber: i,
+            text,
+            confidence: text ? 0.9 : 0,
+            width: Number.isFinite(viewport?.width) ? Math.round(viewport.width) : null,
+            height: Number.isFinite(viewport?.height) ? Math.round(viewport.height) : null,
+            tokens: null,
+          };
+        } catch (e: any) {
+          warnings.push(`Page ${i} extraction failed: ${String(e?.message || e)}`);
+          return { pageNumber: i, text: "", confidence: 0, width: null, height: null, tokens: null };
         }
+      };
+    });
 
-        const text = itemsToText(Array.isArray(tc?.items) ? tc.items : []);
-
-        if (text.length >= MIN_CHARS_PER_PAGE) pagesWithText++;
-
-        pages.push({
-          pageNumber: i,
-          text,
-          confidence: text ? 0.9 : 0,
-          width: Number.isFinite(viewport?.width) ? Math.round(viewport.width) : null,
-          height: Number.isFinite(viewport?.height) ? Math.round(viewport.height) : null,
-          tokens: null,
-        });
-      } catch (e: any) {
-        warnings.push(`Page ${i} extraction failed: ${String(e?.message || e)}`);
-        pages.push({ pageNumber: i, text: "", confidence: 0, width: null, height: null, tokens: null });
-      }
-    }
+    const pages = await runWithLimit(tasks, PDF_PAGE_CONCURRENCY);
+    const pagesWithText = pages.reduce((n, p) => n + (p.text.length >= MIN_CHARS_PER_PAGE ? 1 : 0), 0);
 
     const isScanned = computeIsScannedFromPages(pages);
     const fraction = pages.length ? pagesWithText / pages.length : 0;
     const overallConfidence = isScanned ? 0 : Math.max(0.6, Math.min(0.95, fraction * 0.95));
 
     warnings.push(`pdfjs: pages=${pages.length}, pagesWithText=${pagesWithText}`);
-
     if (isScanned) warnings.push("PDF looks scanned/image-only: OCR will be required.");
 
     return {
@@ -319,7 +373,6 @@ try {
 
     if (text.length >= SUBPROCESS_TEXT_MIN) {
       // Our subprocess script appends a form-feed () delimiter per page.
-      // If present, we can provide genuine per-page text without relying on brittle heuristics.
       const parts = text
         .split("")
         .map((t) => t.trim())

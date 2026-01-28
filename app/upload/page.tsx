@@ -1,95 +1,43 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { safeJson, cx } from "@/lib/upload/utils";
+import { useUploadPicklists } from "@/lib/upload/useUploadPicklists";
+import type { Student } from "@/lib/upload/types";
+import { StudentPicker } from "@/components/upload/StudentPicker";
+import { AssignmentPicker } from "@/components/upload/AssignmentPicker";
+import { FilePicker } from "@/components/upload/FilePicker";
+import { AddStudentModal } from "@/components/upload/AddStudentModal";
+import { UploadActions } from "@/components/upload/UploadActions";
 
-type Student = { id: string; fullName: string; externalRef?: string | null; email?: string | null };
-type Assignment = { id: string; unitCode: string; title: string; assignmentRef?: string | null };
-
-function classNames(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
-
-async function safeJson(res: Response) {
-  return res.json().catch(() => ({}));
-}
+type UploadResponse = {
+  submissions?: unknown[];
+  error?: string;
+};
 
 export default function UploadPage() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const { studentsSafe, assignmentsSafe, err: picklistErr, setErr: setPicklistErr, refresh } = useUploadPicklists();
+
   const [studentId, setStudentId] = useState("");
   const [assignmentId, setAssignmentId] = useState("");
   const [studentQuery, setStudentQuery] = useState("");
   const [assignmentQuery, setAssignmentQuery] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string>("");
   const [err, setErr] = useState<string>("");
 
-  // Quick-add Student modal
   const [showAddStudent, setShowAddStudent] = useState(false);
-  const [newStudentName, setNewStudentName] = useState("");
-  const [newStudentRef, setNewStudentRef] = useState("");
-  const [newStudentEmail, setNewStudentEmail] = useState("");
-  const [studentBusy, setStudentBusy] = useState(false);
 
   const canUpload = files.length > 0 && !busy;
-
-  const studentsSafe = useMemo(() => (Array.isArray(students) ? students : []), [students]);
-  const assignmentsSafe = useMemo(() => (Array.isArray(assignments) ? assignments : []), [assignments]);
-
-  const studentsFiltered = useMemo(() => {
-    const q = studentQuery.trim().toLowerCase();
-    if (!q) return studentsSafe;
-    return studentsSafe.filter((s) => {
-      const blob = `${s.fullName ?? ""} ${s.externalRef ?? ""} ${s.email ?? ""}`.toLowerCase();
-      return blob.includes(q);
-    });
-  }, [studentsSafe, studentQuery]);
-
-  const assignmentsFiltered = useMemo(() => {
-    const q = assignmentQuery.trim().toLowerCase();
-    if (!q) return assignmentsSafe;
-    return assignmentsSafe.filter((a) => {
-      const blob = `${a.unitCode ?? ""} ${a.assignmentRef ?? ""} ${a.title ?? ""}`.toLowerCase();
-      return blob.includes(q);
-    });
-  }, [assignmentsSafe, assignmentQuery]);
-
-  async function loadPicklists() {
-    setErr("");
-
-    const [sRes, aRes] = await Promise.all([fetch("/api/students"), fetch("/api/assignments")]);
-
-    if (!sRes.ok) {
-      const j = await safeJson(sRes);
-      throw new Error(j?.error || `Failed to load students (${sRes.status})`);
-    }
-    if (!aRes.ok) {
-      const j = await safeJson(aRes);
-      throw new Error(j?.error || `Failed to load assignments (${aRes.status})`);
-    }
-
-    // Students endpoint is usually { students: [...] }
-    const sJson = await safeJson(sRes);
-    const aJson = await safeJson(aRes);
-
-    const s = (Array.isArray(sJson) ? sJson : sJson?.students) as Student[] | undefined;
-    const a = (Array.isArray(aJson) ? aJson : aJson?.assignments) as Assignment[] | undefined;
-
-    setStudents(Array.isArray(s) ? s : []);
-    setAssignments(Array.isArray(a) ? a : []);
-  }
-
-  useEffect(() => {
-    loadPicklists().catch((e) => setErr(e?.message || String(e)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const mergedErr = err || picklistErr;
 
   async function onUpload() {
     setBusy(true);
     setMsg("");
     setErr("");
+    setPicklistErr("");
 
     try {
       const fd = new FormData();
@@ -98,65 +46,28 @@ export default function UploadPage() {
       files.forEach((f) => fd.append("files", f));
 
       const res = await fetch("/api/submissions/upload", { method: "POST", body: fd });
+      const j = (await safeJson(res)) as UploadResponse;
+
       if (!res.ok) {
-        const j = await safeJson(res);
         throw new Error(j?.error || `Upload failed (${res.status})`);
       }
 
-      const data = await safeJson(res);
-      const n = data?.submissions?.length ?? 0;
+      const n = Array.isArray(j?.submissions) ? j.submissions.length : 0;
 
       setMsg(`Uploaded ${n} file${n === 1 ? "" : "s"}.`);
       setFiles([]);
-    } catch (e: any) {
-      setErr(e?.message || String(e));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(msg);
     } finally {
       setBusy(false);
     }
   }
 
-  async function addStudent() {
-    setStudentBusy(true);
-    setErr("");
-    setMsg("");
-
-    try {
-      const fullName = newStudentName.trim();
-      const externalRef = newStudentRef.trim() || null;
-      const email = newStudentEmail.trim() || null;
-
-      if (!fullName) throw new Error("Student name is required.");
-
-      const res = await fetch("/api/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // match schema: fullName + externalRef + email
-        body: JSON.stringify({ fullName, externalRef, email }),
-      });
-
-      if (!res.ok) {
-        const j = await safeJson(res);
-        throw new Error(j?.error || `Failed to create student (${res.status})`);
-      }
-
-      const createdJson = await safeJson(res);
-      // endpoint may return { student: {...} } or {...}
-      const created: Student = (createdJson?.student ?? createdJson) as Student;
-
-      await loadPicklists();
-
-      if (created?.id) setStudentId(created.id);
-      setShowAddStudent(false);
-      setNewStudentName("");
-      setNewStudentRef("");
-      setNewStudentEmail("");
-
-      setMsg(`Student added: ${created?.fullName ?? fullName}`);
-    } catch (e: any) {
-      setErr(e?.message || String(e));
-    } finally {
-      setStudentBusy(false);
-    }
+  function onStudentCreated(created: Student) {
+    if (created?.id) setStudentId(created.id);
+    setStudentQuery(created?.fullName ?? "");
+    setMsg(`Student added: ${created?.fullName ?? "Created"}`);
   }
 
   return (
@@ -165,274 +76,53 @@ export default function UploadPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Upload submissions</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-600">
           Drop in one or more files (PDF/DOCX). Student and assignment are optional — leave them as{" "}
-          <span className="font-medium">Auto / Unassigned</span> and confirm later in the submissions list.
-          Each file becomes its own submission record.
+          <span className="font-medium">Auto / Unassigned</span> and confirm later in the submissions list. Each file
+          becomes its own submission record.
         </p>
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Student */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium" htmlFor="student">
-                Student <span className="text-xs font-normal text-zinc-500">(optional)</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowAddStudent(true)}
-                className="text-xs font-medium text-blue-700 hover:underline"
-              >
-                + Add student
-              </button>
-            </div>
-
-            <div className="grid gap-2">
-              <input
-                value={studentQuery}
-                onChange={(e) => setStudentQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const only = studentsFiltered.length === 1 ? studentsFiltered[0] : null;
-                    if (only?.id) setStudentId(only.id);
-                  }
-                }}
-                placeholder="Search student… (name, ref, email)"
-                className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
-              />
-              <div className="text-[11px] text-zinc-500">
-                Tip: type a name to filter, then press Enter if only one match remains.
-              </div>
-            </div>
-
-            <select
-              id="student"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
-            >
-              <option value="">Auto (from cover page) / Unassigned</option>
-
-              {studentsFiltered.length === 0 ? (
-                <option value="" disabled>
-                  No matching students
-                </option>
-              ) : (
-                studentsFiltered.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.fullName}
-                    {s.externalRef ? ` (${s.externalRef})` : ""}
-                    {s.email ? ` — ${s.email}` : ""}
-                  </option>
-                ))
-              )}
-            </select>
-
-            <p className="text-xs text-zinc-500">
-              You can upload first and assign later. Selecting a student here helps reporting and reduces manual linking.
-            </p>
-          </div>
-
-          {/* Assignment */}
-          <div className="grid gap-2">
-            <label className="text-sm font-medium" htmlFor="assignment">
-              Assignment <span className="text-xs font-normal text-zinc-500">(optional)</span>
-            </label>
-
-            <input
-              value={assignmentQuery}
-              onChange={(e) => setAssignmentQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const only = assignmentsFiltered.length === 1 ? assignmentsFiltered[0] : null;
-                  if (only?.id) setAssignmentId(only.id);
-                }
-              }}
-              placeholder="Search assignment… (unit code, A1, title)"
-              className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
-            />
-
-            <select
-              id="assignment"
-              value={assignmentId}
-              onChange={(e) => setAssignmentId(e.target.value)}
-              className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
-            >
-              <option value="">Auto (from cover page) / Unassigned</option>
-
-              {assignmentsFiltered.length === 0 ? (
-                <option value="" disabled>
-                  No matching assignments
-                </option>
-              ) : (
-                assignmentsFiltered.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.unitCode} {a.assignmentRef ? a.assignmentRef : ""} — {a.title}
-                  </option>
-                ))
-              )}
-            </select>
-
-            <p className="text-xs text-zinc-500">
-              If left unassigned, you’ll confirm it later before grading (audit-safe).
-            </p>
-          </div>
-        </div>
-
-        {/* Files */}
-        <div className="mt-4 grid gap-2">
-          <label className="text-sm font-medium" htmlFor="files">
-            Files
-          </label>
-          <input
-            id="files"
-            type="file"
-            multiple
-            accept=".pdf,.docx"
-            onChange={(e) => setFiles(Array.from(e.target.files || []))}
-            className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
+          <StudentPicker
+            students={studentsSafe}
+            studentId={studentId}
+            setStudentId={setStudentId}
+            studentQuery={studentQuery}
+            setStudentQuery={setStudentQuery}
+            onAddStudent={() => setShowAddStudent(true)}
           />
 
-          {files.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {files.map((f) => (
-                <span
-                  key={f.name + f.size}
-                  className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs"
-                  title={`${f.name} (${Math.round(f.size / 1024)} KB)`}
-                >
-                  <span className="max-w-[240px] truncate">{f.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setFiles((xs) => xs.filter((x) => x !== f))}
-                    className="rounded-full px-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"
-                    aria-label={`Remove ${f.name}`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+          <AssignmentPicker
+            assignments={assignmentsSafe}
+            assignmentId={assignmentId}
+            setAssignmentId={setAssignmentId}
+            assignmentQuery={assignmentQuery}
+            setAssignmentQuery={setAssignmentQuery}
+          />
         </div>
 
-        {/* Actions */}
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button
-            onClick={onUpload}
-            disabled={!canUpload}
-            className={classNames(
-              "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm",
-              canUpload ? "bg-zinc-900 text-white hover:bg-zinc-800" : "cursor-not-allowed bg-zinc-300 text-zinc-600"
-            )}
-          >
-            {busy ? "Uploading…" : "Upload"}
-          </button>
+        <FilePicker files={files} setFiles={(updater) => setFiles((xs) => updater(xs))} />
 
-          <Link
-            href="/submissions"
-            className="text-sm font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
-          >
-            View submissions
-          </Link>
+        <UploadActions busy={busy} canUpload={canUpload} onUpload={onUpload} />
 
-          <Link
-            href="/students"
-            className="text-sm font-medium text-blue-700 underline underline-offset-4 hover:text-blue-800"
-          >
-            Manage students
-          </Link>
-        </div>
-
-        {(err || msg) && (
+        {(mergedErr || msg) && (
           <div
-            className={classNames(
+            className={cx(
               "mt-4 rounded-xl border p-3 text-sm",
-              err ? "border-red-200 bg-red-50 text-red-900" : "border-indigo-200 bg-indigo-50 text-indigo-900"
+              mergedErr ? "border-red-200 bg-red-50 text-red-900" : "border-indigo-200 bg-indigo-50 text-indigo-900"
             )}
           >
-            {err || msg}
+            {mergedErr || msg}
           </div>
         )}
       </section>
 
-      {/* Add Student Modal */}
-      {showAddStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => (studentBusy ? null : setShowAddStudent(false))}
-          />
-          <div className="relative w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold">Add student</h2>
-                <p className="mt-1 text-sm text-zinc-600">Create a student record for the dropdown.</p>
-              </div>
-              <button
-                type="button"
-                className="rounded-xl px-2 py-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                onClick={() => (studentBusy ? null : setShowAddStudent(false))}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <label className="grid gap-1">
-                <span className="text-sm font-medium">Name</span>
-                <input
-                  value={newStudentName}
-                  onChange={(e) => setNewStudentName(e.target.value)}
-                  placeholder="e.g. Joseph Barber"
-                  className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-                />
-              </label>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1">
-                  <span className="text-sm font-medium">External ref (optional)</span>
-                  <input
-                    value={newStudentRef}
-                    onChange={(e) => setNewStudentRef(e.target.value)}
-                    placeholder="e.g. TA49186"
-                    className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-                  />
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-sm font-medium">Email (optional)</span>
-                  <input
-                    value={newStudentEmail}
-                    onChange={(e) => setNewStudentEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAddStudent(false)}
-                disabled={studentBusy}
-                className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={addStudent}
-                disabled={studentBusy}
-                className="h-10 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
-              >
-                {studentBusy ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddStudentModal
+        open={showAddStudent}
+        onClose={() => setShowAddStudent(false)}
+        onCreated={onStudentCreated}
+        refreshPicklists={refresh}
+      />
     </div>
   );
 }

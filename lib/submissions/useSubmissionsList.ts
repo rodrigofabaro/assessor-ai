@@ -36,7 +36,6 @@ export function useSubmissionsList() {
 
   useEffect(() => {
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const statuses = useMemo(() => {
