@@ -254,7 +254,9 @@ export async function POST(_req: Request, ctx: { params: Promise<{ submissionId:
 
   const unitCode = textSignals.unitCode || fileSignals.unitCode;
   const assignmentRef = textSignals.assignmentRef || fileSignals.assignmentRef;
-  const studentName = textSignals.studentName || fileSignals.studentName;
+  let studentName = textSignals.studentName || fileSignals.studentName;
+  if (studentName) studentName = norm(studentName);
+
 
   if (!existing.extractedText || existing.extractedText.trim().length < 50) {
     warnings.push("Triage: extractedText is empty/too short; falling back to filename-only signals.");
@@ -302,17 +304,32 @@ export async function POST(_req: Request, ctx: { params: Promise<{ submissionId:
     }
   }
 
-  // Resolve Student (email first, then name) — do NOT create students automatically yet
-  let student: { id: string } | null = null;
 
-  if (textSignals.email) {
-    const found = await prisma.student.findFirst({ where: { email: textSignals.email }, select: { id: true } });
-    if (found) student = found;
-  }
 
-  if (!student && studentName) {
+  
+// Resolve Student (email first, then name) — do NOT create students automatically yet
+let student: { id: string } | null = null;
+
+if (textSignals.email) {
+  const found = await prisma.student.findFirst({
+    where: { email: textSignals.email },
+    select: { id: true },
+  });
+  if (found) student = found;
+}
+
+// Only attempt name resolution if we have a candidate name AND email didn't already resolve
+if (!student && studentName) {
+  // extra guard to stop obvious false positives (unit titles, IDs, etc)
+  const looksLikeNotAName =
+    /\b(HNC|HND|BTEC|Unit|LO\d|P\d|M\d|D\d)\b/i.test(studentName) ||
+    /\b\d{4}\b/.test(studentName) ||
+    /\bH\d{6,}\b/i.test(studentName) ||
+    studentName.length > 60;
+
+  if (!looksLikeNotAName) {
     const exact = await prisma.student.findFirst({
-      where: { name: { equals: studentName, mode: "insensitive" } },
+      where: { fullName: { equals: studentName, mode: "insensitive" } },
       select: { id: true },
     });
 
@@ -321,15 +338,22 @@ export async function POST(_req: Request, ctx: { params: Promise<{ submissionId:
     } else {
       const parts = studentName.split(" ").filter(Boolean);
       const last = parts[parts.length - 1];
+
       if (last && last.length >= 3) {
         const partial = await prisma.student.findFirst({
-          where: { name: { contains: last, mode: "insensitive" } },
+          where: { fullName: { contains: last, mode: "insensitive" } }, // ✅ fullName, not name
           select: { id: true },
         });
         if (partial) student = partial;
       }
     }
+  } else {
+    // we keep studentName for reporting, but we avoid DB matching attempts
+    warnings.push(`Triage: detected name-like text ("${studentName}") looks non-person (ignored for linking).`);
   }
+}
+
+
 
   // ✅ IMPORTANT: this warning is about LINKING, not DETECTION
   if (!student && studentName) {
@@ -365,10 +389,17 @@ export async function POST(_req: Request, ctx: { params: Promise<{ submissionId:
   const studentDetection = {
     detected: !!studentName || !!textSignals.email,
     linked: !!student?.id,
-    source: textSignals.studentName ? "text" : fileSignals.studentName ? "filename" : textSignals.email ? "email" : null,
+   source: textSignals.studentName
+  ? "text"
+  : fileSignals.studentName
+  ? "filename"
+  : textSignals.email
+  ? "email"
+  : null,
+
   } as const;
 
-  return NextResponse.json({
+ return NextResponse.json({
     submission,
     triage: {
       unitCode,

@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type Student = { id: string; name: string; studentRef?: string | null; email?: string | null };
+type Student = { id: string; fullName: string; externalRef?: string | null; email?: string | null };
 type Assignment = { id: string; unitCode: string; title: string; assignmentRef?: string | null };
 
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
+}
+
+async function safeJson(res: Response) {
+  return res.json().catch(() => ({}));
 }
 
 export default function UploadPage() {
@@ -27,23 +31,40 @@ export default function UploadPage() {
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
 
+  const canUpload = files.length > 0 && !busy;
+
+  const studentsSafe = useMemo(() => (Array.isArray(students) ? students : []), [students]);
+  const assignmentsSafe = useMemo(() => (Array.isArray(assignments) ? assignments : []), [assignments]);
+
   async function loadPicklists() {
     setErr("");
+
     const [sRes, aRes] = await Promise.all([fetch("/api/students"), fetch("/api/assignments")]);
-    if (!sRes.ok) throw new Error(`Failed to load students (${sRes.status})`);
-    if (!aRes.ok) throw new Error(`Failed to load assignments (${aRes.status})`);
-    const s = (await sRes.json()) as Student[];
-    const a = (await aRes.json()) as Assignment[];
-    setStudents(s);
-    setAssignments(a);
+
+    if (!sRes.ok) {
+      const j = await safeJson(sRes);
+      throw new Error(j?.error || `Failed to load students (${sRes.status})`);
+    }
+    if (!aRes.ok) {
+      const j = await safeJson(aRes);
+      throw new Error(j?.error || `Failed to load assignments (${aRes.status})`);
+    }
+
+    // Students endpoint is usually { students: [...] }
+    const sJson = await safeJson(sRes);
+    const aJson = await safeJson(aRes);
+
+    const s = (Array.isArray(sJson) ? sJson : sJson?.students) as Student[] | undefined;
+    const a = (Array.isArray(aJson) ? aJson : aJson?.assignments) as Assignment[] | undefined;
+
+    setStudents(Array.isArray(s) ? s : []);
+    setAssignments(Array.isArray(a) ? a : []);
   }
 
   useEffect(() => {
     loadPicklists().catch((e) => setErr(e?.message || String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const canUpload = files.length > 0 && !busy;
 
   async function onUpload() {
     setBusy(true);
@@ -58,12 +79,13 @@ export default function UploadPage() {
 
       const res = await fetch("/api/submissions/upload", { method: "POST", body: fd });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
+        const j = await safeJson(res);
         throw new Error(j?.error || `Upload failed (${res.status})`);
       }
 
-      const data = await res.json();
+      const data = await safeJson(res);
       const n = data?.submissions?.length ?? 0;
+
       setMsg(`Uploaded ${n} file${n === 1 ? "" : "s"}.`);
       setFiles([]);
     } catch (e: any) {
@@ -79,31 +101,37 @@ export default function UploadPage() {
     setMsg("");
 
     try {
-      const name = newStudentName.trim();
-      const studentRef = newStudentRef.trim() || null;
+      const fullName = newStudentName.trim();
+      const externalRef = newStudentRef.trim() || null;
       const email = newStudentEmail.trim() || null;
 
-      if (!name) throw new Error("Student name is required.");
+      if (!fullName) throw new Error("Student name is required.");
 
       const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, studentRef, email }),
+        // match schema: fullName + externalRef + email
+        body: JSON.stringify({ fullName, externalRef, email }),
       });
 
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
+        const j = await safeJson(res);
         throw new Error(j?.error || `Failed to create student (${res.status})`);
       }
 
-      const created = (await res.json()) as Student;
+      const createdJson = await safeJson(res);
+      // endpoint may return { student: {...} } or {...}
+      const created: Student = (createdJson?.student ?? createdJson) as Student;
+
       await loadPicklists();
-      setStudentId(created.id);
+
+      if (created?.id) setStudentId(created.id);
       setShowAddStudent(false);
       setNewStudentName("");
       setNewStudentRef("");
       setNewStudentEmail("");
-      setMsg(`Student added: ${created.name}`);
+
+      setMsg(`Student added: ${created?.fullName ?? fullName}`);
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
@@ -117,13 +145,14 @@ export default function UploadPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Upload submissions</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-600">
           Drop in one or more files (PDF/DOCX). Student and assignment are optional — leave them as{" "}
-          <span className="font-medium">Auto / Unassigned</span> and you can confirm later from the submissions list.
+          <span className="font-medium">Auto / Unassigned</span> and confirm later in the submissions list.
           Each file becomes its own submission record.
         </p>
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-2">
+          {/* Student */}
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium" htmlFor="student">
@@ -145,25 +174,28 @@ export default function UploadPage() {
               className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
             >
               <option value="">Auto (from cover page) / Unassigned</option>
-              {students.length === 0 ? (
+
+              {studentsSafe.length === 0 ? (
                 <option value="" disabled>
                   No students yet
                 </option>
               ) : (
-                students.map((s) => (
+                studentsSafe.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
-                    {s.studentRef ? ` (${s.studentRef})` : ""}
+                    {s.fullName}
+                    {s.externalRef ? ` (${s.externalRef})` : ""}
+                    {s.email ? ` — ${s.email}` : ""}
                   </option>
                 ))
               )}
             </select>
 
             <p className="text-xs text-zinc-500">
-              You can upload first and assign later. Adding a student here just helps matching and reporting.
+              You can upload first and assign later. Selecting a student here helps reporting and reduces manual linking.
             </p>
           </div>
 
+          {/* Assignment */}
           <div className="grid gap-2">
             <label className="text-sm font-medium" htmlFor="assignment">
               Assignment <span className="text-xs font-normal text-zinc-500">(optional)</span>
@@ -176,12 +208,13 @@ export default function UploadPage() {
               className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
             >
               <option value="">Auto (from cover page) / Unassigned</option>
-              {assignments.length === 0 ? (
+
+              {assignmentsSafe.length === 0 ? (
                 <option value="" disabled>
                   No assignments yet
                 </option>
               ) : (
-                assignments.map((a) => (
+                assignmentsSafe.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.unitCode} {a.assignmentRef ? a.assignmentRef : ""} — {a.title}
                   </option>
@@ -190,11 +223,12 @@ export default function UploadPage() {
             </select>
 
             <p className="text-xs text-zinc-500">
-              If left unassigned, you’ll confirm it later before grading (to keep results audit-safe).
+              If left unassigned, you’ll confirm it later before grading (audit-safe).
             </p>
           </div>
         </div>
 
+        {/* Files */}
         <div className="mt-4 grid gap-2">
           <label className="text-sm font-medium" htmlFor="files">
             Files
@@ -231,6 +265,7 @@ export default function UploadPage() {
           )}
         </div>
 
+        {/* Actions */}
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             onClick={onUpload}
@@ -251,7 +286,7 @@ export default function UploadPage() {
           </Link>
 
           <Link
-            href="/admin/students"
+            href="/students"
             className="text-sm font-medium text-blue-700 underline underline-offset-4 hover:text-blue-800"
           >
             Manage students
@@ -306,7 +341,7 @@ export default function UploadPage() {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="grid gap-1">
-                  <span className="text-sm font-medium">Student ref (optional)</span>
+                  <span className="text-sm font-medium">External ref (optional)</span>
                   <input
                     value={newStudentRef}
                     onChange={(e) => setNewStudentRef(e.target.value)}

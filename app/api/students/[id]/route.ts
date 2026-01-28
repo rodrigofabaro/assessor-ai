@@ -3,20 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await ctx.params;
 
-    // If there are submissions pointing at this student, we block deletion.
-    // This keeps audit trails intact and avoids referential chaos.
-    const subCount = await prisma.submission.count({ where: { studentId: id } });
-    if (subCount > 0) {
+    // Block deletion if linked submissions exist (audit safety)
+    const cnt = await prisma.submission.count({ where: { studentId: id } });
+    if (cnt > 0) {
       return NextResponse.json(
-        {
-          error:
-            "Cannot delete this student because submissions exist for them. (Audit trails must remain intact.)",
-        },
+        { error: "Cannot delete student: submissions exist for this student." },
         { status: 409 }
       );
     }
@@ -24,7 +20,57 @@ export async function DELETE(
     await prisma.student.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    const msg = typeof e?.message === "string" ? e.message : String(e);
-    return NextResponse.json({ error: msg || "Delete failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Delete failed" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params;
+    const body = await req.json().catch(() => ({}));
+
+    const fullName =
+      typeof body.fullName === "string" ? body.fullName.trim() : undefined;
+    const email =
+      typeof body.email === "string" ? body.email.trim() || null : undefined;
+    const externalRef =
+      typeof body.externalRef === "string"
+        ? body.externalRef.trim() || null
+        : undefined;
+    const courseName =
+      typeof body.courseName === "string"
+        ? body.courseName.trim() || null
+        : undefined;
+
+    if (!fullName) {
+      return NextResponse.json(
+        { error: "fullName is required." },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.student.update({
+      where: { id },
+      data: {
+        fullName,
+        ...(email !== undefined ? { email } : {}),
+        ...(externalRef !== undefined ? { externalRef } : {}),
+        ...(courseName !== undefined ? { courseName } : {}),
+      },
+      select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true },
+    });
+
+    return NextResponse.json(updated);
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "Update failed" },
+      { status: 500 }
+    );
   }
 }

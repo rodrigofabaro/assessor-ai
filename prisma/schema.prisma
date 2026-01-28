@@ -57,15 +57,19 @@ enum GradeBand {
 }
 
 model Student {
-  id          String   @id @default(cuid())
-  fullName    String?
-  email       String?  @unique
-  externalRef String?  @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  fullName            String
+  email               String?  @unique
+  externalRef         String?  @unique // AB Number
+  courseName          String?  // NEW
+  registrationDate    DateTime? // NEW
 
-  submissions Submission[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  submissions         Submission[]
 }
+
 
 model Assignment {
   id            String   @id @default(uuid())

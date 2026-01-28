@@ -1,26 +1,35 @@
 # Assessor-AI — Project Status
 
-**Status locked on:** 2026-01-27  
-**Active phase:** Phase 3.1 — Student registry + manual submission linking (audited)  
-**Branch:** phase-3-extraction-engine  
-**Maintainer:** Rodrigo
+Last updated: 2026-01-27
 
-## What is stable
-- Upload pipeline (single & batch)
-- Submission tracking + lifecycle states
-- Extraction runs (per-page) + extracted text storage
+## Where we are
 
-## New in this milestone (2026-01-27)
-- Student model aligned to: fullName, email, externalRef
-- Submission: studentLink audit fields (studentLinkedAt/studentLinkedBy)
-- SubmissionAuditEvent table for link/unlink history
-- Extraction provenance fields on Submission (extractedTextHash/extractionVersion)
+**Phase 3 — Extraction Engine (active)**
 
-## Data note
-- Legacy Student columns `name` and `studentRef` were removed during migration.
-- Any values in those columns were discarded (dev DB cleanup).
+What is working now:
 
-## What is being built next
-- Students API (search/create)
-- Submission link/unlink endpoints (writes audit events)
-- Submission page UI panel to link students
+- Upload single/batch PDFs/DOCX → creates a Submission record.
+- Upload now **auto-starts extraction** (no extra click).
+- Extraction stores:
+  - `SubmissionExtractionRun` (run metadata)
+  - `ExtractedPage[]` (per-page text + confidence)
+- Triage attempts to detect unit / assignment / student (best-effort) without silently creating students.
+
+## Why this stage matters
+
+Extraction is the "eyes" of the system. Bad extraction leads to confident nonsense grading, so we’re locking this down before any assessment logic.
+
+## Next milestone
+
+**Phase 3.1 — Manual student linking + audit (in progress)**
+
+- Simple UI to link a submission to an existing student (or create + link).
+- Store audit events in `SubmissionAuditEvent`.
+
+## After that
+
+**Phase 4 — AI Grading Engine**
+
+- Strict JSON outputs per criterion (decision + evidence)
+- Overall grade + constructive feedback
+- Marker checks and full traceability

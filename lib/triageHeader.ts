@@ -1,5 +1,5 @@
 export type TriageExtracted = {
-  name: string | null;
+  fullName: string | null;
   studentRef: string | null;
   email: string | null;
   unitCode: string | null;

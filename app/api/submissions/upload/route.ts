@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const uploadDir = path.join(process.cwd(), "uploads");
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-    const created = [];
+    const created: any[] = [];
 
     for (const file of files) {
       const lower = (file.name || "").toLowerCase();
@@ -56,7 +56,21 @@ export async function POST(req: Request) {
       created.push(submission);
     }
 
-    return NextResponse.json({ submissions: created });
+    // Teacher workflow: upload → start extraction immediately.
+    // We do a best-effort trigger (do not fail the upload if extraction fails).
+    // NOTE: This runs synchronously so the UI can show EXTRACTING right away.
+    const baseUrl = new URL(req.url);
+    const origin = `${baseUrl.protocol}//${baseUrl.host}`;
+
+    for (const s of created) {
+      try {
+        await fetch(`${origin}/api/submissions/${s.id}/extract`, { method: "POST", cache: "no-store" });
+      } catch (e) {
+        console.warn("AUTO_EXTRACT_TRIGGER_FAILED:", s?.id, e);
+      }
+    }
+
+    return NextResponse.json({ submissions: created, extraction: { triggered: true } });
   } catch (err) {
     console.error("UPLOAD_ERROR:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

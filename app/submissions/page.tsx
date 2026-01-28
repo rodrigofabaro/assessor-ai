@@ -8,9 +8,11 @@ type Submission = {
   filename: string;
   status: string;
   uploadedAt: string;
-  student?: { name: string } | null;
+  student?: { fullName: string; email?: string | null; externalRef?: string | null } | null;
   assignment?: { unitCode: string; assignmentRef?: string | null; title: string } | null;
+  extractionRuns: ExtractionRun[];
 };
+
 
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
