@@ -16,10 +16,12 @@ type Submission = {
   filename: string;
   uploadedAt: string;
   status: string;
+  extractedText?: string | null;
   assignmentId: string | null;
   assignment?: { title: string | null } | null;
   studentId: string | null;
   student?: Student | null;
+  _count?: { extractionRuns: number; assessments: number };
 };
 
 type TriageResponse = {
@@ -95,7 +97,7 @@ export default function SubmissionsPage() {
   const [msg, setMsg] = useState<string>("");
 
   const [unlinkedOnly, setUnlinkedOnly] = useState(false);
-  const [todayOnly, setTodayOnly] = useState(false);
+  const [timeframe, setTimeframe] = useState<"today" | "week" | "all">("today");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
 
@@ -153,15 +155,30 @@ export default function SubmissionsPage() {
 
     const byStatus = statusFilter ? byQuery.filter((s) => String(s.status) === statusFilter) : byQuery;
 
-    if (!todayOnly) return byStatus;
+    if (timeframe === "all") return byStatus;
+
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const end = start + 24 * 60 * 60 * 1000;
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endOfToday = startOfToday + 24 * 60 * 60 * 1000;
+
+    if (timeframe === "today") {
+      return byStatus.filter((s) => {
+        const t = new Date(s.uploadedAt).getTime();
+        return !Number.isNaN(t) && t >= startOfToday && t < endOfToday;
+      });
+    }
+
+    // "This week" = week starting Monday.
+    const day = now.getDay(); // 0=Sun
+    const offsetToMonday = (day + 6) % 7;
+    const startOfWeek = startOfToday - offsetToMonday * 24 * 60 * 60 * 1000;
+    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000;
+
     return byStatus.filter((s) => {
       const t = new Date(s.uploadedAt).getTime();
-      return !Number.isNaN(t) && t >= start && t < end;
+      return !Number.isNaN(t) && t >= startOfWeek && t < endOfWeek;
     });
-  }, [items, unlinkedOnly, todayOnly, query, statusFilter]);
+  }, [items, unlinkedOnly, timeframe, query, statusFilter]);
 
   const statuses = useMemo(() => {
     const set = new Set<string>();
@@ -181,25 +198,37 @@ export default function SubmissionsPage() {
     return Array.from(groups.entries());
   }, [filtered]);
 
-  function nextAction(status: string) {
-    switch (status) {
-      case "UPLOADED":
-      case "EXTRACTING":
-        return "Wait for extraction";
-      case "EXTRACTED":
-        return "Ready to assess";
-      case "NEEDS_OCR":
-        return "Needs OCR";
-      case "ASSESSING":
-      case "MARKING":
-        return "Assessment running";
-      case "DONE":
-        return "Upload back to Totara";
-      case "FAILED":
-        return "Needs attention";
-      default:
-        return "—";
+  function deriveNextAction(s: Submission) {
+    const st = String(s.status || "");
+    if (st === "FAILED") return { label: "Attention needed", tone: "danger" as const };
+    if (st === "NEEDS_OCR") return { label: "Needs OCR", tone: "warn" as const };
+
+    const extractionRuns = s._count?.extractionRuns ?? 0;
+    const assessments = s._count?.assessments ?? 0;
+    const hasExtraction = extractionRuns > 0 && (st === "EXTRACTED" || st === "DONE" || st === "ASSESSING" || st === "MARKING");
+
+    if (!hasExtraction || st === "UPLOADED" || st === "EXTRACTING") {
+      return { label: st === "EXTRACTING" ? "Extraction running" : "Needs extraction", tone: "warn" as const };
     }
+
+    if (assessments === 0) {
+      return { label: "Needs grading", tone: "warn" as const };
+    }
+
+    return { label: "Ready to upload to Totara", tone: "ok" as const };
+  }
+
+  function ActionPill({ tone, children }: { tone: "ok" | "warn" | "danger" | "neutral"; children: string }) {
+    const base = "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold";
+    const cls =
+      tone === "ok"
+        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+        : tone === "warn"
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : tone === "danger"
+            ? "border-red-200 bg-red-50 text-red-900"
+            : "border-zinc-200 bg-white text-zinc-700";
+    return <span className={cx(base, cls)}>{children}</span>;
   }
 
   async function openResolve(submissionId: string) {
@@ -319,15 +348,38 @@ export default function SubmissionsPage() {
             Unlinked only
             </label>
 
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300"
-                checked={todayOnly}
-                onChange={(e) => setTodayOnly(e.target.checked)}
-              />
-              Today
-            </label>
+            <div className="inline-flex overflow-hidden rounded-xl border border-zinc-200 bg-white">
+              <button
+                type="button"
+                onClick={() => setTimeframe("today")}
+                className={cx(
+                  "px-3 py-2 text-sm font-semibold",
+                  timeframe === "today" ? "bg-zinc-900 text-white" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                )}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe("week")}
+                className={cx(
+                  "px-3 py-2 text-sm font-semibold",
+                  timeframe === "week" ? "bg-zinc-900 text-white" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                )}
+              >
+                This week
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe("all")}
+                className={cx(
+                  "px-3 py-2 text-sm font-semibold",
+                  timeframe === "all" ? "bg-zinc-900 text-white" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                )}
+              >
+                All
+              </button>
+            </div>
 
             <input
               value={query}
@@ -407,7 +459,12 @@ export default function SubmissionsPage() {
                           <td className="border-b border-zinc-100 px-4 py-3">
                             <StatusPill>{s.status}</StatusPill>
                           </td>
-                          <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{nextAction(String(s.status))}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3">
+                            {(() => {
+                              const a = deriveNextAction(s);
+                              return <ActionPill tone={a.tone}>{a.label}</ActionPill>;
+                            })()}
+                          </td>
                           <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{safeDate(s.uploadedAt)}</td>
                           <td className="border-b border-zinc-100 px-4 py-3">
                             <div className="flex items-center justify-end gap-2">

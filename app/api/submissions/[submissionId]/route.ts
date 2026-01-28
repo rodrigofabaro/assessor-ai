@@ -12,6 +12,15 @@ export async function GET(
     include: {
       student: true,
       assignment: true,
+      assessments: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          createdAt: true,
+          overallGrade: true,
+          annotatedPdfPath: true,
+        },
+      },
       extractionRuns: {
         orderBy: { startedAt: "desc" },
         include: {

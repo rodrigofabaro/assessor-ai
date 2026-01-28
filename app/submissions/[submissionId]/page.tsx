@@ -39,6 +39,12 @@ type Submission = {
   studentLinkedAt?: string | null;
   studentLinkedBy?: string | null;
   extractionRuns: ExtractionRun[];
+  assessments?: Array<{
+    id: string;
+    createdAt: string;
+    overallGrade: string | null;
+    annotatedPdfPath: string | null;
+  }>;
 };
 
 type TriageInfo = {
@@ -155,6 +161,32 @@ export default function SubmissionDetailPage() {
   );
 
   const active = pagesSorted[Math.min(Math.max(activePage, 0), Math.max(pagesSorted.length - 1, 0))];
+
+  const latestAssessment = useMemo(() => {
+    const a = submission?.assessments ?? [];
+    if (!a.length) return null;
+    return a[0];
+  }, [submission]);
+
+  const checklist = useMemo(() => {
+    const studentLinked = !!submission?.student;
+    const assignmentLinked = !!submission?.assignment;
+    const extractionComplete = latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR";
+    const gradeGenerated = !!latestAssessment?.overallGrade;
+    const markedPdfGenerated = !!latestAssessment?.annotatedPdfPath;
+
+    // Marked PDF will arrive in Phase 5. Until then, we treat it as optional.
+    const readyToUpload = studentLinked && assignmentLinked && extractionComplete && gradeGenerated;
+
+    return {
+      studentLinked,
+      assignmentLinked,
+      extractionComplete,
+      gradeGenerated,
+      markedPdfGenerated,
+      readyToUpload,
+    };
+  }, [submission, latestRun, latestAssessment]);
 
   /* =========================
      Data loading
@@ -386,6 +418,63 @@ export default function SubmissionDetailPage() {
 
         {/* RIGHT: Metadata + extraction */}
         <div className="grid gap-4">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-zinc-500">Totara upload checklist</div>
+                <div className="mt-1 text-sm text-zinc-600">Quick sanity check before you upload results back.</div>
+              </div>
+              {checklist.readyToUpload ? (
+                <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900">
+                  ✓ Ready
+                </span>
+              ) : (
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900">
+                  In progress
+                </span>
+              )}
+            </div>
+
+            <ul className="mt-3 space-y-2 text-sm">
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-zinc-700">Student linked</span>
+                <span className={cx("font-semibold", checklist.studentLinked ? "text-emerald-700" : "text-zinc-400")}>
+                  {checklist.studentLinked ? "Yes" : "No"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-zinc-700">Assignment linked</span>
+                <span className={cx("font-semibold", checklist.assignmentLinked ? "text-emerald-700" : "text-zinc-400")}>
+                  {checklist.assignmentLinked ? "Yes" : "No"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-zinc-700">Extraction complete</span>
+                <span className={cx("font-semibold", checklist.extractionComplete ? "text-emerald-700" : "text-zinc-400")}>
+                  {checklist.extractionComplete ? "Yes" : "No"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-zinc-700">Grade generated</span>
+                <span className={cx("font-semibold", checklist.gradeGenerated ? "text-emerald-700" : "text-zinc-400")}>
+                  {checklist.gradeGenerated ? (latestAssessment?.overallGrade || "Yes") : "No"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-zinc-700">Marked PDF</span>
+                <span className={cx("font-semibold", checklist.markedPdfGenerated ? "text-emerald-700" : "text-zinc-400")}>
+                  {checklist.markedPdfGenerated ? "Yes" : "Later"}
+                </span>
+              </li>
+            </ul>
+
+            {!checklist.readyToUpload ? (
+              <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+                Tip: this panel is deliberately strict about the basics. Marked PDFs will become a required item once Phase 5 lands.
+              </div>
+            ) : null}
+          </div>
+
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold text-zinc-500">Student</div>
             <div className="mt-1 flex items-start justify-between gap-3">

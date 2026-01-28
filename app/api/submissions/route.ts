@@ -7,6 +7,12 @@ export async function GET() {
     include: {
       student: true,
       assignment: true,
+      _count: {
+        select: {
+          extractionRuns: true,
+          assessments: true,
+        },
+      },
     },
   });
 
