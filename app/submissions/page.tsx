@@ -8,10 +8,12 @@ type Submission = {
   filename: string;
   status: string;
   uploadedAt: string;
-  student?: { fullName: string; email?: string | null; externalRef?: string | null } | null;
+  student?: { id: string; fullName: string; email?: string | null; externalRef?: string | null } | null;
   assignment?: { unitCode: string; assignmentRef?: string | null; title: string } | null;
   extractionRuns: ExtractionRun[];
 };
+
+type StudentPick = { id: string; fullName: string | null; email: string | null; externalRef: string | null };
 
 
 function classNames(...xs: Array<string | false | null | undefined>) {
@@ -22,6 +24,14 @@ export default function SubmissionsPage() {
   const [items, setItems] = useState<Submission[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
+
+  // Link student modal
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkForSubmissionId, setLinkForSubmissionId] = useState<string | null>(null);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [studentOptions, setStudentOptions] = useState<StudentPick[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [linkBusy, setLinkBusy] = useState(false);
 
   async function load() {
     setErr("");
@@ -39,6 +49,44 @@ export default function SubmissionsPage() {
       setErr(e?.message || String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loadStudentOptions(q: string) {
+    const res = await fetch(`/api/students?query=${encodeURIComponent(q)}`, { cache: "no-store" });
+    const data = await res.json().catch(() => ([]));
+    const arr: StudentPick[] = Array.isArray(data) ? data : Array.isArray((data as any)?.students) ? (data as any).students : [];
+    setStudentOptions(arr);
+  }
+
+  function openLink(submissionId: string) {
+    setErr("");
+    setLinkForSubmissionId(submissionId);
+    setStudentQuery("");
+    setStudentOptions([]);
+    setSelectedStudentId("");
+    setLinkOpen(true);
+  }
+
+  async function confirmLink() {
+    if (!linkForSubmissionId || !selectedStudentId) return;
+    setLinkBusy(true);
+    setErr("");
+    try {
+      const res = await fetch(`/api/submissions/${linkForSubmissionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: selectedStudentId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Failed (${res.status})`);
+
+      setLinkOpen(false);
+      await load();
+    } catch (e: any) {
+      setErr(e?.message || String(e));
+    } finally {
+      setLinkBusy(false);
     }
   }
 
@@ -92,6 +140,7 @@ export default function SubmissionsPage() {
               <th className="py-3 pr-4">Assignment</th>
               <th className="py-3 pr-4">Status</th>
               <th className="py-3 pr-4">Uploaded</th>
+              <th className="py-3 pr-4 text-right">Actions</th>
             </tr>
           </thead>
 
@@ -110,7 +159,20 @@ export default function SubmissionsPage() {
                     </Link>
                   </td>
 
-                  <td className="py-3 pr-4 text-zinc-700">{s.student?.name ?? "-"}</td>
+                  <td className="py-3 pr-4 text-zinc-700">
+                    {s.student?.id ? (
+                      <Link
+                        href={`/students/${s.student.id}`}
+                        className="font-medium underline underline-offset-4 hover:text-zinc-900"
+                      >
+                        {s.student.fullName || "Unnamed"}
+                      </Link>
+                    ) : (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
+                        Unlinked
+                      </span>
+                    )}
+                  </td>
 
                   <td className="py-3 pr-4 text-zinc-700">{unitCode}</td>
 
@@ -123,13 +185,33 @@ export default function SubmissionsPage() {
                   </td>
 
                   <td className="py-3 pr-4 text-zinc-700">{new Date(s.uploadedAt).toLocaleString()}</td>
+
+                  <td className="py-3 pr-4 text-right">
+                    <div className="inline-flex items-center gap-2">
+                      <Link
+                        href={`/submissions/${s.id}`}
+                        className="rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold hover:bg-zinc-50"
+                      >
+                        Open
+                      </Link>
+                      {!s.student?.id ? (
+                        <button
+                          type="button"
+                          onClick={() => openLink(s.id)}
+                          className="rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold hover:bg-zinc-50"
+                        >
+                          Link student
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
 
             {rows.length === 0 && (
               <tr>
-                <td className="py-10 text-center text-sm text-zinc-500" colSpan={6}>
+                <td className="py-10 text-center text-sm text-zinc-500" colSpan={7}>
                   No submissions yet.
                 </td>
               </tr>
@@ -137,6 +219,86 @@ export default function SubmissionsPage() {
           </tbody>
         </table>
       </section>
+
+      {linkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => (linkBusy ? null : setLinkOpen(false))} />
+          <div className="relative w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Link submission to student</h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Search by name, email, or AB number. This keeps your upload log clean and makes grading reports sane.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-xl px-2 py-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                onClick={() => (linkBusy ? null : setLinkOpen(false))}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={studentQuery}
+                  onChange={(e) => setStudentQuery(e.target.value)}
+                  placeholder="Search students..."
+                  className="h-10 flex-1 rounded-xl border border-zinc-300 px-3 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => loadStudentOptions(studentQuery).catch(() => setStudentOptions([]))}
+                  className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
+                >
+                  Search
+                </button>
+              </div>
+
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">Select student</span>
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+                >
+                  <option value="">Choose…</option>
+                  {studentOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {(s.fullName || "Unnamed") + (s.externalRef ? ` (${s.externalRef})` : "") + (s.email ? ` — ${s.email}` : "")}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-xs text-zinc-500">
+                  Tip: if you don’t see them, add them in Admin → Students.
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLinkOpen(false)}
+                disabled={linkBusy}
+                className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmLink}
+                disabled={linkBusy || !selectedStudentId}
+                className="h-10 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+              >
+                {linkBusy ? "Linking…" : "Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

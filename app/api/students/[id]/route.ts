@@ -1,6 +1,68 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// GET /api/students/[id]
+// Returns student + a small summary used by the profile page.
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params;
+
+    const student = await prisma.student.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        externalRef: true,
+        courseName: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    const [totalSubmissions, last] = await Promise.all([
+      prisma.submission.count({ where: { studentId: id } }),
+      prisma.submission.findFirst({
+        where: { studentId: id },
+        orderBy: [{ uploadedAt: "desc" }, { id: "desc" }],
+        select: {
+          uploadedAt: true,
+          assessments: { select: { overallGrade: true }, orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      }),
+    ]);
+
+    // status breakdown
+    const byStatusRows = await prisma.submission.groupBy({
+      by: ["status"],
+      where: { studentId: id },
+      _count: { _all: true },
+    });
+
+    const byStatus: Record<string, number> = {};
+    for (const r of byStatusRows) byStatus[r.status] = r._count._all;
+
+    return NextResponse.json({
+      student,
+      summary: {
+        totalSubmissions,
+        lastSubmissionAt: last?.uploadedAt ? last.uploadedAt.toISOString() : null,
+        lastOverallGrade: last?.assessments?.[0]?.overallGrade ?? null,
+        byStatus,
+      },
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Failed to load student" }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
