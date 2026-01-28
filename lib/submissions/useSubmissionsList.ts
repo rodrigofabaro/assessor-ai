@@ -1,0 +1,122 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { isReadyToUpload } from "@/lib/submissionReady";
+import { jsonFetch } from "./api";
+import type { SubmissionRow } from "./types";
+import { groupByDay } from "./logic";
+
+export type Timeframe = "today" | "week" | "all";
+
+export function useSubmissionsList() {
+  const [items, setItems] = useState<SubmissionRow[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string>("");
+  const [msg, setMsg] = useState<string>("");
+
+  const [unlinkedOnly, setUnlinkedOnly] = useState(false);
+  const [timeframe, setTimeframe] = useState<Timeframe>("today");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [readyOnly, setReadyOnly] = useState(false);
+
+  async function refresh() {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const list = await jsonFetch<SubmissionRow[]>("/api/submissions", { cache: "no-store" });
+      setItems(Array.isArray(list) ? list : []);
+    } catch (e: any) {
+      setErr(e?.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const statuses = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of items) set.add(String(s.status));
+    return Array.from(set).sort();
+  }, [items]);
+
+  const filtered = useMemo(() => {
+    const list = Array.isArray(items) ? items : [];
+    const byLink = unlinkedOnly ? list.filter((s) => !s.studentId) : list;
+
+    const q = (query || "").trim().toLowerCase();
+    const byQuery = q
+      ? byLink.filter((s) => {
+          const hay = [s.filename, s.student?.fullName, s.student?.email, s.student?.externalRef, s.assignment?.title]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return hay.includes(q);
+        })
+      : byLink;
+
+    const byStatus = statusFilter ? byQuery.filter((s) => String(s.status) === statusFilter) : byQuery;
+
+    const byReady = readyOnly ? byStatus.filter((s) => isReadyToUpload(s)) : byStatus;
+
+    if (timeframe === "all") return byReady;
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endOfToday = startOfToday + 24 * 60 * 60 * 1000;
+
+    if (timeframe === "today") {
+      return byReady.filter((s) => {
+        const t = new Date(s.uploadedAt).getTime();
+        return !Number.isNaN(t) && t >= startOfToday && t < endOfToday;
+      });
+    }
+
+    // "This week" = week starting Monday.
+    const day = now.getDay(); // 0=Sun
+    const offsetToMonday = (day + 6) % 7;
+    const startOfWeek = startOfToday - offsetToMonday * 24 * 60 * 60 * 1000;
+    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000;
+
+    return byReady.filter((s) => {
+      const t = new Date(s.uploadedAt).getTime();
+      return !Number.isNaN(t) && t >= startOfWeek && t < endOfWeek;
+    });
+  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly]);
+
+  const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
+
+  return {
+    items,
+    setItems,
+
+    busy,
+    err,
+    msg,
+    setErr,
+    setMsg,
+
+    refresh,
+
+    // filters + setters
+    unlinkedOnly,
+    setUnlinkedOnly,
+    timeframe,
+    setTimeframe,
+    query,
+    setQuery,
+    statusFilter,
+    setStatusFilter,
+    readyOnly,
+    setReadyOnly,
+
+    statuses,
+    filtered,
+    dayGroups,
+  };
+}
