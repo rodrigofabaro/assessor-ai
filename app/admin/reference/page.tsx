@@ -60,18 +60,18 @@ function formatDate(iso?: string | null): string {
   return d.toLocaleString();
 }
 
-function badge(status: ReferenceDocument["status"]): { bg: string; fg: string; text: string } {
+function badge(status: ReferenceDocument["status"]): { cls: string; text: string } {
   switch (status) {
     case "UPLOADED":
-      return { bg: "#eef2ff", fg: "#3730a3", text: "UPLOADED" };
+      return { cls: "bg-indigo-50 text-indigo-900 border-indigo-200", text: "UPLOADED" };
     case "EXTRACTED":
-      return { bg: "#ecfeff", fg: "#155e75", text: "EXTRACTED" };
+      return { cls: "bg-cyan-50 text-cyan-900 border-cyan-200", text: "EXTRACTED" };
     case "REVIEWED":
-      return { bg: "#fffbeb", fg: "#92400e", text: "REVIEWED" };
+      return { cls: "bg-amber-50 text-amber-900 border-amber-200", text: "REVIEWED" };
     case "LOCKED":
-      return { bg: "#ecfdf5", fg: "#065f46", text: "LOCKED" };
+      return { cls: "bg-emerald-50 text-emerald-900 border-emerald-200", text: "LOCKED" };
     case "FAILED":
-      return { bg: "#fef2f2", fg: "#991b1b", text: "FAILED" };
+      return { cls: "bg-red-50 text-red-900 border-red-200", text: "FAILED" };
   }
 }
 
@@ -245,66 +245,95 @@ export default function ReferenceAdminPage() {
     }
   }
 
-  const headerStyle: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 };
-  const cardStyle: React.CSSProperties = { border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, background: "#fff" };
-
   return (
-    <div style={{ padding: 20, maxWidth: 1150, margin: "0 auto" }}>
-      <div style={headerStyle}>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 style={{ margin: 0 }}>Phase 2.2 — Reference Ingestion</h1>
-          <p style={{ margin: "6px 0 0", color: "#374151" }}>
-            Upload specs/briefs → auto-extract → review → <b>LOCK</b>. Locked references become the ground truth used later for AI grading + audit logs.
+          <h1 className="text-xl font-semibold tracking-tight">Phase 2.2 — Reference Ingestion</h1>
+          <p className="mt-2 max-w-3xl text-sm text-zinc-600">
+            Upload specs/briefs → auto-extract → review → <span className="font-semibold">LOCK</span>. Locked references become the ground truth used later for AI grading + audit logs.
           </p>
         </div>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          {busy ? <span>⏳ {busy}</span> : <span>Ready</span>}
-        </div>
+        <div className="text-xs text-zinc-600">{busy ? <span>⏳ {busy}</span> : <span>Ready</span>}</div>
       </div>
 
       {error ? (
-        <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca" }}>
-          {error}
-        </div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 16, marginTop: 16 }}>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
         {/* Left: Inbox + Upload */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={cardStyle}>
-            <h2 style={{ margin: "0 0 10px" }}>Upload to Reference Inbox</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 8, alignItems: "center" }}>
-              <label>Type</label>
-              <select value={docType} onChange={(e) => setDocType(e.target.value as any)}>
-                <option value="SPEC">SPEC</option>
-                <option value="BRIEF">BRIEF</option>
-                <option value="RUBRIC">RUBRIC</option>
-              </select>
+        <div className="grid gap-4">
+          <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold">Upload to Reference Inbox</h2>
+            <div className="mt-4 grid gap-3">
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">Type</span>
+                <select
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value as any)}
+                  className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
+                >
+                  <option value="SPEC">SPEC</option>
+                  <option value="BRIEF">BRIEF</option>
+                  <option value="RUBRIC">RUBRIC</option>
+                </select>
+              </label>
 
-              <label>Title</label>
-              <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. Unit 4017 Spec" />
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">Title</span>
+                <input
+                  value={docTitle}
+                  onChange={(e) => setDocTitle(e.target.value)}
+                  placeholder="e.g. Unit 4017 Spec"
+                  className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+                />
+              </label>
 
-              <label>Version</label>
-              <input value={docVersion} onChange={(e) => setDocVersion(e.target.value)} style={{ width: 120 }} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1">
+                  <span className="text-sm font-medium">Version</span>
+                  <input
+                    value={docVersion}
+                    onChange={(e) => setDocVersion(e.target.value)}
+                    className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+                  />
+                </label>
 
-              <label>File</label>
-              <input type="file" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
+                <label className="grid gap-1">
+                  <span className="text-sm font-medium">File</span>
+                  <input
+                    type="file"
+                    onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
+                  />
+                </label>
+              </div>
             </div>
 
-            <div style={{ marginTop: 10 }}>
-              <button onClick={uploadDoc} disabled={!!busy}>Upload</button>
+            <div className="mt-4">
+              <button
+                onClick={uploadDoc}
+                disabled={!!busy}
+                className={
+                  "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                  (busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
+                }
+              >
+                Upload
+              </button>
             </div>
-          </div>
+          </section>
 
-          <div style={cardStyle}>
-            <h2 style={{ margin: "0 0 10px" }}>Reference Inbox</h2>
-            <div style={{ maxHeight: 520, overflow: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-                    <th style={{ padding: "6px 4px" }}>Status</th>
-                    <th style={{ padding: "6px 4px" }}>Type</th>
-                    <th style={{ padding: "6px 4px" }}>Title</th>
+          <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold">Reference Inbox</h2>
+            <div className="mt-3 max-h-[520px] overflow-auto rounded-xl border border-zinc-200">
+              <table className="w-full border-collapse text-sm">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="text-left text-xs text-zinc-600">
+                    <th className="border-b border-zinc-200 px-3 py-2">Status</th>
+                    <th className="border-b border-zinc-200 px-3 py-2">Type</th>
+                    <th className="border-b border-zinc-200 px-3 py-2">Title</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -312,79 +341,96 @@ export default function ReferenceAdminPage() {
                     const b = badge(d.status);
                     const active = d.id === selectedDocId;
                     const meta = d.sourceMeta || {};
-                    const hint = [meta.unitCode ? `Unit ${meta.unitCode}` : "", meta.assignmentCode ? meta.assignmentCode : ""].filter(Boolean).join(" • ");
+                    const hint = [meta.unitCode ? `Unit ${meta.unitCode}` : "", meta.assignmentCode ? meta.assignmentCode : ""]
+                      .filter(Boolean)
+                      .join(" • ");
                     return (
                       <tr
                         key={d.id}
                         onClick={() => setSelectedDocId(d.id)}
-                        style={{
-                          cursor: "pointer",
-                          background: active ? "#f9fafb" : "transparent",
-                          borderBottom: "1px solid #f3f4f6",
-                        }}
+                        className={
+                          "cursor-pointer border-b border-zinc-100 hover:bg-zinc-50 " +
+                          (active ? "bg-zinc-50" : "bg-white")
+                        }
                       >
-                        <td style={{ padding: "8px 4px" }}>
-                          <span style={{ padding: "2px 8px", borderRadius: 999, background: b.bg, color: b.fg, fontWeight: 600 }}>
+                        <td className="px-3 py-2">
+                          <span className={"inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold " + b.cls}>
                             {b.text}
                           </span>
                         </td>
-                        <td style={{ padding: "8px 4px" }}>{d.type}</td>
-                        <td style={{ padding: "8px 4px" }}>
-                          <div style={{ fontWeight: 600 }}>{d.title}</div>
-                          <div style={{ color: "#6b7280", fontSize: 12 }}>{hint || d.originalFilename}</div>
+                        <td className="px-3 py-2 text-zinc-700">{d.type}</td>
+                        <td className="px-3 py-2">
+                          <div className="font-semibold text-zinc-900">{d.title}</div>
+                          <div className="mt-0.5 text-xs text-zinc-600">{hint || d.originalFilename}</div>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-              {documents.length === 0 ? <p style={{ color: "#6b7280" }}>No reference documents uploaded yet.</p> : null}
+              {documents.length === 0 ? (
+                <div className="p-3 text-sm text-zinc-600">No reference documents uploaded yet.</div>
+              ) : null}
             </div>
-          </div>
+          </section>
         </div>
 
         {/* Right: Review & Lock */}
-        <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <h2 style={{ margin: 0 }}>Review & Lock</h2>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={extractSelected} disabled={!selectedDoc || !!busy}>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">Review & Lock</h2>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={extractSelected}
+                disabled={!selectedDoc || !!busy}
+                className={
+                  "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                  (!selectedDoc || busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
+                }
+              >
                 Extract
               </button>
-              <button onClick={lockSelected} disabled={!selectedDoc || !!busy}>
+              <button
+                onClick={lockSelected}
+                disabled={!selectedDoc || !!busy}
+                className={
+                  "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                  (!selectedDoc || busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-emerald-700 text-white hover:bg-emerald-600")
+                }
+              >
                 Approve & Lock
               </button>
             </div>
           </div>
 
           {!selectedDoc ? (
-            <p style={{ color: "#6b7280", marginTop: 12 }}>Select a document from the inbox to review it.</p>
+            <p className="mt-4 text-sm text-zinc-600">Select a document from the inbox to review it.</p>
           ) : (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="mt-4">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>Type</div>
-                  <div style={{ fontWeight: 700 }}>{selectedDoc.type}</div>
+                  <div className="text-xs text-zinc-600">Type</div>
+                  <div className="font-semibold">{selectedDoc.type}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>Uploaded</div>
-                  <div style={{ fontWeight: 700 }}>{formatDate(selectedDoc.uploadedAt)}</div>
+                  <div className="text-xs text-zinc-600">Uploaded</div>
+                  <div className="font-semibold">{formatDate(selectedDoc.uploadedAt)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>Status</div>
-                  <div style={{ fontWeight: 700 }}>{selectedDoc.status}</div>
+                  <div className="text-xs text-zinc-600">Status</div>
+                  <div className="font-semibold">{selectedDoc.status}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>Locked at</div>
-                  <div style={{ fontWeight: 700 }}>{formatDate(selectedDoc.lockedAt)}</div>
+                  <div className="text-xs text-zinc-600">Locked at</div>
+                  <div className="font-semibold">{formatDate(selectedDoc.lockedAt)}</div>
                 </div>
               </div>
 
-              <div style={{ marginTop: 12, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
+              <div className="mt-4 border-t border-zinc-200 pt-4">
                 {selectedDoc.extractionWarnings && Array.isArray(selectedDoc.extractionWarnings) && selectedDoc.extractionWarnings.length ? (
-                  <div style={{ marginBottom: 10, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
-                    <b>Warnings:</b>
-                    <ul style={{ margin: "6px 0 0 18px" }}>
+                  <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="font-semibold">Warnings</div>
+                    <ul className="mt-2 list-disc pl-5">
                       {selectedDoc.extractionWarnings.map((w: string, idx: number) => (
                         <li key={idx}>{w}</li>
                       ))}
@@ -392,27 +438,26 @@ export default function ReferenceAdminPage() {
                   </div>
                 ) : null}
 
-                {/* SPEC preview */}
                 {selectedDoc.type === "SPEC" ? (
                   <SpecPreview draft={selectedDoc.extractedJson} />
                 ) : selectedDoc.type === "BRIEF" ? (
                   <BriefPreview
-  draft={selectedDoc.extractedJson}
-  units={units}
-  briefUnitId={briefUnitId}
-  setBriefUnitId={setBriefUnitId}
-  criteria={criteriaForSelectedUnit}
-  mapSelected={mapSelected}
-  setMapSelected={setMapSelected}
-  assignmentCodeInput={assignmentCodeInput}
-  setAssignmentCodeInput={setAssignmentCodeInput}
-/>
+                    draft={selectedDoc.extractedJson}
+                    units={units}
+                    briefUnitId={briefUnitId}
+                    setBriefUnitId={setBriefUnitId}
+                    criteria={criteriaForSelectedUnit}
+                    mapSelected={mapSelected}
+                    setMapSelected={setMapSelected}
+                    assignmentCodeInput={assignmentCodeInput}
+                    setAssignmentCodeInput={setAssignmentCodeInput}
+                  />
                 ) : (
-                  <p style={{ color: "#6b7280" }}>RUBRIC ingestion UI lands later; for now it stays as a stored document.</p>
+                  <p className="text-sm text-zinc-600">RUBRIC ingestion UI lands later; for now it stays as a stored document.</p>
                 )}
 
-                <div style={{ marginTop: 14 }}>
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="mt-5">
+                  <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={showRawJson} onChange={(e) => setShowRawJson(e.target.checked)} />
                     Show raw draft JSON (advanced)
                   </label>
@@ -420,7 +465,7 @@ export default function ReferenceAdminPage() {
                     <textarea
                       value={rawJson}
                       onChange={(e) => setRawJson(e.target.value)}
-                      style={{ width: "100%", height: 220, marginTop: 8, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
+                      className="mt-2 h-[220px] w-full rounded-xl border border-zinc-300 p-3 font-mono text-xs"
                       placeholder="Extract draft JSON will appear here after Extract."
                     />
                   ) : null}
@@ -428,7 +473,7 @@ export default function ReferenceAdminPage() {
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

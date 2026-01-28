@@ -4,10 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
-/* =========================
-   Types
-========================= */
-
 type ExtractedPage = {
   id: string;
   pageNumber: number;
@@ -33,8 +29,9 @@ type Submission = {
   filename: string;
   status: string;
   uploadedAt: string;
-  student?: { fullName: string } | null;
+  student?: { id: string; fullName: string; email?: string | null; externalRef?: string | null } | null;
   assignment?: {
+    id: string;
     unitCode: string;
     assignmentRef?: string | null;
     title: string;
@@ -70,9 +67,16 @@ type StudentSearchResult = {
   externalRef?: string | null;
 };
 
-/* =========================
-   Helpers
-========================= */
+function cx(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
+function safeDate(s?: string | null) {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString();
+}
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(url, opts);
@@ -81,13 +85,34 @@ async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   return data as T;
 }
 
-function countWords(s: string) {
-  return (s || "").trim().split(/\s+/).filter(Boolean).length;
+function StatusPill({ children }: { children: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700">
+      {children}
+    </span>
+  );
 }
 
-/* =========================
-   Page
-========================= */
+function nextAction(status: string) {
+  switch (status) {
+    case "UPLOADED":
+    case "EXTRACTING":
+      return "Extraction running";
+    case "EXTRACTED":
+      return "Ready to assess";
+    case "NEEDS_OCR":
+      return "Needs OCR";
+    case "ASSESSING":
+    case "MARKING":
+      return "Assessment running";
+    case "DONE":
+      return "Upload back to Totara";
+    case "FAILED":
+      return "Needs attention";
+    default:
+      return "—";
+  }
+}
 
 export default function SubmissionDetailPage() {
   const params = useParams<{ submissionId: string }>();
@@ -97,8 +122,9 @@ export default function SubmissionDetailPage() {
   const [triageInfo, setTriageInfo] = useState<TriageInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
 
-  // Auto-run extraction when a submission is fresh (upload → magic begins).
+  // Auto-run extraction once for freshly uploaded submissions.
   const autoStartedRef = useRef(false);
 
   /* ---------- Student linking state ---------- */
@@ -108,9 +134,9 @@ export default function SubmissionDetailPage() {
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
-  const [studentMsg, setStudentMsg] = useState("");
 
-  /* ---------- Extraction helpers ---------- */
+  /* ---------- Extraction view state ---------- */
+  const [activePage, setActivePage] = useState(0);
   const refreshSeq = useRef(0);
 
   const latestRun = useMemo(() => {
@@ -128,10 +154,7 @@ export default function SubmissionDetailPage() {
     [latestRun]
   );
 
-  const totalWords = useMemo(
-    () => pagesSorted.reduce((acc, p) => acc + countWords(p.text), 0),
-    [pagesSorted]
-  );
+  const active = pagesSorted[Math.min(Math.max(activePage, 0), Math.max(pagesSorted.length - 1, 0))];
 
   /* =========================
      Data loading
@@ -150,10 +173,10 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => {
     if (!submissionId) return;
-    refresh().catch((e) => setErr(e.message));
+    refresh().catch((e) => setErr(e?.message || String(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
-  // Auto-start extraction once for freshly uploaded submissions.
   useEffect(() => {
     if (!submissionId) return;
     if (!submission) return;
@@ -174,6 +197,7 @@ export default function SubmissionDetailPage() {
     if (!submissionId) return;
     setBusy(true);
     setErr("");
+    setMsg("");
     setTriageInfo(null);
     try {
       await jsonFetch(`/api/submissions/${submissionId}/extract`, { method: "POST" });
@@ -184,8 +208,9 @@ export default function SubmissionDetailPage() {
       if (triage.triage) setTriageInfo(triage.triage);
       if (triage.submission) setSubmission(triage.submission);
       await refresh();
+      setMsg("Extraction complete.");
     } catch (e: any) {
-      setErr(e.message || String(e));
+      setErr(e?.message || String(e));
     } finally {
       setBusy(false);
     }
@@ -204,10 +229,9 @@ export default function SubmissionDetailPage() {
     }
     const t = setTimeout(async () => {
       try {
-        const res = await jsonFetch<{ students: StudentSearchResult[] }>(
-          `/api/students?query=${encodeURIComponent(q)}`
-        );
-        if (alive) setStudentResults(res.students || []);
+        const res = await jsonFetch<any>(`/api/students?query=${encodeURIComponent(q)}`);
+        const list = (Array.isArray(res) ? res : res?.students) as StudentSearchResult[] | undefined;
+        if (alive) setStudentResults(Array.isArray(list) ? list : []);
       } catch {
         if (alive) setStudentResults([]);
       }
@@ -218,14 +242,11 @@ export default function SubmissionDetailPage() {
     };
   }, [studentQuery]);
 
-  /* =========================
-     Student actions
-  ========================= */
-
   async function linkStudent(studentId: string) {
     if (!studentId) return;
     setStudentBusy(true);
-    setStudentMsg("");
+    setErr("");
+    setMsg("");
     try {
       const res = await jsonFetch<{ submission: Submission }>(
         `/api/submissions/${submissionId}/link-student`,
@@ -236,10 +257,10 @@ export default function SubmissionDetailPage() {
         }
       );
       setSubmission(res.submission);
-      setStudentMsg("Student linked.");
       await refresh();
+      setMsg("Student linked.");
     } catch (e: any) {
-      setStudentMsg(e.message || "Link failed");
+      setErr(e?.message || "Link failed");
     } finally {
       setStudentBusy(false);
     }
@@ -247,7 +268,8 @@ export default function SubmissionDetailPage() {
 
   async function unlinkStudent() {
     setStudentBusy(true);
-    setStudentMsg("");
+    setErr("");
+    setMsg("");
     try {
       const res = await jsonFetch<{ submission: Submission }>(
         `/api/submissions/${submissionId}/unlink-student`,
@@ -258,10 +280,10 @@ export default function SubmissionDetailPage() {
         }
       );
       setSubmission(res.submission);
-      setStudentMsg("Student unlinked.");
       await refresh();
+      setMsg("Student unlinked.");
     } catch (e: any) {
-      setStudentMsg(e.message || "Unlink failed");
+      setErr(e?.message || "Unlink failed");
     } finally {
       setStudentBusy(false);
     }
@@ -271,13 +293,16 @@ export default function SubmissionDetailPage() {
     const fullName = newStudentName.trim();
     if (!fullName) return;
     setStudentBusy(true);
+    setErr("");
+    setMsg("");
     try {
-      const res = await jsonFetch<{ student: StudentSearchResult }>(`/api/students`, {
+      const res = await jsonFetch<any>(`/api/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email: newStudentEmail || null }),
+        body: JSON.stringify({ fullName, email: newStudentEmail.trim() || null }),
       });
-      await linkStudent(res.student.id);
+      const student = (res?.student ?? res) as StudentSearchResult;
+      if (student?.id) await linkStudent(student.id);
       setNewStudentName("");
       setNewStudentEmail("");
     } finally {
@@ -285,145 +310,309 @@ export default function SubmissionDetailPage() {
     }
   }
 
-  /* =========================
-     Render
-  ========================= */
+  const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
 
   return (
-    <main style={{ padding: 24, maxWidth: 1280, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 30, fontWeight: 800 }}>Submission</h1>
-
-      <div style={{ marginTop: 10 }}>
-        <div><b>File:</b> {submission?.filename}</div>
+    <main className="mx-auto max-w-7xl p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <b>Student:</b> {submission?.student?.fullName ?? "Unlinked"}
-          {!submission?.student?.fullName && triageInfo?.studentName && (
-            <span style={{ marginLeft: 8, color: "#6b7280", fontSize: 13 }}>
-              (detected: {triageInfo.studentName})
-            </span>
-          )}
+          <div className="text-xs font-semibold text-zinc-500">Submissions</div>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{submission?.filename || "Submission"}</h1>
+          <p className="mt-2 max-w-3xl text-sm text-zinc-600">
+            Goal: produce an audit-safe grade + human feedback + a marked PDF you can upload back to Totara.
+          </p>
         </div>
-        <div><b>Unit:</b> {submission?.assignment?.unitCode ?? "-"}</div>
-        <div><b>Assignment:</b> {submission?.assignment?.assignmentRef ?? "-"}</div>
-        <div><b>Status:</b> {submission?.status}</div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/submissions"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50"
+          >
+            ← Back
+          </Link>
+          <button
+            type="button"
+            onClick={runExtraction}
+            disabled={busy || submission?.status === "EXTRACTING"}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm",
+              busy || submission?.status === "EXTRACTING"
+                ? "cursor-not-allowed bg-zinc-300 text-zinc-700"
+                : "bg-zinc-900 text-white hover:bg-zinc-800"
+            )}
+          >
+            {busy || submission?.status === "EXTRACTING" ? "Processing…" : "Run extraction"}
+          </button>
+        </div>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <button
-          onClick={runExtraction}
-          disabled={busy || submission?.status === "EXTRACTING"}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            border: "1px solid #111827",
-            background: busy || submission?.status === "EXTRACTING" ? "#9ca3af" : "#111827",
-            color: "white",
-            cursor: busy || submission?.status === "EXTRACTING" ? "not-allowed" : "pointer",
-            fontWeight: 700,
-          }}
+      {(err || msg) && (
+        <div
+          className={cx(
+            "mb-4 rounded-xl border p-3 text-sm",
+            err ? "border-red-200 bg-red-50 text-red-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          )}
         >
-          {busy || submission?.status === "EXTRACTING"
-            ? "Processing…"
-            : submission?.extractionRuns?.length
-            ? "Re-run extraction"
-            : "Start processing"}
-        </button>{" "}
-        <Link href="/submissions">Back</Link>
-      </div>
-
-      {/* =========================
-          STUDENT LINKING PANEL
-      ========================= */}
-      <details style={{ marginTop: 20, border: "1px solid #e5e7eb", borderRadius: 12 }}>
-        <summary style={{ cursor: "pointer", padding: 14, fontWeight: 800 }}>
-          Student linking
-          <span style={{ marginLeft: 10, fontWeight: 600, color: "#6b7280" }}>
-            {submission?.student?.fullName ? "✅ Linked" : "— Unlinked"}
-          </span>
-        </summary>
-
-        <div style={{ padding: 14, paddingTop: 8 }}>
-
-        <div>
-          <b>Linked:</b> {submission?.student?.fullName ?? "—"}
-          {submission?.student && (
-            <>
-              {" "}
-              <button onClick={unlinkStudent} disabled={studentBusy}>Unlink</button>
-            </>
-          )}
+          {err || msg}
         </div>
-
-        {studentMsg && <div style={{ marginTop: 6 }}>{studentMsg}</div>}
-
-        {!submission?.student && (
-          <>
-            <div style={{ marginTop: 12 }}>
-              <input
-                placeholder="Search student…"
-                value={studentQuery}
-                onChange={(e) => setStudentQuery(e.target.value)}
-              />
-            </div>
-
-            {studentResults.map((s) => (
-              <div key={s.id}>
-                <label>
-                  <input
-                    type="radio"
-                    name="student"
-                    value={s.id}
-                    checked={selectedStudentId === s.id}
-                    onChange={() => setSelectedStudentId(s.id)}
-                  />{" "}
-                  {s.fullName} {s.email ? `(${s.email})` : ""}
-                </label>
-              </div>
-            ))}
-
-            <button
-              onClick={() => linkStudent(selectedStudentId)}
-              disabled={!selectedStudentId || studentBusy}
-            >
-              Link selected
-            </button>
-
-            <hr />
-
-            <div>
-              <input
-                placeholder="New student name"
-                value={newStudentName}
-                onChange={(e) => setNewStudentName(e.target.value)}
-              />
-              <input
-                placeholder="Email (optional)"
-                value={newStudentEmail}
-                onChange={(e) => setNewStudentEmail(e.target.value)}
-              />
-              <button onClick={createStudentAndLink} disabled={!newStudentName}>
-                Create & link
-              </button>
-            </div>
-          </>
-        )}
-        </div>
-      </details>
-
-      {/* =========================
-          EXTRACTION INFO
-      ========================= */}
-      {latestRun && (
-        <section style={{ marginTop: 20 }}>
-          <h3>Latest extraction</h3>
-          <div>Words: {totalWords.toLocaleString()}</div>
-          <pre style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>
-            {pagesSorted.map((p) => `--- Page ${p.pageNumber} ---\n${p.text}`).join("\n\n")}
-          </pre>
-        </section>
       )}
 
-      {err && <div style={{ marginTop: 20, color: "red" }}>{err}</div>}
+      <section className="grid gap-4 lg:grid-cols-3">
+        {/* LEFT: PDF */}
+        <div className="lg:col-span-2">
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-4">
+              <div className="flex items-center gap-3">
+                <StatusPill>{submission?.status || "—"}</StatusPill>
+                <div className="text-sm text-zinc-600">Next action: <span className="font-semibold text-zinc-900">{nextAction(String(submission?.status || ""))}</span></div>
+              </div>
+              <div className="text-xs text-zinc-500">Uploaded: {safeDate(submission?.uploadedAt)}</div>
+            </div>
+
+            <div className="aspect-[4/3] w-full bg-zinc-50">
+              {/* PDF render (works for scanned + digital PDFs) */}
+              {submissionId ? (
+                <iframe
+                  title="Submission PDF"
+                  src={pdfUrl}
+                  className="h-full w-full"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-zinc-600">Loading…</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: Metadata + extraction */}
+        <div className="grid gap-4">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold text-zinc-500">Student</div>
+            <div className="mt-1 flex items-start justify-between gap-3">
+              <div>
+                <div className="text-lg font-semibold text-zinc-900">
+                  {submission?.student?.fullName || "Unlinked"}
+                </div>
+                <div className="mt-1 text-sm text-zinc-600">
+                  {[submission?.student?.email, submission?.student?.externalRef].filter(Boolean).join(" · ") || "—"}
+                </div>
+                {triageInfo?.studentName && !submission?.student?.fullName ? (
+                  <div className="mt-2 text-xs text-zinc-500">
+                    Detected on cover page: <span className="font-semibold text-zinc-900">{triageInfo.studentName}</span>
+                  </div>
+                ) : null}
+              </div>
+              {submission?.student ? (
+                <button
+                  type="button"
+                  onClick={unlinkStudent}
+                  disabled={studentBusy}
+                  className={cx(
+                    "rounded-xl border px-3 py-2 text-sm font-semibold",
+                    studentBusy
+                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                      : "border-zinc-200 bg-white hover:bg-zinc-50"
+                  )}
+                >
+                  Unlink
+                </button>
+              ) : null}
+            </div>
+
+            {!submission?.student ? (
+              <div className="mt-4 grid gap-3">
+                <div>
+                  <div className="text-sm font-semibold">Find existing student</div>
+                  <input
+                    value={studentQuery}
+                    onChange={(e) => setStudentQuery(e.target.value)}
+                    placeholder="Search by name, email, AB number…"
+                    className="mt-2 h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                  />
+                  <div className="mt-2 max-h-44 overflow-auto rounded-xl border border-zinc-200">
+                    {studentResults.length === 0 ? (
+                      <div className="p-3 text-sm text-zinc-600">No results yet.</div>
+                    ) : (
+                      <div className="divide-y divide-zinc-100">
+                        {studentResults.slice(0, 10).map((st) => (
+                          <label key={st.id} className="flex cursor-pointer items-start gap-3 p-3">
+                            <input
+                              type="radio"
+                              name="student"
+                              className="mt-1"
+                              checked={selectedStudentId === st.id}
+                              onChange={() => setSelectedStudentId(st.id)}
+                            />
+                            <div>
+                              <div className="text-sm font-semibold text-zinc-900">{st.fullName}</div>
+                              <div className="mt-0.5 text-xs text-zinc-600">{[st.email, st.externalRef].filter(Boolean).join(" · ") || "—"}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => linkStudent(selectedStudentId)}
+                    disabled={!selectedStudentId || studentBusy}
+                    className={cx(
+                      "mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
+                      !selectedStudentId || studentBusy
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                        : "bg-zinc-900 text-white hover:bg-zinc-800"
+                    )}
+                  >
+                    Link selected
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                  <div className="text-sm font-semibold text-zinc-900">Quick create</div>
+                  <div className="mt-2 grid gap-2">
+                    <input
+                      value={newStudentName}
+                      onChange={(e) => setNewStudentName(e.target.value)}
+                      placeholder="New student full name"
+                      className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                    />
+                    <input
+                      value={newStudentEmail}
+                      onChange={(e) => setNewStudentEmail(e.target.value)}
+                      placeholder="Email (optional)"
+                      className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={createStudentAndLink}
+                      disabled={!newStudentName.trim() || studentBusy}
+                      className={cx(
+                        "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
+                        !newStudentName.trim() || studentBusy
+                          ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                          : "bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+                      )}
+                    >
+                      Create & link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {submission?.studentLinkedAt ? (
+              <div className="mt-3 text-xs text-zinc-500">
+                Linked: {safeDate(submission.studentLinkedAt)}{submission.studentLinkedBy ? ` · by ${submission.studentLinkedBy}` : ""}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold text-zinc-500">Assignment</div>
+            <div className="mt-1 text-lg font-semibold text-zinc-900">
+              {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
+            </div>
+            <div className="mt-1 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
+
+            {triageInfo?.coverage?.missing?.length ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="text-xs font-semibold uppercase tracking-wide">Reference coverage</div>
+                <div className="mt-2">Missing: {triageInfo.coverage.missing.join(", ")}</div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+            <div className="border-b border-zinc-200 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold text-zinc-500">Extraction</div>
+                  <div className="mt-1 text-sm font-semibold text-zinc-900">
+                    {latestRun ? `Latest run · ${latestRun.engineVersion}` : "Not run yet"}
+                  </div>
+                </div>
+                {latestRun ? (
+                  <div className="text-xs text-zinc-500">
+                    {latestRun.status} · Confidence {Math.round((latestRun.overallConfidence || 0) * 100)}%
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="p-4">
+              {!latestRun ? (
+                <div className="text-sm text-zinc-600">
+                  No extraction yet. Click <span className="font-semibold">Run extraction</span> to generate readable text for grading.
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {latestRun.error ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                      {latestRun.error}
+                    </div>
+                  ) : null}
+
+                  {!!triageInfo?.warnings?.length ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <div className="text-xs font-semibold uppercase tracking-wide">Warnings</div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {triageInfo.warnings.slice(0, 5).map((w, i) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-xs font-semibold text-zinc-500">Page</div>
+                    <select
+                      value={activePage}
+                      onChange={(e) => setActivePage(Number(e.target.value))}
+                      className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                    >
+                      {pagesSorted.map((p, idx) => (
+                        <option key={p.id} value={idx}>
+                          {p.pageNumber} (conf {Math.round((p.confidence || 0) * 100)}%)
+                        </option>
+                      ))}
+                    </select>
+                    <div className="ml-auto text-xs text-zinc-500">Started: {safeDate(latestRun.startedAt)}</div>
+                  </div>
+
+                  <div className="max-h-[42vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                    <div className="whitespace-pre-wrap font-mono text-xs text-zinc-800">
+                      {active?.text?.trim() ? active.text : "(No meaningful text on this page yet)"}
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-zinc-500">
+                    Tip: scanned/handwritten pages may show low text. Those will become "NEEDS_OCR" later when we add vision.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-sm font-semibold">Totara upload checklist</div>
+            <div className="mt-2 text-sm text-zinc-600">
+              This will light up once grading is enabled.
+            </div>
+            <div className="mt-3 grid gap-2 text-sm">
+              <label className="flex items-center gap-2 text-zinc-700">
+                <input type="checkbox" className="h-4 w-4 rounded border-zinc-300" disabled /> Marked PDF ready
+              </label>
+              <label className="flex items-center gap-2 text-zinc-700">
+                <input type="checkbox" className="h-4 w-4 rounded border-zinc-300" disabled /> Feedback ready
+              </label>
+              <label className="flex items-center gap-2 text-zinc-700">
+                <input type="checkbox" className="h-4 w-4 rounded border-zinc-300" disabled /> Overall grade ready
+              </label>
+            </div>
+            <div className="mt-3 text-xs text-zinc-500">We’ll store timestamps + model/prompt versions so you can defend every decision.</div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

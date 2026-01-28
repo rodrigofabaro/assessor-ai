@@ -19,6 +19,8 @@ export default function UploadPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [studentId, setStudentId] = useState("");
   const [assignmentId, setAssignmentId] = useState("");
+  const [studentQuery, setStudentQuery] = useState("");
+  const [assignmentQuery, setAssignmentQuery] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string>("");
@@ -35,6 +37,24 @@ export default function UploadPage() {
 
   const studentsSafe = useMemo(() => (Array.isArray(students) ? students : []), [students]);
   const assignmentsSafe = useMemo(() => (Array.isArray(assignments) ? assignments : []), [assignments]);
+
+  const studentsFiltered = useMemo(() => {
+    const q = studentQuery.trim().toLowerCase();
+    if (!q) return studentsSafe;
+    return studentsSafe.filter((s) => {
+      const blob = `${s.fullName ?? ""} ${s.externalRef ?? ""} ${s.email ?? ""}`.toLowerCase();
+      return blob.includes(q);
+    });
+  }, [studentsSafe, studentQuery]);
+
+  const assignmentsFiltered = useMemo(() => {
+    const q = assignmentQuery.trim().toLowerCase();
+    if (!q) return assignmentsSafe;
+    return assignmentsSafe.filter((a) => {
+      const blob = `${a.unitCode ?? ""} ${a.assignmentRef ?? ""} ${a.title ?? ""}`.toLowerCase();
+      return blob.includes(q);
+    });
+  }, [assignmentsSafe, assignmentQuery]);
 
   async function loadPicklists() {
     setErr("");
@@ -167,6 +187,24 @@ export default function UploadPage() {
               </button>
             </div>
 
+            <div className="grid gap-2">
+              <input
+                value={studentQuery}
+                onChange={(e) => setStudentQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const only = studentsFiltered.length === 1 ? studentsFiltered[0] : null;
+                    if (only?.id) setStudentId(only.id);
+                  }
+                }}
+                placeholder="Search student… (name, ref, email)"
+                className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
+              />
+              <div className="text-[11px] text-zinc-500">
+                Tip: type a name to filter, then press Enter if only one match remains.
+              </div>
+            </div>
+
             <select
               id="student"
               value={studentId}
@@ -175,12 +213,12 @@ export default function UploadPage() {
             >
               <option value="">Auto (from cover page) / Unassigned</option>
 
-              {studentsSafe.length === 0 ? (
+              {studentsFiltered.length === 0 ? (
                 <option value="" disabled>
-                  No students yet
+                  No matching students
                 </option>
               ) : (
-                studentsSafe.map((s) => (
+                studentsFiltered.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.fullName}
                     {s.externalRef ? ` (${s.externalRef})` : ""}
@@ -201,6 +239,19 @@ export default function UploadPage() {
               Assignment <span className="text-xs font-normal text-zinc-500">(optional)</span>
             </label>
 
+            <input
+              value={assignmentQuery}
+              onChange={(e) => setAssignmentQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const only = assignmentsFiltered.length === 1 ? assignmentsFiltered[0] : null;
+                  if (only?.id) setAssignmentId(only.id);
+                }
+              }}
+              placeholder="Search assignment… (unit code, A1, title)"
+              className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm"
+            />
+
             <select
               id="assignment"
               value={assignmentId}
@@ -209,12 +260,12 @@ export default function UploadPage() {
             >
               <option value="">Auto (from cover page) / Unassigned</option>
 
-              {assignmentsSafe.length === 0 ? (
+              {assignmentsFiltered.length === 0 ? (
                 <option value="" disabled>
-                  No assignments yet
+                  No matching assignments
                 </option>
               ) : (
-                assignmentsSafe.map((a) => (
+                assignmentsFiltered.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.unitCode} {a.assignmentRef ? a.assignmentRef : ""} — {a.title}
                   </option>

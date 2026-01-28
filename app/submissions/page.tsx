@@ -95,6 +95,9 @@ export default function SubmissionsPage() {
   const [msg, setMsg] = useState<string>("");
 
   const [unlinkedOnly, setUnlinkedOnly] = useState(false);
+  const [todayOnly, setTodayOnly] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
   // Resolve drawer
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -129,8 +132,75 @@ export default function SubmissionsPage() {
 
   const filtered = useMemo(() => {
     const list = Array.isArray(items) ? items : [];
-    return unlinkedOnly ? list.filter((s) => !s.studentId) : list;
-  }, [items, unlinkedOnly]);
+    const byLink = unlinkedOnly ? list.filter((s) => !s.studentId) : list;
+
+    const q = (query || "").trim().toLowerCase();
+    const byQuery = q
+      ? byLink.filter((s) => {
+          const hay = [
+            s.filename,
+            s.student?.fullName,
+            s.student?.email,
+            s.student?.externalRef,
+            s.assignment?.title,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return hay.includes(q);
+        })
+      : byLink;
+
+    const byStatus = statusFilter ? byQuery.filter((s) => String(s.status) === statusFilter) : byQuery;
+
+    if (!todayOnly) return byStatus;
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const end = start + 24 * 60 * 60 * 1000;
+    return byStatus.filter((s) => {
+      const t = new Date(s.uploadedAt).getTime();
+      return !Number.isNaN(t) && t >= start && t < end;
+    });
+  }, [items, unlinkedOnly, todayOnly, query, statusFilter]);
+
+  const statuses = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of items) set.add(String(s.status));
+    return Array.from(set).sort();
+  }, [items]);
+
+  const dayGroups = useMemo(() => {
+    const groups = new Map<string, Submission[]>();
+    for (const s of filtered) {
+      const d = new Date(s.uploadedAt);
+      const key = Number.isNaN(d.getTime()) ? "Unknown date" : d.toLocaleDateString();
+      const arr = groups.get(key) || [];
+      arr.push(s);
+      groups.set(key, arr);
+    }
+    return Array.from(groups.entries());
+  }, [filtered]);
+
+  function nextAction(status: string) {
+    switch (status) {
+      case "UPLOADED":
+      case "EXTRACTING":
+        return "Wait for extraction";
+      case "EXTRACTED":
+        return "Ready to assess";
+      case "NEEDS_OCR":
+        return "Needs OCR";
+      case "ASSESSING":
+      case "MARKING":
+        return "Assessment running";
+      case "DONE":
+        return "Upload back to Totara";
+      case "FAILED":
+        return "Needs attention";
+      default:
+        return "—";
+    }
+  }
 
   async function openResolve(submissionId: string) {
     setResolveId(submissionId);
@@ -238,7 +308,8 @@ export default function SubmissionsPage() {
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-4">
-          <label className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm font-semibold">
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-zinc-300"
@@ -246,87 +317,128 @@ export default function SubmissionsPage() {
               onChange={(e) => setUnlinkedOnly(e.target.checked)}
             />
             Unlinked only
-          </label>
+            </label>
+
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-zinc-300"
+                checked={todayOnly}
+                onChange={(e) => setTodayOnly(e.target.checked)}
+              />
+              Today
+            </label>
+
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search: filename, student, email, AB number…"
+              className="h-9 w-[280px] rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+              aria-label="Filter by status"
+            >
+              <option value="">All statuses</option>
+              {statuses.map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="text-xs text-zinc-500">Tip: unlinked items usually need a quick resolve after batch uploads.</div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0">
-            <thead>
-              <tr className="text-left text-xs font-semibold text-zinc-700">
-                <th className="border-b border-zinc-200 bg-white px-4 py-3">File</th>
-                <th className="border-b border-zinc-200 bg-white px-4 py-3">Student</th>
-                <th className="border-b border-zinc-200 bg-white px-4 py-3">Unit</th>
-                <th className="border-b border-zinc-200 bg-white px-4 py-3">Assignment</th>
-                <th className="border-b border-zinc-200 bg-white px-4 py-3">Status</th>
-                <th className="border-b border-zinc-200 bg-white px-4 py-3">Uploaded</th>
-                <th className="border-b border-zinc-200 bg-white px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-10 text-sm text-zinc-600" colSpan={7}>
-                    {unlinkedOnly ? "No unlinked submissions." : "No submissions yet."}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((s) => (
-                  <tr key={s.id} className="text-sm">
-                    <td className="border-b border-zinc-100 px-4 py-3 font-medium text-zinc-900">
-                      <Link className="underline underline-offset-4 hover:opacity-80" href={`/submissions/${s.id}`}>
-                        {s.filename}
-                      </Link>
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-800">
-                      {s.studentId && s.student?.fullName ? (
-                        <Link className="underline underline-offset-4 hover:opacity-80" href={`/students/${s.studentId}`}>
-                          {s.student.fullName}
-                        </Link>
-                      ) : (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
-                            Unlinked
-                          </span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{s.assignmentId ? String(s.assignmentId).slice(0, 4) : "—"}</td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
-                      {s.assignment?.title || s.assignmentId || "—"}
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3">
-                      <StatusPill>{s.status}</StatusPill>
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{safeDate(s.uploadedAt)}</td>
-                    <td className="border-b border-zinc-100 px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/submissions/${s.id}`}
-                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-50"
-                          title="Open submission"
-                        >
-                          Open
-                        </Link>
-                        {!s.studentId ? (
-                          <button
-                            type="button"
-                            onClick={() => openResolve(s.id)}
-                            className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
-                            title="Resolve student"
-                          >
-                            Resolve
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {filtered.length === 0 ? (
+          <div className="px-4 py-10 text-sm text-zinc-600">
+            {unlinkedOnly ? "No unlinked submissions." : "No submissions yet."}
+          </div>
+        ) : (
+          <div className="divide-y divide-zinc-200">
+            {dayGroups.map(([day, rows]) => (
+              <div key={day}>
+                <div className="flex items-center justify-between gap-3 bg-zinc-50 px-4 py-3">
+                  <div className="text-sm font-semibold text-zinc-900">{day}</div>
+                  <div className="text-xs text-zinc-500">{rows.length} submission{rows.length === 1 ? "" : "s"}</div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-separate border-spacing-0">
+                    <thead>
+                      <tr className="text-left text-xs font-semibold text-zinc-700">
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3">File</th>
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3">Student</th>
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3">Assignment</th>
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3">Status</th>
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3">Next action</th>
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3">Uploaded</th>
+                        <th className="border-b border-zinc-200 bg-white px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((s) => (
+                        <tr key={s.id} className="text-sm">
+                          <td className="border-b border-zinc-100 px-4 py-3 font-medium text-zinc-900">
+                            <Link className="underline underline-offset-4 hover:opacity-80" href={`/submissions/${s.id}`}>
+                              {s.filename}
+                            </Link>
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-zinc-800">
+                            {s.studentId && s.student?.fullName ? (
+                              <Link className="underline underline-offset-4 hover:opacity-80" href={`/students/${s.studentId}`}>
+                                {s.student.fullName}
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center gap-2">
+                                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+                                  Unlinked
+                                </span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                            {s.assignment?.title || s.assignmentId || "—"}
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3">
+                            <StatusPill>{s.status}</StatusPill>
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{nextAction(String(s.status))}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{safeDate(s.uploadedAt)}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/submissions/${s.id}`}
+                                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-50"
+                                title="Open submission"
+                              >
+                                Open
+                              </Link>
+                              {!s.studentId ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openResolve(s.id)}
+                                  className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+                                  title="Resolve student"
+                                >
+                                  Resolve
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {resolveOpen && (

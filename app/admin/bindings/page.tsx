@@ -116,30 +116,43 @@ export default function AssignmentBindingsAdminPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 20 }}>Loading…</div>;
+  if (loading) {
+    return (
+      <div className="grid gap-6">
+        <div>
+          <div className="h-6 w-72 animate-pulse rounded-lg bg-zinc-200" />
+          <div className="mt-2 h-4 w-[34rem] animate-pulse rounded-lg bg-zinc-200" />
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="h-4 w-56 animate-pulse rounded-lg bg-zinc-200" />
+          <div className="mt-4 h-10 w-full animate-pulse rounded-xl bg-zinc-100" />
+          <div className="mt-3 h-10 w-full animate-pulse rounded-xl bg-zinc-100" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: 20, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800 }}>Phase 2.5 — Assignment Reference Binding</div>
-          <div style={{ opacity: 0.75, marginTop: 4 }}>
-            Bind each operational assignment (A1/A2/etc.) to a <b>LOCKED</b> brief and its <b>LOCKED</b> unit/spec.
-            No question/task extraction, no grading.
-          </div>
+          <h1 className="text-xl font-semibold tracking-tight">Phase 2.5 — Assignment Reference Binding</h1>
+          <p className="mt-2 max-w-3xl text-sm text-zinc-600">
+            Bind each operational assignment (A1/A2/etc.) to a <span className="font-semibold">LOCKED</span> brief and its{" "}
+            <span className="font-semibold">LOCKED</span> unit/spec. No question/task extraction, no grading.
+          </p>
         </div>
-        <button onClick={load} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}>
+        <button
+          onClick={load}
+          className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
+        >
           Refresh
         </button>
       </div>
 
-      {err && (
-        <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca" }}>
-          {err}
-        </div>
-      )}
+      {err && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
 
-      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+      <div className="grid gap-4">
         {assignments.map((a) => {
           const isLocked = a.bindingStatus === "LOCKED";
           const unit = a.assignmentBrief?.unit;
@@ -149,74 +162,80 @@ export default function AssignmentBindingsAdminPage() {
           const matchingBriefs = lockedBriefs.filter((b) => (b.unit?.unitCode || "") === (a.unitCode || ""));
 
           return (
-            <div key={a.id} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#fff" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <section key={a.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-start">
                 <div>
-                  <div style={{ fontWeight: 800 }}>
+                  <div className="text-sm font-semibold text-zinc-900">
                     {a.unitCode} — {a.assignmentRef || "Assignment"}: {a.title}
                   </div>
-                  <div style={{ opacity: 0.75, marginTop: 4 }}>
+                  <div className="mt-1 text-xs text-zinc-600">
                     Status:{" "}
-                    <span style={{ fontWeight: 700, color: isLocked ? "#065f46" : "#92400e" }}>
+                    <span
+                      className={
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                        (isLocked
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          : "border-amber-200 bg-amber-50 text-amber-900")
+                      }
+                    >
                       {a.bindingStatus}
                     </span>
                     {a.bindingLockedAt ? (
-                      <>
-                        {" "}
-                        • Locked at {formatDate(a.bindingLockedAt)}{a.bindingLockedBy ? ` by ${a.bindingLockedBy}` : ""}
-                      </>
+                      <span>
+                        {" "}• Locked at {formatDate(a.bindingLockedAt)}{a.bindingLockedBy ? ` by ${a.bindingLockedBy}` : ""}
+                      </span>
                     ) : null}
                   </div>
 
-                  <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.4 }}>
+                  <div className="mt-4 grid gap-1 text-sm text-zinc-800">
                     <div>
-                      <b>Bound brief:</b>{" "}
+                      <span className="font-semibold">Bound brief:</span>{" "}
                       {a.assignmentBrief ? (
-                        <>
+                        <span>
                           {a.assignmentBrief.assignmentCode} — {a.assignmentBrief.title}
-                        </>
+                        </span>
                       ) : (
-                        <span style={{ opacity: 0.7 }}>None</span>
+                        <span className="text-zinc-500">None</span>
                       )}
                     </div>
                     <div>
-                      <b>Unit:</b>{" "}
+                      <span className="font-semibold">Unit:</span>{" "}
                       {unit ? (
-                        <>
+                        <span>
                           {unit.unitCode} — {unit.unitTitle} ({unit.status})
-                        </>
+                        </span>
                       ) : (
-                        <span style={{ opacity: 0.7 }}>—</span>
+                        <span className="text-zinc-500">—</span>
                       )}
                     </div>
                     <div>
-                      <b>Spec doc:</b>{" "}
+                      <span className="font-semibold">Spec doc:</span>{" "}
                       {spec ? (
-                        <>
+                        <span>
                           {spec.title} (v{spec.version}) — {spec.status}
-                        </>
+                        </span>
                       ) : (
-                        <span style={{ opacity: 0.7 }}>—</span>
+                        <span className="text-zinc-500">—</span>
                       )}
                     </div>
                     <div>
-                      <b>Brief doc:</b>{" "}
+                      <span className="font-semibold">Brief doc:</span>{" "}
                       {briefDoc ? (
-                        <>
+                        <span>
                           {briefDoc.title} (v{briefDoc.version}) — {briefDoc.status}
-                        </>
+                        </span>
                       ) : (
-                        <span style={{ opacity: 0.7 }}>—</span>
+                        <span className="text-zinc-500">—</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ minWidth: 320 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Select LOCKED brief for this unit</div>
+                <div>
+                  <div className="text-sm font-semibold">Select LOCKED brief for this unit</div>
                   <select
                     disabled={isLocked}
-                    defaultValue={a.assignmentBriefId || ""}
+                    value={a.assignmentBriefId || ""}
                     onChange={(e) => {
                       const val = e.target.value || "";
                       // We do not auto-save on change to avoid accidental locks.
@@ -225,13 +244,10 @@ export default function AssignmentBindingsAdminPage() {
                         prev.map((x) => (x.id === a.id ? ({ ...x, assignmentBriefId: val || null } as any) : x))
                       );
                     }}
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      borderRadius: 10,
-                      border: "1px solid #d1d5db",
-                      background: isLocked ? "#f9fafb" : "#fff",
-                    }}
+                    className={
+                      "mt-2 h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm shadow-sm " +
+                      (isLocked ? "bg-zinc-50" : "bg-white")
+                    }
                   >
                     <option value="">— Select —</option>
                     {matchingBriefs.map((b) => (
@@ -241,21 +257,16 @@ export default function AssignmentBindingsAdminPage() {
                     ))}
                   </select>
 
-                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <div className="mt-3 flex gap-2">
                     <button
                       disabled={isLocked || savingId === a.id || !a.assignmentBriefId}
                       onClick={() => lockBinding(a.id, a.assignmentBriefId || null)}
-                      style={{
-                        flex: 1,
-                        padding: "9px 12px",
-                        borderRadius: 10,
-                        border: "1px solid #16a34a",
-                        background: isLocked ? "#dcfce7" : "#16a34a",
-                        color: isLocked ? "#065f46" : "#fff",
-                        fontWeight: 800,
-                        cursor: isLocked ? "not-allowed" : "pointer",
-                        opacity: savingId === a.id ? 0.8 : 1,
-                      }}
+                      className={
+                        "h-10 flex-1 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                        (isLocked || savingId === a.id || !a.assignmentBriefId
+                          ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700")
+                      }
                     >
                       {savingId === a.id ? "Saving…" : isLocked ? "Locked" : "Lock binding"}
                     </button>
@@ -263,14 +274,7 @@ export default function AssignmentBindingsAdminPage() {
                     <button
                       disabled={isLocked || savingId === a.id}
                       onClick={() => lockBinding(a.id, null)}
-                      style={{
-                        padding: "9px 12px",
-                        borderRadius: 10,
-                        border: "1px solid #d1d5db",
-                        background: "#fff",
-                        fontWeight: 700,
-                        cursor: isLocked ? "not-allowed" : "pointer",
-                      }}
+                      className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50 disabled:cursor-not-allowed disabled:bg-zinc-100"
                       title="Clear selection (keeps assignment editable)"
                     >
                       Clear
@@ -278,19 +282,19 @@ export default function AssignmentBindingsAdminPage() {
                   </div>
 
                   {!matchingBriefs.length && (
-                    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-                      No LOCKED briefs found for unit <b>{a.unitCode}</b>. Lock a spec + brief in Phase 2.2 first.
+                    <div className="mt-3 text-xs text-zinc-600">
+                      No LOCKED briefs found for unit <span className="font-semibold">{a.unitCode}</span>. Lock a spec + brief in Phase 2.2 first.
                     </div>
                   )}
                 </div>
               </div>
-            </div>
+            </section>
           );
         })}
       </div>
 
-      <div style={{ marginTop: 18, fontSize: 12, opacity: 0.7 }}>
-        Note: Locking an assignment binding does <b>not</b> grade student work. It only fixes the reference set used later for grading & audit logs.
+      <div className="text-xs text-zinc-600">
+        Note: Locking an assignment binding does <span className="font-semibold">not</span> grade student work. It only fixes the reference set used later for grading & audit logs.
       </div>
     </div>
   );
