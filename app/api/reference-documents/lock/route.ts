@@ -173,12 +173,13 @@ export async function POST(req: Request) {
       // Determine unit
       let unit = null;
       if (overrideUnitId) unit = await prisma.unit.findUnique({ where: { id: overrideUnitId } });
-      if (!unit && brief.unitCodeGuess) {
-        unit = await prisma.unit.findFirst({
-          where: { unitCode: brief.unitCodeGuess },
-          orderBy: { createdAt: "desc" },
-        });
-      }
+if (!unit && brief.unitCodeGuess) {
+  unit = await prisma.unit.findFirst({
+    where: { unitCode: brief.unitCodeGuess, status: "LOCKED" as any },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
       if (!unit) {
         return NextResponse.json(
           { error: "Could not determine Unit for this brief. Select a Unit and try again." },

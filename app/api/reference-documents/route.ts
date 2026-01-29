@@ -22,6 +22,30 @@ export async function GET() {
   return NextResponse.json({ documents: docs });
 }
 
+function parseVersion(raw: FormDataEntryValue | null): { version: number; versionLabel?: string } {
+  if (typeof raw !== "string") return { version: 1 };
+
+  const label = raw.trim();
+  if (!label) return { version: 1 };
+
+  // If user typed "2" or "02"
+  if (/^\d+$/.test(label)) {
+    const v = Math.max(1, parseInt(label, 10));
+    return { version: v, versionLabel: label };
+  }
+
+  // If user typed "issue 2", "Issue: 2", "v2", "2025/26 issue 2", etc.
+  const m = label.match(/(\d+)/);
+  if (m) {
+    const v = Math.max(1, parseInt(m[1], 10));
+    return { version: v, versionLabel: label };
+  }
+
+  // No number found (e.g., "Draft") — default to 1 but keep label
+  return { version: 1, versionLabel: label };
+}
+
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -33,7 +57,8 @@ export async function POST(req: Request) {
 
     const type = typeof typeRaw === "string" ? typeRaw.toUpperCase() : "";
     const title = typeof titleRaw === "string" ? titleRaw.trim() : "";
-    const version = typeof versionRaw === "string" ? Number(versionRaw) : 1;
+    const { version, versionLabel } = parseVersion(versionRaw);
+
 
     if (!title || !file || !(file instanceof File)) {
       return NextResponse.json({ error: "Missing title or file" }, { status: 400 });
@@ -68,17 +93,18 @@ export async function POST(req: Request) {
 
     fs.writeFileSync(storagePathAbs, buffer);
 
-    const doc = await prisma.referenceDocument.create({
-      data: {
-        type: type as any,
-        title,
-        version,
-        originalFilename: file.name,
-        storedFilename,
-        storagePath: storagePathRel, // ✅ RELATIVE (portable)
-        checksumSha256,
-      },
-    });
+const doc = await prisma.referenceDocument.create({
+  data: {
+    type: type as any,
+    title,
+    version,
+    originalFilename: file.name,
+    storedFilename,
+    storagePath: storagePathRel,
+    checksumSha256,
+    sourceMeta: versionLabel ? { versionLabel } : undefined,
+  },
+});
 
     return NextResponse.json({ document: doc });
   } catch (err) {

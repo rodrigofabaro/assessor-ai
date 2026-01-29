@@ -1,24 +1,36 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  const units = await prisma.unit.findMany({
-    orderBy: [{ unitCode: "asc" }],
-    include: {
-      specDocument: true,
-      learningOutcomes: {
-        orderBy: [{ loCode: "asc" }],
-        include: {
-          criteria: { orderBy: [{ acCode: "asc" }] },
+  try {
+    const units = await prisma.unit.findMany({
+      orderBy: [{ unitCode: "asc" }],
+      include: {
+        specDocument: true,
+        learningOutcomes: {
+          orderBy: [{ loCode: "asc" }],
+          include: {
+            criteria: { orderBy: [{ acCode: "asc" }] },
+          },
+        },
+        assignmentBriefs: {
+          orderBy: [{ assignmentCode: "asc" }],
+          include: { briefDocument: true },
         },
       },
-      assignmentBriefs: {
-        orderBy: [{ assignmentCode: "asc" }],
-        include: { briefDocument: true },
-      },
-    },
-  });
-  return NextResponse.json({ units });
+    });
+
+    return NextResponse.json({ units });
+  } catch (err: any) {
+    console.error("UNITS_GET_ERROR:", err);
+    return NextResponse.json(
+      { error: "UNITS_GET_ERROR", message: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -44,8 +56,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ unit });
-  } catch (err) {
+  } catch (err: any) {
     console.error("UNIT_CREATE_ERROR:", err);
-    return NextResponse.json({ error: "Create failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "UNIT_CREATE_ERROR", message: String(err?.message || err) },
+      { status: 500 }
+    );
   }
 }

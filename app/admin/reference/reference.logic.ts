@@ -152,10 +152,12 @@ export function useReferenceAdmin() {
 
     // Brief: preselect mapping (best-effort)
     if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
-      setAssignmentCodeInput((draft.assignmentCode || "").toString());
+      const derived = draft.assignmentCode || (draft.assignmentNumber ? `A${draft.assignmentNumber}` : "");
+setAssignmentCodeInput((derived || "").toString());
+
 
       const unitGuess: string | undefined = draft.unitCodeGuess;
-      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess) : null;
+      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess && u.status === "LOCKED") : null;
       setBriefUnitId(unit?.id || "");
 
       const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) => x.toUpperCase());
