@@ -374,9 +374,14 @@ function SpecPreview({ draft }: { draft: any }) {
                               {c.gradeBand}
                             </span>
                           </div>
-                          <p className="mt-2 text-sm text-zinc-900 leading-relaxed break-words whitespace-normal">
-                            {c.description || ""}
-                          </p>
+                          <details className="mt-2">
+  <summary className="cursor-pointer select-none text-sm font-semibold text-zinc-800">
+    Show criterion text
+  </summary>
+  <p className="mt-2 text-sm text-zinc-900 leading-relaxed break-words whitespace-pre-wrap">
+    {c.description || ""}
+  </p>
+</details>
                         </li>
                       ))}
                     </ul>
