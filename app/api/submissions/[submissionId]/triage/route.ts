@@ -1,54 +1,122 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-function norm(s: string) {
-  return (s || "")
+/**
+ * UTILS & CONSTANTS
+ */
+const STOPWORDS = new Set(
+  [
+    "assignment",
+    "unit",
+    "submission",
+    "final",
+    "draft",
+    "course",
+    "module",
+    "engineering",
+    "hnc",
+    "hnd",
+    "btec",
+    "pearson",
+    "rqf",
+    "report",
+    "work",
+    "portfolio",
+    "task",
+    "level",
+    "learning",
+    "outcome",
+    "contents",
+    "appendix",
+    "references",
+  ].map((s) => s.toLowerCase())
+);
+
+const norm = (s: string) =>
+  (s || "")
     .replace(/\s+/g, " ")
-    .replace(/[^\p{L}\p{N}\s@._-]+/gu, "")
+    .replace(/[^\p{L}\p{N}\s@._'’-]+/gu, "") // keep @ . _ apostrophes/hyphens
     .trim();
-}
 
-function looksLikePersonName(line: string) {
-  // take only the left side before common separators (often "NAME | COURSE | DATE")
-  const left = (line || "").split("|")[0].split("—")[0].split("-")[0].trim();
-  const s = norm(left);
-  if (!s) return false;
+const titleCase = (w: string) => {
+  const s = (w || "").trim();
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
 
-  if (s.length < 5 || s.length > 60) return false;
-  if (/@/.test(s)) return false;
+const cleanToken = (t: string) =>
+  (t || "")
+    .replace(/\.(pdf|docx?)$/i, "")
+    .replace(/[\(\)\[\]\{\}]/g, "")
+    .replace(/[^\p{L}\p{N}'’-]+/gu, "")
+    .trim();
 
-  // Avoid common header keywords (and things that caused false positives)
-  if (/\b(unit|assignment|contents|code|programme|course|pearson|btec|level|submission|engineering)\b/i.test(s))
+/**
+ * Name detection that is robust but conservative.
+ * - allows particles: de/da/del/di/van/von/al, etc.
+ * - rejects common academic headers/codes
+ */
+function isPersonName(text: string): boolean {
+  const s = norm(text);
+  if (!s || s.length < 4 || s.length > 60) return false;
+  if (s.includes("@")) return false;
+
+  // Reject obvious non-names / academic keywords / noisy labels
+  if (
+    /\b(unit|assignment|pearson|btec|level|hnc|hnd|rqf|ref|page|student\s*id|candidate\s*id|learner\s*id|programme|course|submission|engineering)\b/i.test(
+      s
+    )
+  )
     return false;
+
+  // Reject codes/IDs
+  if (/\b\d{4,}\b/.test(s)) return false;
+  if (/\b(LO\d+|P\d+|M\d+|D\d+)\b/i.test(s)) return false;
 
   const parts = s.split(" ").filter(Boolean);
   if (parts.length < 2 || parts.length > 4) return false;
 
-  // Accept Title Case: "John Birkin"
-  const titleCaseCount = parts.filter((p) => /^[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’-]+$/.test(p)).length;
-  if (titleCaseCount >= 2) return true;
+  const particles = new Set([
+    "de",
+    "da",
+    "do",
+    "dos",
+    "das",
+    "del",
+    "della",
+    "di",
+    "van",
+    "von",
+    "der",
+    "den",
+    "la",
+    "le",
+    "al",
+    "el",
+    "ibn",
+  ]);
 
-  // Accept ALL CAPS names: "JOHN BIRKIN"
-  const allCapsCount = parts.filter((p) => /^[A-ZÀ-ÖØ-Þ]{2,}$/.test(p)).length;
-  if (allCapsCount >= 2) return true;
+  const isTitleToken = (p: string) =>
+    /^[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’\-]+$/.test(p);
 
-  return false;
-}
+  const isAllCapsToken = (p: string) =>
+    /^[A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’\-]{1,}$/.test(p);
 
-function extractNameFromLine(line: string): string | null {
-  const left = (line || "").split("|")[0].split("—")[0].split("-")[0].trim();
-  const s = norm(left);
-  if (!s) return null;
+  const lowerOK = (p: string) => particles.has(p.toLowerCase());
 
-  const parts = s.split(" ").filter(Boolean);
-  const candidate = parts.slice(0, 3).join(" ").trim(); // allow 2–3 tokens
+  const titleish = parts.every((p) => isTitleToken(p) || lowerOK(p));
+  const capsish = parts.every((p) => isAllCapsToken(p) || lowerOK(p));
 
-  return looksLikePersonName(candidate) ? candidate : null;
+  // Require at least 2 "real" name-like tokens (not just particles)
+  const realCount = parts.filter((p) => !lowerOK(p)).length;
+  if (realCount < 2) return false;
+
+  return titleish || capsish;
 }
 
 function extractSignalsFromText(textRaw: string) {
-  const text = (textRaw || "").slice(0, 20000);
-  const lines = text
+  const fullText = (textRaw || "").slice(0, 20000);
+  const lines = fullText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
@@ -56,360 +124,268 @@ function extractSignalsFromText(textRaw: string) {
 
   const joined = lines.join("\n");
 
-  const emailMatch = joined.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  const email = emailMatch ? emailMatch[0].toLowerCase() : null;
+  const email =
+    joined.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() ||
+    null;
 
-  const unitMatch = joined.match(/\b(4\d{3})\b/);
-  const unitCode = unitMatch ? unitMatch[1] : null;
+  const unitCode = joined.match(/\b(4\d{3})\b/)?.[1] || null;
 
-  let assignmentRef: string | null = null;
-  const aRefMatch = joined.match(/\bA\s*([1-9]\d?)\b/i);
-  if (aRefMatch) assignmentRef = `A${aRefMatch[1]}`;
+  const aMatch = joined.match(/\b(?:Assignment|A)\s*([1-9]\d?)\b/i);
+  const assignmentRef = aMatch ? `A${aMatch[1]}` : null;
 
-  if (!assignmentRef) {
-    const asgMatch = joined.match(/\bAssignment\s*([1-9]\d?)\b/i);
-    if (asgMatch) assignmentRef = `A${asgMatch[1]}`;
-  }
-
-  const labeled = joined.match(/(?:student\s*name|learner\s*name|candidate\s*name|name)\s*[:\-]\s*(.+)/i);
+  // Name detection: labeled first
   let studentName: string | null = null;
 
+  const labeled = joined.match(
+    /(?:student\s*name|learner\s*name|candidate\s*name|student|learner|candidate|name)\s*[:\-]\s*([^\n|—-]+)/i
+  );
+
   if (labeled?.[1]) {
-    const candidate = norm(labeled[1]).split("\n")[0].trim();
-    if (looksLikePersonName(candidate)) studentName = candidate;
+    const candidate = norm(labeled[1]);
+    if (isPersonName(candidate)) studentName = candidate;
   }
 
-  // Fallback: scan first ~60 lines, prefer last candidate before "Contents"
+  // Fallback: scan header block (before Contents), reverse scan
   if (!studentName) {
-    const scanWindow = lines.slice(0, 60);
-    const contentsIdx = scanWindow.findIndex((l) => /\bcontents\b/i.test(l));
-    const preContents = contentsIdx > 0 ? scanWindow.slice(0, contentsIdx) : scanWindow;
+    const contentsIdx = lines.findIndex((l) => /\bcontents\b/i.test(l));
+    const searchArea =
+      contentsIdx > 0 ? lines.slice(0, contentsIdx) : lines.slice(0, 45);
 
-    const extracted = preContents.map(extractNameFromLine).filter(Boolean) as string[];
-    studentName = extracted.length ? extracted[extracted.length - 1] : null;
+    for (let i = searchArea.length - 1; i >= 0; i--) {
+      const candidate = searchArea[i].split(/[|—\-]/)[0].trim();
+      if (isPersonName(candidate)) {
+        studentName = norm(candidate);
+        break;
+      }
+    }
   }
 
-  return { email, unitCode, assignmentRef, studentName, sampleLines: lines.slice(0, 25) };
-}
-
-function cleanToken(t: string) {
-  return (t || "")
-    .replace(/\.(pdf|docx?)$/i, "")
-    .replace(/[\(\)\[\]\{\}]/g, "")
-    .replace(/[^\p{L}\p{N}'’-]+/gu, "")
-    .trim();
-}
-
-function titleCase(w: string) {
-  if (!w) return w;
-  return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-}
-
-function titleCaseNameFromTokens(tokens: string[]) {
-  const clean = tokens
-    .map(cleanToken)
-    .filter(Boolean)
-    .filter((t) => !/^\d+$/.test(t));
-
-  if (clean.length < 2) return null;
-
-  const nameTokens = clean.slice(0, 3).map(titleCase);
-  const name = nameTokens.join(" ").trim();
-  return name.length >= 5 ? name : null;
+  return {
+    email,
+    unitCode,
+    assignmentRef,
+    studentName,
+    sampleLines: lines.slice(0, 20),
+  };
 }
 
 function extractSignalsFromFilename(filename: string) {
-  const base = (filename || "").replace(/\.[a-z0-9]+$/i, "");
-  const normed = base.replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
+  const nameOnly = (filename || "")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  const unitMatch =
-    normed.match(/\bU\s*(4\d{3})\b/i) ||
-    normed.match(/\bUnit\s*(4\d{3})\b/i) ||
-    normed.match(/(?:^|[^0-9])(4\d{3})(?:[^0-9]|$)/);
+  const tokens = nameOnly.split(" ").filter(Boolean);
 
-  const unitCode = unitMatch ? unitMatch[1] : null;
+  const unitCode =
+    nameOnly.match(/\bU(?:nit)?\s*(4\d{3})\b/i)?.[1] ||
+    nameOnly.match(/\b(4\d{3})\b/)?.[1] ||
+    null;
 
-  let assignmentRef: string | null = null;
-  const aRefMatch = normed.match(/\bA\s*([1-9]\d?)\b/i);
-  if (aRefMatch) assignmentRef = `A${aRefMatch[1]}`;
+  const aMatch = nameOnly.match(/\b(?:Assignment|A)\s*([1-9]\d?)\b/i);
+  const assignmentRef = aMatch ? `A${aMatch[1]}` : null;
 
-  if (!assignmentRef) {
-    const asgMatch = normed.match(/\bAssignment\s*([1-9]\d?)\b/i);
-    if (asgMatch) assignmentRef = `A${asgMatch[1]}`;
+  const filtered = tokens
+    .map(cleanToken)
+    .filter(Boolean)
+    .filter((t) => {
+      const low = t.toLowerCase();
+      if (STOPWORDS.has(low)) return false;
+      if (unitCode && (low === unitCode.toLowerCase() || low === `u${unitCode}`))
+        return false;
+      if (assignmentRef && low === assignmentRef.toLowerCase()) return false;
+      if (/^a\d{1,2}$/i.test(t)) return false;
+      if (/^\d+$/.test(t)) return false;
+      return true;
+    });
+
+  let studentName: string | null = null;
+  if (filtered.length >= 2) {
+    const candidate = filtered.slice(0, 3).map(titleCase).join(" ").trim();
+    if (candidate && isPersonName(candidate)) studentName = candidate; // ✅ critical guard
   }
-
-  const STOPWORDS = new Set(
-    [
-      "assignment",
-      "unit",
-      "submission",
-      "final",
-      "draft",
-      "course",
-      "module",
-      "engineering",
-      "hnc",
-      "hnd",
-      "btec",
-      "pearson",
-      "rqf",
-      "report",
-      "work",
-      "portfolio",
-      "task",
-    ].map((s) => s.toLowerCase())
-  );
-
-  const rawTokens = normed.split(" ").map((t) => t.trim()).filter(Boolean);
-
-  const filtered = rawTokens
-    .map(cleanToken)
-    .filter(Boolean)
-    .filter((t) => {
-      const low = t.toLowerCase();
-      if (!low) return false;
-      if (low === "u" && unitCode) return false;
-      if (unitCode && low === unitCode.toLowerCase()) return false;
-      if (assignmentRef && low === assignmentRef.toLowerCase()) return false;
-      if (/^u4\d{3}$/i.test(t)) return false;
-      if (/^a\d{1,2}$/i.test(t)) return false;
-      if (STOPWORDS.has(low)) return false;
-      return true;
-    });
-
-  const firstStopIdx = rawTokens.findIndex((t) => STOPWORDS.has(cleanToken(t).toLowerCase()));
-  const nameTokens = firstStopIdx > 0 ? rawTokens.slice(0, firstStopIdx) : rawTokens;
-
-  const cleanedNameTokens = nameTokens
-    .map(cleanToken)
-    .filter(Boolean)
-    .filter((t) => {
-      const low = t.toLowerCase();
-      if (unitCode && (low === unitCode.toLowerCase() || low === `u${unitCode}`)) return false;
-      if (assignmentRef && low === assignmentRef.toLowerCase()) return false;
-      if (/^u4\d{3}$/i.test(t)) return false;
-      if (/^a\d{1,2}$/i.test(t)) return false;
-      if (STOPWORDS.has(low)) return false;
-      return true;
-    });
-
-  const studentName = titleCaseNameFromTokens(cleanedNameTokens) ?? titleCaseNameFromTokens(filtered);
 
   return { unitCode, assignmentRef, studentName };
 }
 
-async function computeCoverage(unitCode: string | null, assignmentRef: string | null) {
-  const missing: string[] = [];
-  let hasUnitSpec = false;
-  let hasAssignmentBrief = false;
-
-  if (!unitCode) {
-    missing.push("Unit code not detected (cannot check reference coverage).");
-    return { hasUnitSpec, hasAssignmentBrief, missing };
-  }
-
-  const unit = await prisma.unit.findFirst({
-    where: { unitCode, status: "LOCKED" },
-    select: { id: true },
-  });
-
-  hasUnitSpec = !!unit;
-  if (!hasUnitSpec) missing.push(`Missing LOCKED Unit SPEC for unit ${unitCode}.`);
-
-  if (!assignmentRef) {
-    missing.push(`Assignment ref not detected (cannot check BRIEF for unit ${unitCode}).`);
-    return { hasUnitSpec, hasAssignmentBrief, missing };
-  }
-
-  if (!unit) {
-    missing.push(`Cannot validate BRIEF: unit ${unitCode} is not LOCKED.`);
-    return { hasUnitSpec, hasAssignmentBrief, missing };
-  }
-
-  const brief = await prisma.assignmentBrief.findFirst({
-    where: { unitId: unit.id, assignmentCode: assignmentRef, status: "LOCKED" },
-    select: { id: true },
-  });
-
-  hasAssignmentBrief = !!brief;
-  if (!hasAssignmentBrief) missing.push(`Missing LOCKED Assignment BRIEF for ${unitCode} ${assignmentRef}.`);
-
-  return { hasUnitSpec, hasAssignmentBrief, missing };
-}
-
-export async function POST(_req: Request, ctx: { params: Promise<{ submissionId: string }> }) {
-  const { submissionId } = await ctx.params;
+/**
+ * MAIN ROUTE HANDLER
+ */
+export async function POST(
+  _req: Request,
+  { params }: { params: { submissionId: string } }
+) {
+  const { submissionId } = params;
+  const warnings: string[] = [];
 
   const existing = await prisma.submission.findUnique({
     where: { id: submissionId },
     include: { student: true, assignment: true },
   });
 
-  if (!existing) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+  if (!existing)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const warnings: string[] = [];
+  const fromText = extractSignalsFromText(existing.extractedText || "");
+  const fromFile = extractSignalsFromFilename(existing.filename);
 
-  const textSignals = extractSignalsFromText(existing.extractedText || "");
-  const fileSignals = extractSignalsFromFilename(existing.filename);
+  // Resolution hierarchy
+  const unitCode = fromText.unitCode || fromFile.unitCode;
+  const assignmentRef = fromText.assignmentRef || fromFile.assignmentRef;
 
-  const unitCode = textSignals.unitCode || fileSignals.unitCode;
-  const assignmentRef = textSignals.assignmentRef || fileSignals.assignmentRef;
-  let studentName = textSignals.studentName || fileSignals.studentName;
-  if (studentName) studentName = norm(studentName);
+  const email = fromText.email;
 
+  const studentNameDetected = fromText.studentName || fromFile.studentName;
+  const nameSource = fromText.studentName
+    ? "text"
+    : fromFile.studentName
+    ? "filename"
+    : null;
+
+  // Detection vs linking eligibility (audit-safe)
+  let studentNameEligibleForLinking: string | null = studentNameDetected
+    ? norm(studentNameDetected)
+    : null;
+
+  if (studentNameEligibleForLinking && !isPersonName(studentNameEligibleForLinking)) {
+    warnings.push(
+      `Triage: detected name-like text ("${studentNameEligibleForLinking}") looks non-person (ignored for linking).`
+    );
+    studentNameEligibleForLinking = null;
+  }
 
   if (!existing.extractedText || existing.extractedText.trim().length < 50) {
-    warnings.push("Triage: extractedText is empty/too short; falling back to filename-only signals.");
+    warnings.push("Missing/short document text; using filename signals where possible.");
   }
+  if (!unitCode) warnings.push("Unit code (e.g. 4001) not found.");
+  if (!assignmentRef)
+    warnings.push("Assignment ref (e.g. A1 / Assignment 1) not found.");
 
-  if (!unitCode) warnings.push("Triage: could not detect unit code (e.g. 4003) from extracted text or filename.");
-  if (!assignmentRef) warnings.push("Triage: could not detect assignment ref (e.g. A1 / Assignment 1) from extracted text or filename.");
-  if (!textSignals.email && !studentName) warnings.push("Triage: could not detect student email/name in extracted text or filename.");
+  // Resolve Student (Email -> Full Name -> UNIQUE surname match)
+  let resolvedStudentId: string | null = null;
 
-  const coverage = await computeCoverage(unitCode, assignmentRef);
-  for (const m of coverage.missing) warnings.push(`Reference: ${m}`);
-
-  // Resolve / create operational Assignment (fills header fields)
-  let assignment: { id: string } | null = null;
-
-  if (unitCode && assignmentRef) {
-    const found = await prisma.assignment.findFirst({
-      where: { unitCode, assignmentRef },
+  if (email) {
+    const s = await prisma.student.findUnique({
+      where: { email },
       select: { id: true },
     });
-
-    if (found) {
-      assignment = found;
-    } else {
-      warnings.push(`Triage: no operational Assignment found for ${unitCode} ${assignmentRef}; creating placeholder.`);
-
-      assignment = await prisma.assignment.create({
-        data: {
-          unitCode,
-          assignmentRef,
-          title: `Placeholder ${unitCode} ${assignmentRef}`,
-          isPlaceholder: true,
-          triageConfidence: 0.6,
-          triageSignals: {
-            from: "triage",
-            unitCode,
-            assignmentRef,
-            email: textSignals.email,
-            studentName,
-          },
-          createdFromFilename: existing.filename,
-        },
-        select: { id: true },
-      });
-    }
+    if (s) resolvedStudentId = s.id;
   }
 
-
-
-  
-// Resolve Student (email first, then name) — do NOT create students automatically yet
-let student: { id: string } | null = null;
-
-if (textSignals.email) {
-  const found = await prisma.student.findFirst({
-    where: { email: textSignals.email },
-    select: { id: true },
-  });
-  if (found) student = found;
-}
-
-// Only attempt name resolution if we have a candidate name AND email didn't already resolve
-if (!student && studentName) {
-  // extra guard to stop obvious false positives (unit titles, IDs, etc)
-  const looksLikeNotAName =
-    /\b(HNC|HND|BTEC|Unit|LO\d|P\d|M\d|D\d)\b/i.test(studentName) ||
-    /\b\d{4}\b/.test(studentName) ||
-    /\bH\d{6,}\b/i.test(studentName) ||
-    studentName.length > 60;
-
-  if (!looksLikeNotAName) {
+  if (!resolvedStudentId && studentNameEligibleForLinking) {
     const exact = await prisma.student.findFirst({
-      where: { fullName: { equals: studentName, mode: "insensitive" } },
+      where: { fullName: { equals: studentNameEligibleForLinking, mode: "insensitive" } },
       select: { id: true },
     });
 
     if (exact) {
-      student = exact;
+      resolvedStudentId = exact.id;
     } else {
-      const parts = studentName.split(" ").filter(Boolean);
-      const last = parts[parts.length - 1];
+      const parts = studentNameEligibleForLinking.split(" ").filter(Boolean);
+      const lastName = parts[parts.length - 1];
 
-      if (last && last.length >= 3) {
-        const partial = await prisma.student.findFirst({
-          where: { fullName: { contains: last, mode: "insensitive" } }, // ✅ fullName, not name
-          select: { id: true },
+      if (lastName && lastName.length > 2) {
+        const matches = await prisma.student.findMany({
+          where: { fullName: { contains: lastName, mode: "insensitive" } },
+          select: { id: true, fullName: true },
+          take: 5,
         });
-        if (partial) student = partial;
+
+        if (matches.length === 1) {
+          resolvedStudentId = matches[0].id;
+          warnings.push(`Matched student uniquely by surname "${lastName}".`);
+        } else if (matches.length > 1) {
+          warnings.push(
+            `Surname "${lastName}" matched ${matches.length} students; not linking automatically.`
+          );
+        }
       }
     }
-  } else {
-    // we keep studentName for reporting, but we avoid DB matching attempts
-    warnings.push(`Triage: detected name-like text ("${studentName}") looks non-person (ignored for linking).`);
-  }
-}
-
-
-
-  // ✅ IMPORTANT: this warning is about LINKING, not DETECTION
-  if (!student && studentName) {
-    warnings.push(`Triage: student name detected ("${studentName}") but not linked to an existing student record.`);
-  }
-  if (!student && textSignals.email) {
-    warnings.push(`Triage: student email detected ("${textSignals.email}") but not linked to an existing student record.`);
   }
 
-  // Apply updates
-  const data: any = {};
-  if (student?.id) data.studentId = student.id;
-  if (assignment?.id) data.assignmentId = assignment.id;
+  // Resolve / create Assignment in a transaction with submission update
+  let resolvedAssignmentId: string | null = null;
 
-  if (Object.keys(data).length > 0) {
-    await prisma.submission.update({ where: { id: submissionId }, data });
-  } else {
-    warnings.push("Triage: no links applied (student/assignment not confidently resolved).");
-  }
+  const result = await prisma.$transaction(async (tx) => {
+    if (unitCode && assignmentRef) {
+      const found = await tx.assignment.findFirst({
+        where: { unitCode, assignmentRef },
+        select: { id: true },
+      });
 
-  const submission = await prisma.submission.findUnique({
-    where: { id: submissionId },
-    include: {
-      student: true,
-      assignment: true,
-      extractionRuns: {
-        orderBy: { startedAt: "desc" },
-        include: { pages: { orderBy: { pageNumber: "asc" } } },
+      if (found) {
+        resolvedAssignmentId = found.id;
+      } else {
+        const placeholder = await tx.assignment.create({
+          data: {
+            unitCode,
+            assignmentRef,
+            title: `Auto-Generated: ${unitCode} ${assignmentRef}`,
+            isPlaceholder: true,
+            triageConfidence: 0.6,
+            triageSignals: {
+              from: "triage",
+              unitCode,
+              assignmentRef,
+              email,
+              studentName: studentNameDetected ? norm(studentNameDetected) : null,
+              nameSource,
+            },
+            createdFromFilename: existing.filename,
+          },
+          select: { id: true },
+        });
+
+        resolvedAssignmentId = placeholder.id;
+        warnings.push("Created new assignment placeholder.");
+      }
+    }
+
+    return tx.submission.update({
+      where: { id: submissionId },
+      data: {
+        studentId: resolvedStudentId || undefined,
+        assignmentId: resolvedAssignmentId || undefined,
       },
-    },
+      include: {
+        student: true,
+        assignment: true,
+        extractionRuns: {
+          orderBy: { startedAt: "desc" },
+          include: { pages: { orderBy: { pageNumber: "asc" } } },
+        },
+      },
+    });
   });
 
-  const studentDetection = {
-    detected: !!studentName || !!textSignals.email,
-    linked: !!student?.id,
-   source: textSignals.studentName
-  ? "text"
-  : fileSignals.studentName
-  ? "filename"
-  : textSignals.email
-  ? "email"
-  : null,
+  // Final linking warnings (honest + non-spammy)
+  if (!resolvedStudentId && (email || studentNameEligibleForLinking)) {
+    warnings.push(
+      `Identified ${email ? `email "${email}"` : ""}${
+        email && studentNameEligibleForLinking ? " and " : ""
+      }${
+        studentNameEligibleForLinking
+          ? `name "${studentNameEligibleForLinking}"`
+          : ""
+      } but no unique student record could be linked.`
+    );
+  }
 
-  } as const;
-
- return NextResponse.json({
-    submission,
+  return NextResponse.json({
+    submission: result,
     triage: {
       unitCode,
       assignmentRef,
-      studentName,
-      email: textSignals.email,
-      studentDetection,
-      sampleLines: textSignals.sampleLines,
+      studentName: studentNameDetected ? norm(studentNameDetected) : null,
+      email,
       warnings,
-      coverage,
+      detection: {
+        found: !!(email || studentNameDetected),
+        linked: !!resolvedStudentId,
+        source: nameSource ?? (email ? "email" : null),
+      },
+      sampleLines: fromText.sampleLines,
     },
   });
 }

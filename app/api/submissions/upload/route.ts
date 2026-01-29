@@ -1,46 +1,62 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
-import fs from "fs";
+import fs from "fs/promises";
+import fssync from "fs";
 import path from "path";
+import type { Submission } from "@prisma/client";
+
+const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
+
+function getOptionalId(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  return v ? v : null;
+}
+
+function isAllowedFile(filename: string): boolean {
+  const ext = path.extname(filename || "").toLowerCase();
+  return ALLOWED_EXTS.has(ext);
+}
+
+async function ensureDir(dir: string) {
+  if (!fssync.existsSync(dir)) {
+    await fs.mkdir(dir, { recursive: true });
+  }
+}
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
 
-    // Treat empty strings as "not provided"
-    const rawStudentId = formData.get("studentId");
-    const rawAssignmentId = formData.get("assignmentId");
+    const studentId = getOptionalId(formData.get("studentId"));
+    const assignmentId = getOptionalId(formData.get("assignmentId"));
 
-    const studentId =
-      typeof rawStudentId === "string" && rawStudentId.trim() ? rawStudentId.trim() : null;
+    const files = formData.getAll("files").filter((x): x is File => x instanceof File);
 
-    const assignmentId =
-      typeof rawAssignmentId === "string" && rawAssignmentId.trim() ? rawAssignmentId.trim() : null;
-
-    const files = formData.getAll("files") as File[];
-
-    if (!files || files.length === 0) {
+    if (!files.length) {
       return NextResponse.json({ error: "Missing files" }, { status: 400 });
     }
 
     const uploadDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    await ensureDir(uploadDir);
 
-    const created: any[] = [];
+    const validFiles = files.filter((f) => isAllowedFile(f.name));
+    if (!validFiles.length) {
+      return NextResponse.json({ error: "No valid files (PDF/DOCX) provided" }, { status: 400 });
+    }
 
-    for (const file of files) {
-      const lower = (file.name || "").toLowerCase();
-      const isAllowed = lower.endsWith(".pdf") || lower.endsWith(".docx");
-      if (!isAllowed) continue;
+    const created: Submission[] = [];
 
+    // Create submissions sequentially (safe + simple). If you want concurrency later, we can add it.
+    for (const file of validFiles) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
       const storedFilename = `${uuid()}-${file.name}`;
       const storagePath = path.join(uploadDir, storedFilename);
 
-      fs.writeFileSync(storagePath, buffer);
+      await fs.writeFile(storagePath, buffer);
 
       const submission = await prisma.submission.create({
         data: {
@@ -48,27 +64,23 @@ export async function POST(req: Request) {
           storedFilename,
           storagePath,
           status: "UPLOADED",
-          studentId,      // may be null (Inbox mode)
-          assignmentId,   // may be null (Inbox mode)
+          studentId,
+          assignmentId,
         },
       });
 
       created.push(submission);
     }
 
-    // Teacher workflow: upload → start extraction immediately.
-    // We do a best-effort trigger (do not fail the upload if extraction fails).
-    // NOTE: This runs synchronously so the UI can show EXTRACTING right away.
+    // Best-effort trigger extraction (don’t fail upload if extraction fails)
     const baseUrl = new URL(req.url);
     const origin = `${baseUrl.protocol}//${baseUrl.host}`;
 
-    for (const s of created) {
-      try {
-        await fetch(`${origin}/api/submissions/${s.id}/extract`, { method: "POST", cache: "no-store" });
-      } catch (e) {
-        console.warn("AUTO_EXTRACT_TRIGGER_FAILED:", s?.id, e);
-      }
-    }
+    await Promise.allSettled(
+      created.map((s) =>
+        fetch(`${origin}/api/submissions/${s.id}/extract`, { method: "POST", cache: "no-store" })
+      )
+    );
 
     return NextResponse.json({ submissions: created, extraction: { triggered: true } });
   } catch (err) {

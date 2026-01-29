@@ -5,6 +5,15 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
+function safeName(name: string) {
+  // keep it filesystem-safe and predictable
+  return (name || "upload")
+    .replace(/\s+/g, " ")
+    .replace(/[^\w.\- ()]/g, "")
+    .trim()
+    .slice(0, 120);
+}
+
 export async function GET() {
   const docs = await prisma.referenceDocument.findMany({
     orderBy: [{ uploadedAt: "desc" }],
@@ -27,10 +36,7 @@ export async function POST(req: Request) {
     const version = typeof versionRaw === "string" ? Number(versionRaw) : 1;
 
     if (!title || !file || !(file instanceof File)) {
-      return NextResponse.json(
-        { error: "Missing title or file" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing title or file" }, { status: 400 });
     }
 
     if (type !== "SPEC" && type !== "BRIEF" && type !== "RUBRIC") {
@@ -44,18 +50,23 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const checksumSha256 = crypto
-      .createHash("sha256")
-      .update(buffer)
-      .digest("hex");
+    const checksumSha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
-    // Store under /reference_uploads (dev local). Later you can swap to object storage.
-    const uploadDir = path.join(process.cwd(), "reference_uploads");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    // ✅ Canonical folder (dev local). Keep DB path RELATIVE so it’s portable.
+    const uploadDirRel = "reference_uploads";
+    const uploadDirAbs = path.join(process.cwd(), uploadDirRel);
 
-    const storedFilename = `${uuid()}-${file.name}`;
-    const storagePath = path.join(uploadDir, storedFilename);
-    fs.writeFileSync(storagePath, buffer);
+    if (!fs.existsSync(uploadDirAbs)) fs.mkdirSync(uploadDirAbs, { recursive: true });
+
+    // ✅ storedFilename should be stable and safe; keep original name for humans
+    const originalSafe = safeName(file.name);
+    const storedFilename = `${uuid()}-${originalSafe}`;
+
+    // ✅ Write using absolute path; store RELATIVE in DB
+    const storagePathRel = path.join(uploadDirRel, storedFilename);
+    const storagePathAbs = path.join(process.cwd(), storagePathRel);
+
+    fs.writeFileSync(storagePathAbs, buffer);
 
     const doc = await prisma.referenceDocument.create({
       data: {
@@ -64,7 +75,7 @@ export async function POST(req: Request) {
         version,
         originalFilename: file.name,
         storedFilename,
-        storagePath,
+        storagePath: storagePathRel, // ✅ RELATIVE (portable)
         checksumSha256,
       },
     });
