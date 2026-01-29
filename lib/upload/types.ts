@@ -3,6 +3,7 @@ export type Student = {
   fullName: string;
   externalRef?: string | null;
   email?: string | null;
+  courseName?: string | null;
 };
 
 export type Assignment = {

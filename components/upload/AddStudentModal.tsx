@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { safeJson} from "@/lib/upload/utils";
+import { safeJson } from "@/lib/upload/utils";
 import type { Student } from "@/lib/upload/types";
 
 export function AddStudentModal({
@@ -18,6 +18,8 @@ export function AddStudentModal({
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentRef, setNewStudentRef] = useState("");
   const [newStudentEmail, setNewStudentEmail] = useState("");
+  const [newStudentCourse, setNewStudentCourse] = useState("");
+
   const [studentBusy, setStudentBusy] = useState(false);
   const [err, setErr] = useState<string>("");
 
@@ -29,22 +31,23 @@ export function AddStudentModal({
       const fullName = newStudentName.trim();
       const externalRef = newStudentRef.trim() || null;
       const email = newStudentEmail.trim() || null;
+      const courseName = newStudentCourse.trim() || null;
 
       if (!fullName) throw new Error("Student name is required.");
 
       const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, externalRef, email }),
+        body: JSON.stringify({ fullName, externalRef, email, courseName }),
       });
 
       if (!res.ok) {
         const j = await safeJson(res);
-        throw new Error((j as any)?.error || `Failed to create student (${res.status})`);
+        throw new Error((j as { error?: string })?.error || `Failed to create student (${res.status})`);
       }
 
       const createdJson = await safeJson(res);
-      const created: Student = (createdJson as any)?.student ?? (createdJson as any);
+      const created: Student = (createdJson as { student?: Student } & Partial<Student>)?.student ?? (createdJson as Student);
 
       await refreshPicklists();
 
@@ -52,9 +55,11 @@ export function AddStudentModal({
       setNewStudentName("");
       setNewStudentRef("");
       setNewStudentEmail("");
+      setNewStudentCourse("");
       onClose();
-    } catch (e: any) {
-      setErr(e?.message || String(e));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(msg);
     } finally {
       setStudentBusy(false);
     }
@@ -81,9 +86,7 @@ export function AddStudentModal({
           </button>
         </div>
 
-        {err ? (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div>
-        ) : null}
+        {err ? <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div> : null}
 
         <div className="mt-4 grid gap-3">
           <label className="grid gap-1">
@@ -92,6 +95,16 @@ export function AddStudentModal({
               value={newStudentName}
               onChange={(e) => setNewStudentName(e.target.value)}
               placeholder="e.g. Joseph Barber"
+              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">Course (optional)</span>
+            <input
+              value={newStudentCourse}
+              onChange={(e) => setNewStudentCourse(e.target.value)}
+              placeholder="e.g. HNC in Mechanical Engineering - HTQ"
               className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
             />
           </label>
