@@ -58,3 +58,7 @@ tmp-list.js
 # Build
 .next/
 dist/
+
+# Local export zips
+latested version.zip
+
