@@ -46,10 +46,23 @@ export type Criterion = {
   learningOutcome: { id: string; loCode: string; unitId: string };
 };
 
+type InboxFilters = {
+  q: string;
+  type: "" | ReferenceDocument["type"];
+  status: "" | ReferenceDocument["status"];
+  onlyLocked: boolean;
+  onlyUnlocked: boolean;
+  sort: "updated" | "uploaded" | "title";
+};
+
+const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
+
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(url, opts);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
+  if (!res.ok) {
+    throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
+  }
   return data as T;
 }
 
@@ -74,6 +87,48 @@ export function badge(status: ReferenceDocument["status"]): { cls: string; text:
   }
 }
 
+function safeParseFilters(): InboxFilters {
+  try {
+    const raw = localStorage.getItem(FILTERS_KEY);
+    if (!raw) throw new Error("no saved");
+    const parsed = JSON.parse(raw) as Partial<InboxFilters>;
+    return {
+      q: typeof parsed.q === "string" ? parsed.q : "",
+      type: (parsed.type as any) || "",
+      status: (parsed.status as any) || "",
+      onlyLocked: !!parsed.onlyLocked,
+      onlyUnlocked: !!parsed.onlyUnlocked,
+      sort: parsed.sort === "title" || parsed.sort === "uploaded" || parsed.sort === "updated" ? parsed.sort : "updated",
+    };
+  } catch {
+    return {
+      q: "",
+      type: "",
+      status: "",
+      onlyLocked: false,
+      onlyUnlocked: false,
+      sort: "updated",
+    };
+  }
+}
+
+function docSearchHaystack(d: ReferenceDocument) {
+  const meta = d.sourceMeta || {};
+  const parts = [
+    d.title,
+    d.originalFilename,
+    d.type,
+    d.status,
+    meta.unitCode ? `unit ${String(meta.unitCode)}` : "",
+    meta.assignmentCode ? String(meta.assignmentCode) : "",
+    meta.specIssue ? String(meta.specIssue) : "",
+    meta.specVersionLabel ? String(meta.specVersionLabel) : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return parts.toLowerCase();
+}
+
 export function useReferenceAdmin() {
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -88,12 +143,16 @@ export function useReferenceAdmin() {
   const [docVersion, setDocVersion] = useState("1");
   const [docFile, setDocFile] = useState<File | null>(null);
 
-  // Review selection
+  // Selection
   const [selectedDocId, setSelectedDocId] = useState<string>("");
-  const selectedDoc = useMemo(
-    () => documents.find((d) => d.id === selectedDocId) || null,
-    [documents, selectedDocId]
-  );
+
+  // Inbox filters (persisted)
+  const [filters, setFilters] = useState<InboxFilters>(() => {
+    if (typeof window === "undefined") {
+      return { q: "", type: "", status: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" };
+    }
+    return safeParseFilters();
+  });
 
   // Brief mapping override
   const [briefUnitId, setBriefUnitId] = useState<string>("");
@@ -101,6 +160,20 @@ export function useReferenceAdmin() {
   const [showRawJson, setShowRawJson] = useState(false);
   const [rawJson, setRawJson] = useState("");
   const [assignmentCodeInput, setAssignmentCodeInput] = useState("");
+
+  // Persist filters
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+    } catch {
+      // ignore
+    }
+  }, [filters]);
+
+  const selectedDoc = useMemo(
+    () => documents.find((d) => d.id === selectedDocId) || null,
+    [documents, selectedDocId]
+  );
 
   const allCriteria: Criterion[] = useMemo(() => {
     const out: Criterion[] = [];
@@ -123,17 +196,58 @@ export function useReferenceAdmin() {
     return allCriteria.filter((c) => c.learningOutcome.unitId === unitId);
   }, [allCriteria, briefUnitId]);
 
-  async function refreshAll() {
+  const filteredDocuments = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    let list = documents.slice();
+
+    if (filters.type) list = list.filter((d) => d.type === filters.type);
+    if (filters.status) list = list.filter((d) => d.status === filters.status);
+
+    if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
+    if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
+
+    if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
+
+    // Sorting (best-effort: server returns docs already ordered, but we make it deterministic)
+    if (filters.sort === "title") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (filters.sort === "uploaded") {
+      list.sort((a, b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
+    } else {
+      // "updated" is not present in type, but sourceMeta often includes it; fallback to uploadedAt
+      const key = (d: ReferenceDocument) => {
+        const m = d.sourceMeta || {};
+        return String(m.updatedAt || m.extractedAt || d.uploadedAt || "");
+      };
+      list.sort((a, b) => key(b).localeCompare(key(a)));
+    }
+
+    return list;
+  }, [documents, filters]);
+
+  async function refreshAll({ keepSelection }: { keepSelection?: boolean } = {}) {
     const [docs, unitsRes] = await Promise.all([
       jsonFetch<{ documents: ReferenceDocument[] }>("/api/reference-documents"),
       jsonFetch<{ units: Unit[] }>("/api/units"),
     ]);
-    setDocuments(docs.documents);
-    setUnits(unitsRes.units);
+
+    setDocuments(docs.documents || []);
+    setUnits(unitsRes.units || []);
+
+    // Preserve selection if possible; otherwise auto-select first filtered item.
+    if (keepSelection && selectedDocId && (docs.documents || []).some((d) => d.id === selectedDocId)) {
+      return;
+    }
+
+    // If nothing selected, pick the first doc (prefer filtered list, else all docs)
+    if (!selectedDocId) {
+      const first = (docs.documents || [])[0];
+      if (first) setSelectedDocId(first.id);
+    }
   }
 
   useEffect(() => {
-    refreshAll().catch((e) => setError(String(e?.message || e)));
+    refreshAll({ keepSelection: true }).catch((e) => setError(String(e?.message || e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -152,12 +266,10 @@ export function useReferenceAdmin() {
 
     // Brief: preselect mapping (best-effort)
     if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
-      const derived = draft.assignmentCode || (draft.assignmentNumber ? `A${draft.assignmentNumber}` : "");
-setAssignmentCodeInput((derived || "").toString());
-
+      setAssignmentCodeInput((draft.assignmentCode || "").toString());
 
       const unitGuess: string | undefined = draft.unitCodeGuess;
-      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess && u.status === "LOCKED") : null;
+      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess) : null;
       setBriefUnitId(unit?.id || "");
 
       const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) => x.toUpperCase());
@@ -192,7 +304,8 @@ setAssignmentCodeInput((derived || "").toString());
       setDocVersion("1");
       setDocFile(null);
       if (fileRef.current) fileRef.current.value = "";
-      await refreshAll();
+
+      await refreshAll({ keepSelection: false });
     } catch (e: any) {
       setError(e?.message || "Upload failed");
     } finally {
@@ -211,9 +324,36 @@ setAssignmentCodeInput((derived || "").toString());
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentId: selectedDoc.id }),
       });
-      await refreshAll();
+      await refreshAll({ keepSelection: true });
     } catch (e: any) {
       setError(e?.message || "Extract failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reextractSelected() {
+    setError(null);
+    if (!selectedDoc) return;
+
+    const ok = window.confirm(
+      "Re-extract will OVERWRITE the extracted structure for this LOCKED document.\n\nThe unit stays locked. Use only to fix a bad parse.\n\nContinue?"
+    );
+    if (!ok) return;
+
+    const reason =
+      window.prompt("Optional note for the audit trail (why are you re-extracting?)", "Fix extraction") || "";
+
+    setBusy("Re-extracting...");
+    try {
+      await jsonFetch("/api/reference-documents/extract", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason }),
+      });
+      await refreshAll({ keepSelection: true });
+    } catch (e: any) {
+      setError(e?.message || "Re-extract failed");
     } finally {
       setBusy(null);
     }
@@ -248,7 +388,7 @@ setAssignmentCodeInput((derived || "").toString());
         body: JSON.stringify(body),
       });
 
-      await refreshAll();
+      await refreshAll({ keepSelection: true });
     } catch (e: any) {
       setError(e?.message || "Lock failed");
     } finally {
@@ -256,9 +396,14 @@ setAssignmentCodeInput((derived || "").toString());
     }
   }
 
+  function resetFilters() {
+    setFilters({ q: "", type: "", status: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" });
+  }
+
   return {
     // data
     documents,
+    filteredDocuments,
     units,
     busy,
     error,
@@ -271,6 +416,11 @@ setAssignmentCodeInput((derived || "").toString());
     docVersion,
     docFile,
     fileRef,
+
+    // filters
+    filters,
+    setFilters,
+    resetFilters,
 
     // brief mapping
     briefUnitId,
@@ -295,6 +445,7 @@ setAssignmentCodeInput((derived || "").toString());
     // actions
     uploadDoc,
     extractSelected,
+    reextractSelected,
     lockSelected,
     refreshAll,
   };

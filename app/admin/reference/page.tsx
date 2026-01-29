@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   badge,
   formatDate,
@@ -15,41 +15,32 @@ export default function ReferenceAdminPage() {
 
   return (
     <div className="grid gap-4">
-      {/* Header (fix the “red circled” text: no phases/good practice, just what this page does) */}
       <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Reference library</h1>
             <p className="mt-1 text-sm text-zinc-700">
-              Upload a <span className="font-semibold">SPEC</span> or <span className="font-semibold">BRIEF</span>,
-              run <span className="font-semibold">Extract</span>, review the learning outcomes/criteria, then{" "}
+              Upload a <span className="font-semibold">SPEC</span> or <span className="font-semibold">BRIEF</span>, run{" "}
+              <span className="font-semibold">Extract</span>, review learning outcomes/criteria, then{" "}
               <span className="font-semibold">Lock</span> to store the final version used by grading.
             </p>
-            <p className="mt-1 text-xs text-zinc-500">
-              Workflow: Upload → Select → Extract → Review → Lock
-            </p>
+            <p className="mt-1 text-xs text-zinc-500">Workflow: Upload → Select → Extract → Review → Lock</p>
           </div>
 
-          <div className="text-xs text-zinc-600">
-            {vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}
-          </div>
+          <div className="text-xs text-zinc-600">{vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}</div>
         </div>
 
         {vm.error ? (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-            {vm.error}
-          </div>
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{vm.error}</div>
         ) : null}
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[420px_1fr]">
-        {/* Left rail */}
         <div className="grid gap-4">
           <UploadCard vm={vm} />
           <InboxCard vm={vm} />
         </div>
 
-        {/* Main content: give space to LO + criteria */}
         <ReviewCard vm={vm} />
       </div>
     </div>
@@ -60,9 +51,7 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold">Upload</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Add new specs/briefs to the inbox. Extraction happens on demand.
-      </p>
+      <p className="mt-1 text-xs text-zinc-500">Add new specs/briefs to the inbox. Extraction happens on demand.</p>
 
       <div className="mt-4 grid gap-3">
         <label className="grid gap-1">
@@ -127,13 +116,122 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
 }
 
 function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
+  const f = vm.filters;
+  const setF = vm.setFilters;
+
+  const counts = useMemo(() => {
+    const total = vm.documents.length;
+    const shown = vm.filteredDocuments.length;
+    const byStatus: Record<string, number> = {};
+    for (const d of vm.documents) byStatus[d.status] = (byStatus[d.status] || 0) + 1;
+    return { total, shown, byStatus };
+  }, [vm.documents, vm.filteredDocuments]);
+
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold">Inbox</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Select a document to review. Locking commits the extracted structure.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Inbox</h2>
+          <p className="mt-1 text-xs text-zinc-500">Filter and select a document to review.</p>
+        </div>
 
+        <button
+          onClick={vm.resetFilters}
+          className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+        >
+          Reset filters
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="mt-3 grid gap-2">
+        <input
+          value={f.q}
+          onChange={(e) => setF({ ...f, q: e.target.value })}
+          placeholder="Search title, filename, unit code…"
+          className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+        />
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <select
+            value={f.type}
+            onChange={(e) => setF({ ...f, type: e.target.value as any })}
+            className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+          >
+            <option value="">All types</option>
+            <option value="SPEC">SPEC</option>
+            <option value="BRIEF">BRIEF</option>
+            <option value="RUBRIC">RUBRIC</option>
+          </select>
+
+          <select
+            value={f.status}
+            onChange={(e) => setF({ ...f, status: e.target.value as any })}
+            className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+          >
+            <option value="">All statuses</option>
+            <option value="UPLOADED">UPLOADED</option>
+            <option value="EXTRACTED">EXTRACTED</option>
+            <option value="REVIEWED">REVIEWED</option>
+            <option value="LOCKED">LOCKED</option>
+            <option value="FAILED">FAILED</option>
+          </select>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+            <input
+              type="checkbox"
+              checked={f.onlyLocked}
+              onChange={(e) => setF({ ...f, onlyLocked: e.target.checked, onlyUnlocked: e.target.checked ? false : f.onlyUnlocked })}
+            />
+            Only locked
+          </label>
+
+          <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+            <input
+              type="checkbox"
+              checked={f.onlyUnlocked}
+              onChange={(e) => setF({ ...f, onlyUnlocked: e.target.checked, onlyLocked: e.target.checked ? false : f.onlyLocked })}
+            />
+            Only unlocked
+          </label>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <select
+            value={f.sort}
+            onChange={(e) => setF({ ...f, sort: e.target.value as any })}
+            className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+          >
+            <option value="updated">Sort: updated</option>
+            <option value="uploaded">Sort: uploaded</option>
+            <option value="title">Sort: title</option>
+          </select>
+
+          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
+            Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
+            <span className="font-semibold text-zinc-900">{counts.total}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 text-xs">
+          {(["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setF({ ...f, status: f.status === s ? "" : (s as any) })}
+              className={
+                "rounded-full border px-3 py-1 font-semibold " +
+                (f.status === s ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+              }
+            >
+              {s} <span className="opacity-70">({counts.byStatus[s] || 0})</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
       <div className="mt-3 max-h-[520px] overflow-auto rounded-xl border border-zinc-200">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 bg-white">
@@ -144,7 +242,7 @@ function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             </tr>
           </thead>
           <tbody>
-            {vm.documents.map((d) => {
+            {vm.filteredDocuments.map((d) => {
               const b = badge(d.status);
               const active = d.id === vm.selectedDocId;
               const meta = d.sourceMeta || {};
@@ -176,8 +274,8 @@ function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
           </tbody>
         </table>
 
-        {vm.documents.length === 0 ? (
-          <div className="p-3 text-sm text-zinc-600">No reference documents uploaded yet.</div>
+        {vm.filteredDocuments.length === 0 ? (
+          <div className="p-3 text-sm text-zinc-600">No documents match your filters.</div>
         ) : null}
       </div>
     </section>
@@ -192,9 +290,7 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">Review</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Extract builds a draft. Lock saves the final reference used by grading.
-          </p>
+          <p className="mt-1 text-xs text-zinc-500">Extract builds a draft. Lock saves the final reference used by grading.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -203,17 +299,37 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             disabled={!selectedDoc || !!vm.busy}
             className={
               "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-              (!selectedDoc || vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
+              (!selectedDoc || vm.busy
+                ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                : "bg-zinc-900 text-white hover:bg-zinc-800")
             }
           >
             Extract
           </button>
+
+          {selectedDoc?.lockedAt ? (
+            <button
+              onClick={vm.reextractSelected}
+              disabled={!selectedDoc || !!vm.busy}
+              className={
+                "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                (!selectedDoc || vm.busy
+                  ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                  : "bg-amber-600 text-white hover:bg-amber-500")
+              }
+            >
+              Re-extract (overwrite)
+            </button>
+          ) : null}
+
           <button
             onClick={vm.lockSelected}
             disabled={!selectedDoc || !!vm.busy}
             className={
               "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-              (!selectedDoc || vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-emerald-700 text-white hover:bg-emerald-600")
+              (!selectedDoc || vm.busy
+                ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                : "bg-emerald-700 text-white hover:bg-emerald-600")
             }
           >
             Approve & Lock
@@ -225,7 +341,6 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
         <p className="mt-4 text-sm text-zinc-600">Select a document from the inbox to review it.</p>
       ) : (
         <div className="mt-4">
-          {/* Meta row */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Meta label="Type" value={selectedDoc.type} />
             <Meta label="Uploaded" value={formatDate(selectedDoc.uploadedAt)} />
@@ -233,19 +348,19 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             <Meta label="Locked at" value={formatDate(selectedDoc.lockedAt)} />
           </div>
 
-          {/* Warnings */}
           {selectedDoc.extractionWarnings && Array.isArray(selectedDoc.extractionWarnings) && selectedDoc.extractionWarnings.length ? (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <div className="font-semibold">Warnings</div>
               <ul className="mt-2 list-disc pl-5">
                 {selectedDoc.extractionWarnings.map((w: string, idx: number) => (
-                  <li key={idx} className="break-words">{w}</li>
+                  <li key={idx} className="break-words">
+                    {w}
+                  </li>
                 ))}
               </ul>
             </div>
           ) : null}
 
-          {/* The important part: LO + Criteria (full width, readable) */}
           <div className="mt-4">
             {selectedDoc.type === "SPEC" ? (
               <SpecPreview draft={selectedDoc.extractedJson} />
@@ -262,11 +377,12 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
                 setAssignmentCodeInput={vm.setAssignmentCodeInput}
               />
             ) : (
-              <p className="text-sm text-zinc-600">RUBRIC ingestion UI lands later; for now it stays as a stored document.</p>
+              <p className="text-sm text-zinc-600">
+                RUBRIC ingestion UI lands later; for now it stays as a stored document.
+              </p>
             )}
           </div>
 
-          {/* Raw JSON */}
           <div className="mt-6 border-t border-zinc-200 pt-4">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={vm.showRawJson} onChange={(e) => vm.setShowRawJson(e.target.checked)} />
@@ -292,12 +408,12 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
       <div className="text-xs text-zinc-600">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold text-zinc-900 break-words">{value || "-"}</div>
+      <div className="mt-0.5 break-words text-sm font-semibold text-zinc-900">{value || "-"}</div>
     </div>
   );
 }
 
-/* -------------------- SPEC Preview (Readable LO cards) -------------------- */
+/* -------------------- SPEC Preview -------------------- */
 
 function SpecPreview({ draft }: { draft: any }) {
   if (!draft) return <p className="text-sm text-zinc-600">No draft extracted yet. Click Extract.</p>;
@@ -309,7 +425,6 @@ function SpecPreview({ draft }: { draft: any }) {
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white">
-      {/* Title strip */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 p-4">
         <div>
           <div className="text-xs text-zinc-600">SPEC preview</div>
@@ -323,13 +438,10 @@ function SpecPreview({ draft }: { draft: any }) {
 
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">
           <div className="text-xs text-zinc-600">Spec label</div>
-          <div className="text-sm font-semibold text-zinc-900">
-            {unit.specVersionLabel || unit.specIssue || "(not detected)"}
-          </div>
+          <div className="text-sm font-semibold text-zinc-900">{unit.specVersionLabel || unit.specIssue || "(not detected)"}</div>
         </div>
       </div>
 
-      {/* LO cards */}
       <div className="grid gap-3 p-4">
         {los.length === 0 ? (
           <p className="text-sm text-zinc-600">No learning outcomes detected.</p>
@@ -339,21 +451,21 @@ function SpecPreview({ draft }: { draft: any }) {
             return (
               <div key={`${lo.loCode}-${idx}`} className="rounded-2xl border border-zinc-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-xs text-zinc-600">Learning outcome</div>
-                    <div className="mt-1 flex items-baseline gap-3">
+
+                    {/* ✅ Wrap correctly so it never “cuts” the LO text */}
+                    <div className="mt-1 flex flex-wrap items-start gap-3">
                       <span className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-bold text-zinc-900">
                         {lo.loCode}
                       </span>
-                      <p className="min-w-0 text-sm font-semibold text-zinc-900 leading-relaxed break-words">
+                      <p className="min-w-0 flex-1 text-sm font-semibold text-zinc-900 leading-relaxed break-words whitespace-pre-wrap">
                         {lo.description || ""}
                       </p>
                     </div>
                   </div>
 
-                  <div className="text-xs text-zinc-600">
-                    {criteria.length} criteria
-                  </div>
+                  <div className="text-xs text-zinc-600">{criteria.length} criteria</div>
                 </div>
 
                 <div className="mt-3">
@@ -362,26 +474,22 @@ function SpecPreview({ draft }: { draft: any }) {
                   ) : (
                     <ul className="grid gap-2">
                       {criteria.map((c: any, cidx: number) => (
-                        <li
-                          key={`${c.acCode}-${cidx}`}
-                          className="rounded-xl border border-zinc-200 bg-white p-3"
-                        >
+                        <li key={`${c.acCode}-${cidx}`} className="rounded-xl border border-zinc-200 bg-white p-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-bold text-zinc-900">
                               {c.acCode}
                             </span>
-                            <span className="text-xs text-zinc-600">
-                              {c.gradeBand}
-                            </span>
+                            <span className="text-xs text-zinc-600">{c.gradeBand}</span>
                           </div>
+
                           <details className="mt-2">
-  <summary className="cursor-pointer select-none text-sm font-semibold text-zinc-800">
-    Show criterion text
-  </summary>
-  <p className="mt-2 text-sm text-zinc-900 leading-relaxed break-words whitespace-pre-wrap">
-    {c.description || ""}
-  </p>
-</details>
+                            <summary className="cursor-pointer select-none text-sm font-semibold text-zinc-800">
+                              Show criterion text
+                            </summary>
+                            <p className="mt-2 text-sm text-zinc-900 leading-relaxed break-words whitespace-pre-wrap">
+                              {c.description || ""}
+                            </p>
+                          </details>
                         </li>
                       ))}
                     </ul>
@@ -390,10 +498,8 @@ function SpecPreview({ draft }: { draft: any }) {
 
                 {lo.essentialContent ? (
                   <details className="mt-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
-                      Essential content (reference)
-                    </summary>
-                    <p className="mt-2 text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                    <summary className="cursor-pointer text-sm font-semibold text-zinc-800">Essential content (reference)</summary>
+                    <p className="mt-2 text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap break-words">
                       {String(lo.essentialContent)}
                     </p>
                   </details>
@@ -407,7 +513,7 @@ function SpecPreview({ draft }: { draft: any }) {
   );
 }
 
-/* -------------------- BRIEF preview (kept as-is, just readable) -------------------- */
+/* -------------------- BRIEF preview -------------------- */
 
 function BriefPreview({
   draft,
@@ -448,7 +554,7 @@ function BriefPreview({
           </div>
 
           <div className="mt-3">
-            <div className="text-xs text-zinc-600 mb-1">Assignment code (required to lock)</div>
+            <div className="mb-1 text-xs text-zinc-600">Assignment code (required to lock)</div>
             <input
               value={assignmentCodeInput}
               onChange={(e) => setAssignmentCodeInput(e.target.value.toUpperCase())}
