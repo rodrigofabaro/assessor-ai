@@ -17,7 +17,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <aside className="rounded-2xl border border-zinc-200 bg-white p-4">
         <div className="mb-4">
           <div className="text-sm font-semibold">Admin</div>
-          <div className="text-xs text-zinc-500">Reference, bindings, students</div>
+          <div className="text-xs text-zinc-500">Manage specs, briefs, bindings and records.</div>
+
         </div>
 
         <nav className="space-y-1">
@@ -43,12 +44,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           })}
         </nav>
 
-        <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <div className="text-xs font-semibold text-zinc-800">Coming next</div>
-          <div className="mt-2 text-xs text-zinc-600">
-            Identity suggestions • grading runs • export packs
-          </div>
-        </div>
+        
       </aside>
 
       <section className="min-w-0">
