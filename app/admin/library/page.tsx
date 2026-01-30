@@ -1,5 +1,12 @@
 "use client";
 
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/admin/specs");
+}
+
+
 import { badge, formatDate, useLibraryAdmin } from "./library.logic";
 
 export default function LibraryAdminPage() {

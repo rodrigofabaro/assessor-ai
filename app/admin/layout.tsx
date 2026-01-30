@@ -2,33 +2,27 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
 const NAV = [
   {
-    href: "/admin/library",
-    label: "Library",
-    desc: "Units, specs, issues",
+    href: "/admin/specs",
+    label: "Spec Library",
+    desc: "Units, LOs/ACs, grading bands",
     icon: "📚",
   },
   {
-    href: "/admin/reference",
-    label: "Reference inbox",
-    desc: "Upload & extract",
-    icon: "🗂️",
-  },
-  {
-    href: "/admin/bindings",
-    label: "Bindings",
-    desc: "Brief ↔ criteria",
-    icon: "🔗",
+    href: "/admin/briefs",
+    label: "Briefs Library",
+    desc: "Assignments, mapping, rubrics",
+    icon: "🧾",
   },
   {
     href: "/admin/students",
     label: "Students",
-    desc: "Student records",
+    desc: "Submissions & records",
     icon: "👤",
   },
 ];
+
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -53,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="w-full overflow-x-hidden">
-      <div className={"grid w-full min-w-0 gap-6 " + (collapsed ? "lg:grid-cols-[76px_1fr]" : "lg:grid-cols-[280px_1fr]")}
+      <div className={"grid w-full min-w-0 gap-1 " + (collapsed ? "lg:grid-cols-[76px_1fr]" : "lg:grid-cols-[280px_1fr]")}
       >
       <aside className={"rounded-2xl border border-zinc-200 bg-white shadow-sm " + (collapsed ? "p-2" : "p-4")}
       >

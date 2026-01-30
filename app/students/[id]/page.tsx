@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import PageContainer from "@/components/PageContainer";
+
 
 type StudentSummary = {
   lastSubmissionAt: string | null;
@@ -132,6 +134,7 @@ export default async function StudentPage({
   const statusBadges = Object.entries(summary.byStatus ?? {}).sort((a, b) => b[1] - a[1]);
 
   return (
+    <PageContainer>
     <div className="mx-auto max-w-6xl p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -266,5 +269,6 @@ export default async function StudentPage({
         </div>
       </div>
     </div>
+    </PageContainer>
   );
 }
