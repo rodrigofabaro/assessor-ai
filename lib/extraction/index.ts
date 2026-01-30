@@ -2,6 +2,7 @@ import fs from "fs/promises";
 
 import { pdfToText } from "@/lib/extraction/text/pdfToText";
 import { parseSpec } from "@/lib/extraction/parsers/specParser";
+import { extractBrief } from "@/lib/extractors/brief";
 
 export type ExtractWarning = string;
 
@@ -31,6 +32,15 @@ export async function extractReferenceDocument(args: {
   let extractedJson: any = null;
   if (args.type === "SPEC") {
     extractedJson = parseSpec(text, args.docTitleFallback);
+  } else if (args.type === "BRIEF") {
+    // Briefs need structured header fields for binding and lock.
+    // Keep this path isolated so SPEC extraction remains untouched.
+    const brief = extractBrief(text, args.docTitleFallback);
+    extractedJson = {
+      ...brief,
+      preview: text.slice(0, 4000),
+      charCount: text.length,
+    };
   } else {
     extractedJson = {
       kind: args.type,

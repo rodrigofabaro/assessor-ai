@@ -587,15 +587,23 @@ function BriefPreview({
           >
             <option value="">(select unit...)</option>
             {units
-              .filter((u) => u.status === "LOCKED")
+              // Only show ACTIVE (non-archived) LOCKED specs by default.
+              // Archived issues remain in the Library for audit/history but should not be the default binding target.
+              .filter((u) => u.status === "LOCKED" && !(u as any)?.sourceMeta?.archived)
               .map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.unitCode} — {u.unitTitle}
+                  {(() => {
+                    const issue = (u as any)?.specIssue || (u as any)?.specDocument?.sourceMeta?.specIssue;
+                    return issue ? ` (${issue})` : "";
+                  })()}
                 </option>
               ))}
           </select>
         </div>
-        <p className="mt-2 text-xs text-zinc-500">Tip: briefs should lock against a LOCKED unit spec.</p>
+        <p className="mt-2 text-xs text-zinc-500">
+          Only ACTIVE (non-archived) locked specs are shown here.
+        </p>
       </div>
 
       <div className="mt-4 border-t border-zinc-200 pt-4">
