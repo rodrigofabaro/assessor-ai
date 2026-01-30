@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const overrideUnitId = body?.unitId as string | undefined; // for BRIEF imports
     const mappingOverride = body?.mappingOverride as string[] | undefined; // array of AC codes
     const assignmentCodeOverride = body?.assignmentCode as string | undefined;
+    const allowOverwrite = body?.allowOverwrite as boolean | undefined;
     const lockedBy = body?.lockedBy as string | undefined;
 
     if (!documentId) {
@@ -173,13 +174,12 @@ export async function POST(req: Request) {
       // Determine unit
       let unit = null;
       if (overrideUnitId) unit = await prisma.unit.findUnique({ where: { id: overrideUnitId } });
-if (!unit && brief.unitCodeGuess) {
-  unit = await prisma.unit.findFirst({
-    where: { unitCode: brief.unitCodeGuess, status: "LOCKED" as any },
-    orderBy: { createdAt: "desc" },
-  });
-}
-
+      if (!unit && brief.unitCodeGuess) {
+        unit = await prisma.unit.findFirst({
+          where: { unitCode: brief.unitCodeGuess },
+          orderBy: { createdAt: "desc" },
+        });
+      }
       if (!unit) {
         return NextResponse.json(
           { error: "Could not determine Unit for this brief. Select a Unit and try again." },
@@ -190,6 +190,33 @@ if (!unit && brief.unitCodeGuess) {
       const title = (brief.title || doc.title || "").trim();
       if (!title) {
         return NextResponse.json({ error: "Brief title is required." }, { status: 400 });
+      }
+
+      // Prevent accidental duplicates: if there's already a LOCKED brief for this Unit+AssignmentCode,
+      // require an explicit overwrite flag.
+      const existing = await prisma.assignmentBrief.findUnique({
+        where: { unitId_assignmentCode: { unitId: unit.id, assignmentCode } },
+        select: { id: true, status: true, briefDocumentId: true, title: true },
+      });
+
+      if (
+        existing &&
+        existing.status === ("LOCKED" as any) &&
+        existing.briefDocumentId &&
+        existing.briefDocumentId !== doc.id &&
+        !allowOverwrite
+      ) {
+        return NextResponse.json(
+          {
+            error: "BRIEF_ALREADY_LOCKED",
+            message:
+              `A ${assignmentCode} brief is already LOCKED for this unit. ` +
+              `If you really want to replace it, pass allowOverwrite: true.`,
+            existingBriefId: existing.id,
+            existingTitle: existing.title,
+          },
+          { status: 409 }
+        );
       }
 
       // Upsert brief

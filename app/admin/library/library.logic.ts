@@ -65,7 +65,6 @@ export function useLibraryAdmin() {
   const [bindings, setBindings] = useState<BindingApi[]>([]);
 
   const [selectedUnitId, setSelectedUnitId] = useState("");
-  const selected = useMemo(() => units.find((u) => u.id === selectedUnitId) || null, [units, selectedUnitId]);
 
   const [q, setQ] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -96,6 +95,13 @@ export function useLibraryAdmin() {
       };
     });
   }, [units, bindings]);
+
+  // IMPORTANT: select from the computed view-models so UI can rely on derived fields
+  // like `archived`, `boundBriefsCount`, and counts.
+  const selected = useMemo(
+    () => viewModels.find((u: any) => u.id === selectedUnitId) || null,
+    [viewModels, selectedUnitId]
+  );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
