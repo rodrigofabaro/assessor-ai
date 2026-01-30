@@ -2,34 +2,82 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type UnitApi = {
+type SpecDocApi = {
+  id: string;
+  originalFilename?: string | null;
+  storedFilename?: string | null;
+  storagePath?: string | null;
+} | null;
+
+type BriefDocApi = {
+  id: string;
+  originalFilename?: string | null;
+} | null;
+
+type AssignmentBriefApi = {
+  id: string;
+  assignmentCode?: string | null; // "A1"
+  title?: string | null; // NOTE: your schema uses `title`, some older UI used briefTitle
+  briefTitle?: string | null; // tolerate legacy field name
+  briefDocumentId?: string | null;
+  briefDocument?: BriefDocApi;
+} | null;
+
+type LearningOutcomeApi = {
+  id: string;
+  loCode: string;
+  description?: string;
+  criteria: any[];
+};
+
+export type UnitApi = {
   id: string;
   unitCode: string;
   unitTitle: string;
   status: "DRAFT" | "LOCKED";
+
   specIssue?: string | null;
   specVersionLabel?: string | null;
+
   lockedAt?: string | null;
+
   specDocumentId?: string | null;
-  learningOutcomes?: Array<{ id: string; loCode: string; criteria: any[] }> | null;
+  specDocument?: SpecDocApi;
+
+  learningOutcomes?: LearningOutcomeApi[] | null;
+
+  // included by GET /api/units (assignmentBriefs include)
+  assignmentBriefs?: AssignmentBriefApi[] | null;
+
   sourceMeta?: any | null;
 };
 
-type BindingApi = {
-  id: string;
-  unitId: string;
-  assignmentCode?: string | null;
-  briefTitle?: string | null;
-  briefDocumentId?: string | null;
-  createdAt?: string | null;
-};
+type UnitsResponse = { units: UnitApi[] };
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(url, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
+
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
+  const data: any = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => "");
+
+  if (!res.ok) {
+    // Try multiple shapes: {error}, {message}, {detail}, or plain text
+    const msg =
+      (typeof data === "string" && data.trim()) ||
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      `Request failed (${res.status})`;
+
+    throw new Error(msg);
+  }
+
   return data as T;
 }
+
+
 
 export function formatDate(iso?: string | null): string {
   if (!iso) return "";
@@ -43,18 +91,20 @@ export function badge(status: "ACTIVE" | "ARCHIVED"): { cls: string; text: strin
     : { cls: "bg-emerald-50 text-emerald-900 border-emerald-200", text: "ACTIVE" };
 }
 
-/**
- * ✅ Normalize any of these shapes into an array:
- * - [ ... ]
- * - { bindings: [ ... ] }
- * - { data: { bindings: [ ... ] } }
- * - anything else -> []
- */
-function normalizeBindings(payload: any): BindingApi[] {
-  if (Array.isArray(payload)) return payload as BindingApi[];
-  if (Array.isArray(payload?.bindings)) return payload.bindings as BindingApi[];
-  if (Array.isArray(payload?.data?.bindings)) return payload.data.bindings as BindingApi[];
-  return [];
+function pickIssueLabel(u: Pick<UnitApi, "specVersionLabel" | "specIssue"> | null | undefined): string {
+  const a = u?.specVersionLabel ? String(u.specVersionLabel).trim() : "";
+  const b = u?.specIssue ? String(u.specIssue).trim() : "";
+  return a || b || "";
+}
+
+function asArray<T>(v: T[] | null | undefined): T[] {
+  return Array.isArray(v) ? v : [];
+}
+
+function normalizeBriefTitle(b: AssignmentBriefApi): string {
+  const t1 = b?.title ? String(b.title).trim() : "";
+  const t2 = b?.briefTitle ? String(b.briefTitle).trim() : "";
+  return t1 || t2 || "";
 }
 
 export function useLibraryAdmin() {
@@ -62,42 +112,54 @@ export function useLibraryAdmin() {
   const [error, setError] = useState<string | null>(null);
 
   const [units, setUnits] = useState<UnitApi[]>([]);
-  const [bindings, setBindings] = useState<BindingApi[]>([]);
-
-  const [selectedUnitId, setSelectedUnitId] = useState("");
+  const [selectedUnitId, setSelectedUnitId] = useState<string>("");
 
   const [q, setQ] = useState("");
   const [showArchived, setShowArchived] = useState(false);
 
   // edit fields
+  const [editUnitCode, setEditUnitCode] = useState("");
   const [editUnitTitle, setEditUnitTitle] = useState("");
   const [editSpecLabel, setEditSpecLabel] = useState("");
 
+  // ---- Derived view-models (single source of truth for UI)
   const viewModels = useMemo(() => {
-    const locked = (Array.isArray(units) ? units : []).filter((u) => u.status === "LOCKED");
-    const bindingsArr = Array.isArray(bindings) ? bindings : [];
+    const locked = asArray(units).filter((u) => u.status === "LOCKED");
 
     return locked.map((u) => {
-      const loCount = u.learningOutcomes?.length || 0;
-      const criteriaCount =
-        (u.learningOutcomes || []).reduce((n, lo) => n + ((lo.criteria as any[])?.length || 0), 0) || 0;
+      const los = asArray(u.learningOutcomes);
+      const loCount = los.length;
+      const criteriaCount = los.reduce(
+        (n, lo) => n + (Array.isArray(lo.criteria) ? lo.criteria.length : 0),
+        0
+      );
 
       const archived = !!u.sourceMeta?.archived;
 
-      const bound = bindingsArr.filter((b) => b.unitId === u.id);
+      const briefsArr = asArray(u.assignmentBriefs).filter(Boolean) as any[];
+      const boundBriefsCount = briefsArr.length;
+
+      // Delete rules:
+      // - if any briefs -> cannot delete (must archive)
+      // - if no briefs -> can delete, but backend must handle LO/criteria cascade
+      const canDelete = boundBriefsCount === 0;
+      const deleteReason = canDelete
+        ? null
+        : `Refuse delete: ${boundBriefsCount} brief(s) are bound to this unit. Archive instead.`;
 
       return {
         ...u,
         archived,
         learningOutcomeCount: loCount,
         criteriaCount,
-        boundBriefsCount: bound.length,
+        boundBriefsCount,
+        issueLabel: pickIssueLabel(u),
+        canDelete,
+        deleteReason,
       };
     });
-  }, [units, bindings]);
+  }, [units]);
 
-  // IMPORTANT: select from the computed view-models so UI can rely on derived fields
-  // like `archived`, `boundBriefsCount`, and counts.
   const selected = useMemo(
     () => viewModels.find((u: any) => u.id === selectedUnitId) || null,
     [viewModels, selectedUnitId]
@@ -107,42 +169,54 @@ export function useLibraryAdmin() {
     const needle = q.trim().toLowerCase();
 
     return viewModels
-      .filter((u) => (showArchived ? true : !u.archived))
-      .filter((u) => {
+      .filter((u: any) => (showArchived ? true : !u.archived))
+      .filter((u: any) => {
         if (!needle) return true;
         return (
-          u.unitCode.toLowerCase().includes(needle) ||
-          (u.unitTitle || "").toLowerCase().includes(needle) ||
-          (u.specVersionLabel || u.specIssue || "").toLowerCase().includes(needle)
+          String(u.unitCode || "").toLowerCase().includes(needle) ||
+          String(u.unitTitle || "").toLowerCase().includes(needle) ||
+          String(u.issueLabel || "").toLowerCase().includes(needle)
         );
       })
-      .sort((a, b) => a.unitCode.localeCompare(b.unitCode) || a.unitTitle.localeCompare(b.unitTitle));
+      .sort(
+        (a: any, b: any) =>
+          String(a.unitCode).localeCompare(String(b.unitCode)) ||
+          String(a.unitTitle).localeCompare(String(b.unitTitle))
+      );
   }, [viewModels, q, showArchived]);
 
+  // briefs list for inspector
   const boundBriefs = useMemo(() => {
     if (!selected) return [];
-    const bindingsArr = Array.isArray(bindings) ? bindings : [];
-
-    return bindingsArr
-      .filter((b) => b.unitId === selected.id)
+    const arr = asArray((selected as any).assignmentBriefs).filter(Boolean) as any[];
+    return arr
+      .map((b) => ({
+        id: b.id,
+        assignmentCode: b.assignmentCode || null,
+        title: normalizeBriefTitle(b),
+        briefDocumentId: b.briefDocumentId || null,
+        briefDocument: b.briefDocument || null,
+      }))
       .sort((a, b) => String(a.assignmentCode || "").localeCompare(String(b.assignmentCode || "")));
-  }, [bindings, selected]);
+  }, [selected]);
 
+  // ---- Data loading
   async function refreshAll() {
     setError(null);
     setBusy("Loading...");
     try {
-      const [u, b] = await Promise.all([
-        jsonFetch<{ units: UnitApi[] }>("/api/units"),
-        jsonFetch<any>("/api/assignment-bindings"),
-      ]);
+      const u = await jsonFetch<UnitsResponse>("/api/units");
+      const list = Array.isArray(u?.units) ? u.units : [];
+      setUnits(list);
 
-      setUnits(Array.isArray(u?.units) ? u.units : []);
-      setBindings(normalizeBindings(b));
+      // keep selection stable after refresh
+      if (selectedUnitId) {
+        const stillExists = list.some((x) => x.id === selectedUnitId);
+        if (!stillExists) setSelectedUnitId("");
+      }
     } catch (e: any) {
       setError(e?.message || "Failed to load library");
       setUnits([]);
-      setBindings([]);
     } finally {
       setBusy(null);
     }
@@ -156,14 +230,31 @@ export function useLibraryAdmin() {
   // sync edit fields on selection
   useEffect(() => {
     if (!selected) {
+      setEditUnitCode("");
       setEditUnitTitle("");
       setEditSpecLabel("");
       return;
     }
-    setEditUnitTitle(selected.unitTitle || "");
-    setEditSpecLabel((selected.specVersionLabel || selected.specIssue || "") as string);
+    setEditUnitCode(String(selected.unitCode || ""));
+    setEditUnitTitle(String(selected.unitTitle || ""));
+    setEditSpecLabel(pickIssueLabel(selected));
   }, [selected]);
 
+  const dirtyLabels = useMemo(() => {
+    if (!selected) return false;
+
+    const aCode = String(selected.unitCode || "").trim();
+    const aTitle = String(selected.unitTitle || "").trim();
+    const aIssue = pickIssueLabel(selected);
+
+    const bCode = String(editUnitCode || "").trim();
+    const bTitle = String(editUnitTitle || "").trim();
+    const bIssue = String(editSpecLabel || "").trim();
+
+    return aCode !== bCode || aTitle !== bTitle || aIssue !== bIssue;
+  }, [selected, editUnitCode, editUnitTitle, editSpecLabel]);
+
+  // ---- Mutations
   async function saveEdits() {
     setError(null);
     if (!selected) return;
@@ -174,11 +265,13 @@ export function useLibraryAdmin() {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          unitTitle: editUnitTitle,
-          specVersionLabel: editSpecLabel,
-          specIssue: editSpecLabel,
+          unitCode: String(editUnitCode || "").trim(),
+          unitTitle: String(editUnitTitle || "").trim(),
+          specVersionLabel: String(editSpecLabel || "").trim(),
+          specIssue: String(editSpecLabel || "").trim(),
         }),
       });
+
       await refreshAll();
     } catch (e: any) {
       setError(e?.message || "Save failed");
@@ -200,6 +293,7 @@ export function useLibraryAdmin() {
           sourceMeta: { ...(selected.sourceMeta || {}), archived: !selected.sourceMeta?.archived },
         }),
       });
+
       await refreshAll();
     } catch (e: any) {
       setError(e?.message || "Archive failed");
@@ -208,29 +302,46 @@ export function useLibraryAdmin() {
     }
   }
 
-  async function safeDelete() {
-    setError(null);
-    if (!selected) return;
+async function safeDelete() {
+  setError(null);
+  if (!selected) return;
 
-    const bindingsArr = Array.isArray(bindings) ? bindings : [];
-    const bound = bindingsArr.filter((b) => b.unitId === selected.id);
+  // Use the same truth source as UI count
+  const briefsArr = Array.isArray((selected as any).assignmentBriefs) ? (selected as any).assignmentBriefs : [];
 
-    if (bound.length) {
-      setError(`Cannot delete: ${bound.length} brief(s)/assignment(s) are bound to this unit.`);
-      return;
-    }
+  if (briefsArr.length) {
+    const list = briefsArr
+      .slice(0, 3)
+      .map((b: any) => b.assignmentCode || b.title || b.id)
+      .filter(Boolean)
+      .join(", ");
 
-    setBusy("Deleting...");
-    try {
-      await jsonFetch(`/api/units/${selected.id}`, { method: "DELETE" });
-      setSelectedUnitId("");
-      await refreshAll();
-    } catch (e: any) {
-      setError(e?.message || "Delete failed");
-    } finally {
-      setBusy(null);
-    }
+    setError(
+      `Cannot delete ${selected.unitCode} — it has ${briefsArr.length} bound brief(s). ` +
+        (list ? `Examples: ${list}` : "") +
+        `\nArchive it instead (or unbind briefs first).`
+    );
+    return;
   }
+
+  // Optional: confirm to prevent accidental nukes
+  const ok = window.confirm(
+    `Delete ${selected.unitCode} — ${selected.unitTitle}?\n\nThis will remove its Learning Outcomes and Criteria too.`
+  );
+  if (!ok) return;
+
+  setBusy("Deleting...");
+  try {
+    await jsonFetch(`/api/units/${selected.id}`, { method: "DELETE" });
+    setSelectedUnitId("");
+    await refreshAll();
+  } catch (e: any) {
+    setError(e?.message || "Delete failed");
+  } finally {
+    setBusy(null);
+  }
+}
+
 
   return {
     busy,
@@ -247,16 +358,22 @@ export function useLibraryAdmin() {
     selectedUnitId,
     setSelectedUnitId,
 
+    editUnitCode,
+    setEditUnitCode,
     editUnitTitle,
     setEditUnitTitle,
     editSpecLabel,
     setEditSpecLabel,
 
+    dirtyLabels,
+
     boundBriefs,
 
     refreshAll,
-    saveEdits,
-    toggleArchive,
+
+    // names your UI uses
+    saveLabels: saveEdits,
+    archive: toggleArchive,
     safeDelete,
   };
 }
