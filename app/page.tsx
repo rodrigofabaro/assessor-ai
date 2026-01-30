@@ -1,3 +1,4 @@
+// app/page.tsx
 import Link from "next/link";
 
 function Icon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
@@ -28,11 +29,13 @@ function Icon({ name, className = "h-5 w-5" }: { name: string; className?: strin
           <path d="M8 10h8" />
         </svg>
       );
-    case "link":
+    case "doc":
       return (
         <svg {...common} viewBox="0 0 24 24">
-          <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" />
-          <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" />
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+          <path d="M8 13h8" />
+          <path d="M8 17h8" />
         </svg>
       );
     case "users":
@@ -56,7 +59,6 @@ function Icon({ name, className = "h-5 w-5" }: { name: string; className?: strin
         <svg {...common} viewBox="0 0 24 24">
           <path d="M12 2l1.2 4.2L17.5 7.5l-4.3 1.3L12 13l-1.2-4.2L6.5 7.5l4.3-1.3L12 2z" />
           <path d="M19 10l.7 2.4L22 13l-2.3.6L19 16l-.7-2.4L16 13l2.3-.6L19 10z" />
-          <path d="M4 14l.9 3.2L8 18l-3.1.8L4 22l-.9-3.2L0 18l3.1-.8L4 14z" />
         </svg>
       );
     default:
@@ -97,7 +99,7 @@ function CardLink({
   title: string;
   desc: string;
   tone: "indigo" | "cyan" | "emerald" | "amber";
-  icon: "upload" | "book" | "link" | "users";
+  icon: "upload" | "book" | "doc" | "users";
 }) {
   const toneMap: Record<string, { ring: string; badge: string; iconBg: string }> = {
     indigo: { ring: "hover:ring-indigo-200", badge: "bg-indigo-50 text-indigo-900 border-indigo-200", iconBg: "bg-indigo-100 text-indigo-900" },
@@ -131,6 +133,45 @@ function CardLink({
         <div className="shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-700">→</div>
       </div>
     </Link>
+  );
+}
+
+function StatusCard({
+  specs,
+  briefs,
+  submissions,
+  locked,
+}: {
+  specs?: number;
+  briefs?: number;
+  submissions?: number;
+  locked?: number;
+}) {
+  const Row = ({ label, value }: { label: string; value?: number }) => (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-zinc-600">{label}</span>
+      <span className="font-semibold text-zinc-900">{value ?? "—"}</span>
+    </div>
+  );
+
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm ring-1 ring-transparent">
+      <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-800">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-900">
+          <Icon name="checklist" className="h-4 w-4" />
+        </span>
+        System status
+      </div>
+
+      <div className="mt-4 grid gap-2">
+        <Row label="Specs stored" value={specs} />
+        <Row label="Briefs stored" value={briefs} />
+        <Row label="Submissions uploaded" value={submissions} />
+        <Row label="Locked references" value={locked} />
+      </div>
+
+      <div className="mt-3 text-[11px] text-zinc-500">Counts update as data is added.</div>
+    </div>
   );
 }
 
@@ -174,12 +215,9 @@ export default function HomePage() {
                 </Pill>
               </div>
 
-              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
-                Assessor AI
-              </h1>
+              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Assessor AI</h1>
               <p className="mt-2 max-w-2xl text-sm text-zinc-700 leading-relaxed">
-                Build a locked reference set (specs + brief mappings), then grade submissions consistently against
-                the right criteria — with a paper trail.
+                Lock references first (specs + brief mappings), then grade submissions consistently against the right criteria — with a paper trail.
               </p>
             </div>
 
@@ -191,43 +229,44 @@ export default function HomePage() {
                 Go to Upload
               </Link>
               <Link
-                href="/admin/reference"
+                href="/admin/specs"
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50"
               >
-                Go to Reference
+                Go to Admin
               </Link>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <CardLink
-              href="/admin/reference"
-              title="Reference"
-              desc="Upload specs/briefs, extract LOs + criteria, and lock the final reference used by grading."
+              href="/admin/specs"
+              title="Spec Library"
+              desc="Upload unit specs, extract LOs + criteria, then Approve & Lock the authoritative versions used by grading."
               tone="cyan"
               icon="book"
             />
             <CardLink
-              href="/admin/bindings"
-              title="Bindings"
-              desc="Bind each assignment brief to the correct unit spec/issue, then lock that binding for audit."
+              href="/admin/briefs"
+              title="Briefs Library"
+              desc="Upload briefs, extract structure, link to a locked spec, then confirm mapping/rubric before locking."
               tone="emerald"
-              icon="link"
+              icon="doc"
             />
             <CardLink
               href="/upload"
               title="Upload"
-              desc="Upload student submissions (single or batch). Grading will use the locked reference set."
+              desc="Upload student submissions (single or batch). When grading runs, it uses the locked references."
               tone="indigo"
               icon="upload"
             />
             <CardLink
               href="/admin/students"
               title="Students"
-              desc="Manage student records used for tracking, reporting, and future grading history."
+              desc="Student records and submission tracking (grading history later)."
               tone="amber"
               icon="users"
             />
+            <StatusCard />
           </div>
         </div>
       </section>
@@ -237,28 +276,26 @@ export default function HomePage() {
         <div className="flex items-end justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-zinc-900">How it works</h2>
-            <p className="mt-1 text-sm text-zinc-700">
-              Keep the system boring on purpose: references first, then submissions, then grading.
-            </p>
+            <p className="mt-1 text-sm text-zinc-700">Keep it boring on purpose: references first, then submissions, then grading.</p>
           </div>
-          <div className="hidden sm:block text-xs text-zinc-500">Upload → Extract → Review → Lock → Bind → Grade</div>
+          <div className="hidden sm:block text-xs text-zinc-500">Upload → Extract → Review → Lock → Grade</div>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-3">
           <Step
             n="1"
             title="Lock your unit specs"
-            desc="In Admin → Reference, extract learning outcomes and P/M/D criteria from the spec, then Approve & Lock."
+            desc="In Spec Library, extract learning outcomes and P/M/D criteria from the spec, then Approve & Lock."
           />
           <Step
             n="2"
-            title="Bind briefs to the right spec issue"
-            desc="In Admin → Bindings, connect each assignment brief to the unit spec it should be graded against."
+            title="Prepare briefs for grading"
+            desc="In Briefs Library, link each brief to the correct locked spec, confirm mappings/rubric, then Approve & Lock."
           />
           <Step
             n="3"
             title="Upload submissions"
-            desc="Upload student work. Later, grading uses the locked spec + locked binding — no guessing, no drift."
+            desc="Upload student work. When grading runs, it uses the locked references — no drift, no guessing."
           />
         </div>
       </section>
