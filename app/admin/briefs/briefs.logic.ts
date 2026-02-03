@@ -132,6 +132,33 @@ function pickHeaderDate(doc: ReferenceDocument | null | undefined, key: "issueDa
   return null;
 }
 
+export type BriefReadiness = "READY" | "ATTN" | "BLOCKED";
+
+
+function computeReadiness(row: {
+  lockedAt?: string | null;
+  unit?: Unit;
+  linkedDoc?: ReferenceDocument | null;
+  headerYear?: string | null;
+  ivForYear?: IvRecord | null;
+}): { readiness: "READY" | "ATTN" | "BLOCKED"; reason: string } {
+  // We do NOT enforce yet. This is a truth-telling indicator.
+  if (!row.lockedAt) return { readiness: "BLOCKED", reason: "Brief is not locked." };
+  if (!row.linkedDoc) return { readiness: "BLOCKED", reason: "No PDF linked to this brief." };
+  if (!row.linkedDoc.lockedAt) return { readiness: "ATTN", reason: "PDF is linked but not locked." };
+
+  // Spec discipline: ideally the unit spec is locked before grading.
+  if (!row.unit?.lockedAt) return { readiness: "ATTN", reason: "Unit spec is not locked yet." };
+
+  if (!row.headerYear) return { readiness: "ATTN", reason: "Academic year not extracted from PDF header." };
+  if (!row.ivForYear) return { readiness: "ATTN", reason: `No IV record found for academic year ${row.headerYear}.` };
+
+  if (row.ivForYear.outcome === "REJECTED") return { readiness: "BLOCKED", reason: "IV outcome is REJECTED." };
+  if (row.ivForYear.outcome === "CHANGES_REQUIRED") return { readiness: "ATTN", reason: "IV outcome is CHANGES REQUIRED." };
+
+  return { readiness: "READY", reason: "Ready for grading (locked spec + locked brief + IV approved)." };
+}
+
 export type BriefRow = AssignmentBrief & {
   unit?: Unit;
   linkedDoc?: ReferenceDocument | null;
@@ -139,6 +166,8 @@ export type BriefRow = AssignmentBrief & {
   issueDate?: string | null;
   finalSubmissionDate?: string | null;
   ivForYear?: IvRecord | null;
+  readiness?: BriefReadiness;
+  readinessReason?: string;
 };
 
 export function useBriefsAdmin() {
@@ -215,7 +244,8 @@ export function useBriefsAdmin() {
           ivForYear = ivs.find((r) => norm(r.academicYear) === norm(headerYear)) || null;
         }
 
-        all.push({ ...b, unit: u, linkedDoc, headerYear, issueDate, finalSubmissionDate, ivForYear });
+        const rr = computeReadiness({ lockedAt: b.lockedAt, unit: u, linkedDoc, headerYear, ivForYear });
+        all.push({ ...b, unit: u, linkedDoc, headerYear, issueDate, finalSubmissionDate, ivForYear, readiness: rr.readiness, readinessReason: rr.reason });
       }
     }
 
