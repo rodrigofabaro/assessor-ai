@@ -14,6 +14,8 @@ import { useMemo, useState } from "react";
 import LibraryView from "../library/LibraryView";
 import { badge, useReferenceAdmin } from "../reference/reference.logic";
 import PageContainer from "@/components/PageContainer";
+import { LoCriteriaGrid } from "@/components/spec/LoCriteriaGrid";
+
 
 
 function gradeBadge(band: "PASS" | "MERIT" | "DISTINCTION"): { cls: string; text: string } {
@@ -530,39 +532,12 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
                   spellCheck={false}
                   className="mt-3 h-[45vh] w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400"
                 />
-              ) : los.length ? (
-                <div className="mt-4 grid gap-5">
-                  {los.map((lo: any, idx: number) => (
-                    <section key={lo.id || lo.loCode || idx} className="grid gap-2">
-                      <div>
-                        <div className="text-sm font-semibold">Learning Outcome {lo.loCode}</div>
-                        <div className="text-sm text-zinc-700">{lo.description}</div>
-                      </div>
+) : los.length ? (
+  <div className="mt-4 max-h-[70vh] overflow-auto pr-2">
+    <LoCriteriaGrid learningOutcomes={los} />
+  </div>
+) : (
 
-                      <div className="grid gap-2">
-                        {(lo.criteria || []).map((c: any) => (
-                          <div key={c.id || c.acCode} className="rounded-xl border border-zinc-200 p-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="text-sm font-semibold">{c.acCode}</div>
-                              {c.gradeBand ? (
-                                <span
-                                  className={
-                                    "inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold " +
-                                    gradeBadge(c.gradeBand).cls
-                                  }
-                                >
-                                  {gradeBadge(c.gradeBand).text}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="mt-1 text-sm text-zinc-700">{c.description}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              ) : (
                 <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                   No extracted structure yet. Click <span className="font-semibold">Extract</span> to generate LO/AC.
                 </div>

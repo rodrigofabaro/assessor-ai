@@ -15,7 +15,7 @@ body {
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
+  @apply bg-[aliceblue] text-zinc-900 antialiased;
 }
 
 /* Nicer default focus rings for keyboard users */

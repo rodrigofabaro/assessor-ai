@@ -41,7 +41,141 @@ function pdfUrlForSelected(selected: any) {
   return `/api/reference-documents/${id}/file`;
 }
 
-export default function LibraryView({ showHeader = true }: { showHeader?: boolean }) {
+function bandRankFromCode(acCode: string) {
+  const c = (acCode || "").toUpperCase();
+  if (c.startsWith("P")) return 1;
+  if (c.startsWith("M")) return 2;
+  if (c.startsWith("D")) return 3;
+  return 9;
+}
+
+function codeNumber(acCode: string) {
+  const m = String(acCode || "").match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sortCriteriaPearson(a: any, b: any) {
+  const ac = String(a?.acCode || "");
+  const bc = String(b?.acCode || "");
+  return (
+    bandRankFromCode(ac) - bandRankFromCode(bc) ||
+    codeNumber(ac) - codeNumber(bc) ||
+    ac.localeCompare(bc)
+  );
+}
+
+function groupCriteria(criteria: any[]) {
+  const sorted = [...(criteria || [])].sort(sortCriteriaPearson);
+  const pass = sorted.filter((c) =>
+    String(c?.acCode || "")
+      .toUpperCase()
+      .startsWith("P"),
+  );
+  const merit = sorted.filter((c) =>
+    String(c?.acCode || "")
+      .toUpperCase()
+      .startsWith("M"),
+  );
+  const dist = sorted.filter((c) =>
+    String(c?.acCode || "")
+      .toUpperCase()
+      .startsWith("D"),
+  );
+  const other = sorted.filter((c) => !/^[PMD]/i.test(String(c?.acCode || "")));
+  return { pass, merit, dist, other };
+}
+
+function CriteriaColumn({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: any[];
+  tone: "pass" | "merit" | "dist";
+}) {
+  const toneWrap =
+    tone === "pass"
+      ? "border-emerald-200 bg-emerald-50/60"
+      : tone === "merit"
+        ? "border-cyan-200 bg-cyan-50/60"
+        : "border-violet-200 bg-violet-50/60";
+
+  const toneHeader =
+    tone === "pass"
+      ? "border-emerald-200 bg-emerald-100/60 text-emerald-900"
+      : tone === "merit"
+        ? "border-cyan-200 bg-cyan-100/60 text-cyan-900"
+        : "border-violet-200 bg-violet-100/60 text-violet-900";
+
+  const toneDot =
+    tone === "pass"
+      ? "bg-emerald-600"
+      : tone === "merit"
+        ? "bg-cyan-600"
+        : "bg-violet-600";
+
+  return (
+    <div className={"rounded-2xl border overflow-hidden min-w-0 " + toneWrap}>
+      <div className={"border-b px-3 py-2 " + toneHeader}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={"h-2 w-2 rounded-full " + toneDot}
+              aria-hidden="true"
+            />
+            <div className="text-xs font-semibold uppercase tracking-wide truncate">
+              {title}
+            </div>
+          </div>
+          <div className="text-[11px] opacity-80">{items.length} criteria</div>
+        </div>
+      </div>
+
+      <div className="p-3 grid gap-2">
+        {items.length ? (
+          items.map((c) => (
+            <div
+              key={c.id || c.acCode}
+              className="rounded-xl border border-zinc-200 bg-white/80 p-3 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-sm font-semibold text-zinc-900">
+                  {c.acCode}
+                </div>
+
+                {c.gradeBand ? (
+                  <span
+                    className={
+                      "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold " +
+                      badge(c.gradeBand).cls
+                    }
+                  >
+                    {badge(c.gradeBand).text}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
+                {c.description}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-zinc-200 bg-white/70 p-3 text-sm text-zinc-600">
+            None
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function LibraryView({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+}) {
   const vm = useLibraryAdmin();
 
   // Normalise (avoids layout weirdness during first paint)
@@ -55,7 +189,9 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
 
   // Selected issue label: prefer persisted value, fallback to current edit value (if any)
   const selectedIssueLabel =
-    pickIssueLabel(selected) || (vm.editSpecLabel && String(vm.editSpecLabel).trim()) || "";
+    pickIssueLabel(selected) ||
+    (vm.editSpecLabel && String(vm.editSpecLabel).trim()) ||
+    "";
 
   const selectedDocId =
     (selected as any)?.specDocumentId ||
@@ -74,16 +210,23 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
         <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">Specs library</h1>
+              <h1 className="text-lg font-semibold tracking-tight">
+                Specs library
+              </h1>
               <p className="mt-1 text-sm text-zinc-700">
-                Manage <span className="font-semibold">LOCKED</span> unit specs (the grading ground truth).
+                Manage <span className="font-semibold">LOCKED</span> unit specs
+                (the grading ground truth).
               </p>
             </div>
-            <div className="text-xs text-zinc-600">{vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}</div>
+            <div className="text-xs text-zinc-600">
+              {vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}
+            </div>
           </div>
 
           {vm.error ? (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{vm.error}</div>
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+              {vm.error}
+            </div>
           ) : null}
         </header>
       ) : null}
@@ -95,7 +238,9 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-sm font-semibold">Units</div>
-              <div className="text-xs text-zinc-600">Locked unit specs and issues</div>
+              <div className="text-xs text-zinc-600">
+                Locked unit specs and issues
+              </div>
             </div>
             <div className="text-xs text-zinc-500">{units.length}</div>
           </div>
@@ -120,17 +265,23 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                   type="button"
                   onClick={() => vm.setSelectedUnitId(u.id)}
                   className={
-                    "w-full rounded-xl border p-3 text-left transition " +
+                    "relative w-full rounded-xl border p-3 text-left transition " +
                     (active
-                      ? "border-zinc-300 bg-white ring-2 ring-zinc-900/10 shadow-sm"
+                      ? "border-zinc-900 bg-zinc-50 shadow-sm ring-2 ring-zinc-900/10 pl-5"
                       : "border-zinc-200 bg-white hover:bg-zinc-50")
                   }
                 >
-                  <div className="text-sm font-semibold leading-5 text-zinc-900">
+                  {active ? (
+                    <span
+                      className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-zinc-900"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+
+                  <div className="text-sm font-semibold leading-5 text-zinc-900 break-words whitespace-normal">
                     {u.unitCode} — {u.unitTitle}
                   </div>
 
-                  {/* ✅ always visible */}
                   <div className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
                     <span
                       className={
@@ -141,7 +292,9 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                     >
                       🏷️
                     </span>
-                    <span className="truncate">{issue ? `Issue: ${issue}` : "Issue: —"}</span>
+                    <span className="truncate">
+                      {issue ? `Issue: ${issue}` : "Issue: —"}
+                    </span>
                   </div>
                 </button>
               );
@@ -161,8 +314,10 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
             <div className="border-b border-zinc-200 p-4">
               <div className="text-xs text-zinc-500">Spec viewer</div>
-              <div className="mt-1 text-lg font-semibold">
-                {selected ? `${selected.unitCode} — ${selected.unitTitle}` : "Select a unit"}
+              <div className="mt-1 text-lg font-semibold break-words whitespace-normal">
+                {selected
+                  ? `${selected.unitCode} — ${selected.unitTitle}`
+                  : "Select a unit"}
               </div>
 
               <div className="mt-1 flex items-center gap-2 text-sm text-zinc-700">
@@ -172,40 +327,91 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                 >
                   🏷️
                 </span>
-                <span>{selected ? (selectedIssueLabel ? selectedIssueLabel : "—") : "—"}</span>
+                <span>
+                  {selected
+                    ? selectedIssueLabel
+                      ? selectedIssueLabel
+                      : "—"
+                    : "—"}
+                </span>
               </div>
             </div>
 
             <div className="max-h-[70vh] overflow-auto p-4">
               {selected ? (
                 <div className="grid gap-5">
-                  {learningOutcomes.map((lo: any) => (
-                    <section key={lo.id} className="grid gap-2">
-                      <div>
-                        <div className="text-sm font-semibold">Learning Outcome {lo.loCode}</div>
-                        <div className="text-sm text-zinc-700 whitespace-pre-wrap break-words">{lo.description}</div>
-                      </div>
+                  {learningOutcomes.map((lo: any, idx: number) => {
+                    const { pass, merit, dist, other } = groupCriteria(
+                      lo.criteria || [],
+                    );
 
-                      <div className="grid gap-2">
-                        {(lo.criteria || []).map((c: any) => (
-                          <div key={c.id} className="rounded-xl border border-zinc-200 p-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="text-sm font-semibold">{c.acCode}</div>
-                              <span
-                                className={
-                                  "inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold " +
-                                  badge(c.gradeBand).cls
-                                }
-                              >
-                                {badge(c.gradeBand).text}
-                              </span>
+                    return (
+                      <section
+                        key={lo.id || lo.loCode || idx}
+                        className="rounded-2xl border border-zinc-200 bg-white overflow-hidden"
+                      >
+                        {/* Sticky LO header (better scanning) */}
+                        <div className="sticky top-0 z-10 border-b border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 px-4 py-3 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1 h-8 w-1 rounded-full bg-zinc-900" />
+                            <div>
+                              <div className="text-sm font-semibold">
+                                Learning Outcome {lo.loCode}
+                              </div>
+                              <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words">
+                                {lo.description}
+                              </div>
                             </div>
-                            <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words">{c.description}</div>
                           </div>
-                        ))}
-                      </div>
-                    </section>
-                  ))}
+                        </div>
+
+                        <div className="p-4">
+                          {/* Pearson-style 3 columns */}
+                          <div className="grid gap-3 lg:grid-cols-3">
+                            <CriteriaColumn
+                              title="Pass"
+                              items={pass}
+                              tone="pass"
+                            />
+                            <CriteriaColumn
+                              title="Merit"
+                              items={merit}
+                              tone="merit"
+                            />
+                            <CriteriaColumn
+                              title="Distinction"
+                              items={dist}
+                              tone="dist"
+                            />
+                          </div>
+
+                          {/* If any weird/extra criteria appear, show them clearly */}
+                          {other.length ? (
+                            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+                                Other criteria detected
+                              </div>
+                              <div className="mt-2 grid gap-2">
+                                {other.map((c) => (
+                                  <div
+                                    key={c.id || c.acCode}
+                                    className="rounded-xl border border-amber-200 bg-white p-3"
+                                  >
+                                    <div className="text-sm font-semibold text-amber-900">
+                                      {c.acCode || "—"}
+                                    </div>
+                                    <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
+                                      {c.description}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </section>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
@@ -226,7 +432,9 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                   <div className="mt-1 text-sm font-semibold text-zinc-900">
                     {selected.unitCode} — {selected.unitTitle}
                   </div>
-                  <div className="mt-1 text-sm text-zinc-700">{selectedIssueLabel ? selectedIssueLabel : "—"}</div>
+                  <div className="mt-1 text-sm text-zinc-700">
+                    {selectedIssueLabel ? selectedIssueLabel : "—"}
+                  </div>
                 </div>
 
                 {/* Uploaded PDF block */}
@@ -235,9 +443,14 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
 
                   <div className="mt-1 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 truncate">{selectedOriginalFilename}</div>
+                      <div className="text-sm font-medium text-zinc-900 truncate">
+                        {selectedOriginalFilename}
+                      </div>
                       <div className="text-xs text-zinc-500">
-                        Doc id: <span className="font-mono">{selectedDocId || "—"}</span>
+                        Doc id:{" "}
+                        <span className="font-mono">
+                          {selectedDocId || "—"}
+                        </span>
                       </div>
                     </div>
 
@@ -301,37 +514,52 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-zinc-200 p-3">
                     <div className="text-xs text-zinc-500">Locked at</div>
-                    <div className="mt-1 text-sm font-medium text-zinc-900">{formatDate(selected.lockedAt)}</div>
+                    <div className="mt-1 text-sm font-medium text-zinc-900">
+                      {formatDate(selected.lockedAt)}
+                    </div>
                   </div>
                   <div className="rounded-xl border border-zinc-200 p-3">
                     <div className="text-xs text-zinc-500">Bound briefs</div>
-                    <div className="mt-1 text-sm font-medium text-zinc-900">{selected.boundBriefsCount ?? 0}</div>
+                    <div className="mt-1 text-sm font-medium text-zinc-900">
+                      {selected.boundBriefsCount ?? 0}
+                    </div>
                   </div>
                   <div className="col-span-2 rounded-xl border border-zinc-200 p-3">
                     <div className="text-xs text-zinc-500">Spec doc id</div>
-                    <div className="mt-1 break-all font-mono text-xs text-zinc-900">{selectedDocId || "—"}</div>
+                    <div className="mt-1 break-all font-mono text-xs text-zinc-900">
+                      {selectedDocId || "—"}
+                    </div>
                   </div>
                 </div>
 
                 {/* Edit labels */}
                 <details className="rounded-xl border border-zinc-200 p-3">
-                  <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Edit labels</summary>
+                  <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+                    Edit labels
+                  </summary>
 
                   <div className="mt-3 grid gap-3">
                     {/* Optional: only render if implemented in vm */}
-                    {"editUnitCode" in (vm as any) && "setEditUnitCode" in (vm as any) ? (
+                    {"editUnitCode" in (vm as any) &&
+                    "setEditUnitCode" in (vm as any) ? (
                       <div>
-                        <label className="text-xs text-zinc-500">Unit code</label>
+                        <label className="text-xs text-zinc-500">
+                          Unit code
+                        </label>
                         <input
                           value={(vm as any).editUnitCode || ""}
-                          onChange={(e) => (vm as any).setEditUnitCode(e.target.value)}
+                          onChange={(e) =>
+                            (vm as any).setEditUnitCode(e.target.value)
+                          }
                           className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
                         />
                       </div>
                     ) : null}
 
                     <div>
-                      <label className="text-xs text-zinc-500">Unit title</label>
+                      <label className="text-xs text-zinc-500">
+                        Unit title
+                      </label>
                       <input
                         value={vm.editUnitTitle || ""}
                         onChange={(e) => vm.setEditUnitTitle?.(e.target.value)}
@@ -340,7 +568,9 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                     </div>
 
                     <div>
-                      <label className="text-xs text-zinc-500">Spec label (Issue X – Month YYYY)</label>
+                      <label className="text-xs text-zinc-500">
+                        Spec label (Issue X – Month YYYY)
+                      </label>
                       <input
                         value={vm.editSpecLabel || ""}
                         onChange={(e) => vm.setEditSpecLabel?.(e.target.value)}
@@ -349,8 +579,8 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
                     </div>
 
                     <p className="text-xs text-zinc-500">
-                      Briefs/assignments bound to this unit make a spec “in use”. Safe delete blocks removal if anything
-                      is bound.
+                      Briefs/assignments bound to this unit make a spec “in
+                      use”. Safe delete blocks removal if anything is bound.
                     </p>
                   </div>
                 </details>
@@ -385,9 +615,15 @@ export default function LibraryView({ showHeader = true }: { showHeader?: boolea
             </div>
             <div className="h-[75vh] bg-zinc-50">
               {pdfUrl ? (
-                <iframe src={pdfUrl} className="h-full w-full" title="Spec PDF viewer" />
+                <iframe
+                  src={pdfUrl}
+                  className="h-full w-full"
+                  title="Spec PDF viewer"
+                />
               ) : (
-                <div className="p-4 text-sm text-zinc-700">No PDF available.</div>
+                <div className="p-4 text-sm text-zinc-700">
+                  No PDF available.
+                </div>
               )}
             </div>
           </div>
