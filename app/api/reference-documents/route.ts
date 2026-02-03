@@ -14,13 +14,44 @@ function safeName(name: string) {
     .slice(0, 120);
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+
+  const type = (url.searchParams.get("type") || "").toUpperCase(); // SPEC | BRIEF | RUBRIC
+  const status = (url.searchParams.get("status") || "").toUpperCase(); // UPLOADED | EXTRACTED | REVIEWED | LOCKED | FAILED
+  const q = (url.searchParams.get("q") || "").trim();
+  const onlyLocked = url.searchParams.get("onlyLocked") === "true";
+  const onlyUnlocked = url.searchParams.get("onlyUnlocked") === "true";
+
+  const where: any = {};
+
+  // ✅ Key fix: apply type filter when provided
+  if (type) where.type = type;
+
+  // Optional status filter
+  if (status) where.status = status;
+
+  // Optional locked filters (lockedAt is set when locked)
+  if (onlyLocked) where.lockedAt = { not: null };
+  if (onlyUnlocked) where.lockedAt = null;
+
+  // Optional text search
+  if (q) {
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { originalFilename: { contains: q, mode: "insensitive" } },
+      { storedFilename: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
   const docs = await prisma.referenceDocument.findMany({
-    orderBy: [{ uploadedAt: "desc" }],
+    where,
+    orderBy: [{ updatedAt: "desc" }, { uploadedAt: "desc" }],
   });
 
   return NextResponse.json({ documents: docs });
 }
+
 
 function parseVersion(raw: FormDataEntryValue | null): { version: number; versionLabel?: string } {
   if (typeof raw !== "string") return { version: 1 };

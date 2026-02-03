@@ -55,6 +55,13 @@ type InboxFilters = {
   sort: "updated" | "uploaded" | "title";
 };
 
+type ReferenceAdminOptions = {
+  context?: string;
+  fixedInboxType?: "" | ReferenceDocument["type"];
+  fixedUploadType?: "" | ReferenceDocument["type"];
+};
+
+
 const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
 
 async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -129,7 +136,8 @@ function docSearchHaystack(d: ReferenceDocument) {
   return parts.toLowerCase();
 }
 
-export function useReferenceAdmin() {
+export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
+
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [documents, setDocuments] = useState<ReferenceDocument[]>([]);
@@ -138,7 +146,10 @@ export function useReferenceAdmin() {
   const [error, setError] = useState<string | null>(null);
 
   // Upload
-  const [docType, setDocType] = useState<ReferenceDocument["type"]>("SPEC");
+  const [docType, setDocType] = useState<ReferenceDocument["type"]>(
+  (opts.fixedUploadType as any) || "SPEC"
+);
+
   const [docTitle, setDocTitle] = useState("");
   const [docVersion, setDocVersion] = useState("1");
   const [docFile, setDocFile] = useState<File | null>(null);
@@ -196,38 +207,59 @@ export function useReferenceAdmin() {
     return allCriteria.filter((c) => c.learningOutcome.unitId === unitId);
   }, [allCriteria, briefUnitId]);
 
-  const filteredDocuments = useMemo(() => {
-    const q = filters.q.trim().toLowerCase();
-    let list = documents.slice();
+const filteredDocuments = useMemo(() => {
+  const q = filters.q.trim().toLowerCase();
+  let list = documents.slice();
 
-    if (filters.type) list = list.filter((d) => d.type === filters.type);
-    if (filters.status) list = list.filter((d) => d.status === filters.status);
+  // ✅ HARD RULE: if fixedInboxType is set (Specs page), never show anything else
+  const fixedInboxType = opts.fixedInboxType;
+  if (fixedInboxType) {
+    list = list.filter((d) => d.type === fixedInboxType);
+  } else if (filters.type) {
+    list = list.filter((d) => d.type === filters.type);
+  }
 
-    if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
-    if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
+  if (filters.status) list = list.filter((d) => d.status === filters.status);
 
-    if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
+  if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
+  if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
 
-    // Sorting (best-effort: server returns docs already ordered, but we make it deterministic)
-    if (filters.sort === "title") {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (filters.sort === "uploaded") {
-      list.sort((a, b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
-    } else {
-      // "updated" is not present in type, but sourceMeta often includes it; fallback to uploadedAt
-      const key = (d: ReferenceDocument) => {
-        const m = d.sourceMeta || {};
-        return String(m.updatedAt || m.extractedAt || d.uploadedAt || "");
-      };
-      list.sort((a, b) => key(b).localeCompare(key(a)));
-    }
+  if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
 
-    return list;
-  }, [documents, filters]);
+  if (filters.sort === "title") {
+    list.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (filters.sort === "uploaded") {
+    list.sort((a, b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
+  } else {
+    const key = (d: ReferenceDocument) => {
+      const m = d.sourceMeta || {};
+      return String(m.updatedAt || m.extractedAt || d.uploadedAt || "");
+    };
+    list.sort((a, b) => key(b).localeCompare(key(a)));
+  }
+
+  return list;
+}, [documents, filters, opts.fixedInboxType]);
+
 
   async function refreshAll({ keepSelection }: { keepSelection?: boolean } = {}) {
     const [docs, unitsRes] = await Promise.all([
-      jsonFetch<{ documents: ReferenceDocument[] }>("/api/reference-documents"),
+      (() => {
+  const params = new URLSearchParams();
+
+  const effectiveType = opts.fixedInboxType || filters.type || "";
+  if (effectiveType) params.set("type", effectiveType);
+
+  // optional (keep server-side filtering aligned with your UI)
+  if (filters.status) params.set("status", filters.status);
+  if (filters.q) params.set("q", filters.q);
+  if (filters.onlyLocked) params.set("onlyLocked", "true");
+  if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
+
+  const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
+  return jsonFetch<{ documents: ReferenceDocument[] }>(url);
+})(),
+
       jsonFetch<{ units: Unit[] }>("/api/units"),
     ]);
 

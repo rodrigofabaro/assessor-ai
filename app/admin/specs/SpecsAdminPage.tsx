@@ -86,6 +86,8 @@ export default function SpecsAdminPage() {
 }
 
 function SpecWorkbench({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
+  const [showUpload, setShowUpload] = useState(false);
+
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -95,22 +97,138 @@ function SpecWorkbench({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             Upload a <span className="font-semibold">SPEC</span>, run Extract, review LO/AC, then Lock.
           </p>
         </div>
+
+        {/* ✅ small, always-available action */}
+        <button
+          type="button"
+          onClick={() => setShowUpload(true)}
+          className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+        >
+          Upload new spec
+        </button>
       </div>
 
       {vm.error ? (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{vm.error}</div>
       ) : null}
 
+      {/* ✅ Layout now prioritizes Inbox */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[420px_1fr] min-w-0">
         <div className="grid gap-4 min-w-0">
-          <UploadCard vm={vm} />
           <InboxCard vm={vm} />
         </div>
         <ReviewCard vm={vm} />
       </div>
+
+      {/* ✅ Upload modal */}
+      {showUpload ? <UploadModal vm={vm} onClose={() => setShowUpload(false)} /> : null}
     </section>
   );
 }
+
+function UploadModal({ vm, onClose }: { vm: ReturnType<typeof useReferenceAdmin>; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        className="absolute inset-0 bg-black/30"
+        onClick={() => (vm.busy ? null : onClose())}
+        aria-label="Close upload modal"
+      />
+
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3">
+          <div className="text-sm font-semibold">Upload spec</div>
+
+          <button
+            type="button"
+            onClick={() => (vm.busy ? null : onClose())}
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-zinc-50"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="p-5">
+          <UploadForm vm={vm} onDone={onClose} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UploadForm({ vm, onDone }: { vm: ReturnType<typeof useReferenceAdmin>; onDone: () => void }) {
+  return (
+    <div className="grid gap-3">
+      <div className="text-xs text-zinc-500">Add a new spec issue. Extraction happens on demand.</div>
+
+      <div className="grid gap-1">
+        <span className="text-sm font-medium">Type</span>
+        <div className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm flex items-center">
+          SPEC
+        </div>
+      </div>
+
+      <label className="grid gap-1">
+        <span className="text-sm font-medium">Title</span>
+        <input
+          value={vm.docTitle}
+          onChange={(e) => vm.setDocTitle(e.target.value)}
+          placeholder="e.g. Unit 4014 Spec — Issue 5 (June 2025)"
+          className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+        />
+      </label>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Version</span>
+          <input
+            value={vm.docVersion}
+            onChange={(e) => vm.setDocVersion(e.target.value)}
+            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">File</span>
+          <input
+            ref={vm.fileRef}
+            type="file"
+            onChange={(e) => vm.setDocFile(e.target.files?.[0] || null)}
+            className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
+          />
+        </label>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          onClick={async () => {
+            await vm.uploadDoc();
+            onDone(); // close modal after upload attempt
+          }}
+          disabled={!!vm.busy}
+          className={
+            "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+            (vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
+          }
+        >
+          Upload
+        </button>
+
+        <button
+          type="button"
+          onClick={onDone}
+          disabled={!!vm.busy}
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
+        >
+          Cancel
+        </button>
+
+        <div className="ml-auto text-xs text-zinc-600">{vm.busy ? `⏳ ${vm.busy}` : "Ready"}</div>
+      </div>
+    </div>
+  );
+}
+
 
 function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   return (
