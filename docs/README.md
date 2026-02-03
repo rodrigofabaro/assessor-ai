@@ -1,71 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Briefs Admin UI Rebuild (Drop-in)
 
-## Getting Started
+This patch rebuilds the **Admin → Briefs** page to match the Spec Library UX, with a clearer lifecycle:
 
-First, run the development server:
+- **Library tab** lists structured `AssignmentBrief` records (DRAFT/MAPPED/LOCKED).
+- **Extract tools tab** lists uploaded `ReferenceDocument` BRIEF PDFs.
+- Default behavior shows drafts (no more invisible briefs).
+- Adds filters: search, unit, status, and an optional checkbox for locked-only BRIEF PDFs.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Files
+- `app/admin/briefs/page.tsx`
+- `app/admin/briefs/briefs.logic.ts`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Expected existing API
+- `GET /api/units` returns Units including `assignmentBriefs`.
+- `GET /api/reference-documents?type=BRIEF` returns BRIEF reference docs.
+- Optional: `onlyLocked=true` is supported.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Install
+Copy the `app/admin/briefs` folder into your Next.js `app/admin/briefs` directory, replacing the existing files.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
-## Assessor AI Phases
-
-### Phase 1 (done)
-- Student + assignment records
-- Single/batch submission upload
-- Submissions list + status
-
-### Phase 2 (reference library) — included in this build
-Adds an admin area to upload **unit specs**, **assignment briefs**, and optional **rubrics**, then build structured:
-- Units
-- Learning Outcomes (LO1, LO2...)
-- Assessment Criteria (P/M/D codes)
-- Assignment brief → criteria mapping
-
-#### Setup (Phase 2)
-1. Update your database with Prisma migrations:
-
-```bash
-npx prisma migrate dev --name phase2_reference_library
-npx prisma generate
-```
-
-2. Start the dev server:
-
-```bash
-npm run dev
-```
-
-3. Open:
-- `/admin/reference` to manage reference documents + criteria
-- `/upload` to upload student submissions (Phase 1)
-
-> Reference document uploads are stored in `reference_uploads/` in local dev.
+## Next step (not included)
+Wire extract/reset/lock buttons in the Extract tools tab to your existing endpoints.
