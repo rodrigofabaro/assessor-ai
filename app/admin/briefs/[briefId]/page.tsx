@@ -3,9 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBriefDetail, type BriefTask, type ReferenceDocument } from "./briefDetail.logic";
+import { TasksOverrideModal } from "./components/TasksOverrideModal";
 
 function Pill({ tone, children }: { tone: string; children: any }) {
-  return <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + tone}>{children}</span>;
+  return (
+    <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + tone}>
+      {children}
+    </span>
+  );
 }
 
 function tone(kind: "ok" | "warn" | "bad" | "info" | "muted") {
@@ -31,6 +36,63 @@ function statusTone(s: string) {
   if (u.includes("DRAFT") || u.includes("PEND") || u.includes("UPLOADED")) return tone("warn");
   return tone("muted");
 }
+
+type Subpart = {
+  key: string;
+  label?: string;
+  text: string;
+};
+
+function parseSubparts(text: string): Subpart[] {
+  if (!text) return [{ key: "body", text: "" }];
+
+  const normalized = text.replace(/\r\n/g, "\n");
+
+  // Match (a) … (b) … (c) …
+  const regex = /\(([a-z])\)\s*/gi;
+  const parts: Subpart[] = [];
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(normalized))) {
+    if (match.index > lastIndex) {
+      const before = normalized.slice(lastIndex, match.index).trim();
+      if (before) {
+        parts.push({
+          key: `body-${lastIndex}`,
+          text: before,
+        });
+      }
+    }
+
+    parts.push({
+      key: `part-${match[1]}-${match.index}`,
+      label: `(${match[1]})`,
+      text: "",
+    });
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < normalized.length) {
+    parts.push({
+      key: `tail-${lastIndex}`,
+      text: normalized.slice(lastIndex).trim(),
+    });
+  }
+
+  // Attach text to labels
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].label && parts[i + 1] && !parts[i + 1].label) {
+      parts[i].text = parts[i + 1].text;
+      parts.splice(i + 1, 1);
+    }
+  }
+
+  return parts;
+}
+
 
 function Btn({
   kind,
@@ -85,7 +147,13 @@ function IvForm({
   onAdd,
   busy,
 }: {
-  onAdd: (r: { academicYear: string; verifierName?: string | null; verificationDate?: string | null; outcome: "APPROVED" | "CHANGES_REQUIRED" | "REJECTED"; notes?: string | null }) => void;
+  onAdd: (r: {
+    academicYear: string;
+    verifierName?: string | null;
+    verificationDate?: string | null;
+    outcome: "APPROVED" | "CHANGES_REQUIRED" | "REJECTED";
+    notes?: string | null;
+  }) => void;
   busy: boolean;
 }) {
   const [academicYear, setAcademicYear] = useState("");
@@ -203,9 +271,6 @@ export default function BriefDetailPage() {
 
   const pdfHref = vm.linkedDoc ? `/api/reference-documents/${vm.linkedDoc.id}/file` : "";
   const header = vm.linkedDoc?.extractedJson?.header || null;
-  const extractedTasks = Array.isArray(vm.linkedDoc?.extractedJson?.tasks) ? vm.linkedDoc?.extractedJson?.tasks : [];
-  const tasks = vm.tasksOverride ?? extractedTasks;
-  const tasksWarnings = (vm.linkedDoc?.extractedJson?.warnings || []).filter(Boolean);
 
   return (
     <div className="grid gap-4 min-w-0">
@@ -257,9 +322,7 @@ export default function BriefDetailPage() {
         </div>
 
         {vm.error ? (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
-            {vm.error}
-          </div>
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{vm.error}</div>
         ) : null}
       </header>
 
@@ -274,12 +337,14 @@ export default function BriefDetailPage() {
 
       {vm.brief && tab === "overview" ? (
         <div className="grid gap-4 lg:grid-cols-3">
-          {/* Left: key facts */}
           <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-2">
             <h2 className="text-sm font-semibold text-zinc-900">Brief summary</h2>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Status" value={<Pill tone={statusTone(vm.brief.status)}>{(vm.brief.status || "").toUpperCase()}</Pill>} />
+              <Field
+                label="Status"
+                value={<Pill tone={statusTone(vm.brief.status)}>{(vm.brief.status || "").toUpperCase()}</Pill>}
+              />
               <Field label="Spec issue" value={vm.brief.unit?.specIssue || vm.brief.unit?.specVersionLabel || "—"} />
               <Field
                 label="Assignment"
@@ -289,7 +354,14 @@ export default function BriefDetailPage() {
                     : "—"
                 }
               />
-              <Field label="PDF link" value={<Pill tone={vm.brief.briefDocumentId ? tone("ok") : tone("warn")}>{vm.brief.briefDocumentId ? "Linked" : "Missing"}</Pill>} />
+              <Field
+                label="PDF link"
+                value={
+                  <Pill tone={vm.brief.briefDocumentId ? tone("ok") : tone("warn")}>
+                    {vm.brief.briefDocumentId ? "Linked" : "Missing"}
+                  </Pill>
+                }
+              />
             </div>
 
             <div className="mt-4 rounded-xl border border-zinc-200 p-3">
@@ -297,9 +369,7 @@ export default function BriefDetailPage() {
               {vm.linkedDoc ? (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-zinc-900 truncate">
-                      {vm.linkedDoc.title || vm.linkedDoc.originalFilename}
-                    </div>
+                    <div className="font-semibold text-zinc-900 truncate">{vm.linkedDoc.title || vm.linkedDoc.originalFilename}</div>
                     <div className="text-xs text-zinc-600 truncate">
                       {vm.linkedDoc.originalFilename} • v{vm.linkedDoc.version}
                     </div>
@@ -313,13 +383,10 @@ export default function BriefDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 text-sm text-zinc-700">
-                  No linked document found. Use Extract tools to lock the correct brief PDF.
-                </div>
+                <div className="mt-2 text-sm text-zinc-700">No linked document found. Use Extract tools to lock the correct brief PDF.</div>
               )}
             </div>
 
-            {/* Pearson header fields */}
             <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -351,7 +418,6 @@ export default function BriefDetailPage() {
             </div>
           </section>
 
-          {/* Right: audit placeholders */}
           <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-zinc-900">Audit later</h2>
             <p className="mt-1 text-sm text-zinc-700">These counters populate once grading is implemented.</p>
@@ -462,19 +528,14 @@ export default function BriefDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Pill tone={vm.ivBusy ? tone("info") : vm.ivError ? tone("bad") : tone("ok")}>
-                {vm.ivBusy ? "Saving…" : vm.ivError ? "Error" : "Ready"}
-              </Pill>
+              <Pill tone={vm.ivBusy ? tone("info") : vm.ivError ? tone("bad") : tone("ok")}>{vm.ivBusy ? "Saving…" : vm.ivError ? "Error" : "Ready"}</Pill>
             </div>
           </div>
 
           {vm.ivError ? (
-            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
-              {vm.ivError}
-            </div>
+            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{vm.ivError}</div>
           ) : null}
 
-          {/* Add IV record */}
           <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
             <div className="text-sm font-semibold text-zinc-900">Add IV record</div>
             <p className="mt-1 text-sm text-zinc-700">
@@ -484,7 +545,6 @@ export default function BriefDetailPage() {
             <IvForm onAdd={vm.addIvRecord} busy={vm.ivBusy} />
           </div>
 
-          {/* Existing records */}
           <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200">
             <table className="min-w-full text-sm">
               <thead className="bg-zinc-50 text-xs text-zinc-700">
@@ -509,15 +569,7 @@ export default function BriefDetailPage() {
                     <tr key={r.id} className="border-t border-zinc-100">
                       <td className="px-3 py-3 font-semibold text-zinc-900">{r.academicYear}</td>
                       <td className="px-3 py-3">
-                        <Pill
-                          tone={
-                            r.outcome === "APPROVED"
-                              ? tone("ok")
-                              : r.outcome === "REJECTED"
-                              ? tone("bad")
-                              : tone("warn")
-                          }
-                        >
+                        <Pill tone={r.outcome === "APPROVED" ? tone("ok") : r.outcome === "REJECTED" ? tone("bad") : tone("warn")}>
                           {r.outcome.replaceAll("_", " ")}
                         </Pill>
                       </td>
@@ -541,9 +593,7 @@ export default function BriefDetailPage() {
             </table>
           </div>
 
-          <div className="mt-3 text-xs text-zinc-600">
-            Later: attach evidence files, add sign-off workflow, and gate “Activate for grading” on IV approval.
-          </div>
+          <div className="mt-3 text-xs text-zinc-600">Later: attach evidence files, add sign-off workflow, and gate “Activate for grading” on IV approval.</div>
         </section>
       ) : null}
 
@@ -588,19 +638,12 @@ function TasksTab({
   const warnings = (linkedDoc?.extractedJson?.warnings || []) as string[];
   const activeTasks = tasksOverride && tasksOverride.length ? tasksOverride : extracted;
 
-  const [mode, setMode] = useState<"view" | "edit">("view");
-  const [draft, setDraft] = useState(() =>
-    JSON.stringify(tasksOverride && tasksOverride.length ? tasksOverride : extracted || [], null, 2)
-  );
-  const [localErr, setLocalErr] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
-  // Keep editor content in sync when you switch docs/overrides.
   useEffect(() => {
-    setDraft(JSON.stringify(tasksOverride && tasksOverride.length ? tasksOverride : extracted || [], null, 2));
-    setLocalErr(null);
-    setMode("view");
+    setEditOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedDoc?.id, !!tasksOverride, (tasksOverride || []).length, (extracted || []).length]);
+  }, [linkedDoc?.id]);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
@@ -616,10 +659,10 @@ function TasksTab({
           <Pill tone={tasksOverride ? tone("info") : tone("muted")}>{tasksOverride ? "OVERRIDE" : "EXTRACTED"}</Pill>
           <button
             type="button"
-            onClick={() => setMode(mode === "view" ? "edit" : "view")}
+            onClick={() => setEditOpen(true)}
             className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
           >
-            {mode === "view" ? "Edit override" : "Close editor"}
+            Edit override
           </button>
         </div>
       </div>
@@ -636,106 +679,54 @@ function TasksTab({
       ) : null}
 
       {tasksError ? (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
-          {tasksError}
-        </div>
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{tasksError}</div>
       ) : null}
 
-      {mode === "view" ? (
-        <div className="mt-4 grid gap-3">
-          {activeTasks && activeTasks.length ? (
-            activeTasks.map((t) => (
-              <div key={`${t.label}-${t.n}`} className="rounded-2xl border border-zinc-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-900">{t.heading || t.label}</div>
-                    {t.warnings?.length ? (
-                      <div className="mt-1 text-xs text-amber-900">Warning: {t.warnings.join(", ")}</div>
-                    ) : null}
-                  </div>
-                  <Pill tone={tone("muted")}>#{t.n}</Pill>
+      <div className="mt-4 grid gap-3">
+        {activeTasks && activeTasks.length ? (
+          activeTasks.map((t) => (
+            <div key={`${t.label}-${t.n}`} className="rounded-2xl border border-zinc-200 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold text-zinc-900">{t.heading || t.label}</div>
+                  {t.warnings?.length ? <div className="mt-1 text-xs text-amber-900">Warning: {t.warnings.join(", ")}</div> : null}
                 </div>
-                <pre className="mt-3 whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-900">
-                  {t.text || "(no body detected)"}
-                </pre>
+                <Pill tone={tone("muted")}>#{t.n}</Pill>
               </div>
-            ))
-          ) : (
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
-              No tasks detected yet. Run Extract on the BRIEF PDF in the inbox. If the template is odd, use the override editor.
-            </div>
-          )}
+           <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-900">
+  {parseSubparts(t.text || "").map((p) => (
+    <div key={p.key} className="mb-3 last:mb-0">
+      {p.label ? (
+        <div className="flex gap-2">
+          <span className="font-semibold">{p.label}</span>
+          <span className="whitespace-pre-wrap">{p.text}</span>
         </div>
       ) : (
-        <div className="mt-4 grid gap-3">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
-            Paste/edit a JSON array of task objects. Minimal shape:
-            <span className="ml-2 font-mono">[{`{ n: 1, label: "Task 1", text: "..." }`}, …]</span>
-          </div>
-
-          <textarea
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              setLocalErr(null);
-            }}
-            rows={14}
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono text-xs text-zinc-900 outline-none focus:ring-2 focus:ring-zinc-200"
-          />
-
-          {localErr ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{localErr}</div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={tasksBusy}
-              onClick={async () => {
-                try {
-                  const parsed = JSON.parse(draft);
-                  if (!Array.isArray(parsed)) throw new Error("Override must be a JSON array");
-                  // Light validation
-                  const cleaned: BriefTask[] = parsed
-                    .filter(Boolean)
-                    .map((x: any) => ({
-                      n: Number(x.n) || 0,
-                      label: String(x.label || `Task ${x.n || ""}`),
-                      heading: x.heading ?? null,
-                      text: String(x.text || ""),
-                      warnings: Array.isArray(x.warnings) ? x.warnings.map(String) : undefined,
-                    }))
-                    .filter((x) => x.n >= 1 && x.label && typeof x.text === "string");
-
-                  if (!cleaned.length) throw new Error("No valid tasks found in override");
-                  await saveTasksOverride(cleaned);
-                  setMode("view");
-                } catch (e: any) {
-                  setLocalErr(e?.message || String(e));
-                }
-              }}
-              className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
-            >
-              Save override
-            </button>
-
-            <button
-              type="button"
-              disabled={tasksBusy}
-              onClick={async () => {
-                await saveTasksOverride(null);
-                setDraft(JSON.stringify(extracted || [], null, 2));
-                setMode("view");
-              }}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
-            >
-              Clear override
-            </button>
-
-            <div className="ml-auto text-xs text-zinc-600">{tasksBusy ? "Saving…" : "Ready"}</div>
-          </div>
-        </div>
+        <div className="whitespace-pre-wrap">{p.text}</div>
       )}
+    </div>
+  ))}
+</div>
+
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+            No tasks detected yet. Run Extract on the BRIEF PDF in the inbox. If the template is odd, use the override editor.
+          </div>
+        )}
+      </div>
+
+      <TasksOverrideModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        extractedTasks={extracted}
+        overrideTasks={tasksOverride}
+        busy={tasksBusy}
+        onSave={async (next) => {
+          await saveTasksOverride(next);
+        }}
+      />
     </section>
   );
 }
