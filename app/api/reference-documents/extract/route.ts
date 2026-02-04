@@ -176,24 +176,12 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ error: "REFERENCE_EXTRACT_ERROR", message }, { status: 500 });
+        // Surface the error in the server console for fast debugging.
+    // (We still store a truncated stack in extractionWarnings for audit.)
+    console.error("REFERENCE_EXTRACT_ERROR", message, stack);
+
+    const isDev = process.env.NODE_ENV !== "production";
+    return NextResponse.json({ error: "REFERENCE_EXTRACT_ERROR", message, ...(isDev && stack ? { stack } : {}) }, { status: 500 });
   }
-
-const existing = await prisma.referenceDocument.findFirst({
-  where: { type: type as any, checksumSha256 },
-  select: { id: true, title: true, version: true, uploadedAt: true, status: true },
-});
-
-if (existing) {
-  return NextResponse.json(
-    {
-      error: "DUPLICATE_UPLOAD",
-      message: `This ${type} file was already uploaded (id: ${existing.id}, v${existing.version}, status: ${existing.status}).`,
-      existing,
-    },
-    { status: 409 }
-  );
-}
-
 
 }

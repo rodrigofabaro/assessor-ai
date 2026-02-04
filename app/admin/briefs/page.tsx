@@ -614,7 +614,7 @@ function BriefReviewCard({ rx }: { rx: ReturnType<typeof useReferenceAdmin> }) {
             <div className="text-xs text-zinc-600">Header snapshot (extracted)</div>
             <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Meta label="Academic year" value={header.academicYear || ""} />
-              <Meta label="IV name" value={header.internalVerifierName || ""} />
+              <Meta label="IV name" value={header.internalVerifier || ""} />
               <Meta label="IV date" value={header.verificationDate || ""} />
               <Meta label="Issue date" value={header.issueDate || ""} />
               <Meta label="Final submission" value={header.finalSubmissionDate || ""} />

@@ -202,6 +202,8 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
     academicYear: academicYear || null,
   };
 
+  
+
   if (warnings.length) out.warnings = warnings;
 
   return out;
