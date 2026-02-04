@@ -1,0 +1,265 @@
+"use client";
+
+import { useRef } from "react";
+import type {
+  Criterion,
+  ReferenceDocument,
+  Unit,
+} from "../../reference/reference.logic";
+import { Meta } from "./ui";
+import BriefMappingPanel from "./BriefMappingPanel";
+
+export default function BriefReviewCard({ rx }: { rx: any }) {
+  const doc = rx.selectedDoc as ReferenceDocument | null;
+
+  // NOTE: extractedJson should be JSON, but keep it resilient.
+  const latestDraft: any = doc?.extractedJson || null;
+
+  // Prevent “header disappears” during re-extract when extractedJson temporarily becomes {} / null.
+  const lastGoodDraftRef = useRef<any>(null);
+  if (
+    latestDraft &&
+    typeof latestDraft === "object" &&
+    (latestDraft.kind || latestDraft.header || latestDraft.tasks)
+  ) {
+    lastGoodDraftRef.current = latestDraft;
+  }
+  const draft: any = latestDraft || lastGoodDraftRef.current || null;
+
+  const canExtract = !!doc && !rx.busy;
+  const canLock = !!doc && !rx.busy;
+
+  const header = (
+    draft && draft.kind === "BRIEF" ? draft.header || {} : {}
+  ) as any;
+
+  return (
+    <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
+      <div className="border-b border-zinc-200 p-4">
+        <div className="text-sm font-semibold">Review</div>
+        <div className="mt-1 text-xs text-zinc-600">
+          BRIEF-only review: header fields + mapping + lock.
+        </div>
+      </div>
+
+      {!doc ? (
+        <div className="p-4 text-sm text-zinc-600">
+          Select a BRIEF PDF from the inbox to review it.
+        </div>
+      ) : (
+        <div className="p-4 grid gap-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Meta label="Type" value={doc.type} />
+            <Meta
+              label="Uploaded"
+              value={new Date(doc.uploadedAt).toLocaleString()}
+            />
+            <Meta label="Status" value={doc.status} />
+            <Meta
+              label="Locked at"
+              value={
+                doc.lockedAt ? new Date(doc.lockedAt).toLocaleString() : ""
+              }
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={!canExtract}
+              onClick={rx.extractSelected}
+              className={
+                "h-10 rounded-xl px-4 text-sm font-semibold " +
+                (!canExtract
+                  ? "bg-zinc-200 text-zinc-600 cursor-not-allowed"
+                  : "bg-zinc-900 text-white hover:bg-zinc-800")
+              }
+            >
+              Extract
+            </button>
+
+            <button
+              type="button"
+              disabled={!canExtract}
+              onClick={rx.reextractSelected}
+              className={
+                "h-10 rounded-xl border px-4 text-sm font-semibold " +
+                (!canExtract
+                  ? "border-zinc-200 bg-white text-zinc-400 cursor-not-allowed"
+                  : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50")
+              }
+            >
+              Re-extract
+            </button>
+
+            <button
+              type="button"
+              disabled={!canLock}
+              onClick={rx.lockSelected}
+              className={
+                "h-10 rounded-xl border px-4 text-sm font-semibold " +
+                (!canLock
+                  ? "border-zinc-200 bg-white text-zinc-400 cursor-not-allowed"
+                  : "border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800")
+              }
+            >
+              Lock
+            </button>
+
+            <a
+              href={`/api/reference-documents/${doc.id}/file`}
+              target="_blank"
+              rel="noreferrer"
+              className="h-10 inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+            >
+              PDF preview
+            </a>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+            <div className="text-xs text-zinc-600">
+              Header snapshot (extracted)
+            </div>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Meta label="Academic year" value={header.academicYear || ""} />
+              <Meta label="IV name" value={header.internalVerifier || ""} />
+              <Meta label="IV date" value={header.verificationDate || ""} />
+              <Meta label="Issue date" value={header.issueDate || ""} />
+              <Meta
+                label="Final submission"
+                value={header.finalSubmissionDate || ""}
+              />
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              These are stored for audit. If the PDF changes next year, upload a
+              new version and re-lock.
+            </p>
+          </div>
+
+          {/* Tasks / Questions (extracted) */}
+          {draft?.kind === "BRIEF" ? (
+            <section className="rounded-2xl border border-zinc-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold text-zinc-900">
+                    Tasks & questions
+                  </div>
+                  <div className="mt-0.5 text-xs text-zinc-600">
+                    Extracted from the brief — used later to check the student
+                    answered what was set.
+                  </div>
+                </div>
+
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
+                  {Array.isArray(draft.tasks) ? draft.tasks.length : 0} tasks
+                </span>
+              </div>
+
+              {Array.isArray(draft.tasks) && draft.tasks.length ? (
+                <div className="mt-3 grid gap-3">
+                  {draft.tasks.map((t: any) => {
+                    const title =
+                      t.heading || t.label || (t.n ? `Task ${t.n}` : "Task");
+                    const raw = String(t.text || "").trim();
+
+                    // Make sub-questions readable:
+                    // - Force a)/b)/c) to start on their own line
+                    // - Normalize (a) -> a) (users don't like the "(" junk)
+                    // - Keep existing newlines; avoid double-preview repetition.
+                    const pretty = raw
+                      .replace(/\r\n/g, "\n")
+                      // Normalize "(a)" at start-of-line into "a)"
+                      .replace(/(^|\n)\(\s*([a-z])\s*\)\s*/gim, "$1$2) ")
+                      // Normalize "(a)" mid-line into a new paragraph "a)"
+                      .replace(/(?!^)\s+\(\s*([a-z])\s*\)\s*/gim, "\n\n$1) ")
+                      // Ensure "a)" style starts a new paragraph (except at the very start)
+                      .replace(/(?!^)\s+([a-z])\)\s+/gim, "\n\n$1) ")
+                      .replace(/(?!^)\n\s*([a-z])\)\s+/gim, "\n\n$1) ")
+                      // Collapse 3+ newlines
+                      .replace(/\n{3,}/g, "\n\n")
+                      .trim();
+
+                    const summaryOneLine = pretty.replace(/\s+/g, " ").trim();
+                    const summary =
+                      summaryOneLine.length > 140
+                        ? summaryOneLine.slice(0, 140).trim() + "…"
+                        : summaryOneLine;
+
+                    return (
+                      <details
+                        key={t.n ?? t.heading ?? t.label ?? Math.random()}
+                        className="group overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
+                      >
+                        <summary className="cursor-pointer list-none p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              {/* Title row always visible */}
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-900">
+                                  {title}
+                                </span>
+                                <span className="text-xs text-zinc-600 group-open:hidden">
+                                  Click to expand
+                                </span>
+                                <span className="text-xs text-zinc-600 hidden group-open:inline">
+                                  Click to collapse
+                                </span>
+                              </div>
+
+                              {/* Preview ONLY when collapsed (prevents repetition) */}
+                              <div className="mt-2 text-sm text-zinc-800 group-open:hidden">
+                                {summary || (
+                                  <span className="text-zinc-500">(empty)</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 transition group-open:rotate-180">
+                              ▾
+                            </span>
+                          </div>
+                        </summary>
+
+                        <div className="border-t border-zinc-200 bg-white p-3">
+                          <pre className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-900">
+                            {pretty || "(empty)"}
+                          </pre>
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  No tasks were detected in this brief. Re-extract, or use
+                  manual override for this brief version.
+                </div>
+              )}
+            </section>
+          ) : null}
+
+          <BriefMappingPanel
+            draft={draft}
+            units={rx.units as unknown as Unit[]}
+            briefUnitId={rx.briefUnitId}
+            setBriefUnitId={rx.setBriefUnitId}
+            criteria={rx.criteriaForSelectedUnit as unknown as Criterion[]}
+            mapSelected={rx.mapSelected}
+            setMapSelected={rx.setMapSelected}
+            assignmentCodeInput={rx.assignmentCodeInput}
+            setAssignmentCodeInput={rx.setAssignmentCodeInput}
+          />
+
+          <details className="rounded-2xl border border-zinc-200 bg-white p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+              Raw extracted JSON (advanced)
+            </summary>
+            <pre className="mt-3 max-h-[360px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+              {JSON.stringify(draft, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
+    </section>
+  );
+}

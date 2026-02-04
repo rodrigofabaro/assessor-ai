@@ -42,6 +42,14 @@ export type ReferenceDocument = {
   sourceMeta?: any;
 };
 
+export type BriefTask = {
+  n: number;
+  label: string;
+  heading?: string | null;
+  text: string;
+  warnings?: string[];
+};
+
 export type IvOutcome = "APPROVED" | "CHANGES_REQUIRED" | "REJECTED";
 
 export type IvRecord = {
@@ -126,6 +134,10 @@ export function useBriefDetail(briefId: string) {
   const [ivError, setIvError] = useState<string | null>(null);
   const [ivRecords, setIvRecords] = useState<IvRecord[]>([]);
 
+  const [tasksBusy, setTasksBusy] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [tasksOverride, setTasksOverride] = useState<BriefTask[] | null>(null);
+
   const refresh = async () => {
     setBusy(true);
     setError(null);
@@ -193,26 +205,66 @@ export function useBriefDetail(briefId: string) {
     return familyDocs.find((d) => !!d.lockedAt) || familyDocs[0] || null;
   }, [brief, docs, familyDocs]);
 
-  const loadIv = async (docId: string) => {
+  const loadMeta = async (docId: string) => {
     setIvBusy(true);
     setIvError(null);
+    setTasksBusy(true);
+    setTasksError(null);
     try {
       const meta = await jsonFetch<any>(`/api/reference-documents/${docId}/meta`);
       const recs = safeIvRecords(meta?.sourceMeta?.ivRecords);
       setIvRecords(recs);
+
+      const t = meta?.sourceMeta?.briefTasksOverride;
+      if (Array.isArray(t)) {
+        // light shape normalisation
+        const cleaned = t
+          .filter(Boolean)
+          .map((x: any) => ({
+            n: Number(x.n) || 0,
+            label: String(x.label || `Task ${x.n || ""}`).trim(),
+            heading: x.heading ?? null,
+            text: String(x.text || ""),
+            warnings: Array.isArray(x.warnings) ? x.warnings.map(String) : undefined,
+          }))
+          .filter((x: any) => x.n >= 1 && x.label);
+        setTasksOverride(cleaned.length ? cleaned : null);
+      } else {
+        setTasksOverride(null);
+      }
     } catch (e: any) {
       setIvError(e?.message || String(e));
       setIvRecords([]);
+      setTasksError(e?.message || String(e));
+      setTasksOverride(null);
     } finally {
       setIvBusy(false);
+      setTasksBusy(false);
     }
   };
 
   useEffect(() => {
     if (!linkedDoc?.id) return;
-    loadIv(linkedDoc.id);
+    loadMeta(linkedDoc.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedDoc?.id]);
+
+  const saveTasksOverride = async (tasks: BriefTask[] | null) => {
+    if (!linkedDoc?.id) return;
+    setTasksBusy(true);
+    setTasksError(null);
+    try {
+      setTasksOverride(tasks && tasks.length ? tasks : null);
+      await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
+        method: "PATCH",
+        body: JSON.stringify({ briefTasksOverride: tasks && tasks.length ? tasks : null }),
+      });
+    } catch (e: any) {
+      setTasksError(e?.message || String(e));
+    } finally {
+      setTasksBusy(false);
+    }
+  };
 
   const addIvRecord = async (partial: Omit<IvRecord, "id" | "createdAt">) => {
     if (!linkedDoc?.id) return;
@@ -270,5 +322,10 @@ export function useBriefDetail(briefId: string) {
     ivRecords,
     addIvRecord,
     deleteIvRecord,
+
+    tasksBusy,
+    tasksError,
+    tasksOverride,
+    saveTasksOverride,
   };
 }

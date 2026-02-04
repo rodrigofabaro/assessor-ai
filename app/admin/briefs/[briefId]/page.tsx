@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useBriefDetail } from "./briefDetail.logic";
+import { useBriefDetail, type BriefTask, type ReferenceDocument } from "./briefDetail.logic";
 
 function Pill({ tone, children }: { tone: string; children: any }) {
   return <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + tone}>{children}</span>;
@@ -194,7 +194,7 @@ export default function BriefDetailPage() {
   const router = useRouter();
   const vm = useBriefDetail(params?.briefId || "");
 
-  const [tab, setTab] = useState<"overview" | "versions" | "iv" | "rubric">("overview");
+  const [tab, setTab] = useState<"overview" | "versions" | "tasks" | "iv" | "rubric">("overview");
 
   const title = useMemo(() => {
     if (!vm.brief) return "Brief detail";
@@ -203,6 +203,9 @@ export default function BriefDetailPage() {
 
   const pdfHref = vm.linkedDoc ? `/api/reference-documents/${vm.linkedDoc.id}/file` : "";
   const header = vm.linkedDoc?.extractedJson?.header || null;
+  const extractedTasks = Array.isArray(vm.linkedDoc?.extractedJson?.tasks) ? vm.linkedDoc?.extractedJson?.tasks : [];
+  const tasks = vm.tasksOverride ?? extractedTasks;
+  const tasksWarnings = (vm.linkedDoc?.extractedJson?.warnings || []).filter(Boolean);
 
   return (
     <div className="grid gap-4 min-w-0">
@@ -241,6 +244,9 @@ export default function BriefDetailPage() {
           </Btn>
           <Btn kind={tab === "versions" ? "primary" : "ghost"} onClick={() => setTab("versions")}>
             Versions
+          </Btn>
+          <Btn kind={tab === "tasks" ? "primary" : "ghost"} onClick={() => setTab("tasks")}>
+            Tasks
           </Btn>
           <Btn kind={tab === "iv" ? "primary" : "ghost"} onClick={() => setTab("iv")}>
             IV
@@ -436,6 +442,16 @@ export default function BriefDetailPage() {
         </section>
       ) : null}
 
+      {vm.brief && tab === "tasks" ? (
+        <TasksTab
+          linkedDoc={vm.linkedDoc}
+          tasksOverride={vm.tasksOverride}
+          tasksBusy={vm.tasksBusy}
+          tasksError={vm.tasksError}
+          saveTasksOverride={vm.saveTasksOverride}
+        />
+      ) : null}
+
       {vm.brief && tab === "iv" ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -552,5 +568,174 @@ export default function BriefDetailPage() {
         </section>
       ) : null}
     </div>
+  );
+}
+
+function TasksTab({
+  linkedDoc,
+  tasksOverride,
+  tasksBusy,
+  tasksError,
+  saveTasksOverride,
+}: {
+  linkedDoc: ReferenceDocument | null;
+  tasksOverride: BriefTask[] | null;
+  tasksBusy: boolean;
+  tasksError: string | null;
+  saveTasksOverride: (tasks: BriefTask[] | null) => Promise<void>;
+}) {
+  const extracted = (linkedDoc?.extractedJson?.tasks || []) as BriefTask[];
+  const warnings = (linkedDoc?.extractedJson?.warnings || []) as string[];
+  const activeTasks = tasksOverride && tasksOverride.length ? tasksOverride : extracted;
+
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [draft, setDraft] = useState(() =>
+    JSON.stringify(tasksOverride && tasksOverride.length ? tasksOverride : extracted || [], null, 2)
+  );
+  const [localErr, setLocalErr] = useState<string | null>(null);
+
+  // Keep editor content in sync when you switch docs/overrides.
+  useEffect(() => {
+    setDraft(JSON.stringify(tasksOverride && tasksOverride.length ? tasksOverride : extracted || [], null, 2));
+    setLocalErr(null);
+    setMode("view");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedDoc?.id, !!tasksOverride, (tasksOverride || []).length, (extracted || []).length]);
+
+  return (
+    <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Tasks & questions</h2>
+          <p className="mt-1 text-sm text-zinc-700">
+            This is the brief&apos;s “question paper”. The grader will later check student evidence against these task blocks.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Pill tone={tasksOverride ? tone("info") : tone("muted")}>{tasksOverride ? "OVERRIDE" : "EXTRACTED"}</Pill>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "view" ? "edit" : "view")}
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
+          >
+            {mode === "view" ? "Edit override" : "Close editor"}
+          </button>
+        </div>
+      </div>
+
+      {warnings?.length ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="font-semibold">Extraction warnings</div>
+          <ul className="mt-1 list-disc pl-5">
+            {warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {tasksError ? (
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+          {tasksError}
+        </div>
+      ) : null}
+
+      {mode === "view" ? (
+        <div className="mt-4 grid gap-3">
+          {activeTasks && activeTasks.length ? (
+            activeTasks.map((t) => (
+              <div key={`${t.label}-${t.n}`} className="rounded-2xl border border-zinc-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-900">{t.heading || t.label}</div>
+                    {t.warnings?.length ? (
+                      <div className="mt-1 text-xs text-amber-900">Warning: {t.warnings.join(", ")}</div>
+                    ) : null}
+                  </div>
+                  <Pill tone={tone("muted")}>#{t.n}</Pill>
+                </div>
+                <pre className="mt-3 whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-900">
+                  {t.text || "(no body detected)"}
+                </pre>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+              No tasks detected yet. Run Extract on the BRIEF PDF in the inbox. If the template is odd, use the override editor.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
+            Paste/edit a JSON array of task objects. Minimal shape:
+            <span className="ml-2 font-mono">[{`{ n: 1, label: "Task 1", text: "..." }`}, …]</span>
+          </div>
+
+          <textarea
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setLocalErr(null);
+            }}
+            rows={14}
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono text-xs text-zinc-900 outline-none focus:ring-2 focus:ring-zinc-200"
+          />
+
+          {localErr ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{localErr}</div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={tasksBusy}
+              onClick={async () => {
+                try {
+                  const parsed = JSON.parse(draft);
+                  if (!Array.isArray(parsed)) throw new Error("Override must be a JSON array");
+                  // Light validation
+                  const cleaned: BriefTask[] = parsed
+                    .filter(Boolean)
+                    .map((x: any) => ({
+                      n: Number(x.n) || 0,
+                      label: String(x.label || `Task ${x.n || ""}`),
+                      heading: x.heading ?? null,
+                      text: String(x.text || ""),
+                      warnings: Array.isArray(x.warnings) ? x.warnings.map(String) : undefined,
+                    }))
+                    .filter((x) => x.n >= 1 && x.label && typeof x.text === "string");
+
+                  if (!cleaned.length) throw new Error("No valid tasks found in override");
+                  await saveTasksOverride(cleaned);
+                  setMode("view");
+                } catch (e: any) {
+                  setLocalErr(e?.message || String(e));
+                }
+              }}
+              className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+            >
+              Save override
+            </button>
+
+            <button
+              type="button"
+              disabled={tasksBusy}
+              onClick={async () => {
+                await saveTasksOverride(null);
+                setDraft(JSON.stringify(extracted || [], null, 2));
+                setMode("view");
+              }}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Clear override
+            </button>
+
+            <div className="ml-auto text-xs text-zinc-600">{tasksBusy ? "Saving…" : "Ready"}</div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
