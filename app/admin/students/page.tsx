@@ -265,7 +265,7 @@ export default function AdminStudentsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="grid gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Students</h1>
@@ -299,7 +299,7 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center gap-2">
             <input

@@ -13,7 +13,6 @@
 import { useMemo, useState } from "react";
 import LibraryView from "../library/LibraryView";
 import { badge, useReferenceAdmin } from "../reference/reference.logic";
-import PageContainer from "@/components/PageContainer";
 import { LoCriteriaGrid } from "@/components/spec/LoCriteriaGrid";
 
 
@@ -40,8 +39,7 @@ export default function SpecsAdminPage() {
   });
 
   return (
-    <PageContainer>
-    <div className="grid gap-4 min-w-0">
+    <div className="grid min-w-0 gap-6">
       <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -83,7 +81,6 @@ export default function SpecsAdminPage() {
 
       {tab === "library" ? <LibraryView showHeader={false} /> : <SpecWorkbench vm={vm} />}
     </div>
-    </PageContainer>
   );
 }
 
@@ -91,7 +88,7 @@ function SpecWorkbench({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   const [showUpload, setShowUpload] = useState(false);
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
+    <section className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold">Spec extraction</div>
