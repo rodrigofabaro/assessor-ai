@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useReferenceAdmin } from "../reference/reference.logic";
 
 export type Unit = {
   id: string;
@@ -295,4 +296,62 @@ export function useBriefsAdmin() {
     libraryRows,
     docs,
   };
+}
+
+
+export function useBriefsPage() {
+  const vm = useBriefsAdmin();
+  const rx = useReferenceAdmin({
+    context: "briefs",
+    fixedInboxType: "BRIEF",
+    fixedUploadType: "BRIEF",
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onHash = () => {
+      const h = window.location.hash.replace("#", "");
+      if (h === "extract") vm.setTab("extract");
+      if (h === "library") vm.setTab("library");
+    };
+    window.addEventListener("hashchange", onHash);
+    onHash();
+    return () => window.removeEventListener("hashchange", onHash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const busy = vm.tab === "extract" ? !!rx.busy : vm.busy;
+  const err = vm.tab === "extract" ? rx.error : vm.error;
+
+  const refresh = async () => {
+    if (vm.tab === "extract") {
+      await rx.refreshAll();
+    } else {
+      await vm.refresh();
+    }
+  };
+
+  const goToTab = (tab: "library" | "extract") => {
+    vm.setTab(tab);
+    if (typeof window !== "undefined") window.location.hash = tab;
+    if (tab === "extract") rx.refreshAll();
+  };
+
+  return { vm, rx, busy, err, refresh, goToTab };
+}
+
+export function useBriefExtractWorkbenchVm(rx: ReturnType<typeof useReferenceAdmin>) {
+  const [showUpload, setShowUpload] = useState(false);
+  const f = rx.filters;
+  const setF = rx.setFilters;
+
+  const counts = useMemo(() => {
+    const total = rx.documents.length;
+    const shown = rx.filteredDocuments.length;
+    const byStatus: Record<string, number> = {};
+    for (const d of rx.documents) byStatus[d.status] = (byStatus[d.status] || 0) + 1;
+    return { total, shown, byStatus };
+  }, [rx.documents, rx.filteredDocuments]);
+
+  return { showUpload, setShowUpload, f, setF, counts };
 }

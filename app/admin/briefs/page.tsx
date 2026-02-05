@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useBriefsAdmin, ivTone, statusTone, tone } from "./briefs.logic";
+import { ivTone, statusTone, tone, useBriefExtractWorkbenchVm, useBriefsPage } from "./briefs.logic";
 import { badge, useReferenceAdmin, type ReferenceDocument, type Unit, type Criterion } from "../reference/reference.logic";
 
 function Pill({ cls, children }: { cls: string; children: any }) {
@@ -32,40 +31,7 @@ function Btn({
 }
 
 export default function AdminBriefsPage() {
-  // Library/register VM (your new briefs register)
-  const vm = useBriefsAdmin();
-
-  // ✅ Extract Inbox/Workbench VM (reuses the proven Spec inbox, hard-scoped to BRIEF)
-  const rx = useReferenceAdmin({
-    context: "briefs",
-    fixedInboxType: "BRIEF",
-    fixedUploadType: "BRIEF",
-  });
-
-  // Keep tab in sync with hash
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onHash = () => {
-      const h = window.location.hash.replace("#", "");
-      if (h === "extract") vm.setTab("extract");
-      if (h === "library") vm.setTab("library");
-    };
-    window.addEventListener("hashchange", onHash);
-    onHash();
-    return () => window.removeEventListener("hashchange", onHash);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const busy = vm.tab === "extract" ? !!rx.busy : vm.busy;
-  const err = vm.tab === "extract" ? rx.error : vm.error;
-
-  const refresh = async () => {
-    if (vm.tab === "extract") {
-      await rx.refreshAll();
-    } else {
-      await vm.refresh();
-    }
-  };
+  const { vm, rx, busy, err, refresh, goToTab } = useBriefsPage();
 
   return (
     <div className="grid gap-4 min-w-0">
@@ -93,20 +59,13 @@ export default function AdminBriefsPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Btn
             kind={vm.tab === "library" ? "primary" : "ghost"}
-            onClick={() => {
-              vm.setTab("library");
-              if (typeof window !== "undefined") window.location.hash = "library";
-            }}
+            onClick={() => goToTab("library")}
           >
             Library
           </Btn>
           <Btn
             kind={vm.tab === "extract" ? "primary" : "ghost"}
-            onClick={() => {
-              vm.setTab("extract");
-              if (typeof window !== "undefined") window.location.hash = "extract";
-              rx.refreshAll();
-            }}
+            onClick={() => goToTab("extract")}
           >
             Extract tools
           </Btn>
@@ -162,11 +121,7 @@ export default function AdminBriefsPage() {
 
               <Btn
                 kind="ghost"
-                onClick={() => {
-                  vm.setTab("extract");
-                  if (typeof window !== "undefined") window.location.hash = "extract";
-                  rx.refreshAll();
-                }}
+                onClick={() => goToTab("extract")}
               >
                 Go to inbox
               </Btn>
@@ -276,18 +231,7 @@ export default function AdminBriefsPage() {
 /* --------------------------- Extract tools (Inbox + Review) --------------------------- */
 
 function BriefExtractWorkbench({ rx }: { rx: ReturnType<typeof useReferenceAdmin> }) {
-  const [showUpload, setShowUpload] = useState(false);
-
-  const f = rx.filters;
-  const setF = rx.setFilters;
-
-  const counts = useMemo(() => {
-    const total = rx.documents.length;
-    const shown = rx.filteredDocuments.length;
-    const byStatus: Record<string, number> = {};
-    for (const d of rx.documents) byStatus[d.status] = (byStatus[d.status] || 0) + 1;
-    return { total, shown, byStatus };
-  }, [rx.documents, rx.filteredDocuments]);
+  const { showUpload, setShowUpload, f, setF, counts } = useBriefExtractWorkbenchVm(rx);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
@@ -436,6 +380,7 @@ function BriefExtractWorkbench({ rx }: { rx: ReturnType<typeof useReferenceAdmin
 }
 
 
+/* eslint-disable react-hooks/refs */
 function BriefUploadModal({ rx, onClose }: { rx: ReturnType<typeof useReferenceAdmin>; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -526,6 +471,7 @@ function BriefUploadModal({ rx, onClose }: { rx: ReturnType<typeof useReferenceA
     </div>
   );
 }
+/* eslint-enable react-hooks/refs */
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (

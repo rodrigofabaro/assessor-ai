@@ -205,7 +205,7 @@ export default function LibraryView({
     "—";
 
   return (
-    <div className="grid gap-4 min-w-0 overflow-x-hidden">
+    <div className="grid gap-6 min-w-0 overflow-x-hidden">
       {showHeader ? (
         <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -232,7 +232,7 @@ export default function LibraryView({
       ) : null}
 
       {/* Main layout */}
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[420px_1fr]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[420px_1fr]">
         {/* Unit index */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -302,14 +302,14 @@ export default function LibraryView({
 
             {units.length === 0 ? (
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
-                No units match your search.
+                No locked specs yet. Upload a spec to begin.
               </div>
             ) : null}
           </div>
         </div>
 
         {/* Right side */}
-        <div className="grid min-w-0 gap-4">
+        <div className="grid min-w-0 gap-6">
           {/* Viewer */}
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
             <div className="border-b border-zinc-200 p-4">
@@ -415,7 +415,7 @@ export default function LibraryView({
                 </div>
               ) : (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
-                  Choose a unit on the left to view its locked spec content.
+                  Select a unit to view locked spec content.
                 </div>
               )}
             </div>

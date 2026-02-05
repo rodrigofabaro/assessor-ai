@@ -18,17 +18,6 @@ import { LoCriteriaGrid } from "@/components/spec/LoCriteriaGrid";
 
 
 
-function gradeBadge(band: "PASS" | "MERIT" | "DISTINCTION"): { cls: string; text: string } {
-  switch (band) {
-    case "PASS":
-      return { cls: "bg-indigo-50 text-indigo-900 border-indigo-200", text: "PASS" };
-    case "MERIT":
-      return { cls: "bg-cyan-50 text-cyan-900 border-cyan-200", text: "MERIT" };
-    case "DISTINCTION":
-      return { cls: "bg-emerald-50 text-emerald-900 border-emerald-200", text: "DISTINCTION" };
-  }
-}
-
 export default function SpecsAdminPage() {
   const [tab, setTab] = useState<"library" | "extract">("library");
 
@@ -41,48 +30,63 @@ export default function SpecsAdminPage() {
 
   return (
     <PageContainer>
-    <div className="grid gap-4 min-w-0">
-      <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">Specs</h1>
-            <p className="mt-1 text-sm text-zinc-700">
-              Specs are the grading ground truth. Browse locked issues in the Library, or upload/extract a new issue.
-            </p>
+      <div className="grid gap-6 min-w-0">
+        <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold tracking-tight">Specs</h1>
+              <p className="mt-1 text-sm text-zinc-700">
+                Specs are the grading ground truth. Upload, extract LOs/criteria, and lock the authoritative issue used by
+                marking.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+                {vm.busy ? `⏳ ${vm.busy}` : "Ready"}
+              </span>
+            </div>
           </div>
-          <div className="text-xs text-zinc-600">{vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}</div>
-        </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTab("library")}
-            className={
-              "rounded-xl px-4 py-2 text-sm font-semibold border " +
-              (tab === "library"
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50")
-            }
-          >
-            Library
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("extract")}
-            className={
-              "rounded-xl px-4 py-2 text-sm font-semibold border " +
-              (tab === "extract"
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50")
-            }
-          >
-            Extract tools
-          </button>
-        </div>
-      </header>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTab("library")}
+              className={
+                "rounded-xl px-4 py-2 text-sm font-semibold border " +
+                (tab === "library"
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50")
+              }
+            >
+              Library
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("extract")}
+              className={
+                "rounded-xl px-4 py-2 text-sm font-semibold border " +
+                (tab === "extract"
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50")
+              }
+            >
+              Extract tools
+            </button>
+          </div>
+        </header>
 
-      {tab === "library" ? <LibraryView showHeader={false} /> : <SpecWorkbench vm={vm} />}
-    </div>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-900">What locking does</h2>
+          <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
+            <li>Locks the criteria universe used by grading.</li>
+            <li>Preserves version traceability (issue/version label).</li>
+            <li>Prevents drift during re-extracts.</li>
+          </ul>
+        </section>
+
+        {tab === "library" ? <LibraryView showHeader={false} /> : <SpecWorkbench vm={vm} />}
+      </div>
     </PageContainer>
   );
 }
@@ -115,7 +119,7 @@ function SpecWorkbench({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
       ) : null}
 
       {/* ✅ Layout now prioritizes Inbox */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-[420px_1fr] min-w-0">
+      <div className="mt-4 grid gap-6 lg:grid-cols-[420px_1fr] min-w-0">
         <div className="grid gap-4 min-w-0">
           <InboxCard vm={vm} />
         </div>
@@ -230,65 +234,6 @@ function UploadForm({ vm, onDone }: { vm: ReturnType<typeof useReferenceAdmin>; 
   );
 }
 
-
-function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
-  return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold">Upload</h2>
-      <p className="mt-1 text-xs text-zinc-500">Add a new spec issue. Extraction happens on demand.</p>
-
-      <div className="mt-4 grid gap-3">
-        <div className="grid gap-1">
-          <span className="text-sm font-medium">Type</span>
-          <div className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm flex items-center">SPEC</div>
-        </div>
-
-        <label className="grid gap-1">
-          <span className="text-sm font-medium">Title</span>
-          <input
-            value={vm.docTitle}
-            onChange={(e) => vm.setDocTitle(e.target.value)}
-            placeholder="e.g. Unit 4014 Spec — Issue 5 (June 2025)"
-            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-          />
-        </label>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">Version</span>
-            <input
-              value={vm.docVersion}
-              onChange={(e) => vm.setDocVersion(e.target.value)}
-              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-            />
-          </label>
-
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">File</span>
-            <input
-            type="file"
-              onChange={(e) => vm.setDocFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <button
-          onClick={vm.uploadDoc}
-          disabled={!!vm.busy}
-          className={
-            "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-            (vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
-          }
-        >
-          Upload
-        </button>
-      </div>
-    </section>
-  );
-}
 
 function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   const f = vm.filters;
