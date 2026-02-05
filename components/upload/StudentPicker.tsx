@@ -39,17 +39,6 @@ export function StudentPicker({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Keep suggestion list open while typing
-  useEffect(() => {
-    if (!studentQuery.trim()) {
-      setOpen(false);
-      setActiveIndex(-1);
-      return;
-    }
-    setOpen(true);
-    setActiveIndex(0);
-  }, [studentQuery]);
-
   // Close on outside click
   useEffect(() => {
     function onDocDown(e: MouseEvent) {
@@ -123,7 +112,17 @@ export function StudentPicker({
           id="studentQuery"
           ref={inputRef}
           value={studentQuery}
-          onChange={(e) => setStudentQuery(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            setStudentQuery(next);
+            if (!next.trim()) {
+              setOpen(false);
+              setActiveIndex(-1);
+            } else {
+              setOpen(true);
+              setActiveIndex(0);
+            }
+          }}
           onFocus={() => studentQuery.trim() && setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Type first name or surname… (or AB/email)"

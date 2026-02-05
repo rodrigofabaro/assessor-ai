@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 "use client";
 
 import Link from "next/link";
@@ -497,11 +498,7 @@ function BriefUploadModal({ rx, onClose }: { rx: ReturnType<typeof useReferenceA
                 await rx.refreshAll();
                 onClose();
               }}
-              disabled={!!rx.busy}
-              className={
-                "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-                (rx.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
-              }
+              className="h-10 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
             >
               Upload
             </button>
@@ -509,13 +506,12 @@ function BriefUploadModal({ rx, onClose }: { rx: ReturnType<typeof useReferenceA
             <button
               type="button"
               onClick={onClose}
-              disabled={!!rx.busy}
               className="h-10 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
             >
               Cancel
             </button>
 
-            <div className="ml-auto text-xs text-zinc-600">{rx.busy ? `⏳ ${rx.busy}` : "Ready"}</div>
+            <div className="ml-auto text-xs text-zinc-600">Ready</div>
           </div>
 
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">

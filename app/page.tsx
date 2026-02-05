@@ -136,6 +136,16 @@ function CardLink({
   );
 }
 
+
+function StatusRow({ label, value }: { label: string; value?: number }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-zinc-600">{label}</span>
+      <span className="font-semibold text-zinc-900">{value ?? "—"}</span>
+    </div>
+  );
+}
+
 function StatusCard({
   specs,
   briefs,
@@ -147,13 +157,6 @@ function StatusCard({
   submissions?: number;
   locked?: number;
 }) {
-  const Row = ({ label, value }: { label: string; value?: number }) => (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-zinc-600">{label}</span>
-      <span className="font-semibold text-zinc-900">{value ?? "—"}</span>
-    </div>
-  );
-
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm ring-1 ring-transparent">
       <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-800">
@@ -164,10 +167,10 @@ function StatusCard({
       </div>
 
       <div className="mt-4 grid gap-2">
-        <Row label="Specs stored" value={specs} />
-        <Row label="Briefs stored" value={briefs} />
-        <Row label="Submissions uploaded" value={submissions} />
-        <Row label="Locked references" value={locked} />
+        <StatusRow label="Specs stored" value={specs} />
+        <StatusRow label="Briefs stored" value={briefs} />
+        <StatusRow label="Submissions uploaded" value={submissions} />
+        <StatusRow label="Locked references" value={locked} />
       </div>
 
       <div className="mt-3 text-[11px] text-zinc-500">Counts update as data is added.</div>
