@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import PageContainer from "@/components/PageContainer";
 
 type ExtractedPage = {
   id: string;
@@ -345,7 +346,8 @@ export default function SubmissionDetailPage() {
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
 
   return (
-    <main className="mx-auto max-w-7xl p-6">
+    <PageContainer>
+      <main className="p-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-xs font-semibold text-zinc-500">Submissions</div>
@@ -702,6 +704,7 @@ export default function SubmissionDetailPage() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </PageContainer>
   );
 }

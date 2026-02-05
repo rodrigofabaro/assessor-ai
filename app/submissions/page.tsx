@@ -7,6 +7,7 @@ import type { SubmissionRow } from "@/lib/submissions/types";
 import { SubmissionsToolbar } from "@/components/submissions/SubmissionsToolbar";
 import { SubmissionsTable } from "@/components/submissions/SubmissionsTable";
 import { ResolveDrawer } from "@/components/submissions/ResolveDrawer";
+import PageContainer from "@/components/PageContainer";
 import { cx } from "@/lib/submissions/utils";
 
 export default function SubmissionsPage() {
@@ -62,7 +63,8 @@ export default function SubmissionsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
+    <PageContainer>
+      <main className="p-6">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
         <p className="mt-2 max-w-3xl text-sm text-zinc-600">
@@ -114,6 +116,7 @@ export default function SubmissionsPage() {
         onClose={() => setResolveOpen(false)}
         onLinked={onLinked}
       />
-    </main>
+      </main>
+    </PageContainer>
   );
 }

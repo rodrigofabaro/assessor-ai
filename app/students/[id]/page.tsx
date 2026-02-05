@@ -55,14 +55,16 @@ export default async function StudentPage({
 
   if (!student) {
     return (
-      <div className="mx-auto max-w-4xl p-6">
+      <PageContainer>
+        <div className="p-6">
         <h1 className="text-xl font-semibold">Student not found</h1>
         <div className="mt-3">
           <Link className="underline" href="/admin/students">
             Back to students
           </Link>
         </div>
-      </div>
+        </div>
+      </PageContainer>
     );
   }
 
@@ -135,7 +137,7 @@ export default async function StudentPage({
 
   return (
     <PageContainer>
-    <div className="mx-auto max-w-6xl p-6">
+      <div className="p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-xs opacity-70">Student profile</div>
@@ -268,7 +270,7 @@ export default async function StudentPage({
           ) : null}
         </div>
       </div>
-    </div>
+      </div>
     </PageContainer>
   );
 }
