@@ -1,29 +1,157 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import LibraryView from "../library/LibraryView";
 import { badge, useReferenceAdmin } from "../reference/reference.logic";
 import { LoCriteriaGrid } from "@/components/spec/LoCriteriaGrid";
 
+type UploadResult = {
+  fileName: string;
+  ok: boolean;
+  reason?: string;
+};
+
+type ToastMessage = {
+  id: number;
+  tone: "success" | "error" | "warn";
+  text: string;
+};
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function toneCls(tone: ToastMessage["tone"]): string {
+  if (tone === "success") return "border-emerald-200 bg-emerald-50 text-emerald-900";
+  if (tone === "warn") return "border-amber-200 bg-amber-50 text-amber-900";
+  return "border-rose-200 bg-rose-50 text-rose-900";
+}
+
 export default function SpecsAdminPage() {
   const [tab, setTab] = useState<"library" | "extract">("library");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const vm = useReferenceAdmin({
     context: "specs",
     fixedInboxType: "SPEC",
     fixedUploadType: "SPEC",
   });
 
+  const pushToast = (tone: ToastMessage["tone"], text: string) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, tone, text }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3200);
+  };
+
+  const openPicker = () => {
+    if (uploading) return;
+    inputRef.current?.click();
+  };
+
+  const uploadFiles = async (incoming: File[]) => {
+    if (!incoming.length || uploading) return;
+
+    const valid = incoming.filter(isPdf);
+    const skipped = incoming.filter((f) => !isPdf(f));
+    const suspicious = valid.filter((f) => !/(unit|spec)/i.test(f.name));
+
+    if (skipped.length) {
+      pushToast("warn", skipped.length === incoming.length ? "Only PDF files are supported." : `Skipped ${skipped.length} file(s). Only PDF files are supported.`);
+    }
+    if (suspicious.length) {
+      pushToast("warn", `${suspicious.length} filename(s) did not include “Unit” or “Spec”. Uploaded anyway.`);
+    }
+    if (!valid.length) return;
+
+    setUploading(true);
+    setUploadStatus(`Uploading ${valid.length} file${valid.length > 1 ? "s" : ""}...`);
+    setUploadResults([]);
+
+    try {
+      const settled = await Promise.all(
+        valid.map(async (file): Promise<UploadResult> => {
+          const fd = new FormData();
+          fd.set("type", "SPEC");
+          fd.set("title", file.name);
+          fd.set("version", "1");
+          fd.set("file", file);
+
+          const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            return {
+              fileName: file.name,
+              ok: false,
+              reason: (data as any)?.error || (data as any)?.message || "Upload failed",
+            };
+          }
+          return { fileName: file.name, ok: true };
+        })
+      );
+
+      setUploadResults(settled);
+      const okCount = settled.filter((r) => r.ok).length;
+      const failCount = settled.length - okCount;
+
+      if (okCount > 0) {
+        await vm.refreshAll({ keepSelection: false });
+        pushToast("success", `Uploaded ${okCount} spec${okCount > 1 ? "s" : ""}. Ready to extract.`);
+      }
+      if (failCount > 0) {
+        const reason = settled.find((r) => !r.ok)?.reason || "Upload failed";
+        pushToast("error", `Upload failed: ${reason}`);
+      }
+    } finally {
+      setUploading(false);
+      setUploadStatus("");
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="grid min-w-0 gap-4">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        multiple
+        className="sr-only"
+        onChange={(e) => uploadFiles(Array.from(e.target.files || []))}
+      />
+
+      <div className="pointer-events-none fixed right-4 top-4 z-50 grid gap-2">
+        {toasts.map((t) => (
+          <div key={t.id} className={"pointer-events-auto rounded-xl border px-3 py-2 text-sm shadow-sm " + toneCls(t.tone)}>
+            {t.text}
+          </div>
+        ))}
+      </div>
+
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold tracking-tight">Specs</h1>
             <p className="mt-1 text-sm text-zinc-700">Specs define the criteria universe. Upload/extract, then lock the authoritative issue used by grading.</p>
           </div>
-          <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-            {vm.busy ? `⏳ ${vm.busy}` : "Ready"}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openPicker}
+              disabled={uploading}
+              className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300"
+            >
+              Upload spec
+            </button>
+            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              {uploading ? uploadStatus : vm.busy ? `⏳ ${vm.busy}` : "Ready"}
+            </span>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -42,6 +170,51 @@ export default function SpecsAdminPage() {
             Extract tools
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={openPicker}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!uploading) setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragActive(false);
+            if (uploading) return;
+            uploadFiles(Array.from(e.dataTransfer.files || []));
+          }}
+          disabled={uploading}
+          className={
+            "mt-4 w-full rounded-2xl border-2 border-dashed px-4 py-6 text-left transition " +
+            (uploading
+              ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+              : dragActive
+                ? "border-zinc-900 bg-zinc-50"
+                : "border-zinc-300 bg-white hover:border-zinc-500 hover:bg-zinc-50")
+          }
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl" aria-hidden="true">📄</span>
+            <div>
+              <div className="text-sm font-semibold text-zinc-900">Drag &amp; drop SPEC PDFs here (or click to browse)</div>
+              <div className="mt-1 text-xs text-zinc-600">PDF only • multi-file upload supported</div>
+            </div>
+            {uploading ? <span className="ml-auto h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" aria-hidden="true" /> : null}
+          </div>
+        </button>
+
+        {uploadResults.length ? (
+          <div className="mt-3 grid gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+            {uploadResults.map((r) => (
+              <div key={r.fileName + r.ok} className={r.ok ? "text-emerald-800" : "text-rose-800"}>
+                {r.ok ? "✅" : "❌"} {r.fileName}
+                {r.ok ? " uploaded" : ` failed: ${r.reason || "Upload failed"}`}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {tab === "library" ? <LibraryView showHeader={false} /> : <SpecsWorkbench vm={vm} />}
