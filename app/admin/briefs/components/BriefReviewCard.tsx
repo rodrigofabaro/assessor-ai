@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import type {
   Criterion,
   ReferenceDocument,
@@ -12,22 +11,28 @@ import BriefMappingPanel from "./BriefMappingPanel";
 export default function BriefReviewCard({ rx }: { rx: any }) {
   const doc = rx.selectedDoc as ReferenceDocument | null;
 
-  // NOTE: extractedJson should be JSON, but keep it resilient.
+  // 1. Extract latest draft from props
   const latestDraft: any = doc?.extractedJson || null;
 
-  // Prevent “header disappears” during re-extract when extractedJson temporarily becomes {} / null.
-  const lastGoodDraftRef = useRef<any>(null);
-  if (
-    latestDraft &&
-    typeof latestDraft === "object" &&
-    (latestDraft.kind || latestDraft.header || latestDraft.tasks)
-  ) {
-    lastGoodDraftRef.current = latestDraft;
-  }
-  const draft: any = latestDraft || lastGoodDraftRef.current || null;
+  /**
+   * 2. Derive a "safe" draft (replaces lastGoodDraft state/effect)
+   * We validate the current latestDraft. If it's empty (e.g. during a re-extract),
+   * we show the last persisted truth from the doc object.
+   */
+  const isValidDraft = (d: any) =>
+    d &&
+    typeof d === "object" &&
+    (d.kind || d.header || d.tasks);
 
-  const canExtract = !!doc && !rx.busy;
-  const canLock = !!doc && !rx.busy;
+  const draft: any = isValidDraft(latestDraft) 
+    ? latestDraft 
+    : (doc?.extractedJson ?? null);
+
+  // Avoid reading rx.busy.current during render if it's a ref.
+  const isBusy = !!(rx?.busy?.current ?? rx?.busy);
+  
+  const canExtract = !!doc && !isBusy;
+  const canLock = !!doc && !isBusy;
 
   const header = (
     draft && draft.kind === "BRIEF" ? draft.header || {} : {}
@@ -136,7 +141,6 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             </p>
           </div>
 
-          {/* Tasks / Questions (extracted) */}
           {draft?.kind === "BRIEF" ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -157,25 +161,17 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
               {Array.isArray(draft.tasks) && draft.tasks.length ? (
                 <div className="mt-3 grid gap-3">
-                  {draft.tasks.map((t: any) => {
+                  {draft.tasks.map((t: any, i: number) => {
                     const title =
                       t.heading || t.label || (t.n ? `Task ${t.n}` : "Task");
                     const raw = String(t.text || "").trim();
 
-                    // Make sub-questions readable:
-                    // - Force a)/b)/c) to start on their own line
-                    // - Normalize (a) -> a) (users don't like the "(" junk)
-                    // - Keep existing newlines; avoid double-preview repetition.
                     const pretty = raw
                       .replace(/\r\n/g, "\n")
-                      // Normalize "(a)" at start-of-line into "a)"
                       .replace(/(^|\n)\(\s*([a-z])\s*\)\s*/gim, "$1$2) ")
-                      // Normalize "(a)" mid-line into a new paragraph "a)"
                       .replace(/(?!^)\s+\(\s*([a-z])\s*\)\s*/gim, "\n\n$1) ")
-                      // Ensure "a)" style starts a new paragraph (except at the very start)
                       .replace(/(?!^)\s+([a-z])\)\s+/gim, "\n\n$1) ")
                       .replace(/(?!^)\n\s*([a-z])\)\s+/gim, "\n\n$1) ")
-                      // Collapse 3+ newlines
                       .replace(/\n{3,}/g, "\n\n")
                       .trim();
 
@@ -187,13 +183,12 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
                     return (
                       <details
-                        key={t.n ?? t.heading ?? t.label ?? Math.random()}
+                        key={`task-${t?.id ?? ""}-${t?.n ?? ""}-${t?.heading ?? ""}-${t?.label ?? ""}-${i}`}
                         className="group overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
                       >
                         <summary className="cursor-pointer list-none p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              {/* Title row always visible */}
                               <div className="flex items-center gap-2">
                                 <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-900">
                                   {title}
@@ -206,7 +201,6 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                                 </span>
                               </div>
 
-                              {/* Preview ONLY when collapsed (prevents repetition) */}
                               <div className="mt-2 text-sm text-zinc-800 group-open:hidden">
                                 {summary || (
                                   <span className="text-zinc-500">(empty)</span>

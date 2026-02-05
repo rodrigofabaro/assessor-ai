@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type ReferenceDocument = {
   id: string;
@@ -137,8 +137,6 @@ function docSearchHaystack(d: ReferenceDocument) {
 }
 
 export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
-
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [documents, setDocuments] = useState<ReferenceDocument[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -318,8 +316,7 @@ const filteredDocuments = useMemo(() => {
   async function uploadDoc() {
     setError(null);
 
-    const fileFromDom = fileRef.current?.files?.[0] || null;
-    const fileToUse = docFile || fileFromDom;
+    const fileToUse = docFile;
     if (!fileToUse) return setError("Pick a file first.");
 
     setBusy("Uploading...");
@@ -335,7 +332,6 @@ const filteredDocuments = useMemo(() => {
       setDocTitle("");
       setDocVersion("1");
       setDocFile(null);
-      if (fileRef.current) fileRef.current.value = "";
 
       await refreshAll({ keepSelection: false });
     } catch (e: any) {
@@ -447,7 +443,6 @@ const filteredDocuments = useMemo(() => {
     docTitle,
     docVersion,
     docFile,
-    fileRef,
 
     // filters
     filters,

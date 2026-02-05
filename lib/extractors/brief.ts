@@ -19,19 +19,6 @@ type BriefHeader = {
   warnings?: string[];
 };
 
-export type BriefTask = {
-  /** 1-based index (Task 1, Task 2...) */
-  n: number;
-  /** Normalised label (e.g. "Task 1", "Question 2") */
-  label: string;
-  /** Original heading line (if we can preserve it) */
-  heading?: string | null;
-  /** Body text for this task (human reading order) */
-  text: string;
-  /** Optional warnings for this task */
-  warnings?: string[];
-};
-
 function uniqSortedCodes(codes: string[]) {
   const set = new Set(codes.map((c) => c.toUpperCase().trim()).filter(Boolean));
   const arr = Array.from(set);
@@ -150,127 +137,6 @@ function extractAcademicYearFallback(preview: string): string | null {
   return null;
 }
 
-function normalizeTaskText(lines: string[]) {
-  const out: string[] = [];
-  let buf: string[] = [];
-
-  const flush = () => {
-    const s = buf
-      .join(" ")
-      .replace(/[ \t]+/g, " ")
-      .trim();
-    if (s) out.push(s);
-    buf = [];
-  };
-
-  for (const raw of lines) {
-    const l = (raw || "").replace(/\r/g, "");
-    const t = l.trim();
-    // treat empty-ish lines as paragraph breaks
-    if (!t) {
-      flush();
-      continue;
-    }
-    // skip footer-y lines that often appear in extracted PDFs
-    if (/^Pearson\s+Education\s+Ltd/i.test(t)) continue;
-    if (/^\s*©\s*\d{4}/i.test(t)) continue;
-    if (/All\s+Rights\s+Reserved/i.test(t)) continue;
-    if (/^\s*Issue\s+\d+\s*[-–—]/i.test(t)) continue;
-    if (/^\s*Page\s+\d+\s+of\s+\d+/i.test(t)) continue;
-    buf.push(t);
-  }
-  flush();
-
-  return out.join("\n\n");
-}
-
-function extractBriefTasksFromText(text: string): { tasks: BriefTask[]; warnings: string[] } {
-  const warnings: string[] = [];
-  const raw = (text || "").replace(/\r/g, "");
-  const lines = raw.split("\n");
-
-  // Headings we trust. Conservative by design.
-  const headingRe = /^\s*(Task|Question|Activity)\s*(\d{1,2})\b\s*([:–—-].*)?$/i;
-  const stopRe = /^\s*(Sources?\s+of\s+information|Sources|References|Relevant\s+Learning\s+Outcomes|Learning\s+Outcomes\s+and\s+Assessment\s+Criteria|Assessment\s+Criteria|Pass\s+Merit\s+Distinction)\b/i;
-
-  const stripAfterStop = (s: string) => {
-    if (!s) return s;
-    const idxs = [
-      s.search(/\bSources?\s+of\s+information\b/i),
-      s.search(/\bReferences\b/i),
-      s.search(/\bRelevant\s+Learning\s+Outcomes\b/i),
-      s.search(/\bLearning\s+Outcomes\s+and\s+Assessment\s+Criteria\b/i),
-      s.search(/\bAssessment\s+Criteria\b/i),
-      s.search(/\bPass\s+Merit\s+Distinction\b/i),
-    ].filter((x) => x >= 0);
-    if (!idxs.length) return s;
-    return s.slice(0, Math.min(...idxs)).trim();
-  };
-
-  const tasks: BriefTask[] = [];
-  let current: { label: string; n: number; heading: string; body: string[] } | null = null;
-
-  const push = () => {
-    if (!current) return;
-    let text = normalizeTaskText(current.body);
-    text = stripAfterStop(text);
-    if (!text) {
-      // Don't drop it silently – keep as empty with warning.
-      tasks.push({
-        n: current.n,
-        label: current.label,
-        heading: current.heading,
-        text: "",
-        warnings: ["empty_body"],
-      });
-    } else {
-      tasks.push({ n: current.n, label: current.label, heading: current.heading, text });
-    }
-    current = null;
-  };
-
-  // We only start looking after the header region to reduce false positives.
-  // (The first couple pages often contain tables with the word "Task" in unrelated contexts.)
-  const startAt = Math.min(lines.length, 120);
-  const scanLines = lines.slice(startAt);
-
-  for (const line of scanLines) {
-    if (current && stopRe.test(line)) {
-      push();
-      break;
-    }
-    const m = line.match(headingRe);
-    if (m) {
-      push();
-      const labelKind = (m[1] || "Task").trim();
-      const n = parseInt(m[2] || "0", 10) || 0;
-      const label = `${labelKind[0].toUpperCase()}${labelKind.slice(1).toLowerCase()} ${n}`;
-      current = { label, n, heading: line.trim(), body: [] };
-      continue;
-    }
-    if (current) current.body.push(line);
-  }
-  push();
-
-  // Filter out impossible numbering (0) and duplicates (keep first occurrence)
-  const seen = new Set<string>();
-  const cleaned: BriefTask[] = [];
-  for (const tsk of tasks) {
-    if (!tsk.n || tsk.n < 1) continue;
-    const key = `${tsk.label}`.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    cleaned.push(tsk);
-  }
-
-  if (cleaned.length === 0) warnings.push("tasks_not_found");
-
-  // Sort by task number to avoid extraction quirks; preserve label.
-  cleaned.sort((a, b) => a.n - b.n);
-
-  return { tasks: cleaned, warnings };
-}
-
 export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
   const headerText = preview.slice(0, 4500);
   const warnings: string[] = [];
@@ -381,11 +247,6 @@ export function extractBrief(text: string, fallbackTitle: string) {
   const preview = t.slice(0, 4500);
   const header = extractBriefHeaderFromPreview(preview);
 
-  const taskPack = extractBriefTasksFromText(t);
-  const briefWarnings = [...(header.warnings || []), ...(taskPack.warnings || [])];
-  // Keep header.warnings only inside header; top-level warnings are aggregated for graders/UI.
-  const warnings = Array.from(new Set(briefWarnings)).filter(Boolean);
-
   return {
     kind: "BRIEF" as const,
     title: assignmentTitle ? normalizeWhitespace(assignmentTitle) : null,
@@ -396,7 +257,5 @@ export function extractBrief(text: string, fallbackTitle: string) {
     totalAssignments,
     aiasLevel,
     detectedCriterionCodes,
-    tasks: taskPack.tasks,
-    warnings,
   };
 }

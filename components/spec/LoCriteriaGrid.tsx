@@ -1,7 +1,5 @@
 "use client";
 
-import { badge } from "@/app/admin/reference/reference.logic";
-
 function gradePill(band: any): { cls: string; text: string } {
   const b = String(band || "").toUpperCase().trim();
 

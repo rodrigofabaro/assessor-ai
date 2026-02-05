@@ -138,7 +138,7 @@ export function parseCriteriaByLO(text: string, loCodes: string[]) {
       return;
     }
 
-    let desc = stripPdfJunk(descParts.join(" "));
+    const desc = stripPdfJunk(descParts.join(" "));
     if (!desc) {
       currentCode = null;
       descParts = [];
@@ -161,7 +161,7 @@ export function parseCriteriaByLO(text: string, loCodes: string[]) {
   for (const raw of lines) {
     // Fix common flattening: "LO1Describe" -> "LO1 Describe"
     const fixed = String(raw || "").trim().replace(/\b(LO\d{1,2})(?=[A-Za-z])/g, "$1 ");
-    let l = stripPdfJunk(fixed);
+    const l = stripPdfJunk(fixed);
     if (!l) continue;
 
     // If we hit an end heading while accumulating a criterion, flush and STOP (prevents swallow)

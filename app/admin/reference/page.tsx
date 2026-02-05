@@ -93,7 +93,6 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
           <label className="grid gap-1">
             <span className="text-sm font-medium">File</span>
             <input
-              ref={vm.fileRef}
               type="file"
               onChange={(e) => vm.setDocFile(e.target.files?.[0] || null)}
               className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"

@@ -1,7 +1,78 @@
-import { normalizeWhitespace, toLines } from "@/lib/extraction/normalize/text";
-import { firstMatch } from "@/lib/extraction/normalize/text"; // keep if you still use it elsewhere
-import { parseUnitCode } from "./labels"; // if circular, see note below
+import { normalizeWhitespace, toLines, firstMatch } from "@/lib/extraction/normalize/text";
 
+/**
+ * Pulls Issue label like:
+ * "Issue 5 – June 2025" / "Issue 4 - March 2024"
+ */
+export function parseIssueLabel(text: string): string {
+  const t = text || "";
+  const m =
+    firstMatch(t, /\bIssue\s*\d+\s*[-–—]\s*[A-Za-z]+\s*\d{4}\b/i) ||
+    firstMatch(t, /\bIssue\s*\d+\b/i);
+
+  return normalizeWhitespace(m || "");
+}
+
+/**
+ * Resolve the 4-digit unit code.
+ * Attempts: (1) from text patterns, (2) from fallback doc title/filename.
+ */
+export function parseUnitCode(text: string, docTitleFallback: string): string {
+  const t = text || "";
+
+  // Common: "Unit 4014" somewhere in header
+  const a = firstMatch(t, /\bUnit\s+(\d{4})\b/i);
+  if (a) return String(a).replace(/\D/g, "").slice(0, 4);
+
+  // Sometimes the filename/title has the 4-digit code
+  const fb = docTitleFallback || "";
+  const b = firstMatch(fb, /\b(\d{4})\b/);
+  if (b) return String(b).replace(/\D/g, "").slice(0, 4);
+
+  return "";
+}
+
+/**
+ * Pearson sometimes includes other unit identifiers. Keep the export stable.
+ * For now, return the same 4-digit unit code if present (safe + deterministic).
+ */
+export function parsePearsonUnitCode(text: string): string {
+  const t = text || "";
+  const code = firstMatch(t, /\bUnit\s+(\d{4})\b/i);
+  return normalizeWhitespace(code || "");
+}
+
+/**
+ * Extract a numeric value for a labelled meta field (e.g. Level, Credits).
+ *
+ * Examples it handles:
+ * - "Level 4"
+ * - "Level: 4"
+ * - "Credits 15"
+ * - "Credits: 15"
+ */
+export function parseMetaNumber(text: string, label: string | RegExp): number | null {
+  const t = text || "";
+  const labelRe = typeof label === "string" ? new RegExp(`\\b${label}\\b`, "i") : label;
+
+  // Try line-based first (more reliable on PDF-flattened text)
+  const lines = toLines(t);
+  for (const line of lines.slice(0, 200)) {
+    if (!labelRe.test(line)) continue;
+    const m = line.match(/\b(\d{1,3})\b/);
+    if (m) return Number(m[1]);
+  }
+
+  // Fallback: full-text pattern "Label ... number"
+  const mm = t.match(new RegExp(`${labelRe.source}[^0-9]{0,10}(\\d{1,3})`, "i"));
+  if (mm && mm[1]) return Number(mm[1]);
+
+  return null;
+}
+
+/**
+ * Extract a reliable unit title line(s) near the "Unit XXXX" header.
+ */
 export function parseUnitTitle(text: string, docTitleFallback: string): string {
   const t = text || "";
   const lines = toLines(t);
@@ -21,7 +92,7 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
     if (!codeRe.test(line)) continue;
 
     // Remove "Unit 4014" and separators from this line, keep the rest as the first chunk
-    let first = line
+    const first = line
       .replace(codeRe, "")
       .replace(/^\s*[:\-–—]\s*/, "")
       .trim();
@@ -45,7 +116,7 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
     if (joined) return joined;
   }
 
-  // Fallback: try classic single-line pattern (your old approach)
+  // Fallback: classic single-line pattern
   const m = firstMatch(t, /Unit\s+\d{4}\s*[-–—:]\s*([^\n]+)/i);
   return normalizeWhitespace(m || "");
 }

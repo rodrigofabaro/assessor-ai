@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import Link from "next/link";
-
+import { useMemo } from "react";
 // This patch adds READINESS HINTS to the Extract Inbox.
 // It does NOT block actions. It explains what will be missing later if you lock now.
 

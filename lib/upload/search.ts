@@ -25,11 +25,6 @@ function norm(raw: string): string {
     .trim();
 }
 
-function words(s: string): string[] {
-  const n = norm(s);
-  return n ? n.split(" ") : [];
-}
-
 function scoreStudent(s: Student, q: string): number {
   if (!q) return 0;
 
