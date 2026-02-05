@@ -1,104 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+
 const NAV = [
-  {
-    href: "/admin/specs",
-    label: "Spec Library",
-    desc: "Units, LOs/ACs, grading bands",
-    icon: "📚",
-  },
-  {
-    href: "/admin/briefs",
-    label: "Briefs Library",
-    desc: "Assignments, mapping, rubrics",
-    icon: "🧾",
-  },
-  {
-    href: "/admin/students",
-    label: "Students",
-    desc: "Submissions & records",
-    icon: "👤",
-  },
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/specs", label: "Specs" },
+  { href: "/admin/briefs", label: "Briefs" },
+  { href: "/admin/students", label: "Students" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
-
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem("adminNavCollapsed");
-      if (v === "1") setCollapsed(true);
-    } catch {}
-  }, []);
-
-  function toggle() {
-    setCollapsed((v) => {
-      const next = !v;
-      try {
-        localStorage.setItem("adminNavCollapsed", next ? "1" : "0");
-      } catch {}
-      return next;
-    });
-  }
+  const pathname = usePathname();
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className={"grid w-full min-w-0 gap-1 " + (collapsed ? "lg:grid-cols-[76px_1fr]" : "lg:grid-cols-[280px_1fr]")}
-      >
-      <aside className={"rounded-2xl border border-zinc-200 bg-white shadow-sm " + (collapsed ? "p-2" : "p-4")}
-      >
-        <div className="mb-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className={collapsed ? "sr-only" : "block"}>
-              <div className="text-sm font-semibold">Admin</div>
-              <div className="text-xs text-zinc-600">System administration</div>
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-hidden">
+      <header className="sticky top-[57px] z-40 border-b border-zinc-200 bg-white/95 backdrop-blur">
+        <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-xs font-bold text-white">
+              AI
+            </Link>
+            <div>
+              <div className="text-sm font-semibold leading-4">Assessor AI</div>
+              <div className="text-xs text-zinc-600">Admin</div>
             </div>
-
-            <button
-              type="button"
-              onClick={toggle}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-sm shadow-sm hover:bg-zinc-50"
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand" : "Collapse"}
-            >
-              {collapsed ? "➡️" : "⬅️"}
-            </button>
           </div>
-        </div>
 
-        <nav className="grid gap-1">
-          {NAV.map((item) => {
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  "rounded-xl transition hover:bg-zinc-50 text-zinc-900 " +
-                  (collapsed ? "px-0 py-2" : "px-3 py-2")
-                }
-              >
-                <div className={"flex items-start gap-2 " + (collapsed ? "justify-center" : "")}
+          <nav className="flex flex-wrap items-center gap-1">
+            {NAV.map((item) => {
+              const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={
+                    "rounded-xl px-3 py-2 text-sm font-semibold transition " +
+                    (active ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-100")
+                  }
                 >
-                  <span className={"inline-flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-50 text-base"}>
-                    {item.icon}
-                  </span>
-                  <div className={collapsed ? "sr-only" : "block"}>
-                    <div className="text-sm font-semibold leading-5">{item.label}</div>
-                    <div className="text-xs text-zinc-600">{item.desc}</div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
 
-      <div className="min-w-0">{children}</div>
-      </div>
+      <div className="w-full px-4 pb-6 pt-4 sm:px-6 lg:px-8">{children}</div>
     </div>
   );
 }
