@@ -20,7 +20,23 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
   }, [linkedDoc]);
 
   const tasksOverride = vm.tasksOverride;
-  const activeTasks = tasksOverride && tasksOverride.length ? tasksOverride : extracted;
+  const activeTasks = useMemo(() => {
+    if (!tasksOverride || !tasksOverride.length) return extracted;
+    return extracted.map((task: any, idx: number) => {
+      const override =
+        tasksOverride.find((o: any) => o?.n === task?.n) ??
+        tasksOverride[idx] ??
+        null;
+      if (!override) return task;
+      const merged = { ...task };
+      if ("label" in override) merged.label = override.label;
+      if ("heading" in override) merged.heading = override.heading;
+      if ("title" in override) merged.title = override.title;
+      if ("text" in override) merged.text = override.text;
+      if ("warnings" in override) merged.warnings = override.warnings;
+      return merged;
+    });
+  }, [extracted, tasksOverride]);
 
   // ✅ No effect. Modal opens for the CURRENT linked doc only.
   const linkedId: string | null = linkedDoc?.id ?? null;
