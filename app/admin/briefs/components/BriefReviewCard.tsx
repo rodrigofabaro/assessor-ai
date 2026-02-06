@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import type { Criterion, ReferenceDocument, Unit } from "../../reference/reference.logic";
-import { Meta } from "./ui";
+import { Meta, Pill } from "./ui";
 import BriefMappingPanel from "./BriefMappingPanel";
 import { ui } from "@/components/ui/uiClasses";
 import { useRouter } from "next/navigation";
+import { TaskCard } from "./TaskCard";
+import { tone } from "../[briefId]/components/briefStyles";
 
 export default function BriefReviewCard({ rx }: { rx: any }) {
   const router = useRouter();
@@ -45,6 +48,21 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const taskWarnings = draftWarnings.filter((w: any) => String(w).toLowerCase().includes("task"));
   const pdfTaskHref = doc ? `/api/reference-documents/${doc.id}/file#page=4` : "";
   const lockConflict = rx.lockConflict;
+  const [headerExpanded, setHeaderExpanded] = useState(false);
+  const readiness = (doc as any)?.readiness as string | undefined;
+
+  const headerRows: Array<{ label: string; value: string }> = [
+    { label: "Qualification", value: header.qualification || "—" },
+    { label: "Unit code (Pearson)", value: header.unitCode || "—" },
+    { label: "Assignment title", value: header.assignmentTitle || "—" },
+    { label: "Assignment number", value: header.assignment || "—" },
+    { label: "Academic year", value: header.academicYear || "—" },
+    { label: "Issue date", value: header.issueDate || "—" },
+    { label: "Final submission date", value: header.finalSubmissionDate || "—" },
+    { label: "Assessor", value: header.assessor || "—" },
+    { label: "Internal verifier", value: header.internalVerifier || "—" },
+    { label: "Verification date", value: header.verificationDate || "—" },
+  ];
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
@@ -159,22 +177,37 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-            <div className="text-xs text-zinc-600">
-              Header snapshot (extracted)
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs text-zinc-600">Header snapshot (extracted)</div>
+                <p className="mt-1 text-xs text-zinc-500">Read-only audit view of the brief cover fields.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Pill cls={header ? tone("ok") : tone("warn")}>{header ? "Extracted" : "Missing"}</Pill>
+                {readiness ? (
+                  <Pill cls={readiness === "READY" ? tone("ok") : readiness === "BLOCKED" ? tone("bad") : tone("warn")}>
+                    {readiness === "READY" ? "Ready" : "Attn"}
+                  </Pill>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setHeaderExpanded((prev) => !prev)}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  {headerExpanded ? "Collapse" : "Expand"}
+                </button>
+              </div>
             </div>
-            <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Meta label="Academic year" value={header.academicYear || ""} />
-              <Meta label="IV name" value={header.internalVerifier || ""} />
-              <Meta label="IV date" value={header.verificationDate || ""} />
-              <Meta label="Issue date" value={header.issueDate || ""} />
-              <Meta
-                label="Final submission"
-                value={header.finalSubmissionDate || ""}
-              />
-            </div>
+
+            {headerExpanded ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {headerRows.map((row) => (
+                  <Meta key={row.label} label={row.label} value={row.value} />
+                ))}
+              </div>
+            ) : null}
             <p className="mt-2 text-xs text-zinc-500">
-              These are stored for audit. If the PDF changes next year, upload a
-              new version and re-lock.
+              These are stored for audit. If the PDF changes next year, upload a new version and re-lock.
             </p>
           </div>
 
@@ -193,12 +226,9 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             <section className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-zinc-900">
-                    Tasks & questions
-                  </div>
+                  <div className="text-sm font-semibold text-zinc-900">Tasks & questions</div>
                   <div className="mt-0.5 text-xs text-zinc-600">
-                    Extracted from the brief — used later to check the student
-                    answered what was set.
+                    Extracted from the brief — used later to check the student answered what was set.
                   </div>
                 </div>
 
@@ -209,67 +239,9 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
               {Array.isArray(draft.tasks) && draft.tasks.length ? (
                 <div className="mt-3 grid gap-3">
-                  {draft.tasks.map((t: any, i: number) => {
-                    const title =
-                      t.title || t.heading || t.label || (t.n ? `Task ${t.n}` : "Task");
-                    const raw = String(t.text || "").trim();
-
-                    const pretty = raw
-                      .replace(/\r\n/g, "\n")
-                      .replace(/(^|\n)\(\s*([a-z])\s*\)\s*/gim, "$1$2) ")
-                      .replace(/(?!^)\s+\(\s*([a-z])\s*\)\s*/gim, "\n\n$1) ")
-                      .replace(/(?!^)\s+([a-z])\)\s+/gim, "\n\n$1) ")
-                      .replace(/(?!^)\n\s*([a-z])\)\s+/gim, "\n\n$1) ")
-                      .replace(/\n{3,}/g, "\n\n")
-                      .trim();
-
-                    const summaryOneLine = pretty.replace(/\s+/g, " ").trim();
-                    const summary =
-                      summaryOneLine.length > 140
-                        ? summaryOneLine.slice(0, 140).trim() + "…"
-                        : summaryOneLine;
-
-                    return (
-                      <details
-                        key={`task-${t?.id ?? ""}-${t?.n ?? ""}-${t?.heading ?? ""}-${t?.label ?? ""}-${i}`}
-                        className="group overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
-                      >
-                        <summary className="cursor-pointer list-none p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-900">
-                                  {title}
-                                </span>
-                                <span className="text-xs text-zinc-600 group-open:hidden">
-                                  Click to expand
-                                </span>
-                                <span className="text-xs text-zinc-600 hidden group-open:inline">
-                                  Click to collapse
-                                </span>
-                              </div>
-
-                              <div className="mt-2 text-sm text-zinc-800 group-open:hidden">
-                                {summary || (
-                                  <span className="text-zinc-500">(empty)</span>
-                                )}
-                              </div>
-                            </div>
-
-                            <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 transition group-open:rotate-180">
-                              ▾
-                            </span>
-                          </div>
-                        </summary>
-
-                        <div className="border-t border-zinc-200 bg-white p-3">
-                          <pre className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-900">
-                            {pretty || "(empty)"}
-                          </pre>
-                        </div>
-                      </details>
-                    );
-                  })}
+                  {draft.tasks.map((t: any, i: number) => (
+                    <TaskCard key={`task-${t?.id ?? ""}-${t?.n ?? ""}-${i}`} task={t} />
+                  ))}
                 </div>
               ) : (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">

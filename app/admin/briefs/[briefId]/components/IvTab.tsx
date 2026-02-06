@@ -42,13 +42,14 @@ export function IvTab({ vm }: { vm: any }) {
               <th className="px-3 py-2 text-left font-semibold">Verifier</th>
               <th className="px-3 py-2 text-left font-semibold">Date</th>
               <th className="px-3 py-2 text-left font-semibold">Notes</th>
+              <th className="px-3 py-2 text-left font-semibold">IV form</th>
               <th className="px-3 py-2 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
             {vm.ivRecords.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-zinc-600">
+                <td colSpan={7} className="px-3 py-6 text-center text-zinc-600">
                   No IV records yet.
                 </td>
               </tr>
@@ -64,6 +65,46 @@ export function IvTab({ vm }: { vm: any }) {
                   <td className="px-3 py-3 text-zinc-700">{r.verifierName || "—"}</td>
                   <td className="px-3 py-3 text-zinc-700">{r.verificationDate || "—"}</td>
                   <td className="px-3 py-3 text-zinc-700">{r.notes || "—"}</td>
+                  <td className="px-3 py-3 text-zinc-700">
+                    {r.attachment?.documentId ? (
+                      <div className="grid gap-1">
+                        <a
+                          href={`/api/reference-documents/${r.attachment.documentId}/file`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-sky-700 hover:text-sky-900"
+                        >
+                          Open IV form
+                        </a>
+                        <div className="text-xs text-zinc-500">{r.attachment.originalFilename}</div>
+                      </div>
+                    ) : (
+                      <div className="grid gap-1">
+                        <input
+                          id={`iv-upload-${r.id}`}
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!file) return;
+                            vm.uploadIvAttachment?.(r.id, file);
+                          }}
+                        />
+                        <label
+                          htmlFor={`iv-upload-${r.id}`}
+                          className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                        >
+                          Upload IV Form (PDF)
+                        </label>
+                        <div className="text-[11px] text-zinc-500">PDF only · audit linked</div>
+                      </div>
+                    )}
+                    {r.attachment?.documentId ? (
+                      <div className="mt-2 text-[11px] text-zinc-500">Attachment locked; add a new IV record for revisions.</div>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-3 text-right">
                     <button
                       type="button"
@@ -82,7 +123,7 @@ export function IvTab({ vm }: { vm: any }) {
       </div>
 
       <div className="mt-3 text-xs text-zinc-600">
-        Later: attach evidence files, add sign-off workflow, and gate “Activate for grading” on IV approval.
+        Uploading IV forms is audit-safe: prior attachments are retained by creating a new IV record for the revised year.
       </div>
     </section>
   );

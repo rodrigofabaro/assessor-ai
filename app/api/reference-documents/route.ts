@@ -26,7 +26,11 @@ export async function GET(req: Request) {
   const where: any = {};
 
   // ✅ Key fix: apply type filter when provided
-  if (type) where.type = type;
+  if (type) {
+    where.type = type;
+  } else {
+    where.type = { not: "IV_FORM" };
+  }
 
   // Optional status filter
   if (status) where.status = status;

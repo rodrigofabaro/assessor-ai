@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { TasksOverrideModal } from "./TasksOverrideModal";
-import { TasksText } from "./TasksText";
 import { Pill } from "../../components/ui";
 import { tone } from "./briefStyles";
+import { TaskCard } from "../../components/TaskCard";
 
 export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () => void }) {
   const linkedDoc = vm.linkedDoc;
@@ -20,21 +20,24 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
   }, [linkedDoc]);
 
   const tasksOverride = vm.tasksOverride;
-  const activeTasks = useMemo(() => {
-    if (!tasksOverride || !tasksOverride.length) return extracted;
+  const taskRows = useMemo(() => {
+    if (!tasksOverride || !tasksOverride.length) {
+      return extracted.map((task: any) => ({ task, extractedTask: task, overrideApplied: false }));
+    }
+
     return extracted.map((task: any, idx: number) => {
       const override =
         tasksOverride.find((o: any) => o?.n === task?.n) ??
         tasksOverride[idx] ??
         null;
-      if (!override) return task;
+      if (!override) return { task, extractedTask: task, overrideApplied: false };
       const merged = { ...task };
       if ("label" in override) merged.label = override.label;
       if ("heading" in override) merged.heading = override.heading;
       if ("title" in override) merged.title = override.title;
       if ("text" in override) merged.text = override.text;
       if ("warnings" in override) merged.warnings = override.warnings;
-      return merged;
+      return { task: merged, extractedTask: task, overrideApplied: true };
     });
   }, [extracted, tasksOverride]);
 
@@ -88,24 +91,15 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
       ) : null}
 
       <div className="mt-4 grid gap-3">
-      {activeTasks && activeTasks.length ? (
-        activeTasks.map((t: any) => (
-          <div key={`${t.label}-${t.n}`} className="rounded-2xl border border-zinc-200 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div className="text-sm font-semibold text-zinc-900">{t.title || t.heading || t.label}</div>
-                  {t.warnings?.length ? (
-                    <div className="mt-1 text-xs text-amber-900">Warning: {t.warnings.join(", ")}</div>
-                  ) : null}
-                </div>
-                <Pill cls={tone("muted")}>#{t.n}</Pill>
-              </div>
-
-              <div className="mt-3">
-                <TasksText text={t.text || "(no body detected)"} />
-              </div>
-            </div>
-          ))
+      {taskRows && taskRows.length ? (
+        taskRows.map(({ task, extractedTask, overrideApplied }: any) => (
+          <TaskCard
+            key={`${task?.label ?? ""}-${task?.n ?? ""}`}
+            task={task}
+            extractedTask={extractedTask}
+            overrideApplied={overrideApplied}
+          />
+        ))
       ) : (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <div className="font-semibold">No tasks detected yet</div>

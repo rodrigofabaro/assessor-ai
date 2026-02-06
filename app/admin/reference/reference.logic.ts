@@ -6,7 +6,7 @@ import { notifyToast } from "@/lib/ui/toast";
 
 export type ReferenceDocument = {
   id: string;
-  type: "SPEC" | "BRIEF" | "RUBRIC";
+  type: "SPEC" | "BRIEF" | "RUBRIC" | "IV_FORM";
   status: "UPLOADED" | "EXTRACTED" | "REVIEWED" | "LOCKED" | "FAILED";
   title: string;
   version: number;
