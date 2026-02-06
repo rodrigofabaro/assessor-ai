@@ -90,6 +90,12 @@ export async function POST(req: Request) {
             unitTitle,
             status: "LOCKED" as any,
             specDocumentId: doc.type === "SPEC" ? doc.id : unit.specDocumentId,
+            specIssue: (spec.unit as any)?.specIssue || (doc.sourceMeta as any)?.specIssue || unit.specIssue || null,
+            specVersionLabel:
+              (spec.unit as any)?.specVersionLabel ||
+              (doc.sourceMeta as any)?.specVersionLabel ||
+              unit.specVersionLabel ||
+              null,
             lockedAt: unit.lockedAt || now,
             lockedBy: unit.lockedBy || lockedBy || null,
           },

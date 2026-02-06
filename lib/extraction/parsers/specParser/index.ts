@@ -5,7 +5,7 @@ import { parseIssueLabel, parseMetaNumber, parsePearsonUnitCode, parseUnitCode, 
 import { parseLearningOutcomes } from "./lo";
 import type { ParsedSpec } from "./types";
 
-export const SPEC_PARSER_VERSION = "spec-v1";
+export const SPEC_PARSER_VERSION = "spec-v2";
 
 /**
  * Parse a Pearson Unit Descriptor PDF text into structured LOs + ACs.
