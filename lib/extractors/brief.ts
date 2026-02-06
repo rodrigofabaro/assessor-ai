@@ -9,6 +9,7 @@ import { firstMatch, normalizeWhitespace } from "./common";
 type BriefHeader = {
   qualification?: string | null;
   unitNumberAndTitle?: string | null;
+  assignmentTitle?: string | null;
   assessor?: string | null;
   unitCode?: string | null;
   internalVerifier?: string | null;
@@ -16,6 +17,14 @@ type BriefHeader = {
   issueDate?: string | null;
   finalSubmissionDate?: string | null;
   academicYear?: string | null;
+  warnings?: string[];
+};
+
+type BriefTask = {
+  n: number;
+  label: string;
+  title?: string | null;
+  text: string;
   warnings?: string[];
 };
 
@@ -81,31 +90,45 @@ const LABELS = [
   "Academic year",
 ];
 
-function extractByLabelRegion(text: string, label: string) {
-  const t = normHeader(text);
-  const idx = t.toLowerCase().indexOf(label.toLowerCase());
-  if (idx < 0) return null;
+function splitLines(text: string) {
+  return (text || "").replace(/\r/g, "").split("\n");
+}
 
-  const after = t.slice(idx + label.length).trim();
-  if (!after) return null;
+function escapeLabel(label: string) {
+  return label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-  let stop = after.length;
-  for (const other of LABELS) {
-    if (other.toLowerCase() === label.toLowerCase()) continue;
-    const j = after.toLowerCase().indexOf(other.toLowerCase());
-    if (j >= 0 && j < stop) stop = j;
+function isLabelLine(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  return LABELS.some((label) => new RegExp(`^${escapeLabel(label)}\\b`, "i").test(trimmed));
+}
+
+function extractByLabelLines(lines: string[], label: string) {
+  const labelRegex = new RegExp(`^\\s*${escapeLabel(label)}\\b\\s*[:\\-–]?\\s*(.*)$`, "i");
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const match = line.match(labelRegex);
+    if (!match) continue;
+
+    const remainder = (match[1] || "").trim();
+    if (remainder) {
+      return normalizeWhitespace(remainder).slice(0, 200);
+    }
+
+    const collected: string[] = [];
+    for (let j = i + 1; j < lines.length && collected.length < 4; j += 1) {
+      const nextLine = lines[j];
+      if (isLabelLine(nextLine)) break;
+      if (!nextLine.trim() && collected.length === 0) continue;
+      if (nextLine.trim()) collected.push(nextLine.trim());
+      if (collected.join(" ").length > 200) break;
+    }
+
+    const raw = normalizeWhitespace(collected.join(" "));
+    return raw ? raw.slice(0, 200) : null;
   }
-
-  let raw = after.slice(0, stop).trim();
-
-  if (/^Academic year$/i.test(label)) {
-    raw = raw.split(/\bUnit Code\b/i)[0].split(/\bAssignment\b/i)[0].trim();
-  }
-  if (/^Unit Code$/i.test(label)) {
-    raw = raw.split(/\bAssignment\b/i)[0].trim();
-  }
-
-  return raw || null;
+  return null;
 }
 
 function extractAcademicYearFallback(preview: string): string | null {
@@ -139,27 +162,29 @@ function extractAcademicYearFallback(preview: string): string | null {
 
 export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
   const headerText = preview.slice(0, 4500);
+  const headerLines = splitLines(headerText).slice(0, 200);
   const warnings: string[] = [];
 
-  const qualification = extractByLabelRegion(headerText, "Qualification");
-  const unitNumberAndTitle = extractByLabelRegion(headerText, "Unit number and title");
-  const assessor = extractByLabelRegion(headerText, "Assessor");
-  const unitCode = extractByLabelRegion(headerText, "Unit Code");
-  const internalVerifier = extractByLabelRegion(headerText, "Internal Verifier");
+  const qualification = extractByLabelLines(headerLines, "Qualification");
+  const unitNumberAndTitle = extractByLabelLines(headerLines, "Unit number and title");
+  const assignmentTitle = extractByLabelLines(headerLines, "Assignment title");
+  const assessor = extractByLabelLines(headerLines, "Assessor");
+  const unitCode = extractByLabelLines(headerLines, "Unit Code");
+  const internalVerifier = extractByLabelLines(headerLines, "Internal Verifier");
 
-  let verificationDate = extractByLabelRegion(headerText, "Verification Date");
+  let verificationDate = extractByLabelLines(headerLines, "Verification Date");
   if (verificationDate && !dateLike(verificationDate)) {
     warnings.push("verificationDate: ambiguous");
     verificationDate = null;
   }
 
-  let issueDate = extractByLabelRegion(headerText, "Issue Date");
+  let issueDate = extractByLabelLines(headerLines, "Issue Date");
   if (issueDate && !dateLike(issueDate)) {
     warnings.push("issueDate: ambiguous");
     issueDate = null;
   }
 
-  let finalSubmissionDate = extractByLabelRegion(headerText, "Final Submission Date");
+  let finalSubmissionDate = extractByLabelLines(headerLines, "Final Submission Date");
   if (finalSubmissionDate) {
     const m = tidyDate(finalSubmissionDate).match(
       /(\d{1,2}(st|nd|rd|th)?\s+[A-Za-z]{3,}\s+\d{4})/i
@@ -173,7 +198,7 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
 
   // Academic year is annoyingly inconsistent: some briefs show a proper year (2026), others show a cohort number (1).
   // We treat "1" as not useful and fall back to the Issue label (e.g., 2025/26) when present.
-  let academicYear = extractByLabelRegion(headerText, "Academic year");
+  let academicYear = extractByLabelLines(headerLines, "Academic year");
   if (academicYear) {
     academicYear = academicYear.replace(/\s*/g, "");
     if (!academicYearLike(academicYear)) {
@@ -193,6 +218,7 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
   const out: BriefHeader = {
     qualification: qualification || null,
     unitNumberAndTitle: unitNumberAndTitle || null,
+    assignmentTitle: assignmentTitle || null,
     assessor: assessor || null,
     unitCode: unitCode || null,
     internalVerifier: internalVerifier || null,
@@ -202,11 +228,59 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
     academicYear: academicYear || null,
   };
 
-  
-
   if (warnings.length) out.warnings = warnings;
 
   return out;
+}
+
+function cleanTaskLines(lines: string[]) {
+  const cleaned = lines.map((line) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, ""));
+  while (cleaned.length && cleaned[0].trim() === "") cleaned.shift();
+  while (cleaned.length && cleaned[cleaned.length - 1].trim() === "") cleaned.pop();
+  return cleaned;
+}
+
+function extractBriefTasks(text: string): { tasks: BriefTask[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const lines = splitLines(text);
+  const headingRegex = /^\s*task\s*(\d{1,2})\s*(?:[:\-–]\s*(.*))?$/i;
+
+  const headings: Array<{ index: number; n: number; title?: string | null }> = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i];
+    const match = raw.match(headingRegex);
+    if (!match) continue;
+    const n = Number(match[1]);
+    if (!n || Number.isNaN(n)) continue;
+    const title = match[2] ? normalizeWhitespace(match[2]) : null;
+    headings.push({ index: i, n, title });
+  }
+
+  if (!headings.length) {
+    warnings.push("tasks: not detected (structure unclear)");
+    return { tasks: [], warnings };
+  }
+
+  const tasks: BriefTask[] = headings.map((heading, idx) => {
+    const start = heading.index + 1;
+    const end = idx + 1 < headings.length ? headings[idx + 1].index : lines.length;
+    const bodyLines = cleanTaskLines(lines.slice(start, end));
+    let textBody = bodyLines.join("\n");
+    textBody = textBody.replace(/\n{3,}/g, "\n\n").replace(/\s+$/g, "");
+
+    const taskWarnings: string[] = [];
+    if (!textBody.trim()) taskWarnings.push("task body: empty");
+
+    return {
+      n: heading.n,
+      label: `Task ${heading.n}`,
+      title: heading.title || null,
+      text: textBody,
+      warnings: taskWarnings.length ? taskWarnings : undefined,
+    };
+  });
+
+  return { tasks, warnings };
 }
 
 export function extractBrief(text: string, fallbackTitle: string) {
@@ -246,10 +320,17 @@ export function extractBrief(text: string, fallbackTitle: string) {
 
   const preview = t.slice(0, 4500);
   const header = extractBriefHeaderFromPreview(preview);
+  const tasksResult = extractBriefTasks(t);
+  const warnings = [
+    ...(header.warnings || []),
+    ...(tasksResult.warnings || []),
+  ];
+  const titleFromHeader = header.assignmentTitle ? normalizeWhitespace(header.assignmentTitle) : null;
+  const titleFromBody = assignmentTitle ? normalizeWhitespace(assignmentTitle) : null;
 
   return {
     kind: "BRIEF" as const,
-    title: assignmentTitle ? normalizeWhitespace(assignmentTitle) : null,
+    title: titleFromHeader || titleFromBody || null,
     header,
     assignmentCode: codeGuess,
     unitCodeGuess: unitCodeGuess || null,
@@ -257,5 +338,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     totalAssignments,
     aiasLevel,
     detectedCriterionCodes,
+    tasks: tasksResult.tasks,
+    warnings: warnings.length ? warnings : undefined,
   };
 }

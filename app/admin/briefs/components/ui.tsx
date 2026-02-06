@@ -1,5 +1,7 @@
 "use client";
 
+import { ui } from "@/components/ui/uiClasses";
+
 export function Pill({ cls, children }: { cls: string; children: any }) {
   return <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + cls}>{children}</span>;
 }
@@ -10,15 +12,17 @@ export function Btn({
   onClick,
   disabled,
 }: {
-  kind: "primary" | "ghost";
+  kind: "primary" | "secondary" | "ghost";
   children: any;
   onClick?: () => void;
   disabled?: boolean;
 }) {
   const cls =
     kind === "primary"
-      ? "rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 disabled:hover:bg-zinc-900"
-      : "rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 disabled:opacity-50";
+      ? ui.btnPrimary
+      : kind === "secondary"
+      ? ui.btnSecondary
+      : "inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50";
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>
       {children}

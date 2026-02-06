@@ -31,6 +31,10 @@ export async function extractReferenceDocument(args: {
     const brief = extractBrief(text, args.docTitleFallback);
     extractedJson = {
       ...brief,
+      warnings: [
+        ...(brief.warnings || []),
+        ...warnings,
+      ],
       preview: text.slice(0, 4000),
       charCount: text.length,
     };

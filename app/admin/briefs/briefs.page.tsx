@@ -46,18 +46,25 @@ export default function AdminBriefsPage() {
 
   return (
     <div className="grid gap-4 min-w-0">
-      <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight">Briefs</h1>
-            <p className="mt-1 text-sm text-zinc-700">
-              The <span className="font-semibold">Library</span> is your register of locked briefs ready for grading. The{" "}
-              <span className="font-semibold">Inbox</span> is where you extract PDFs, fix metadata, and lock versions.
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              🧾 Briefs workspace
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Briefs</h1>
+            <p className="mt-2 text-sm text-zinc-700">
+              A <span className="font-semibold">Brief</span> is the assignment question paper + context. A{" "}
+              <span className="font-semibold">Spec</span> is the criteria universe (the law). Locking binds a brief to a
+              locked spec version for audit-ready grading.
+            </p>
+            <p className="mt-2 text-xs text-zinc-600">
+              Later, submissions link to a locked brief + locked spec, and IV records attach to the brief version.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <Btn kind="ghost" onClick={refresh} disabled={busy}>
+            <Btn kind="secondary" onClick={refresh} disabled={busy}>
               Refresh
             </Btn>
             <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
@@ -92,7 +99,7 @@ export default function AdminBriefsPage() {
         {err ? (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{err}</div>
         ) : null}
-      </header>
+      </section>
 
       {vm.tab === "library" ? (
         <BriefLibraryTable

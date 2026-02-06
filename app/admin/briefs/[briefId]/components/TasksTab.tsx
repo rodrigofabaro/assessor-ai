@@ -77,7 +77,7 @@ export function TasksTab({ vm }: { vm: any }) {
             <div key={`${t.label}-${t.n}`} className="rounded-2xl border border-zinc-200 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-zinc-900">{t.heading || t.label}</div>
+                  <div className="text-sm font-semibold text-zinc-900">{t.title || t.heading || t.label}</div>
                   {t.warnings?.length ? (
                     <div className="mt-1 text-xs text-amber-900">Warning: {t.warnings.join(", ")}</div>
                   ) : null}
