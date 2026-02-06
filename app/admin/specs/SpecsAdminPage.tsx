@@ -213,12 +213,19 @@ export default function SpecsAdminPage() {
                   >
                     Re-upload to replace file
                   </button>
-                  <a
-                    href="/admin/reference"
-                    className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-900 hover:bg-rose-100"
+                  <button
+                    type="button"
+                    onClick={admin.archiveSelected}
+                    disabled={!!vm.busy}
+                    className={
+                      "rounded-xl border px-3 py-2 text-xs font-semibold " +
+                      (vm.busy
+                        ? "cursor-not-allowed border-rose-200 bg-rose-100 text-rose-300"
+                        : "border-rose-200 bg-white text-rose-900 hover:bg-rose-100")
+                    }
                   >
                     Remove/Archive this record
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : null}

@@ -109,6 +109,17 @@ export function useSpecsAdmin() {
     }
   };
 
+  const archiveSelected = async () => {
+    if (!vm.selectedDoc || vm.busy) return;
+    try {
+      await vm.archiveSelectedDocument();
+      pushToast("success", "Archived reference record.");
+    } catch (e: any) {
+      const message = e?.message || "Archive failed";
+      pushToast("error", `Archive failed: ${message}`);
+    }
+  };
+
   return {
     vm,
     tab,
@@ -119,6 +130,7 @@ export function useSpecsAdmin() {
     counts,
     learningOutcomes,
     uploadFiles,
+    archiveSelected,
   };
 }
 

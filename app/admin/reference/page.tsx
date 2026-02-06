@@ -385,6 +385,8 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             )}
           </div>
 
+          <UnitEditorPanel vm={vm} />
+
           <div className="mt-6 border-t border-zinc-200 pt-4">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={vm.showRawJson} onChange={(e) => vm.setShowRawJson(e.target.checked)} />
@@ -411,6 +413,124 @@ function Meta({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
       <div className="text-xs text-zinc-600">{label}</div>
       <div className="mt-0.5 break-words text-sm font-semibold text-zinc-900">{value || "-"}</div>
+    </div>
+  );
+}
+
+function UnitEditorPanel({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
+  if (!vm.selectedDoc || vm.selectedDoc.type !== "SPEC") return null;
+
+  const unit = vm.selectedUnit;
+  const archived = !!unit?.sourceMeta?.archived;
+  const busy = !!vm.busy;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-xs text-zinc-600">Unit editor</div>
+          <div className="mt-1 text-sm font-semibold text-zinc-900">
+            {unit ? `${unit.unitCode} — ${unit.unitTitle}` : "No unit found for this spec"}
+          </div>
+        </div>
+
+        {unit ? (
+          <span
+            className={
+              "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold " +
+              (archived ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900")
+            }
+          >
+            {archived ? "ARCHIVED" : "ACTIVE"}
+          </span>
+        ) : null}
+      </div>
+
+      {vm.unitNotice ? (
+        <div
+          className={
+            "mt-3 rounded-xl border p-3 text-sm " +
+            (vm.unitNotice.tone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-rose-200 bg-rose-50 text-rose-900")
+          }
+        >
+          {vm.unitNotice.text}
+        </div>
+      ) : null}
+
+      {!unit ? (
+        <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+          Lock this spec to create a unit before editing its metadata.
+        </div>
+      ) : (
+        <div className="mt-3 grid gap-3">
+          <label className="grid gap-1">
+            <span className="text-xs text-zinc-600">Unit code</span>
+            <input
+              value={vm.editUnitCode}
+              onChange={(e) => vm.setEditUnitCode(e.target.value)}
+              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-xs text-zinc-600">Unit title</span>
+            <input
+              value={vm.editUnitTitle}
+              onChange={(e) => vm.setEditUnitTitle(e.target.value)}
+              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-xs text-zinc-600">Spec label</span>
+            <input
+              value={vm.editSpecLabel}
+              onChange={(e) => vm.setEditSpecLabel(e.target.value)}
+              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+          </label>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={vm.saveSelectedUnit}
+              disabled={!vm.unitDirty || busy}
+              className={
+                "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                (!vm.unitDirty || busy
+                  ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                  : "bg-zinc-900 text-white hover:bg-zinc-800")
+              }
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={vm.toggleUnitArchive}
+              disabled={busy}
+              className={
+                "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                (busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-amber-600 text-white hover:bg-amber-500")
+              }
+            >
+              {archived ? "Unarchive" : "Archive"}
+            </button>
+            <button
+              type="button"
+              onClick={vm.deleteSelectedUnit}
+              disabled={busy}
+              className={
+                "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                (busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-rose-600 text-white hover:bg-rose-500")
+              }
+            >
+              Delete (safe)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,7 +35,17 @@ export type Unit = {
   unitCode: string;
   unitTitle: string;
   status: "DRAFT" | "LOCKED";
+  specIssue?: string | null;
+  specVersionLabel?: string | null;
+  lockedAt?: string | null;
+  specDocumentId?: string | null;
+  sourceMeta?: any | null;
   learningOutcomes: LearningOutcome[];
+  assignmentBriefs?: Array<{
+    id: string;
+    assignmentCode?: string | null;
+    title?: string | null;
+  }> | null;
 };
 
 export type Criterion = {
@@ -59,6 +69,7 @@ type ReferenceAdminOptions = {
   context?: string;
   fixedInboxType?: "" | ReferenceDocument["type"];
   fixedUploadType?: "" | ReferenceDocument["type"];
+  includeArchived?: boolean;
 };
 
 
@@ -147,11 +158,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [units, setUnits] = useState<Unit[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [unitNotice, setUnitNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   // Upload
-  const [docType, setDocType] = useState<ReferenceDocument["type"]>(
-  (opts.fixedUploadType as any) || "SPEC"
-);
+  const [docType, setDocType] = useState<ReferenceDocument["type"]>((opts.fixedUploadType as any) || "SPEC");
 
   const [docTitle, setDocTitle] = useState("");
   const [docVersion, setDocVersion] = useState("1");
@@ -189,6 +199,11 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     [documents, selectedDocId]
   );
 
+  const selectedUnit = useMemo(() => {
+    if (!selectedDoc || selectedDoc.type !== "SPEC") return null;
+    return units.find((u) => u.specDocumentId === selectedDoc.id) || null;
+  }, [selectedDoc, units]);
+
   const allCriteria: Criterion[] = useMemo(() => {
     const out: Criterion[] = [];
     for (const u of units) {
@@ -210,73 +225,92 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     return allCriteria.filter((c) => c.learningOutcome.unitId === unitId);
   }, [allCriteria, briefUnitId]);
 
-const filteredDocuments = useMemo(() => {
-  const q = filters.q.trim().toLowerCase();
-  let list = documents.slice();
+  const [editUnitCode, setEditUnitCode] = useState("");
+  const [editUnitTitle, setEditUnitTitle] = useState("");
+  const [editSpecLabel, setEditSpecLabel] = useState("");
 
-  // ✅ HARD RULE: if fixedInboxType is set (Specs page), never show anything else
-  const fixedInboxType = opts.fixedInboxType;
-  if (fixedInboxType) {
-    list = list.filter((d) => d.type === fixedInboxType);
-  } else if (filters.type) {
-    list = list.filter((d) => d.type === filters.type);
-  }
+  const unitDirty = useMemo(() => {
+    if (!selectedUnit) return false;
+    const aCode = String(selectedUnit.unitCode || "").trim();
+    const aTitle = String(selectedUnit.unitTitle || "").trim();
+    const aIssue = String(selectedUnit.specVersionLabel || selectedUnit.specIssue || "").trim();
 
-  if (filters.status) list = list.filter((d) => d.status === filters.status);
+    const bCode = String(editUnitCode || "").trim();
+    const bTitle = String(editUnitTitle || "").trim();
+    const bIssue = String(editSpecLabel || "").trim();
 
-  if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
-  if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
+    return aCode !== bCode || aTitle !== bTitle || aIssue !== bIssue;
+  }, [selectedUnit, editUnitCode, editUnitTitle, editSpecLabel]);
 
-  if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
+  const filteredDocuments = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    let list = documents.slice();
 
-  if (filters.sort === "title") {
-    list.sort((a, b) => a.title.localeCompare(b.title));
-  } else if (filters.sort === "uploaded") {
-    list.sort((a, b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
-  } else {
-    const key = (d: ReferenceDocument) => {
-      const m = d.sourceMeta || {};
-      return String(m.updatedAt || m.extractedAt || d.uploadedAt || "");
-    };
-    list.sort((a, b) => key(b).localeCompare(key(a)));
-  }
+    // ✅ HARD RULE: if fixedInboxType is set (Specs page), never show anything else
+    const fixedInboxType = opts.fixedInboxType;
+    if (fixedInboxType) {
+      list = list.filter((d) => d.type === fixedInboxType);
+    } else if (filters.type) {
+      list = list.filter((d) => d.type === filters.type);
+    }
 
-  return list;
-}, [documents, filters, opts.fixedInboxType]);
+    if (filters.status) list = list.filter((d) => d.status === filters.status);
 
+    if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
+    if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
+
+    if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
+
+    if (filters.sort === "title") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (filters.sort === "uploaded") {
+      list.sort((a, b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
+    } else {
+      const key = (d: ReferenceDocument) => {
+        const m = d.sourceMeta || {};
+        return String(m.updatedAt || m.extractedAt || d.uploadedAt || "");
+      };
+      list.sort((a, b) => key(b).localeCompare(key(a)));
+    }
+
+    return list;
+  }, [documents, filters, opts.fixedInboxType]);
 
   async function refreshAll({ keepSelection }: { keepSelection?: boolean } = {}) {
     const [docs, unitsRes] = await Promise.all([
       (() => {
-  const params = new URLSearchParams();
+        const params = new URLSearchParams();
 
-  const effectiveType = opts.fixedInboxType || filters.type || "";
-  if (effectiveType) params.set("type", effectiveType);
+        const effectiveType = opts.fixedInboxType || filters.type || "";
+        if (effectiveType) params.set("type", effectiveType);
 
-  // optional (keep server-side filtering aligned with your UI)
-  if (filters.status) params.set("status", filters.status);
-  if (filters.q) params.set("q", filters.q);
-  if (filters.onlyLocked) params.set("onlyLocked", "true");
-  if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
+        // optional (keep server-side filtering aligned with your UI)
+        if (filters.status) params.set("status", filters.status);
+        if (filters.q) params.set("q", filters.q);
+        if (filters.onlyLocked) params.set("onlyLocked", "true");
+        if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
 
-  const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
-  return jsonFetch<{ documents: ReferenceDocument[] }>(url);
-})(),
+        const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
+        return jsonFetch<{ documents: ReferenceDocument[] }>(url);
+      })(),
 
       jsonFetch<{ units: Unit[] }>("/api/units"),
     ]);
 
-    setDocuments(docs.documents || []);
+    const rawDocs = docs.documents || [];
+    const filteredDocs = opts.includeArchived ? rawDocs : rawDocs.filter((d) => !(d.sourceMeta as any)?.archived);
+
+    setDocuments(filteredDocs);
     setUnits(unitsRes.units || []);
 
     // Preserve selection if possible; otherwise auto-select first filtered item.
-    if (keepSelection && selectedDocId && (docs.documents || []).some((d) => d.id === selectedDocId)) {
+    if (keepSelection && selectedDocId && filteredDocs.some((d) => d.id === selectedDocId)) {
       return;
     }
 
     // If nothing selected, pick the first doc (prefer filtered list, else all docs)
     if (!selectedDocId) {
-      const first = (docs.documents || [])[0];
+      const first = filteredDocs[0];
       if (first) setSelectedDocId(first.id);
     }
   }
@@ -317,6 +351,21 @@ const filteredDocuments = useMemo(() => {
       setMapSelected(sel);
     }
   }, [selectedDoc, units, allCriteria]);
+
+  useEffect(() => {
+    if (!selectedUnit) {
+      setEditUnitCode("");
+      setEditUnitTitle("");
+      setEditSpecLabel("");
+      setUnitNotice(null);
+      return;
+    }
+
+    setEditUnitCode(String(selectedUnit.unitCode || ""));
+    setEditUnitTitle(String(selectedUnit.unitTitle || ""));
+    setEditSpecLabel(String(selectedUnit.specVersionLabel || selectedUnit.specIssue || ""));
+    setUnitNotice(null);
+  }, [selectedUnit]);
 
   async function uploadDoc() {
     setError(null);
@@ -433,6 +482,131 @@ const filteredDocuments = useMemo(() => {
     setFilters({ q: "", type: "", status: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" });
   }
 
+  async function archiveSelectedDocument() {
+    setError(null);
+    if (!selectedDoc) return;
+
+    setBusy("Archiving...");
+    try {
+      await jsonFetch(`/api/reference-documents/${selectedDoc.id}/archive`, { method: "POST" });
+      await refreshAll({ keepSelection: false });
+    } catch (e: any) {
+      const message = e?.message || "Archive failed";
+      setError(message);
+      throw e;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveSelectedUnit() {
+    setUnitNotice(null);
+    if (!selectedUnit) return;
+
+    setBusy("Saving unit...");
+    try {
+      const unitCode = String(editUnitCode || "").trim();
+      const unitTitle = String(editUnitTitle || "").trim();
+      const specLabel = String(editSpecLabel || "").trim();
+
+      await jsonFetch(`/api/units/${selectedUnit.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          unitCode,
+          unitTitle,
+          specVersionLabel: specLabel,
+          specIssue: specLabel,
+        }),
+      });
+
+      if (selectedDoc) {
+        await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            unitCode,
+            unitTitle,
+            specVersionLabel: specLabel,
+            specIssue: specLabel,
+          }),
+        });
+      }
+
+      await refreshAll({ keepSelection: true });
+      setUnitNotice({ tone: "success", text: "Saved unit metadata." });
+    } catch (e: any) {
+      const message = e?.message || "Save failed";
+      setUnitNotice({ tone: "error", text: `Failed to save: ${message}` });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleUnitArchive() {
+    setUnitNotice(null);
+    if (!selectedUnit) return;
+
+    const nextArchived = !(selectedUnit.sourceMeta as any)?.archived;
+    setBusy(nextArchived ? "Archiving..." : "Unarchiving...");
+    try {
+      await jsonFetch(`/api/units/${selectedUnit.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sourceMeta: { ...(selectedUnit.sourceMeta || {}), archived: nextArchived },
+        }),
+      });
+      await refreshAll({ keepSelection: true });
+      setUnitNotice({ tone: "success", text: nextArchived ? "Unit archived." : "Unit unarchived." });
+    } catch (e: any) {
+      const message = e?.message || "Archive failed";
+      setUnitNotice({ tone: "error", text: `Failed to archive: ${message}` });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function deleteSelectedUnit() {
+    setUnitNotice(null);
+    if (!selectedUnit) return;
+
+    const briefsArr = Array.isArray(selectedUnit.assignmentBriefs) ? selectedUnit.assignmentBriefs : [];
+    if (briefsArr.length) {
+      const list = briefsArr
+        .slice(0, 3)
+        .map((b) => b?.assignmentCode || b?.title || b?.id)
+        .filter(Boolean)
+        .join(", ");
+
+      setUnitNotice({
+        tone: "error",
+        text:
+          `Cannot delete ${selectedUnit.unitCode} — it has ${briefsArr.length} bound brief(s). ` +
+          (list ? `Examples: ${list}. ` : "") +
+          "Archive it instead (or unbind briefs first).",
+      });
+      return;
+    }
+
+    const ok = window.confirm(
+      `Delete ${selectedUnit.unitCode} — ${selectedUnit.unitTitle}?\n\nThis will remove its Learning Outcomes and Criteria too.`
+    );
+    if (!ok) return;
+
+    setBusy("Deleting...");
+    try {
+      await jsonFetch(`/api/units/${selectedUnit.id}`, { method: "DELETE" });
+      await refreshAll({ keepSelection: false });
+      setUnitNotice({ tone: "success", text: "Unit deleted." });
+    } catch (e: any) {
+      const message = e?.message || "Delete failed";
+      setUnitNotice({ tone: "error", text: `Failed to delete: ${message}` });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return {
     // data
     documents,
@@ -441,6 +615,7 @@ const filteredDocuments = useMemo(() => {
     busy,
     error,
     selectedDoc,
+    selectedUnit,
     selectedDocId,
 
     // upload
@@ -473,6 +648,9 @@ const filteredDocuments = useMemo(() => {
     setShowRawJson,
     setRawJson,
     setAssignmentCodeInput,
+    setEditUnitCode,
+    setEditUnitTitle,
+    setEditSpecLabel,
 
     // actions
     uploadDoc,
@@ -480,5 +658,15 @@ const filteredDocuments = useMemo(() => {
     reextractSelected,
     lockSelected,
     refreshAll,
+    archiveSelectedDocument,
+    saveSelectedUnit,
+    toggleUnitArchive,
+    deleteSelectedUnit,
+
+    editUnitCode,
+    editUnitTitle,
+    editSpecLabel,
+    unitDirty,
+    unitNotice,
   };
 }
