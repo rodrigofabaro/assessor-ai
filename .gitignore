@@ -62,3 +62,6 @@ dist/
 # Local export zips
 latested version.zip
 
+# Local uploaded reference files
+reference_uploads/
+
