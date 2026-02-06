@@ -155,7 +155,7 @@ export async function POST(req: Request) {
       reextractHistory,
     } as any;
 
-    await prisma.referenceDocument.update({
+    const updatedDoc = await prisma.referenceDocument.update({
       where: { id: doc.id },
       data: {
         status: "EXTRACTED",
@@ -165,7 +165,14 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ ok: true, id: doc.id, usedPath: resolved.path, warnings, extractedJson });
+    return NextResponse.json({
+      ok: true,
+      id: doc.id,
+      usedPath: resolved.path,
+      warnings,
+      extractedJson,
+      document: updatedDoc,
+    });
   } catch (err: any) {
     const message = err?.message || String(err);
     const stack = err?.stack ? String(err.stack) : "";

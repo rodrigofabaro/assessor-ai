@@ -1,15 +1,13 @@
 "use client";
 
-import type {
-  Criterion,
-  ReferenceDocument,
-  Unit,
-} from "../../reference/reference.logic";
+import type { Criterion, ReferenceDocument, Unit } from "../../reference/reference.logic";
 import { Meta } from "./ui";
 import BriefMappingPanel from "./BriefMappingPanel";
 import { ui } from "@/components/ui/uiClasses";
+import { useRouter } from "next/navigation";
 
 export default function BriefReviewCard({ rx }: { rx: any }) {
+  const router = useRouter();
   const doc = rx.selectedDoc as ReferenceDocument | null;
 
   // 1. Extract latest draft from props
@@ -34,6 +32,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   
   const canExtract = !!doc && !isBusy;
   const canLock = !!doc && !isBusy;
+  const canDelete = !!doc && !isBusy && !doc.lockedAt;
 
   const header = (
     draft && draft.kind === "BRIEF" ? draft.header || {} : {}
@@ -42,6 +41,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
   const taskWarnings = draftWarnings.filter((w: any) => String(w).toLowerCase().includes("task"));
   const pdfTaskHref = doc ? `/api/reference-documents/${doc.id}/file#page=4` : "";
+  const lockConflict = rx.lockConflict;
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
@@ -107,6 +107,15 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
             >
               Lock
+            </button>
+
+            <button
+              type="button"
+              disabled={!canDelete}
+              onClick={rx.deleteSelectedDocument}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Delete
             </button>
 
             <a
@@ -300,6 +309,44 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
           </div>
         </div>
       )}
+
+      {lockConflict ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl">
+            <div className="text-sm font-semibold text-zinc-900">Brief already locked</div>
+            <p className="mt-2 text-sm text-zinc-700">
+              A brief for{" "}
+              <span className="font-semibold">
+                {lockConflict.unitCode ? `Unit ${lockConflict.unitCode}` : "this unit"}{" "}
+                {lockConflict.assignmentCode ? lockConflict.assignmentCode : ""}
+              </span>{" "}
+              is already locked.
+            </p>
+            {lockConflict.existingTitle ? (
+              <p className="mt-2 text-xs text-zinc-600">Existing brief: {lockConflict.existingTitle}</p>
+            ) : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/admin/briefs/${lockConflict.existingBriefId}`)}
+                className={ui.btnSecondary}
+              >
+                Open existing locked brief
+              </button>
+              <button
+                type="button"
+                onClick={rx.confirmLockOverwrite}
+                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100"
+              >
+                Replace it (danger)
+              </button>
+              <button type="button" onClick={() => rx.setLockConflict(null)} className={ui.btnSecondary}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
