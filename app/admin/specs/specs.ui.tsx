@@ -16,8 +16,8 @@ function pickIssueLabel(doc: ReferenceDocument | null) {
 
 function pickUnitIdentity(doc: ReferenceDocument | null) {
   if (!doc) return { unitCode: "", unitTitle: "", unitCodeQualifier: "" };
-  const unitCode = doc.extractedJson?.unit?.unitCode || doc.sourceMeta?.unitCode || "";
-  const unitTitle = doc.extractedJson?.unit?.unitTitle || "";
+  const unitCode = doc.sourceMeta?.unitCode || doc.extractedJson?.unit?.unitCode || "";
+  const unitTitle = doc.sourceMeta?.unitTitle || doc.extractedJson?.unit?.unitTitle || "";
   const unitCodeQualifier = doc.extractedJson?.unit?.unitCodeQualifier || doc.sourceMeta?.unitCodeQualifier || "";
   return { unitCode, unitTitle, unitCodeQualifier };
 }
