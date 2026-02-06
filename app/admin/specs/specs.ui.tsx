@@ -3,6 +3,37 @@
 import { LoCriteriaGrid } from "@/components/spec/LoCriteriaGrid";
 import { badge, type ReferenceDocument } from "../reference/reference.logic";
 
+function pickIssueLabel(doc: ReferenceDocument | null) {
+  if (!doc) return "";
+  return (
+    doc.sourceMeta?.specIssue ||
+    doc.sourceMeta?.specVersionLabel ||
+    doc.extractedJson?.unit?.specIssue ||
+    doc.extractedJson?.unit?.specVersionLabel ||
+    ""
+  );
+}
+
+function pickUnitIdentity(doc: ReferenceDocument | null) {
+  if (!doc) return { unitCode: "", unitTitle: "", unitCodeQualifier: "" };
+  const unitCode = doc.extractedJson?.unit?.unitCode || doc.sourceMeta?.unitCode || "";
+  const unitTitle = doc.extractedJson?.unit?.unitTitle || "";
+  const unitCodeQualifier = doc.extractedJson?.unit?.unitCodeQualifier || doc.sourceMeta?.unitCodeQualifier || "";
+  return { unitCode, unitTitle, unitCodeQualifier };
+}
+
+function formatUnitTitle(doc: ReferenceDocument | null) {
+  const { unitCode, unitTitle } = pickUnitIdentity(doc);
+  if (unitCode && unitTitle) return `${unitCode} — ${unitTitle}`;
+  if (unitTitle) return unitTitle;
+  return doc?.title || "Untitled spec";
+}
+
+function formatIssueLabel(label: string) {
+  if (!label) return "";
+  return /^issue\b/i.test(label.trim()) ? label.trim() : `Issue ${label.trim()}`;
+}
+
 export function StatusPill({ status }: { status: ReferenceDocument["status"] }) {
   const b = badge(status);
   return <span className={"inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " + b.cls}>{b.text}</span>;
@@ -19,7 +50,7 @@ export function SpecList(props: {
   counts: { shown: number; total: number };
 }) {
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold">Units list</h2>
       <div className="mt-3 grid gap-2">
         <input
@@ -51,6 +82,8 @@ export function SpecList(props: {
         ) : (
           props.documents.map((d) => {
             const active = props.selectedDocId === d.id;
+            const issueLabel = formatIssueLabel(pickIssueLabel(d));
+            const title = formatUnitTitle(d);
             return (
               <button
                 key={d.id}
@@ -62,8 +95,11 @@ export function SpecList(props: {
                 }
               >
                 <StatusPill status={d.status} />
-                <div className="mt-2 text-sm font-semibold">{d.title}</div>
+                <div className="mt-2 text-sm font-semibold">{title}</div>
                 <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-500")}>v{d.version}</div>
+                <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-500")}>
+                  {issueLabel ? issueLabel : "Issue —"}
+                </div>
               </button>
             );
           })
@@ -74,10 +110,11 @@ export function SpecList(props: {
 }
 
 export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc: ReferenceDocument | null; learningOutcomes: any[] }) {
-  const issue = selectedDoc?.sourceMeta?.specIssue || selectedDoc?.sourceMeta?.specVersionLabel || selectedDoc?.extractedJson?.unit?.specIssue || "—";
+  const issue = formatIssueLabel(pickIssueLabel(selectedDoc)) || "—";
+  const { unitCodeQualifier } = pickUnitIdentity(selectedDoc);
 
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm min-w-0">
+    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
       <h2 className="text-sm font-semibold">Unit metadata</h2>
       {!selectedDoc ? (
         <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">Select a unit to inspect metadata.</div>
@@ -86,6 +123,16 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
           <div>
             <span className="text-zinc-500">Title:</span> <span className="font-semibold text-zinc-900">{selectedDoc.title}</span>
           </div>
+          <div>
+            <span className="text-zinc-500">Unit:</span>{" "}
+            <span className="font-semibold text-zinc-900">{formatUnitTitle(selectedDoc)}</span>
+          </div>
+          {unitCodeQualifier ? (
+            <div>
+              <span className="text-zinc-500">Unit code (qual):</span>{" "}
+              <span className="font-semibold text-zinc-900">{unitCodeQualifier}</span>
+            </div>
+          ) : null}
           <div>
             <span className="text-zinc-500">Issue:</span> <span className="font-semibold text-zinc-900">{issue}</span>
           </div>
@@ -100,7 +147,7 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
 
 export function SpecViewer({ selectedDoc, learningOutcomes }: { selectedDoc: ReferenceDocument | null; learningOutcomes: any[] }) {
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm min-w-0">
+    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
       <h2 className="text-sm font-semibold">Spec viewer</h2>
       {!selectedDoc ? (
         <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">Select a unit to view extracted LO/AC.</div>

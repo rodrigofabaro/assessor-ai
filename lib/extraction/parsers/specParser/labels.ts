@@ -78,6 +78,25 @@ export function parsePearsonUnitCode(text: string): string {
 }
 
 /**
+ * Extract the qualification/unit identifier (e.g. "Unit Code: T/650/9628").
+ */
+export function parseUnitCodeQualifier(text: string): string {
+  const t = text || "";
+  const lines = toLines(t);
+  const unitCodeRe = /\bUnit\s*Code\b/i;
+  const valueRe = /\bUnit\s*Code\b\s*[:\-–—]?\s*([A-Za-z0-9/]+)\b/i;
+
+  for (const line of lines.slice(0, 200)) {
+    if (!unitCodeRe.test(line)) continue;
+    const m = line.match(valueRe);
+    if (m && m[1]) return normalizeWhitespace(m[1]);
+  }
+
+  const fallback = firstMatch(t, valueRe);
+  return normalizeWhitespace(fallback || "");
+}
+
+/**
  * Extract a numeric value for a labelled meta field (e.g. Level, Credits).
  *
  * Examples it handles:
@@ -118,7 +137,10 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
 
   // Stop markers: once we hit these, we’ve left the header/title area
   const stopRe =
-    /(engineering suite|\u00a9|©|pearson|higher nationals|unit descriptor|learning outcomes|assessment criteria|level\b|credits\b|guided learning|summary of unit|essential content)/i;
+    /(engineering suite|\u00a9|©|pearson|higher nationals|unit descriptor|learning outcomes|assessment criteria|level\b|credits\b|guided learning|summary of unit|essential content|unit code\b)/i;
+
+  const stripUnitCodeQualifier = (value: string) =>
+    value.replace(/\bUnit\s*Code\b\s*[:\-–—]?\s*[A-Za-z0-9/]+/i, "").trim();
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -127,17 +149,19 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
     if (!codeRe.test(line)) continue;
 
     // Remove "Unit 4014" and separators from this line, keep the rest as the first chunk
-    const first = line
-      .replace(codeRe, "")
-      .replace(/^\s*[:\-–—]\s*/, "")
-      .trim();
+    const first = stripUnitCodeQualifier(
+      line
+        .replace(codeRe, "")
+        .replace(/^\s*[:\-–—]\s*/, "")
+        .trim(),
+    );
 
     const parts: string[] = [];
     if (first && !stopRe.test(first)) parts.push(first);
 
     // If the title wrapped, collect continuation lines
     for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
-      const nxt = (lines[j] || "").trim();
+      const nxt = stripUnitCodeQualifier((lines[j] || "").trim());
       if (!nxt) break;
       if (stopRe.test(nxt)) break;
 
@@ -147,7 +171,7 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
       parts.push(nxt);
     }
 
-    const joined = normalizeWhitespace(parts.join(" "));
+    const joined = normalizeWhitespace(stripUnitCodeQualifier(parts.join(" ")));
     if (joined) return joined;
   }
 

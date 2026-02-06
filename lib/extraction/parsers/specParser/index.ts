@@ -1,7 +1,7 @@
 import { parseCriteriaByLO } from "./criteria";
 import { extractEssentialContentByLO } from "./essential";
 
-import { parseIssueLabel, parseMetaNumber, parsePearsonUnitCode, parseUnitCode, parseUnitTitle } from "./labels";
+import { parseIssueLabel, parseMetaNumber, parsePearsonUnitCode, parseUnitCode, parseUnitCodeQualifier, parseUnitTitle } from "./labels";
 import { parseLearningOutcomes } from "./lo";
 import type { ParsedSpec } from "./types";
 
@@ -20,6 +20,7 @@ export function parseSpec(text: string, docTitleFallback: string): ParsedSpec {
   const unitTitle = parseUnitTitle(t, docTitleFallback);
 
   const pearsonUnitCode = parsePearsonUnitCode(t);
+  const unitCodeQualifier = parseUnitCodeQualifier(t);
   const level = parseMetaNumber(t, "Level");
   const credits = parseMetaNumber(t, "Credits");
 
@@ -29,21 +30,18 @@ export function parseSpec(text: string, docTitleFallback: string): ParsedSpec {
     criteria: [],
   }));
 
-  
+  // Criteria extraction (P/M/D)
+  const loCodes = learningOutcomes.map((x) => x.loCode);
+  const criteriaByLo = parseCriteriaByLO(t, loCodes);
+  for (const lo of learningOutcomes) {
+    lo.criteria = criteriaByLo[lo.loCode] || [];
+  }
 
-// Criteria extraction (P/M/D)
-const loCodes = learningOutcomes.map((x) => x.loCode);
-const criteriaByLo = parseCriteriaByLO(t, loCodes);
-for (const lo of learningOutcomes) {
-  lo.criteria = criteriaByLo[lo.loCode] || [];
-}
-
-// Essential content (optional) — from Essential Content section only
-const essentialByLo = extractEssentialContentByLO(t, loCodes);
-for (const lo of learningOutcomes) {
-  lo.essentialContent = essentialByLo[lo.loCode] || null;
-}
-
+  // Essential content (optional) — from Essential Content section only
+  const essentialByLo = extractEssentialContentByLO(t, loCodes);
+  for (const lo of learningOutcomes) {
+    lo.essentialContent = essentialByLo[lo.loCode] || null;
+  }
 
   return {
     kind: "SPEC",
@@ -52,6 +50,7 @@ for (const lo of learningOutcomes) {
       unitCode: unitCode || "",
       unitTitle: unitTitle || "",
       pearsonUnitCode: pearsonUnitCode || null,
+      unitCodeQualifier: unitCodeQualifier || null,
       level: typeof level === "number" && !Number.isNaN(level) ? level : null,
       credits: typeof credits === "number" && !Number.isNaN(credits) ? credits : null,
       specIssue: issueLabel || null,
