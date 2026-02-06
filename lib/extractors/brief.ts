@@ -34,6 +34,7 @@ type BriefTask = {
   prompt?: string;
   parts?: Array<{ key: string; text: string }>;
   warnings?: string[];
+  confidence?: "CLEAN" | "HEURISTIC";
 };
 
 function uniqSortedCodes(codes: string[]) {
@@ -198,7 +199,11 @@ function stripFooterLines(lines: string[]) {
 }
 
 const END_MATTER_HEADINGS: Array<{ key: "sourcesBlock" | "criteriaBlock"; regex: RegExp }> = [
-  { key: "sourcesBlock", regex: /^Sources of information/i },
+  { key: "sourcesBlock", regex: /^Sources\s+of\s+information/i },
+  { key: "sourcesBlock", regex: /^Textbooks?/i },
+  { key: "sourcesBlock", regex: /^Websites?/i },
+  { key: "sourcesBlock", regex: /^Further\s+reading/i },
+  { key: "sourcesBlock", regex: /^Additional\s+resources?/i },
   { key: "criteriaBlock", regex: /^Relevant Learning Outcomes/i },
   { key: "criteriaBlock", regex: /^Assessment Criteria/i },
   { key: "criteriaBlock", regex: /^Pass Merit Distinction/i },
@@ -566,6 +571,7 @@ function extractBriefTasks(
           text: preText,
           prompt: preText,
           pages: Array.from(new Set(linesWithPages.slice(0, firstHeading.index).map((l) => l.page))),
+          confidence: "HEURISTIC",
         });
       }
     }
@@ -601,6 +607,7 @@ function extractBriefTasks(
       prompt: textBody,
       parts: parts || undefined,
       warnings: taskWarnings.length ? taskWarnings : undefined,
+      confidence: taskWarnings.length ? "HEURISTIC" : "CLEAN",
     });
   });
 

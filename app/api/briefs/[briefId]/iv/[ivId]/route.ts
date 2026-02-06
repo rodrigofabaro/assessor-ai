@@ -18,6 +18,15 @@ function safeIvRecords(x: any) {
       outcome: String(r.outcome || "CHANGES_REQUIRED"),
       notes: r.notes ?? null,
       createdAt: String(r.createdAt || ""),
+      attachment: r.attachment
+        ? {
+            documentId: String(r.attachment.documentId || ""),
+            originalFilename: String(r.attachment.originalFilename || ""),
+            uploadedAt: String(r.attachment.uploadedAt || ""),
+            size: Number(r.attachment.size || 0),
+            storagePath: r.attachment.storagePath ? String(r.attachment.storagePath) : null,
+          }
+        : null,
     }))
     .filter((r) => r.id && r.academicYear);
 }

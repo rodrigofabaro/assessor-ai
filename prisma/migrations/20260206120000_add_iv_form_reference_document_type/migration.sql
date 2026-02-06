@@ -1,0 +1,1 @@
+ALTER TYPE "ReferenceDocumentType" ADD VALUE IF NOT EXISTS 'IV_FORM';

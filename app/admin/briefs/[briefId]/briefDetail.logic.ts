@@ -73,6 +73,13 @@ export type IvRecord = {
   outcome: IvOutcome;
   notes?: string | null;
   createdAt: string;
+  attachment?: {
+    documentId: string;
+    originalFilename: string;
+    uploadedAt: string;
+    size: number;
+    storagePath?: string | null;
+  } | null;
 };
 
 export type RubricAttachment = {
@@ -121,6 +128,15 @@ function safeIvRecords(x: any): IvRecord[] {
       outcome: (r.outcome || "CHANGES_REQUIRED") as IvOutcome,
       notes: r.notes ?? null,
       createdAt: String(r.createdAt || ""),
+      attachment: r.attachment
+        ? {
+            documentId: String(r.attachment.documentId || ""),
+            originalFilename: String(r.attachment.originalFilename || ""),
+            uploadedAt: String(r.attachment.uploadedAt || ""),
+            size: Number(r.attachment.size || 0),
+            storagePath: r.attachment.storagePath ? String(r.attachment.storagePath) : null,
+          }
+        : null,
     }))
     .filter((r) => r.id && r.academicYear)
     .sort((a, b) => (b.academicYear || "").localeCompare(a.academicYear || ""));
@@ -315,6 +331,29 @@ export function useBriefDetail(briefId: string) {
     }
   };
 
+  const uploadIvAttachment = async (id: string, file: File) => {
+    if (!briefId) return;
+    setIvBusy(true);
+    setIvError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/iv/${id}/attachment`, {
+        method: "POST",
+        body: form,
+      });
+      const recs = safeIvRecords(res?.records);
+      setIvRecords(recs);
+      notifyToast("success", "IV form uploaded.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to upload IV form.";
+      setIvError(message);
+      notifyToast("error", message);
+    } finally {
+      setIvBusy(false);
+    }
+  };
+
   const loadRubric = async () => {
     if (!briefId) return;
     setRubricBusy(true);
@@ -486,6 +525,7 @@ export function useBriefDetail(briefId: string) {
     ivRecords,
     addIvRecord,
     deleteIvRecord,
+    uploadIvAttachment,
     rubric,
     rubricBusy,
     rubricError,

@@ -30,6 +30,7 @@ enum ReferenceDocumentType {
   SPEC
   BRIEF
   RUBRIC
+  IV_FORM
 }
 
 enum ReferenceDocumentStatus {

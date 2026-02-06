@@ -160,8 +160,8 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
             <input
               value={f.q}
               onChange={(e: any) => setF({ ...f, q: e.target.value })}
-              placeholder="Search title, filename, unit code, A-code…"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
+              placeholder="Search title, filename, unit code…"
+              className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
             />
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -170,7 +170,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
               <select
                 value={f.status}
                 onChange={(e: any) => setF({ ...f, status: (e.target.value as any) || "" })}
-                className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm"
+                className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
               >
                 <option value="">All statuses</option>
                 <option value="UPLOADED">UPLOADED</option>
@@ -182,7 +182,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm">
+              <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
                 <input
                   type="checkbox"
                   checked={!!f.onlyLocked}
@@ -193,7 +193,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
                 Only locked
               </label>
 
-              <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm">
+              <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
                 <input
                   type="checkbox"
                   checked={!!f.onlyUnlocked}
@@ -209,16 +209,32 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
               <select
                 value={f.sort}
                 onChange={(e: any) => setF({ ...f, sort: e.target.value as any })}
-                className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm"
+                className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
               >
                 <option value="updated">Sort: updated</option>
                 <option value="uploaded">Sort: uploaded</option>
                 <option value="title">Sort: title</option>
               </select>
 
-              <div className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm flex items-center">
-                Showing {counts.shown} of {counts.total}
+              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
+                Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
+                <span className="font-semibold text-zinc-900">{counts.total}</span>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs">
+              {(["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setF({ ...f, status: f.status === s ? "" : (s as any) })}
+                  className={
+                    "rounded-full border px-3 py-1 font-semibold " +
+                    (f.status === s ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                  }
+                >
+                  {s} <span className="opacity-70">({counts.byStatus[s] || 0})</span>
+                </button>
+              ))}
             </div>
           </div>
 
