@@ -84,14 +84,16 @@ export async function POST(req: Request) {
     const typeRaw = formData.get("type");
     const titleRaw = formData.get("title");
     const versionRaw = formData.get("version");
-    const file = formData.get("file");
+    const fileEntries = [
+      ...formData.getAll("file"),
+      ...formData.getAll("files"),
+    ].filter((entry): entry is File => entry instanceof File);
 
     const type = typeof typeRaw === "string" ? typeRaw.toUpperCase() : "";
     const title = typeof titleRaw === "string" ? titleRaw.trim() : "";
     const { version, versionLabel } = parseVersion(versionRaw);
 
-
-    if (!title || !file || !(file instanceof File)) {
+    if (!title || !fileEntries.length) {
       return NextResponse.json({ error: "Missing title or file" }, { status: 400 });
     }
 
@@ -103,41 +105,60 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid version" }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const MAX_BYTES = 50 * 1024 * 1024;
+    const documents = [];
 
-    const checksumSha256 = crypto.createHash("sha256").update(buffer).digest("hex");
+    for (const file of fileEntries) {
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (!isPdf) {
+        return NextResponse.json({ error: "Only PDF files are supported." }, { status: 400 });
+      }
+      if (file.size > MAX_BYTES) {
+        return NextResponse.json({ error: "File too large (max 50MB)." }, { status: 413 });
+      }
 
-    // ✅ Canonical folder (dev local). Keep DB path RELATIVE so it’s portable.
-    const uploadDirRel = "reference_uploads";
-    const uploadDirAbs = path.join(process.cwd(), uploadDirRel);
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-    if (!fs.existsSync(uploadDirAbs)) fs.mkdirSync(uploadDirAbs, { recursive: true });
+      const checksumSha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
-    // ✅ storedFilename should be stable and safe; keep original name for humans
-    const originalSafe = safeName(file.name);
-    const storedFilename = `${uuid()}-${originalSafe}`;
+      // ✅ Canonical folder (dev local). Keep DB path RELATIVE so it’s portable.
+      const uploadDirRel = "reference_uploads";
+      const uploadDirAbs = path.join(process.cwd(), uploadDirRel);
 
-    // ✅ Write using absolute path; store RELATIVE in DB
-    const storagePathRel = path.join(uploadDirRel, storedFilename);
-    const storagePathAbs = path.join(process.cwd(), storagePathRel);
+      if (!fs.existsSync(uploadDirAbs)) fs.mkdirSync(uploadDirAbs, { recursive: true });
 
-    fs.writeFileSync(storagePathAbs, buffer);
+      // ✅ storedFilename should be stable and safe; keep original name for humans
+      const originalSafe = safeName(file.name);
+      const storedFilename = `${uuid()}-${originalSafe}`;
 
-const doc = await prisma.referenceDocument.create({
-  data: {
-    type: type as any,
-    title,
-    version,
-    originalFilename: file.name,
-    storedFilename,
-    storagePath: storagePathRel,
-    checksumSha256,
-    sourceMeta: versionLabel ? { versionLabel } : undefined,
-  },
-});
+      // ✅ Write using absolute path; store RELATIVE in DB
+      const storagePathRel = path.join(uploadDirRel, storedFilename);
+      const storagePathAbs = path.join(process.cwd(), storagePathRel);
 
-    return NextResponse.json({ document: doc });
+      fs.writeFileSync(storagePathAbs, buffer);
+
+      const doc = await prisma.referenceDocument.create({
+        data: {
+          type: type as any,
+          title,
+          version,
+          originalFilename: file.name,
+          storedFilename,
+          storagePath: storagePathRel,
+          checksumSha256,
+          sourceMeta: versionLabel ? { versionLabel } : undefined,
+        },
+      });
+
+      documents.push(doc);
+    }
+
+    if (documents.length === 1) {
+      return NextResponse.json({ document: documents[0] });
+    }
+
+    return NextResponse.json({ documents });
   } catch (err) {
     console.error("REFERENCE_UPLOAD_ERROR:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

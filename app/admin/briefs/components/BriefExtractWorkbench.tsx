@@ -26,6 +26,12 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
     : "border-dashed border-zinc-200 bg-zinc-50 text-zinc-600";
 
   const isUploading = String(rx.busy || "").toLowerCase().includes("upload");
+  const uploadStatus = rx.busy ? String(rx.busy) : "Ready";
+
+  const handleFiles = (files: File[]) => {
+    if (!files.length) return;
+    rx.uploadFiles?.(files);
+  };
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
@@ -36,7 +42,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
         multiple
         className="sr-only"
         onChange={(e) => {
-          rx.uploadFiles?.(Array.from(e.target.files || []));
+          handleFiles(Array.from(e.target.files || []));
           e.target.value = "";
         }}
       />
@@ -107,7 +113,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
                 e.stopPropagation();
                 setDragActive(false);
                 const files = Array.from(e.dataTransfer?.files || []);
-                rx.uploadFiles?.(files);
+                handleFiles(files);
               }}
             >
               <div className="text-sm font-semibold text-zinc-900">Drop PDFs here</div>
@@ -124,6 +130,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
                 Choose files
               </button>
               <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
+              <span className={"text-xs " + (isUploading ? "text-sky-700" : "text-zinc-400")}>{uploadStatus}</span>
             </div>
           </div>
         ) : (
