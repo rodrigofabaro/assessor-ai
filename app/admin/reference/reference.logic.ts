@@ -158,6 +158,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   // Upload
   const [docType, setDocType] = useState<ReferenceDocument["type"]>((opts.fixedUploadType as any) || "SPEC");
 
+  useEffect(() => {
+    if (opts.fixedUploadType) {
+      setDocType(opts.fixedUploadType as ReferenceDocument["type"]);
+    }
+  }, [opts.fixedUploadType]);
+
   const [docTitle, setDocTitle] = useState("");
   const [docVersion, setDocVersion] = useState("1");
   const [docFile, setDocFile] = useState<File | null>(null);
@@ -370,8 +376,9 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     setBusy("Uploading...");
     try {
+      const uploadType = (opts.fixedUploadType as ReferenceDocument["type"]) || docType;
       const fd = new FormData();
-      fd.set("type", docType);
+      fd.set("type", uploadType);
       fd.set("title", docTitle || fileToUse.name);
       fd.set("version", docVersion || "1");
       fd.set("file", fileToUse);
@@ -411,30 +418,29 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     }
     if (!valid.length) return;
 
-    setBusy("Uploading...");
+    const uploadType = (opts.fixedUploadType as ReferenceDocument["type"]) || docType;
+    let okCount = 0;
+    let failCount = 0;
+    let lastFailReason = "";
     try {
-      const settled = await Promise.all(
-        valid.map(async (file) => {
-          const fd = new FormData();
-          fd.set("type", docType);
-          fd.set("title", stripExtension(file.name) || file.name);
-          fd.set("version", "1");
-          fd.set("file", file);
+      for (let i = 0; i < valid.length; i += 1) {
+        const file = valid[i];
+        setBusy(`Uploading ${i + 1}/${valid.length}...`);
+        const fd = new FormData();
+        fd.set("type", uploadType);
+        fd.set("title", stripExtension(file.name) || file.name);
+        fd.set("version", "1");
+        fd.set("file", file);
 
-          const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            return {
-              ok: false,
-              reason: (data as any)?.error || (data as any)?.message || "Upload failed",
-            };
-          }
-          return { ok: true };
-        })
-      );
-
-      const okCount = settled.filter((r) => r.ok).length;
-      const failCount = settled.length - okCount;
+        const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          failCount += 1;
+          lastFailReason = (data as any)?.error || (data as any)?.message || "Upload failed";
+          continue;
+        }
+        okCount += 1;
+      }
 
       if (okCount > 0) {
         await refreshAll({ keepSelection: false });
@@ -442,7 +448,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       }
 
       if (failCount > 0) {
-        const reason = settled.find((r) => !r.ok)?.reason || "Upload failed";
+        const reason = lastFailReason || "Upload failed";
         setError(`Upload failed: ${reason}`);
         notifyToast("error", `Upload failed: ${reason}`);
       }

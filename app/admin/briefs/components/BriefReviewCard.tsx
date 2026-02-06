@@ -40,6 +40,8 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   ) as any;
 
   const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
+  const taskWarnings = draftWarnings.filter((w: any) => String(w).toLowerCase().includes("task"));
+  const pdfTaskHref = doc ? `/api/reference-documents/${doc.id}/file#page=4` : "";
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
@@ -232,8 +234,34 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                 </div>
               ) : (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  No tasks were detected in this brief. Re-extract, or use
-                  manual override for this brief version.
+                  <div className="font-semibold">No tasks detected</div>
+                  <div className="mt-1">
+                    {taskWarnings.length ? (
+                      <span>{taskWarnings.join(" ")}</span>
+                    ) : (
+                      <span>Task headings not found (expected “Task 1”, “Task 2”, …).</span>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href={pdfTaskHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                    >
+                      Open PDF at Task pages
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        rx.setShowRawJson?.(true);
+                        document.getElementById("brief-raw-json")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="inline-flex items-center justify-center rounded-xl border border-amber-300 bg-amber-200 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-300"
+                    >
+                      Manual override
+                    </button>
+                  </div>
                 </div>
               )}
             </section>
@@ -251,14 +279,25 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             setAssignmentCodeInput={rx.setAssignmentCodeInput}
           />
 
-          <details className="rounded-2xl border border-zinc-200 bg-white p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
-              Raw extracted JSON (advanced)
-            </summary>
-            <pre className="mt-3 max-h-[360px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
-              {JSON.stringify(draft, null, 2)}
-            </pre>
-          </details>
+          <div id="brief-raw-json" className="rounded-2xl border border-zinc-200 bg-white p-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+              <input type="checkbox" checked={!!rx.showRawJson} onChange={(e) => rx.setShowRawJson?.(e.target.checked)} />
+              Manual override (raw JSON)
+            </label>
+            <p className="mt-1 text-xs text-zinc-600">Use only when extraction misses structure. Overrides are logged at lock time.</p>
+            {rx.showRawJson ? (
+              <textarea
+                value={rx.rawJson}
+                onChange={(e) => rx.setRawJson?.(e.target.value)}
+                className="mt-3 h-[240px] w-full rounded-xl border border-zinc-300 p-3 font-mono text-xs"
+                placeholder="Paste adjusted JSON here before locking."
+              />
+            ) : (
+              <pre className="mt-3 max-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+                {JSON.stringify(draft, null, 2)}
+              </pre>
+            )}
+          </div>
         </div>
       )}
     </section>
