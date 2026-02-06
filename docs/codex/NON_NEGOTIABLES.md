@@ -34,6 +34,7 @@ They exist to preserve auditability, exam-board compliance, and system truth.
 - Status transitions are explicit and linear
   (e.g. EXTRACTED → LOCKED → ARCHIVED)
 - Historical records are preserved
+- Audit trails and warnings are never stripped or overwritten silently
 
 ### 7. Grading logic stability
 - Specs, LOs, criteria, and bindings must not change

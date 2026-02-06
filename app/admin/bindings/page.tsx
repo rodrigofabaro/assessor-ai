@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { jsonFetch } from "@/lib/http";
+import { notifyToast } from "@/lib/ui/toast";
 
 type RecordStatus = "DRAFT" | "LOCKED";
 
@@ -43,13 +45,6 @@ type Assignment = {
 
   assignmentBrief?: (AssignmentBrief & { unit: Unit }) | null;
 };
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, opts);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || "Request failed");
-  return data as T;
-}
 
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
@@ -109,6 +104,7 @@ export default function AssignmentBindingsAdminPage() {
       });
 
       setAssignments((prev) => prev.map((a) => (a.id === assignmentId ? (res.assignment as any) : a)));
+      notifyToast("success", "Assignment binding updated.");
     } catch (e: any) {
       setErr(e?.message || "Binding failed");
     } finally {

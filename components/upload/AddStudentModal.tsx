@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { safeJson } from "@/lib/upload/utils";
 import type { Student } from "@/lib/upload/types";
+import { notifyToast } from "@/lib/ui/toast";
 
 export function AddStudentModal({
   open,
@@ -56,6 +57,7 @@ export function AddStudentModal({
       setNewStudentRef("");
       setNewStudentEmail("");
       setNewStudentCourse("");
+      notifyToast("success", "Student created.");
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

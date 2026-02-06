@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { jsonFetch } from "@/lib/http";
 
 export type Unit = {
   id: string;
@@ -89,15 +90,6 @@ function asArray<T>(x: any): T[] {
   if (x && Array.isArray(x.units)) return x.units;
   if (x && Array.isArray(x.documents)) return x.documents;
   return [];
-}
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...opts, headers: { "content-type": "application/json", ...(opts?.headers || {}) } });
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText}${msg ? ` — ${msg}` : ""}`);
-  }
-  return (await res.json()) as T;
 }
 
 function norm(s: string) {

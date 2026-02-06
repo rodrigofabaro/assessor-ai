@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { jsonFetch } from "@/lib/submissions/api";
 import type { Student, TriageResponse } from "@/lib/submissions/types";
 import { cx } from "@/lib/submissions/utils";
+import { notifyToast } from "@/lib/ui/toast";
 
 export function ResolveDrawer({
   open,
@@ -89,12 +90,17 @@ export function ResolveDrawer({
 
   async function linkStudent(studentId: string) {
     if (!submissionId) return;
-    await jsonFetch(`/api/submissions/${submissionId}/link-student`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId }),
-    });
-    await onLinked();
+    try {
+      await jsonFetch(`/api/submissions/${submissionId}/link-student`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+      notifyToast("success", "Student linked to submission.");
+      await onLinked();
+    } catch (e: any) {
+      setTriageErr(e?.message || "Failed to link student.");
+    }
   }
 
   if (!open) return null;
