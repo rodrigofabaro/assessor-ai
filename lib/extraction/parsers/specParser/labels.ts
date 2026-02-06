@@ -1,15 +1,50 @@
 import { normalizeWhitespace, toLines, firstMatch } from "@/lib/extraction/normalize/text";
 
+const ISSUE_LABEL_RE = /Issue\s+\d+\s*[–-]\s*[A-Za-z]+\s+\d{4}/gi;
+
+function splitPages(text: string): string[] {
+  return String(text || "")
+    .split(/\f+/)
+    .map((page) => page.trim())
+    .filter(Boolean);
+}
+
+function pickMostFrequent(matches: string[]): string {
+  const counts = new Map<string, number>();
+  for (const raw of matches) {
+    const key = normalizeWhitespace(raw);
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  let best = "";
+  let bestCount = 0;
+  for (const [label, count] of counts.entries()) {
+    if (count > bestCount) {
+      best = label;
+      bestCount = count;
+    }
+  }
+
+  return best;
+}
+
 /**
  * Pulls Issue label like:
  * "Issue 5 – June 2025" / "Issue 4 - March 2024"
  */
 export function parseIssueLabel(text: string): string {
   const t = text || "";
-  const m =
-    firstMatch(t, /\bIssue\s*\d+\s*[-–—]\s*[A-Za-z]+\s*\d{4}\b/i) ||
-    firstMatch(t, /\bIssue\s*\d+\b/i);
 
+  const pages = splitPages(t);
+  const fastPathText = pages.slice(0, 2).join("\n");
+  const fastMatches = fastPathText.match(ISSUE_LABEL_RE) || [];
+
+  const allMatches = fastMatches.length > 0 ? fastMatches : t.match(ISSUE_LABEL_RE) || [];
+  const frequent = pickMostFrequent(allMatches);
+  if (frequent) return frequent;
+
+  const m = firstMatch(t, /\bIssue\s*\d+\b/i);
   return normalizeWhitespace(m || "");
 }
 
