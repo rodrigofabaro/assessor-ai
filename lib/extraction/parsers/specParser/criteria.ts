@@ -13,7 +13,10 @@ import { cleanTrailingPageNumber } from "@/lib/extraction/normalize/cleanTrailin
 
 const SECTION_START_RE = /Learning Outcomes and Assessment Criteria/i;
 const LO_HEADING_RE = /^\s*(?:Learning\s+Outcome\s+)?(LO\d{1,2})\b/i;
-const MAJOR_SECTION_RE = /^\s*(Essential Content|Recommended Resources|Journals|Links|This unit links to|Unit Descriptors)\b/i;
+const MAJOR_SECTION_RE = /^\s*(Essential Content|Recommended Resources|Journals|Links|This unit links to)\b/i;
+
+const FOOTER_NOISE_RE =
+  /^\s*(?:Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite|Issue\s+\d+|©\s*Pearson|Pearson Education|Education Limited|Page\s*\d+|\d{1,4})\b/i;
 
 function sliceCriteriaRegion(lines: string[]): string[] {
   const start = lines.findIndex((l) => SECTION_START_RE.test(l));
@@ -25,6 +28,11 @@ function sliceCriteriaRegion(lines: string[]): string[] {
 
 function isHardStopHeading(line: string): boolean {
   return MAJOR_SECTION_RE.test(line);
+}
+
+function isFooterNoise(line: string): boolean {
+  const l = String(line || "").trim();
+  return !!l && FOOTER_NOISE_RE.test(l);
 }
 
 function stripPdfJunk(line: string): string {
@@ -132,6 +140,8 @@ export function parseCriteriaByLO(text: string, loCodes: string[]) {
     const fixed = String(raw || "").trim().replace(/\b(LO\d{1,2})(?=[A-Za-z])/g, "$1 ");
     const l = stripPdfJunk(fixed);
     if (!l) continue;
+
+    if (isFooterNoise(l)) continue;
 
     if (currentCode && isHardStopHeading(l)) {
       flush();
