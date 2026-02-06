@@ -41,7 +41,7 @@ export default function AdminBriefsPage() {
     setRefreshing(true);
     try {
       if (vm.tab === "extract") {
-        await rx.refreshAll();
+        await rx.refreshAll({ keepSelection: true });
         if (typeof window !== "undefined") window.location.hash = "extract";
       } else {
         await vm.refresh();
@@ -53,74 +53,76 @@ export default function AdminBriefsPage() {
   };
 
   return (
-    <div className="grid gap-4 min-w-0">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
-              🧾 Briefs workspace
+    <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8">
+      <div className="grid gap-4 min-w-0">
+        <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+                🧾 Briefs workspace
+              </div>
+              <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Briefs</h1>
+              <p className="mt-2 text-sm text-zinc-700">
+                A <span className="font-semibold">Brief</span> is the assignment question paper + context. A{" "}
+                <span className="font-semibold">Spec</span> is the criteria universe (the law). Locking binds a brief to a
+                locked spec version for audit-ready grading.
+              </p>
+              <p className="mt-2 text-xs text-zinc-600">
+                Later, submissions link to a locked brief + locked spec, and IV records attach to the brief version.
+              </p>
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Briefs</h1>
-            <p className="mt-2 text-sm text-zinc-700">
-              A <span className="font-semibold">Brief</span> is the assignment question paper + context. A{" "}
-              <span className="font-semibold">Spec</span> is the criteria universe (the law). Locking binds a brief to a
-              locked spec version for audit-ready grading.
-            </p>
-            <p className="mt-2 text-xs text-zinc-600">
-              Later, submissions link to a locked brief + locked spec, and IV records attach to the brief version.
-            </p>
+
+            <div className="flex items-center gap-2">
+              <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </Btn>
+              <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
+                <span className={"h-2 w-2 rounded-full " + (err ? "bg-rose-500" : "bg-emerald-500")} />
+                {busy ? "Working…" : "Ready"}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
-              {refreshing ? "Refreshing…" : "Refresh"}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Btn
+              kind={vm.tab === "library" ? "primary" : "ghost"}
+              onClick={() => {
+                vm.setTab("library");
+                if (typeof window !== "undefined") window.location.hash = "library";
+              }}
+            >
+              Library
             </Btn>
-            <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
-              <span className={"h-2 w-2 rounded-full " + (err ? "bg-rose-500" : "bg-emerald-500")} />
-              {busy ? "Working…" : "Ready"}
-            </div>
+            <Btn
+              kind={vm.tab === "extract" ? "primary" : "ghost"}
+              onClick={() => {
+                vm.setTab("extract");
+                if (typeof window !== "undefined") window.location.hash = "extract";
+                rx.refreshAll({ keepSelection: true });
+              }}
+            >
+              Extract tools
+            </Btn>
           </div>
-        </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Btn
-            kind={vm.tab === "library" ? "primary" : "ghost"}
-            onClick={() => {
-              vm.setTab("library");
-              if (typeof window !== "undefined") window.location.hash = "library";
-            }}
-          >
-            Library
-          </Btn>
-          <Btn
-            kind={vm.tab === "extract" ? "primary" : "ghost"}
-            onClick={() => {
+          {err ? (
+            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{err}</div>
+          ) : null}
+        </section>
+
+        {vm.tab === "library" ? (
+          <BriefLibraryTable
+            vm={vm}
+            goToInbox={() => {
               vm.setTab("extract");
               if (typeof window !== "undefined") window.location.hash = "extract";
-              rx.refreshAll();
+              rx.refreshAll({ keepSelection: true });
             }}
-          >
-            Extract tools
-          </Btn>
-        </div>
-
-        {err ? (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{err}</div>
+          />
         ) : null}
-      </section>
 
-      {vm.tab === "library" ? (
-        <BriefLibraryTable
-          vm={vm}
-          goToInbox={() => {
-            vm.setTab("extract");
-            if (typeof window !== "undefined") window.location.hash = "extract";
-            rx.refreshAll();
-          }}
-        />
-      ) : null}
-
-      {vm.tab === "extract" ? <BriefExtractWorkbench rx={rx} /> : null}
+        {vm.tab === "extract" ? <BriefExtractWorkbench rx={rx} /> : null}
+      </div>
     </div>
   );
 }

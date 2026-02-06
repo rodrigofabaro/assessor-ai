@@ -29,10 +29,13 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
   // Avoid reading rx.busy.current during render if it's a ref.
   const isBusy = !!(rx?.busy?.current ?? rx?.busy);
+  const usage = rx.selectedDocUsage;
+  const usageLoading = rx.usageLoading;
   
   const canExtract = !!doc && !isBusy;
   const canLock = !!doc && !isBusy;
-  const canDelete = !!doc && !isBusy && !doc.lockedAt;
+  const canUnlock = !!doc && !isBusy && !!doc.lockedAt && !!usage && !usage.inUse;
+  const canDelete = !!doc && !isBusy && !doc.lockedAt && !!usage && !usage.inUse;
 
   const header = (
     draft && draft.kind === "BRIEF" ? draft.header || {} : {}
@@ -111,8 +114,35 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
             <button
               type="button"
+              disabled={!canUnlock}
+              onClick={rx.unlockSelectedDocument}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : usage?.inUse
+                    ? "This brief has submissions attached and cannot be unlocked."
+                    : !doc?.lockedAt
+                      ? "Brief is not locked."
+                      : ""
+              }
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+            >
+              Unlock
+            </button>
+
+            <button
+              type="button"
               disabled={!canDelete}
               onClick={rx.deleteSelectedDocument}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : doc?.lockedAt
+                    ? "Locked briefs cannot be deleted. Unlock first."
+                    : usage?.inUse
+                      ? "This brief has submissions attached and cannot be deleted."
+                      : ""
+              }
               className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Delete

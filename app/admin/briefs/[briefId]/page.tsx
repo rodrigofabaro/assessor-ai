@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBriefDetail } from "./briefDetail.logic";
+import { TasksTab } from "./components/TasksTab";
 
 function Pill({ tone, children }: { tone: string; children: any }) {
   return <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + tone}>{children}</span>;
@@ -194,7 +195,7 @@ export default function BriefDetailPage() {
   const router = useRouter();
   const vm = useBriefDetail(params?.briefId || "");
 
-  const [tab, setTab] = useState<"overview" | "versions" | "iv" | "rubric">("overview");
+  const [tab, setTab] = useState<"overview" | "tasks" | "versions" | "iv" | "rubric">("overview");
 
   const title = useMemo(() => {
     if (!vm.brief) return "Brief detail";
@@ -203,6 +204,10 @@ export default function BriefDetailPage() {
 
   const pdfHref = vm.linkedDoc ? `/api/reference-documents/${vm.linkedDoc.id}/file` : "";
   const header = vm.linkedDoc?.extractedJson?.header || null;
+  const usage = vm.docUsage;
+  const usageLoading = vm.usageLoading;
+  const canUnlock = !!vm.linkedDoc?.lockedAt && !!usage?.canUnlock;
+  const canDelete = !!vm.linkedDoc && !vm.linkedDoc.lockedAt && !!usage?.canDelete;
 
   return (
     <div className="grid gap-4 min-w-0">
@@ -224,6 +229,42 @@ export default function BriefDetailPage() {
               Open PDF
             </LinkBtn>
 
+            <button
+              type="button"
+              onClick={vm.unlockLinkedDoc}
+              disabled={!canUnlock}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : !vm.linkedDoc?.lockedAt
+                    ? "Brief PDF is not locked."
+                    : usage?.inUse
+                      ? "This brief has submissions attached and cannot be unlocked."
+                      : ""
+              }
+              className="rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Unlock
+            </button>
+
+            <button
+              type="button"
+              onClick={vm.deleteLinkedDoc}
+              disabled={!canDelete}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : vm.linkedDoc?.lockedAt
+                    ? "Locked briefs cannot be deleted. Unlock first."
+                    : usage?.inUse
+                      ? "This brief has submissions attached and cannot be deleted."
+                      : ""
+              }
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Delete
+            </button>
+
             <Btn kind="primary" onClick={vm.refresh} disabled={vm.busy}>
               Refresh
             </Btn>
@@ -238,6 +279,9 @@ export default function BriefDetailPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Btn kind={tab === "overview" ? "primary" : "ghost"} onClick={() => setTab("overview")}>
             Overview
+          </Btn>
+          <Btn kind={tab === "tasks" ? "primary" : "ghost"} onClick={() => setTab("tasks")}>
+            Tasks
           </Btn>
           <Btn kind={tab === "versions" ? "primary" : "ghost"} onClick={() => setTab("versions")}>
             Versions
@@ -370,6 +414,13 @@ export default function BriefDetailPage() {
             </div>
           </section>
         </div>
+      ) : null}
+
+      {vm.brief && tab === "tasks" ? (
+        <TasksTab
+          vm={vm}
+          onGoToExtract={() => router.push("/admin/briefs#extract")}
+        />
       ) : null}
 
       {vm.brief && tab === "versions" ? (
