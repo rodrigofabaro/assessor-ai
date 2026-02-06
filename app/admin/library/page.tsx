@@ -165,10 +165,11 @@ export default function LibraryAdminPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         onClick={vm.saveEdits}
-                        disabled={!!vm.busy}
+                        disabled={!!vm.busy || !vm.dirtyLabels}
+                        title={!vm.dirtyLabels ? "No label changes to save." : ""}
                         className={
                           "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-                          (vm.busy
+                          (vm.busy || !vm.dirtyLabels
                             ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                             : "bg-zinc-900 text-white hover:bg-zinc-800")
                         }
@@ -203,6 +204,21 @@ export default function LibraryAdminPage() {
                         Delete (safe)
                       </button>
                     </div>
+
+                    {vm.notice ? (
+                      <div
+                        className={
+                          "mt-3 rounded-xl border p-3 text-xs " +
+                          (vm.notice.tone === "success"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                            : vm.notice.tone === "warn"
+                              ? "border-amber-200 bg-amber-50 text-amber-900"
+                              : "border-rose-200 bg-rose-50 text-rose-900")
+                        }
+                      >
+                        {vm.notice.text}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="p-4 grid gap-4">
@@ -252,6 +268,9 @@ export default function LibraryAdminPage() {
                             placeholder="e.g. Issue 5 – June 2025"
                           />
                         </label>
+                        <p className="text-xs text-zinc-500">
+                          Locked units can still update labels without re-extracting.
+                        </p>
                       </div>
                     </details>
                     <div className="border-t border-zinc-200 pt-4">

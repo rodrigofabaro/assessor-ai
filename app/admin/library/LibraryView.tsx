@@ -488,7 +488,14 @@ export default function LibraryView({
                   <button
                     type="button"
                     onClick={() => vm.saveEdits?.()}
-                    className="rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition bg-zinc-900 text-white hover:bg-zinc-800"
+                    disabled={!!vm.busy || !vm.dirtyLabels}
+                    title={!vm.dirtyLabels ? "No label changes to save." : ""}
+                    className={
+                      "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition " +
+                      (vm.busy || !vm.dirtyLabels
+                        ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                        : "bg-zinc-900 text-white hover:bg-zinc-800")
+                    }
                   >
                     Save
                   </button>
@@ -496,6 +503,7 @@ export default function LibraryView({
                   <button
                     type="button"
                     onClick={() => vm.toggleArchive?.()}
+                    disabled={!!vm.busy}
                     className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
                   >
                     Archive
@@ -504,11 +512,27 @@ export default function LibraryView({
                   <button
                     type="button"
                     onClick={() => vm.safeDelete?.()}
+                    disabled={!!vm.busy}
                     className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 hover:bg-red-100"
                   >
                     Delete (safe)
                   </button>
                 </div>
+
+                {vm.notice ? (
+                  <div
+                    className={
+                      "mt-3 rounded-xl border p-3 text-xs " +
+                      (vm.notice.tone === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : vm.notice.tone === "warn"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : "border-rose-200 bg-rose-50 text-rose-900")
+                    }
+                  >
+                    {vm.notice.text}
+                  </div>
+                ) : null}
 
                 {/* Info grid */}
                 <div className="grid grid-cols-2 gap-3">
@@ -581,6 +605,9 @@ export default function LibraryView({
                     <p className="text-xs text-zinc-500">
                       Briefs/assignments bound to this unit make a spec “in
                       use”. Safe delete blocks removal if anything is bound.
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Locked units can still update labels without re-extracting.
                     </p>
                   </div>
                 </details>

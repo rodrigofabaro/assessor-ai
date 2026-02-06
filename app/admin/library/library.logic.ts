@@ -110,6 +110,7 @@ function normalizeBriefTitle(b: AssignmentBriefApi): string {
 export function useLibraryAdmin() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error" | "warn"; text: string } | null>(null);
 
   const [units, setUnits] = useState<UnitApi[]>([]);
   const [selectedUnitId, setSelectedUnitId] = useState<string>("");
@@ -233,11 +234,13 @@ export function useLibraryAdmin() {
       setEditUnitCode("");
       setEditUnitTitle("");
       setEditSpecLabel("");
+      setNotice(null);
       return;
     }
     setEditUnitCode(String(selected.unitCode || ""));
     setEditUnitTitle(String(selected.unitTitle || ""));
     setEditSpecLabel(pickIssueLabel(selected));
+    setNotice(null);
   }, [selected]);
 
   const dirtyLabels = useMemo(() => {
@@ -257,7 +260,12 @@ export function useLibraryAdmin() {
   // ---- Mutations
   async function saveEdits() {
     setError(null);
+    setNotice(null);
     if (!selected) return;
+    if (!dirtyLabels) {
+      setNotice({ tone: "warn", text: "No label changes to save." });
+      return;
+    }
 
     setBusy("Saving...");
     try {
@@ -273,8 +281,11 @@ export function useLibraryAdmin() {
       });
 
       await refreshAll();
+      setNotice({ tone: "success", text: "Saved labels." });
     } catch (e: any) {
-      setError(e?.message || "Save failed");
+      const message = e?.message || "Save failed";
+      setError(message);
+      setNotice({ tone: "error", text: `Failed to save: ${message}` });
     } finally {
       setBusy(null);
     }
@@ -346,6 +357,7 @@ async function safeDelete() {
   return {
     busy,
     error,
+    notice,
 
     q,
     setQ,
@@ -372,7 +384,9 @@ async function safeDelete() {
     refreshAll,
 
     // names your UI uses
+    saveEdits,
     saveLabels: saveEdits,
+    toggleArchive,
     archive: toggleArchive,
     safeDelete,
   };
