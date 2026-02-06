@@ -19,6 +19,16 @@ export type ReferenceDocument = {
   lockedAt?: string | null;
 };
 
+export type ReferenceDocumentUsage = {
+  documentId: string;
+  locked: boolean;
+  inUse: boolean;
+  submissionCount: number;
+  linkedBriefCount: number;
+  canUnlock: boolean;
+  canDelete: boolean;
+};
+
 export type LearningOutcome = {
   id: string;
   loCode: string;
@@ -159,6 +169,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
   const [documents, setDocuments] = useState<ReferenceDocument[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [selectedDocUsage, setSelectedDocUsage] = useState<ReferenceDocumentUsage | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lockConflict, setLockConflict] = useState<LockConflict | null>(null);
@@ -337,6 +349,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       setBriefUnitId("");
       setMapSelected({});
       setAssignmentCodeInput("");
+      setSelectedDocUsage(null);
       return;
     }
 
@@ -361,6 +374,29 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       setMapSelected(sel);
     }
   }, [selectedDoc, units, allCriteria]);
+
+  async function refreshSelectedUsage(docId: string) {
+    setUsageLoading(true);
+    try {
+      const usage = await jsonFetch<ReferenceDocumentUsage>(`/api/reference-documents/${docId}/usage`, { cache: "no-store" });
+      setSelectedDocUsage(usage);
+    } catch (e: any) {
+      setSelectedDocUsage(null);
+      setError(e?.message || String(e));
+      notifyToast("error", e?.message || "Failed to load brief usage.");
+    } finally {
+      setUsageLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedDoc?.id || selectedDoc.type !== "BRIEF") {
+      setSelectedDocUsage(null);
+      return;
+    }
+    refreshSelectedUsage(selectedDoc.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDoc?.id, selectedDoc?.lockedAt]);
 
   useEffect(() => {
     if (!selectedUnit) {
@@ -387,6 +423,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       return next;
     });
     setSelectedDocId(doc.id);
+    if (doc.type === "BRIEF") refreshSelectedUsage(doc.id);
   }
 
   async function readResponseData(res: Response) {
@@ -649,6 +686,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       notifyToast("error", message);
       return;
     }
+    if (selectedDocUsage?.inUse) {
+      const message = "This brief is already linked to submissions and cannot be deleted.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
 
     const ok = window.confirm("Delete this brief PDF? This cannot be undone.");
     if (!ok) return;
@@ -673,6 +716,57 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       notifyToast("success", "Brief deleted.");
     } catch (e: any) {
       const message = e?.message || "Delete failed";
+      setError(message);
+      notifyToast("error", message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function unlockSelectedDocument() {
+    setError(null);
+    if (!selectedDoc) return;
+    if (!selectedDoc.lockedAt) {
+      const message = "Brief is not locked.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+    if (selectedDocUsage?.inUse) {
+      const message = "This brief is linked to submissions and cannot be unlocked.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+
+    const ok = window.confirm("Unlock this brief PDF? This removes the lock and returns it to extracted state.");
+    if (!ok) return;
+
+    setBusy("Unlocking...");
+    try {
+      const res = await fetch("/api/reference-documents/unlock", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ documentId: selectedDoc.id }),
+      });
+      const data = await readResponseData(res);
+      if (!res.ok) {
+        const message =
+          data?.message ||
+          (data?.error === "BRIEF_IN_USE"
+            ? "This brief is already linked to submissions and cannot be unlocked."
+            : data?.error) ||
+          `Unlock failed (${res.status}).`;
+        setError(message);
+        notifyToast("error", message);
+        return;
+      }
+
+      if (data?.document) applyUpdatedDocument(data.document);
+      await refreshAll({ keepSelection: true });
+      notifyToast("success", "Brief unlocked.");
+    } catch (e: any) {
+      const message = e?.message || "Unlock failed";
       setError(message);
       notifyToast("error", message);
     } finally {
@@ -823,6 +917,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     selectedDoc,
     selectedUnit,
     selectedDocId,
+    selectedDocUsage,
+    usageLoading,
 
     // upload
     docType,
@@ -868,6 +964,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     refreshAll,
     archiveSelectedDocument,
     deleteSelectedDocument,
+    unlockSelectedDocument,
     saveSelectedUnit,
     toggleUnitArchive,
     deleteSelectedUnit,

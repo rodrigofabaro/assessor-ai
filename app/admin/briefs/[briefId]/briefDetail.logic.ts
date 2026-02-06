@@ -44,6 +44,25 @@ export type ReferenceDocument = {
   sourceMeta?: any;
 };
 
+export type BriefTask = {
+  n: number;
+  label: string;
+  title?: string | null;
+  heading?: string | null;
+  text: string;
+  warnings?: string[];
+};
+
+export type ReferenceDocumentUsage = {
+  documentId: string;
+  locked: boolean;
+  inUse: boolean;
+  submissionCount: number;
+  linkedBriefCount: number;
+  canUnlock: boolean;
+  canDelete: boolean;
+};
+
 export type IvOutcome = "APPROVED" | "CHANGES_REQUIRED" | "REJECTED";
 
 export type IvRecord = {
@@ -115,6 +134,11 @@ export function useBriefDetail(briefId: string) {
   const [ivBusy, setIvBusy] = useState(false);
   const [ivError, setIvError] = useState<string | null>(null);
   const [ivRecords, setIvRecords] = useState<IvRecord[]>([]);
+  const [tasksBusy, setTasksBusy] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [tasksOverride, setTasksOverride] = useState<BriefTask[] | null>(null);
+  const [docUsage, setDocUsage] = useState<ReferenceDocumentUsage | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
 
   const refresh = async () => {
     setBusy(true);
@@ -181,6 +205,38 @@ export function useBriefDetail(briefId: string) {
     // fallback: first locked doc
     return familyDocs.find((d) => !!d.lockedAt) || familyDocs[0] || null;
   }, [brief, docs, familyDocs]);
+
+  useEffect(() => {
+    if (!linkedDoc?.id) {
+      setTasksOverride(null);
+      return;
+    }
+    const next = linkedDoc?.sourceMeta?.tasksOverride;
+    setTasksOverride(Array.isArray(next) ? (next as BriefTask[]) : null);
+  }, [linkedDoc?.id, linkedDoc?.sourceMeta]);
+
+  const refreshUsage = async (docId: string) => {
+    setUsageLoading(true);
+    try {
+      const usage = await jsonFetch<ReferenceDocumentUsage>(`/api/reference-documents/${docId}/usage`, { cache: "no-store" });
+      setDocUsage(usage);
+    } catch (e: any) {
+      setDocUsage(null);
+      setError(e?.message || String(e));
+      notifyToast("error", e?.message || "Failed to load brief usage.");
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!linkedDoc?.id || linkedDoc.type !== "BRIEF") {
+      setDocUsage(null);
+      return;
+    }
+    refreshUsage(linkedDoc.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedDoc?.id, linkedDoc?.lockedAt]);
 
   const loadIv = async (docId: string) => {
     setIvBusy(true);
@@ -249,6 +305,102 @@ export function useBriefDetail(briefId: string) {
     }
   };
 
+  const saveTasksOverride = async (next: BriefTask[] | null) => {
+    if (!linkedDoc?.id) return;
+    setTasksBusy(true);
+    setTasksError(null);
+    try {
+      const res = await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tasksOverride: next }),
+      });
+      const nextMeta = res?.sourceMeta || {};
+      setTasksOverride(Array.isArray(next) ? next : null);
+      setDocs((prev) => prev.map((d) => (d.id === linkedDoc.id ? { ...d, sourceMeta: nextMeta } : d)));
+      notifyToast("success", "Tasks override saved.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to save tasks override.";
+      setTasksError(message);
+      notifyToast("error", message);
+    } finally {
+      setTasksBusy(false);
+    }
+  };
+
+  const unlockLinkedDoc = async () => {
+    if (!linkedDoc?.id) return;
+    setError(null);
+    if (!linkedDoc.lockedAt) {
+      const message = "Brief PDF is not locked.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+    if (docUsage?.inUse) {
+      const message = "This brief is linked to submissions and cannot be unlocked.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+
+    const ok = window.confirm("Unlock this brief PDF? This removes the lock and returns it to extracted state.");
+    if (!ok) return;
+
+    setBusy(true);
+    try {
+      const res = await jsonFetch<any>("/api/reference-documents/unlock", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ documentId: linkedDoc.id }),
+      });
+      if (res?.document) {
+        setDocs((prev) => prev.map((d) => (d.id === linkedDoc.id ? res.document : d)));
+        await refreshUsage(linkedDoc.id);
+      }
+      notifyToast("success", "Brief unlocked.");
+    } catch (e: any) {
+      const message = e?.message || "Unlock failed";
+      setError(message);
+      notifyToast("error", message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteLinkedDoc = async () => {
+    if (!linkedDoc?.id) return;
+    setError(null);
+    if (linkedDoc.lockedAt) {
+      const message = "Locked briefs cannot be deleted. Unlock first if deletion is required.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+    if (docUsage?.inUse) {
+      const message = "This brief is already linked to submissions and cannot be deleted.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+
+    const ok = window.confirm("Delete this brief PDF? This cannot be undone.");
+    if (!ok) return;
+
+    setBusy(true);
+    try {
+      await jsonFetch(`/api/reference-documents/${linkedDoc.id}`, { method: "DELETE" });
+      await refresh();
+      notifyToast("success", "Brief deleted.");
+    } catch (e: any) {
+      const message = e?.message || "Delete failed";
+      setError(message);
+      notifyToast("error", message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return {
     busy,
     error,
@@ -262,5 +414,13 @@ export function useBriefDetail(briefId: string) {
     ivRecords,
     addIvRecord,
     deleteIvRecord,
+    tasksOverride,
+    tasksBusy,
+    tasksError,
+    saveTasksOverride,
+    docUsage,
+    usageLoading,
+    unlockLinkedDoc,
+    deleteLinkedDoc,
   };
 }

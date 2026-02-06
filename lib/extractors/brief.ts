@@ -399,26 +399,31 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 
 function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[]; warnings: string[] } {
   const warnings: string[] = [];
-  const targetPages = pages.length ? pages.slice(2, 7) : [text];
+  const sourcePages = pages.length ? pages : [text];
   const linesWithPages: Array<{ line: string; page: number }> = [];
   const stopRegex = /Relevant Learning Outcomes and Assessment Criteria/i;
 
+  const normalizeLine = (line: string) => line.replace(/\s+/g, " ").trim();
+
   let stop = false;
-  targetPages.forEach((pageText, idx) => {
+  sourcePages.forEach((pageText, idx) => {
     if (stop) return;
-    const pageNumber = pages.length ? idx + 3 : 1;
+    const pageNumber = pages.length ? idx + 1 : 1;
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
-      const normalizedLine = lines[lineIdx].replace(/\s+/g, " ").trim();
+      let normalizedLine = normalizeLine(lines[lineIdx]);
       if (stopRegex.test(normalizedLine)) {
         stop = true;
         break;
       }
 
-      const nextLine = lines[lineIdx + 1] ? lines[lineIdx + 1].replace(/\s+/g, " ").trim() : "";
-      const isTaskWordOnly = /\bt\s*a\s*s\s*k\b/i.test(normalizedLine) && !/\bt\s*a\s*s\s*k\s*\d/i.test(normalizedLine);
+      const nextLine = lines[lineIdx + 1] ? normalizeLine(lines[lineIdx + 1]) : "";
+      const isTaskWordOnly =
+        /^task$/i.test(normalizedLine) ||
+        (/\bt\s*a\s*s\s*k\b/i.test(normalizedLine) && !/\bt\s*a\s*s\s*k\s*\d/i.test(normalizedLine));
       if (isTaskWordOnly && nextLine && /^\d{1,2}\b/.test(nextLine)) {
-        linesWithPages.push({ line: `${normalizedLine} ${nextLine}`.trim(), page: pageNumber });
+        normalizedLine = `Task ${nextLine}`.trim();
+        linesWithPages.push({ line: normalizedLine, page: pageNumber });
         lineIdx += 1;
         continue;
       }
@@ -427,21 +432,37 @@ function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[];
     }
   });
 
-  const headings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];
-  for (let i = 0; i < linesWithPages.length; i += 1) {
-    const raw = linesWithPages[i].line;
-    if (!raw) continue;
-    const match = raw.match(/\bt\s*a\s*s\s*k\s*(\d{1,2})\b/i);
-    if (!match) continue;
+  const parseHeading = (raw: string) => {
+    if (!raw) return null;
+    const match = raw.match(/^\s*[^A-Za-z0-9]{0,3}Task\s*(\d{1,2})\b/i);
+    if (!match) return null;
     const n = Number(match[1]);
-    if (!n || Number.isNaN(n)) continue;
-    const remainder = raw.slice((match.index || 0) + match[0].length);
+    if (!n || Number.isNaN(n)) return null;
+    const idx = match.index ?? 0;
+    const remainder = raw.slice(idx + match[0].length);
     const cleanedRemainder = remainder
       .replace(/^\s*\(.*?\)\s*/i, "")
       .replace(/^\s*[:\-–—]\s*/i, "")
       .trim();
     const title = cleanedRemainder ? normalizeWhitespace(cleanedRemainder) : null;
-    headings.push({ index: i, n, title, page: linesWithPages[i].page });
+    return { n, title };
+  };
+
+  let startIndex = 0;
+  for (let i = 0; i < linesWithPages.length; i += 1) {
+    const h = parseHeading(linesWithPages[i].line);
+    if (h?.n === 1) {
+      startIndex = Math.max(0, i - 10);
+      break;
+    }
+  }
+
+  const headings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];
+  for (let i = startIndex; i < linesWithPages.length; i += 1) {
+    const raw = linesWithPages[i].line;
+    const heading = parseHeading(raw);
+    if (!heading) continue;
+    headings.push({ index: i, n: heading.n, title: heading.title, page: linesWithPages[i].page });
   }
 
   if (!headings.length) {
@@ -449,9 +470,20 @@ function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[];
     return { tasks: [], warnings };
   }
 
+  const orderedHeadings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];
+  const seen = new Set<number>();
+  let lastN = 0;
+  for (const heading of headings) {
+    if (seen.has(heading.n)) continue;
+    if (heading.n < lastN) continue;
+    seen.add(heading.n);
+    orderedHeadings.push(heading);
+    lastN = heading.n;
+  }
+
   const tasks: BriefTask[] = [];
 
-  const firstHeading = headings[0];
+  const firstHeading = orderedHeadings[0];
   if (firstHeading && firstHeading.index > 0) {
     const preLines = linesWithPages.slice(0, firstHeading.index).map((l) => l.line).join("\n");
     if (/Initial Idea Proposal/i.test(preLines)) {
@@ -469,15 +501,19 @@ function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[];
     }
   }
 
-  headings.forEach((heading, idx) => {
+  orderedHeadings.forEach((heading, idx) => {
     const start = heading.index + 1;
-    const end = idx + 1 < headings.length ? headings[idx + 1].index : linesWithPages.length;
+    const end = idx + 1 < orderedHeadings.length ? orderedHeadings[idx + 1].index : linesWithPages.length;
     const bodyLines = cleanTaskLines(linesWithPages.slice(start, end).map((l) => l.line));
     let textBody = bodyLines.join("\n");
     textBody = textBody.replace(/\n{3,}/g, "\n\n").replace(/\s+$/g, "");
 
     const taskWarnings: string[] = [];
-    if (!textBody.trim()) taskWarnings.push("task body: empty");
+    if (!textBody.trim()) {
+      const fallback = heading.title ? `Task ${heading.n} — ${heading.title}` : `Task ${heading.n}`;
+      textBody = fallback;
+      taskWarnings.push("task body: empty");
+    }
 
     const previewLines = linesWithPages.slice(heading.index, Math.min(heading.index + 6, linesWithPages.length)).map((l) => l.line);
     const aiasMatch = normalizeWhitespace(previewLines.join(" ")).match(/\bAIAS\s*(\d)\b/i);
