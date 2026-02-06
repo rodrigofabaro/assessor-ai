@@ -120,10 +120,10 @@ export function useBriefDetail(briefId: string) {
     setBusy(true);
     setError(null);
     try {
-      const u = await jsonFetch<any>("/api/units");
+      const u = await jsonFetch<any>("/api/units", { cache: "no-store" });
       setUnits(asArray<Unit>(u));
 
-      const d = await jsonFetch<any>("/api/reference-documents?type=BRIEF");
+      const d = await jsonFetch<any>("/api/reference-documents?type=BRIEF", { cache: "no-store" });
       setDocs(asArray<ReferenceDocument>(d));
     } catch (e: any) {
       setError(e?.message || String(e));

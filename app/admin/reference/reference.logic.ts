@@ -74,6 +74,14 @@ type ReferenceAdminOptions = {
   includeArchived?: boolean;
 };
 
+type LockConflict = {
+  existingBriefId: string;
+  existingTitle?: string | null;
+  unitCode?: string | null;
+  assignmentCode?: string | null;
+  retryPayload: any;
+};
+
 const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
 
 function isPdfFile(file: File): boolean {
@@ -153,6 +161,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [units, setUnits] = useState<Unit[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lockConflict, setLockConflict] = useState<LockConflict | null>(null);
   const [unitNotice, setUnitNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   // Upload
@@ -292,10 +301,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
 
         const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
-        return jsonFetch<{ documents: ReferenceDocument[] }>(url);
+        return jsonFetch<{ documents: ReferenceDocument[] }>(url, { cache: "no-store" });
       })(),
 
-      jsonFetch<{ units: Unit[] }>("/api/units"),
+      jsonFetch<{ units: Unit[] }>("/api/units", { cache: "no-store" }),
     ]);
 
     const rawDocs = docs.documents || [];
@@ -367,6 +376,31 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setEditSpecLabel(String(selectedUnit.specVersionLabel || selectedUnit.specIssue || ""));
     setUnitNotice(null);
   }, [selectedUnit]);
+
+  function applyUpdatedDocument(doc: ReferenceDocument) {
+    if (!doc?.id) return;
+    setDocuments((prev) => {
+      const idx = prev.findIndex((d) => d.id === doc.id);
+      if (idx === -1) return [doc, ...prev];
+      const next = [...prev];
+      next[idx] = doc;
+      return next;
+    });
+    setSelectedDocId(doc.id);
+  }
+
+  async function readResponseData(res: Response) {
+    const rawText = await res.text().catch(() => "");
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json") && rawText) {
+      try {
+        return JSON.parse(rawText);
+      } catch {
+        return rawText;
+      }
+    }
+    return rawText;
+  }
 
   async function uploadDoc() {
     setError(null);
@@ -467,11 +501,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     setBusy("Extracting...");
     try {
-      await jsonFetch("/api/reference-documents/extract", {
+      const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentId: selectedDoc.id }),
       });
+      if (res?.document) applyUpdatedDocument(res.document);
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Extraction complete.");
     } catch (e: any) {
@@ -495,11 +530,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     setBusy("Re-extracting...");
     try {
-      await jsonFetch("/api/reference-documents/extract", {
+      const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason }),
       });
+      if (res?.document) applyUpdatedDocument(res.document);
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Re-extraction complete.");
     } catch (e: any) {
@@ -511,6 +547,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
   async function lockSelected() {
     setError(null);
+    setLockConflict(null);
     if (!selectedDoc) return;
 
     setBusy("Locking...");
@@ -532,16 +569,112 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         if (overrideCodes.length) body.mappingOverride = overrideCodes;
       }
 
-      await jsonFetch("/api/reference-documents/lock", {
+      const res = await fetch("/api/reference-documents/lock", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
+      const data = await readResponseData(res);
 
+      if (!res.ok) {
+        if (res.status === 409 && data?.error === "BRIEF_ALREADY_LOCKED") {
+          const unit = units.find((u) => u.id === briefUnitId);
+          const fallbackAssignment = assignmentCodeInput.trim() || draft?.assignmentCode || "";
+          setLockConflict({
+            existingBriefId: data?.existingBriefId,
+            existingTitle: data?.existingTitle,
+            unitCode: unit?.unitCode || draft?.unitCodeGuess || null,
+            assignmentCode: fallbackAssignment || null,
+            retryPayload: { ...body, allowOverwrite: true },
+          });
+          const message = "A locked brief already exists for this unit and assignment.";
+          setError(message);
+          notifyToast("error", message);
+          return;
+        }
+        const message = data?.message || data?.error || `Lock failed (${res.status}).`;
+        setError(message);
+        notifyToast("error", message);
+        return;
+      }
+
+      if (data?.document) applyUpdatedDocument(data.document);
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Reference document locked.");
     } catch (e: any) {
-      setError(e?.message || "Lock failed");
+      const message = e?.message || "Lock failed";
+      setError(message);
+      notifyToast("error", message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function confirmLockOverwrite() {
+    if (!lockConflict?.retryPayload) return;
+    setError(null);
+    setLockConflict(null);
+    setBusy("Locking...");
+    try {
+      const res = await fetch("/api/reference-documents/lock", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(lockConflict.retryPayload),
+      });
+      const data = await readResponseData(res);
+      if (!res.ok) {
+        const message = data?.message || data?.error || `Lock failed (${res.status}).`;
+        setError(message);
+        notifyToast("error", message);
+        return;
+      }
+      if (data?.document) applyUpdatedDocument(data.document);
+      await refreshAll({ keepSelection: true });
+      notifyToast("success", "Reference document locked.");
+    } catch (e: any) {
+      const message = e?.message || "Lock failed";
+      setError(message);
+      notifyToast("error", message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function deleteSelectedDocument() {
+    setError(null);
+    if (!selectedDoc) return;
+    if (selectedDoc.lockedAt) {
+      const message = "Locked briefs cannot be deleted. Unlock first if deletion is required.";
+      setError(message);
+      notifyToast("error", message);
+      return;
+    }
+
+    const ok = window.confirm("Delete this brief PDF? This cannot be undone.");
+    if (!ok) return;
+
+    setBusy("Deleting...");
+    try {
+      const res = await fetch(`/api/reference-documents/${selectedDoc.id}`, { method: "DELETE" });
+      const data = await readResponseData(res);
+      if (!res.ok) {
+        const message =
+          data?.message ||
+          (data?.error === "BRIEF_IN_USE"
+            ? "This brief is already linked to submissions and cannot be deleted."
+            : data?.error) ||
+          `Delete failed (${res.status}).`;
+        setError(message);
+        notifyToast("error", message);
+        return;
+      }
+
+      await refreshAll({ keepSelection: false });
+      notifyToast("success", "Brief deleted.");
+    } catch (e: any) {
+      const message = e?.message || "Delete failed";
+      setError(message);
+      notifyToast("error", message);
     } finally {
       setBusy(null);
     }
@@ -731,8 +864,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     extractSelected,
     reextractSelected,
     lockSelected,
+    confirmLockOverwrite,
     refreshAll,
     archiveSelectedDocument,
+    deleteSelectedDocument,
     saveSelectedUnit,
     toggleUnitArchive,
     deleteSelectedUnit,
@@ -742,5 +877,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     editSpecLabel,
     unitDirty,
     unitNotice,
+    lockConflict,
+    setLockConflict,
   };
 }

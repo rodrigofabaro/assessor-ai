@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useBriefsAdmin } from "./briefs.logic";
 import { useReferenceAdmin } from "../reference/reference.logic";
 
@@ -35,12 +35,20 @@ export default function AdminBriefsPage() {
 
   const busy = vm.tab === "extract" ? !!rx.busy : vm.busy;
   const err = vm.tab === "extract" ? rx.error : vm.error;
+  const [refreshing, setRefreshing] = useState(false);
 
   const refresh = async () => {
-    if (vm.tab === "extract") {
-      await rx.refreshAll();
-    } else {
-      await vm.refresh();
+    setRefreshing(true);
+    try {
+      if (vm.tab === "extract") {
+        await rx.refreshAll();
+        if (typeof window !== "undefined") window.location.hash = "extract";
+      } else {
+        await vm.refresh();
+        if (typeof window !== "undefined") window.location.hash = "library";
+      }
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -64,8 +72,8 @@ export default function AdminBriefsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Btn kind="secondary" onClick={refresh} disabled={busy}>
-              Refresh
+            <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
+              {refreshing ? "Refreshing…" : "Refresh"}
             </Btn>
             <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
               <span className={"h-2 w-2 rounded-full " + (err ? "bg-rose-500" : "bg-emerald-500")} />

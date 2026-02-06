@@ -408,26 +408,39 @@ function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[];
     if (stop) return;
     const pageNumber = pages.length ? idx + 3 : 1;
     const lines = splitLines(pageText);
-    for (const line of lines) {
-      if (stopRegex.test(line)) {
+    for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
+      const normalizedLine = lines[lineIdx].replace(/\s+/g, " ").trim();
+      if (stopRegex.test(normalizedLine)) {
         stop = true;
         break;
       }
-      linesWithPages.push({ line, page: pageNumber });
+
+      const nextLine = lines[lineIdx + 1] ? lines[lineIdx + 1].replace(/\s+/g, " ").trim() : "";
+      const isTaskWordOnly = /\bt\s*a\s*s\s*k\b/i.test(normalizedLine) && !/\bt\s*a\s*s\s*k\s*\d/i.test(normalizedLine);
+      if (isTaskWordOnly && nextLine && /^\d{1,2}\b/.test(nextLine)) {
+        linesWithPages.push({ line: `${normalizedLine} ${nextLine}`.trim(), page: pageNumber });
+        lineIdx += 1;
+        continue;
+      }
+
+      linesWithPages.push({ line: normalizedLine, page: pageNumber });
     }
   });
-
-  const headingRegex = /^\s*task\s*(\d{1,2})\b(?:\s*(?:[:\-–]\s*(.*)|activity\s*[–-]?\s*(.*))?)?$/i;
 
   const headings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];
   for (let i = 0; i < linesWithPages.length; i += 1) {
     const raw = linesWithPages[i].line;
-    const match = raw.match(headingRegex);
+    if (!raw) continue;
+    const match = raw.match(/\bt\s*a\s*s\s*k\s*(\d{1,2})\b/i);
     if (!match) continue;
     const n = Number(match[1]);
     if (!n || Number.isNaN(n)) continue;
-    const titleRaw = match[2] || match[3] || "";
-    const title = titleRaw ? normalizeWhitespace(titleRaw) : null;
+    const remainder = raw.slice((match.index || 0) + match[0].length);
+    const cleanedRemainder = remainder
+      .replace(/^\s*\(.*?\)\s*/i, "")
+      .replace(/^\s*[:\-–—]\s*/i, "")
+      .trim();
+    const title = cleanedRemainder ? normalizeWhitespace(cleanedRemainder) : null;
     headings.push({ index: i, n, title, page: linesWithPages[i].page });
   }
 
@@ -566,7 +579,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
   const header = extractBriefHeaderFromPreview(headerSource);
   const tasksResult = extractBriefTasks(t, pages);
   const criteriaPage = pages[8] || "";
-  const criteriaRefs = criteriaPage ? extractCriteriaRefs(criteriaPage) : [];
+  const criteriaRefs = detectedCriterionCodes;
   const loHeaders = criteriaPage ? extractLoHeaders(criteriaPage) : [];
 
   const warnings = [
