@@ -75,6 +75,13 @@ export type IvRecord = {
   createdAt: string;
 };
 
+export type RubricAttachment = {
+  documentId: string;
+  originalFilename: string;
+  uploadedAt: string;
+  uploadedBy?: string | null;
+};
+
 function asArray<T>(x: any): T[] {
   if (Array.isArray(x)) return x;
   if (x && Array.isArray(x.documents)) return x.documents;
@@ -119,11 +126,6 @@ function safeIvRecords(x: any): IvRecord[] {
     .sort((a, b) => (b.academicYear || "").localeCompare(a.academicYear || ""));
 }
 
-function mkId() {
-  // cheap unique ID for client-side creation
-  return `iv_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
-}
-
 export function useBriefDetail(briefId: string) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +141,9 @@ export function useBriefDetail(briefId: string) {
   const [tasksOverride, setTasksOverride] = useState<BriefTask[] | null>(null);
   const [docUsage, setDocUsage] = useState<ReferenceDocumentUsage | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
+  const [rubric, setRubric] = useState<RubricAttachment | null>(null);
+  const [rubricBusy, setRubricBusy] = useState(false);
+  const [rubricError, setRubricError] = useState<string | null>(null);
 
   const refresh = async () => {
     setBusy(true);
@@ -206,6 +211,13 @@ export function useBriefDetail(briefId: string) {
     return familyDocs.find((d) => !!d.lockedAt) || familyDocs[0] || null;
   }, [brief, docs, familyDocs]);
 
+  const title = useMemo(() => {
+    if (!brief) return "Brief detail";
+    return `${brief.unit?.unitCode || ""} ${brief.assignmentCode} — ${brief.title}`;
+  }, [brief]);
+
+  const pdfHref = linkedDoc ? `/api/reference-documents/${linkedDoc.id}/file` : "";
+
   useEffect(() => {
     if (!linkedDoc?.id) {
       setTasksOverride(null);
@@ -238,12 +250,16 @@ export function useBriefDetail(briefId: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedDoc?.id, linkedDoc?.lockedAt]);
 
-  const loadIv = async (docId: string) => {
+  const canUnlock = !!linkedDoc?.lockedAt && !!docUsage?.canUnlock;
+  const canDelete = !!linkedDoc && !linkedDoc.lockedAt && !!docUsage?.canDelete;
+
+  const loadIv = async () => {
+    if (!briefId) return;
     setIvBusy(true);
     setIvError(null);
     try {
-      const meta = await jsonFetch<any>(`/api/reference-documents/${docId}/meta`);
-      const recs = safeIvRecords(meta?.sourceMeta?.ivRecords);
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/iv`, { cache: "no-store" });
+      const recs = safeIvRecords(res?.records);
       setIvRecords(recs);
     } catch (e: any) {
       setIvError(e?.message || String(e));
@@ -254,54 +270,108 @@ export function useBriefDetail(briefId: string) {
   };
 
   useEffect(() => {
-    if (!linkedDoc?.id) return;
-    loadIv(linkedDoc.id);
-  }, [linkedDoc?.id]);
+    if (!briefId) return;
+    loadIv();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [briefId, linkedDoc?.id]);
 
   const addIvRecord = async (partial: Omit<IvRecord, "id" | "createdAt">) => {
-    if (!linkedDoc?.id) return;
+    if (!briefId) return;
     setIvBusy(true);
     setIvError(null);
     try {
-      const next: IvRecord = {
-        id: mkId(),
-        createdAt: new Date().toISOString(),
-        ...partial,
-      };
-      const merged = [next, ...ivRecords];
-      setIvRecords(merged);
-
-      await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
-        method: "PATCH",
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/iv`, {
+        method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ivRecords: merged }),
+        body: JSON.stringify(partial),
       });
+      const recs = safeIvRecords(res?.records);
+      setIvRecords(recs);
       notifyToast("success", "IV record saved.");
     } catch (e: any) {
-      setIvError(e?.message || String(e));
+      const message = e?.message || "Failed to save IV record.";
+      setIvError(message);
+      notifyToast("error", message);
     } finally {
       setIvBusy(false);
     }
   };
 
   const deleteIvRecord = async (id: string) => {
-    if (!linkedDoc?.id) return;
+    if (!briefId) return;
     setIvBusy(true);
     setIvError(null);
     try {
-      const merged = ivRecords.filter((r) => r.id !== id);
-      setIvRecords(merged);
-
-      await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ivRecords: merged }),
-      });
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/iv/${id}`, { method: "DELETE" });
+      const recs = safeIvRecords(res?.records);
+      setIvRecords(recs);
       notifyToast("success", "IV record deleted.");
     } catch (e: any) {
-      setIvError(e?.message || String(e));
+      const message = e?.message || "Failed to delete IV record.";
+      setIvError(message);
+      notifyToast("error", message);
     } finally {
       setIvBusy(false);
+    }
+  };
+
+  const loadRubric = async () => {
+    if (!briefId) return;
+    setRubricBusy(true);
+    setRubricError(null);
+    try {
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/rubric`, { cache: "no-store" });
+      setRubric(res?.attachment || null);
+    } catch (e: any) {
+      const message = e?.message || "Failed to load rubric.";
+      setRubricError(message);
+    } finally {
+      setRubricBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!briefId) return;
+    loadRubric();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [briefId, linkedDoc?.id]);
+
+  const uploadRubric = async (file: File) => {
+    if (!briefId) return;
+    setRubricBusy(true);
+    setRubricError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/rubric`, {
+        method: "POST",
+        body: form,
+      });
+      setRubric(res?.attachment || null);
+      notifyToast("success", "Rubric uploaded.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to upload rubric.";
+      setRubricError(message);
+      notifyToast("error", message);
+    } finally {
+      setRubricBusy(false);
+    }
+  };
+
+  const removeRubric = async () => {
+    if (!briefId) return;
+    setRubricBusy(true);
+    setRubricError(null);
+    try {
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/rubric`, { method: "DELETE" });
+      setRubric(res?.attachment || null);
+      notifyToast("success", "Rubric removed.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to remove rubric.";
+      setRubricError(message);
+      notifyToast("error", message);
+    } finally {
+      setRubricBusy(false);
     }
   };
 
@@ -408,12 +478,21 @@ export function useBriefDetail(briefId: string) {
     brief,
     linkedDoc,
     familyDocs,
+    title,
+    pdfHref,
 
     ivBusy,
     ivError,
     ivRecords,
     addIvRecord,
     deleteIvRecord,
+    rubric,
+    rubricBusy,
+    rubricError,
+    uploadRubric,
+    removeRubric,
+    canUnlock,
+    canDelete,
     tasksOverride,
     tasksBusy,
     tasksError,

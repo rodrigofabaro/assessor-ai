@@ -85,6 +85,8 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Academic year" value={header?.academicYear} />
             <Field label="Qualification" value={header?.qualification} />
+            <Field label="Assignment" value={header?.assignment} />
+            <Field label="Assignment title" value={header?.assignmentTitle} />
             <Field label="Assessor" value={header?.assessor} />
             <Field label="Internal verifier" value={header?.internalVerifier} />
             <Field label="Verification date" value={header?.verificationDate} />

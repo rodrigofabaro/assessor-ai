@@ -10,6 +10,7 @@ type BriefHeader = {
   qualification?: string | null;
   unitNumberAndTitle?: string | null;
   assignmentTitle?: string | null;
+  assignment?: string | null;
   assessor?: string | null;
   unitCode?: string | null;
   internalVerifier?: string | null;
@@ -127,6 +128,8 @@ const LABELS = [
   "Qualification",
   "Unit number and title",
   "Assignment title",
+  "Assignment",
+  "Assignment number",
   "Unit Code",
   "Assessor",
   "Internal Verifier",
@@ -175,6 +178,60 @@ function extractByLabelLines(lines: string[], label: string) {
     return raw ? raw.slice(0, 200) : null;
   }
   return null;
+}
+
+const FOOTER_PATTERNS = [
+  /©\s*\d{4}\s*unicourse.*all rights reserved/i,
+  /\bissue\s*\d+\s*[-–]?\s*\d{4}\s*\/\s*\d{2}\b/i,
+  /\bpage\s*\d+\s*of\s*\d+\b/i,
+  /\bissue\s*\d+\s*[-–]?\s*\d{4}\s*\/\s*\d{2}\s*page\s*\d+\s*of\s*\d+\b/i,
+];
+
+function isFooterLine(line: string) {
+  const normalized = normalizeWhitespace(line).toLowerCase();
+  if (!normalized) return false;
+  return FOOTER_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function stripFooterLines(lines: string[]) {
+  return lines.filter((line) => !isFooterLine(line));
+}
+
+const END_MATTER_HEADINGS: Array<{ key: "sourcesBlock" | "criteriaBlock"; regex: RegExp }> = [
+  { key: "sourcesBlock", regex: /^Sources of information/i },
+  { key: "criteriaBlock", regex: /^Relevant Learning Outcomes/i },
+  { key: "criteriaBlock", regex: /^Assessment Criteria/i },
+  { key: "criteriaBlock", regex: /^Pass Merit Distinction/i },
+];
+
+function getEndMatterKey(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  return END_MATTER_HEADINGS.find(({ regex }) => regex.test(trimmed))?.key || null;
+}
+
+function extractEndMatterBlocks(pages: string[]) {
+  const blocks: Record<string, string[]> = {};
+  let currentKey: "sourcesBlock" | "criteriaBlock" | null = null;
+
+  pages.forEach((pageText) => {
+    const lines = splitLines(pageText);
+    lines.forEach((line) => {
+      const key = getEndMatterKey(line);
+      if (key) {
+        currentKey = key;
+        if (!blocks[currentKey]) blocks[currentKey] = [];
+      }
+      if (currentKey) {
+        blocks[currentKey].push(line);
+      }
+    });
+  });
+
+  const sourcesBlock = blocks.sourcesBlock?.join("\n").trim() || null;
+  const criteriaBlock = blocks.criteriaBlock?.join("\n").trim() || null;
+  if (!sourcesBlock && !criteriaBlock) return null;
+  return { sourcesBlock, criteriaBlock };
 }
 
 function splitPages(text: string): string[] {
@@ -234,6 +291,10 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
   const assignmentTitle =
     extractByPattern(normalizedHeader, /Assignment title\s+(.+?)\s+Assessor/i) ||
     extractByLabelLines(headerLines, "Assignment title");
+  const assignment =
+    extractByPattern(normalizedHeader, /Assignment\s+(\d+\s+of\s+\d+)/i) ||
+    extractByLabelLines(headerLines, "Assignment") ||
+    extractByLabelLines(headerLines, "Assignment number");
   const assessor =
     extractByPattern(normalizedHeader, /Assessor\s+(.+?)\s+Academic year/i) ||
     extractByLabelLines(headerLines, "Assessor");
@@ -299,6 +360,7 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
     qualification: qualification || null,
     unitNumberAndTitle: unitNumberAndTitle || null,
     assignmentTitle: assignmentTitle || null,
+    assignment: assignment || null,
     assessor: assessor || null,
     unitCode: unitCode || null,
     internalVerifier: internalVerifier || null,
@@ -315,6 +377,7 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
     ["Qualification", out.qualification],
     ["Unit number and title", out.unitNumberAndTitle],
     ["Assignment title", out.assignmentTitle],
+    ["Assignment", out.assignment],
     ["Assessor", out.assessor],
     ["Academic year", out.academicYear],
     ["Unit Code", out.unitCode],
@@ -397,22 +460,29 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   return parts.length >= 2 ? parts : null;
 }
 
-function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[]; warnings: string[] } {
+function extractBriefTasks(
+  text: string,
+  pages: string[]
+): { tasks: BriefTask[]; warnings: string[]; endMatter: { sourcesBlock: string | null; criteriaBlock: string | null } | null } {
   const warnings: string[] = [];
   const sourcePages = pages.length ? pages : [text];
+  const cleanedPages = sourcePages.map((pageText) => {
+    const lines = stripFooterLines(splitLines(pageText));
+    return lines.join("\n");
+  });
   const linesWithPages: Array<{ line: string; page: number }> = [];
-  const stopRegex = /Relevant Learning Outcomes and Assessment Criteria/i;
+  const endMatter = extractEndMatterBlocks(cleanedPages);
 
   const normalizeLine = (line: string) => line.replace(/\s+/g, " ").trim();
 
   let stop = false;
-  sourcePages.forEach((pageText, idx) => {
+  cleanedPages.forEach((pageText, idx) => {
     if (stop) return;
     const pageNumber = pages.length ? idx + 1 : 1;
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
       let normalizedLine = normalizeLine(lines[lineIdx]);
-      if (stopRegex.test(normalizedLine)) {
+      if (getEndMatterKey(normalizedLine)) {
         stop = true;
         break;
       }
@@ -534,7 +604,7 @@ function extractBriefTasks(text: string, pages: string[]): { tasks: BriefTask[];
     });
   });
 
-  return { tasks, warnings };
+  return { tasks, warnings, endMatter };
 }
 
 function parseUnitNumberAndTitle(raw: string | null | undefined): { unitNumber?: string; unitTitle?: string } {
@@ -637,6 +707,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     detectedCriterionCodes,
     criteriaRefs,
     loHeaders,
+    endMatter: tasksResult.endMatter || null,
     tasks: tasksResult.tasks,
     warnings: warnings.length ? warnings : undefined,
   };
@@ -665,6 +736,7 @@ export function debugBriefExtraction(text: string) {
       pages: t.pages,
       promptPreview: (t.text || "").slice(0, 300),
     })),
+    endMatter: tasks.endMatter || null,
     criteriaRefs,
     loHeaders,
   };
