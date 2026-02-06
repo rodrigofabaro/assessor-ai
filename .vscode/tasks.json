@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: Start",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/dev.ps1"],
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Dev: Reset DB",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/reset-dev.ps1"],
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "lint"],
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

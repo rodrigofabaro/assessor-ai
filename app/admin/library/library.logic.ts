@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { jsonFetch } from "@/lib/http";
+import { notifyToast } from "@/lib/ui/toast";
 
 type SpecDocApi = {
   id: string;
@@ -53,29 +55,6 @@ export type UnitApi = {
 };
 
 type UnitsResponse = { units: UnitApi[] };
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, opts);
-
-  const contentType = res.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-
-  const data: any = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => "");
-
-  if (!res.ok) {
-    // Try multiple shapes: {error}, {message}, {detail}, or plain text
-    const msg =
-      (typeof data === "string" && data.trim()) ||
-      data?.message ||
-      data?.error ||
-      data?.detail ||
-      `Request failed (${res.status})`;
-
-    throw new Error(msg);
-  }
-
-  return data as T;
-}
 
 
 
@@ -282,6 +261,7 @@ export function useLibraryAdmin() {
 
       await refreshAll();
       setNotice({ tone: "success", text: "Saved labels." });
+      notifyToast("success", "Unit labels saved.");
     } catch (e: any) {
       const message = e?.message || "Save failed";
       setError(message);
@@ -295,17 +275,20 @@ export function useLibraryAdmin() {
     setError(null);
     if (!selected) return;
 
-    setBusy(selected.sourceMeta?.archived ? "Unarchiving..." : "Archiving...");
+    const nextArchived = !selected.sourceMeta?.archived;
+    setBusy(nextArchived ? "Archiving..." : "Unarchiving...");
     try {
       await jsonFetch(`/api/units/${selected.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          sourceMeta: { ...(selected.sourceMeta || {}), archived: !selected.sourceMeta?.archived },
+          sourceMeta: { ...(selected.sourceMeta || {}), archived: nextArchived },
         }),
       });
 
       await refreshAll();
+      setNotice({ tone: "success", text: nextArchived ? "Unit archived." : "Unit unarchived." });
+      notifyToast("success", nextArchived ? "Unit archived." : "Unit unarchived.");
     } catch (e: any) {
       setError(e?.message || "Archive failed");
     } finally {
@@ -346,6 +329,8 @@ async function safeDelete() {
     await jsonFetch(`/api/units/${selected.id}`, { method: "DELETE" });
     setSelectedUnitId("");
     await refreshAll();
+    setNotice({ tone: "success", text: "Unit deleted." });
+    notifyToast("success", "Unit deleted.");
   } catch (e: any) {
     setError(e?.message || "Delete failed");
   } finally {

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { jsonFetch } from "@/lib/http";
+import { notifyToast } from "@/lib/ui/toast";
 
 type ExtractedPage = {
   id: string;
@@ -82,13 +84,6 @@ function safeDate(s?: string | null) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
-}
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as any)?.error || `Request failed (${res.status})`);
-  return data as T;
 }
 
 function StatusPill({ children }: { children: string }) {
@@ -241,6 +236,7 @@ export default function SubmissionDetailPage() {
       if (triage.submission) setSubmission(triage.submission);
       await refresh();
       setMsg("Extraction complete.");
+      notifyToast("success", "Submission extracted.");
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {

@@ -1,6 +1,7 @@
 import "./globals.css";
 import TopNav from "@/components/TopNav";
 import PageContainer, { LANE } from "@/components/PageContainer";
+import ToastHost from "@/components/ui/ToastHost";
 
 export const metadata = {
   title: "Assessor AI",
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col">
         <TopNav />
+        <ToastHost />
 
         <main className="flex-1">
           <PageContainer>{children}</PageContainer>

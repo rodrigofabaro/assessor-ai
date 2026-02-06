@@ -113,10 +113,8 @@ export function useSpecsAdmin() {
     if (!vm.selectedDoc || vm.busy) return;
     try {
       await vm.archiveSelectedDocument();
-      pushToast("success", "Archived reference record.");
     } catch (e: any) {
-      const message = e?.message || "Archive failed";
-      pushToast("error", `Archive failed: ${message}`);
+      // errors already surfaced via mutation fetch + banner
     }
   };
 

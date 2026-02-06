@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { jsonFetch } from "@/lib/http";
+import { notifyToast } from "@/lib/ui/toast";
 
 export type Unit = {
   id: string;
@@ -53,18 +55,6 @@ export type IvRecord = {
   notes?: string | null;
   createdAt: string;
 };
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...opts,
-    headers: { "content-type": "application/json", ...(opts?.headers || {}) },
-  });
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText}${msg ? ` — ${msg}` : ""}`);
-  }
-  return (await res.json()) as T;
-}
 
 function asArray<T>(x: any): T[] {
   if (Array.isArray(x)) return x;
@@ -227,8 +217,10 @@ export function useBriefDetail(briefId: string) {
 
       await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
         method: "PATCH",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ ivRecords: merged }),
       });
+      notifyToast("success", "IV record saved.");
     } catch (e: any) {
       setIvError(e?.message || String(e));
     } finally {
@@ -246,8 +238,10 @@ export function useBriefDetail(briefId: string) {
 
       await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
         method: "PATCH",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ ivRecords: merged }),
       });
+      notifyToast("success", "IV record deleted.");
     } catch (e: any) {
       setIvError(e?.message || String(e));
     } finally {

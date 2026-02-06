@@ -240,6 +240,7 @@ model Unit {
   specVersionLabel String?
   lockedAt         DateTime?
   lockedBy         String?
+  sourceMeta       Json?
 
   // Spec doc
   specDocumentId String?

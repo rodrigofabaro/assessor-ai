@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { jsonFetch } from "@/lib/http";
 
 type Student = {
   id: string;
@@ -28,13 +29,6 @@ function short(s?: string | null, max = 44) {
   if (!s) return "—";
   const t = String(s);
   return t.length <= max ? t : t.slice(0, Math.max(0, max - 1)) + "…";
-}
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as any)?.error || `Request failed (${res.status})`);
-  return data as T;
 }
 
 function Icon({ name }: { name: "user" | "upload" | "edit" | "trash" | "filter" | "close" }) {

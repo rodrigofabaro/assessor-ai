@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { jsonFetch } from "@/lib/http";
+import { notifyToast } from "@/lib/ui/toast";
 
 export type ReferenceDocument = {
   id: string;
@@ -74,20 +76,6 @@ type ReferenceAdminOptions = {
 
 
 const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
-
-async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail = (data as any)?.detail;
-    const fallback = (data as any)?.error || (data as any)?.message || "Request failed";
-    if (detail) {
-      throw new Error(`${fallback}\n\n${detail}`);
-    }
-    throw new Error(fallback);
-  }
-  return data as T;
-}
 
 export function formatDate(iso?: string | null): string {
   if (!iso) return "";
@@ -388,6 +376,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       setDocFile(null);
 
       await refreshAll({ keepSelection: false });
+      notifyToast("success", "Reference document uploaded.");
     } catch (e: any) {
       setError(e?.message || "Upload failed");
     } finally {
@@ -407,6 +396,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         body: JSON.stringify({ documentId: selectedDoc.id }),
       });
       await refreshAll({ keepSelection: true });
+      notifyToast("success", "Extraction complete.");
     } catch (e: any) {
       setError(e?.message || "Extract failed");
     } finally {
@@ -434,6 +424,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason }),
       });
       await refreshAll({ keepSelection: true });
+      notifyToast("success", "Re-extraction complete.");
     } catch (e: any) {
       setError(e?.message || "Re-extract failed");
     } finally {
@@ -471,6 +462,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       });
 
       await refreshAll({ keepSelection: true });
+      notifyToast("success", "Reference document locked.");
     } catch (e: any) {
       setError(e?.message || "Lock failed");
     } finally {
@@ -490,6 +482,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     try {
       await jsonFetch(`/api/reference-documents/${selectedDoc.id}/archive`, { method: "POST" });
       await refreshAll({ keepSelection: false });
+      notifyToast("success", "Reference document archived.");
     } catch (e: any) {
       const message = e?.message || "Archive failed";
       setError(message);
@@ -535,6 +528,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
       await refreshAll({ keepSelection: true });
       setUnitNotice({ tone: "success", text: "Saved unit metadata." });
+      notifyToast("success", "Unit metadata saved.");
     } catch (e: any) {
       const message = e?.message || "Save failed";
       setUnitNotice({ tone: "error", text: `Failed to save: ${message}` });
@@ -559,6 +553,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       });
       await refreshAll({ keepSelection: true });
       setUnitNotice({ tone: "success", text: nextArchived ? "Unit archived." : "Unit unarchived." });
+      notifyToast("success", nextArchived ? "Unit archived." : "Unit unarchived.");
     } catch (e: any) {
       const message = e?.message || "Archive failed";
       setUnitNotice({ tone: "error", text: `Failed to archive: ${message}` });
@@ -599,6 +594,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       await jsonFetch(`/api/units/${selectedUnit.id}`, { method: "DELETE" });
       await refreshAll({ keepSelection: false });
       setUnitNotice({ tone: "success", text: "Unit deleted." });
+      notifyToast("success", "Unit deleted.");
     } catch (e: any) {
       const message = e?.message || "Delete failed";
       setUnitNotice({ tone: "error", text: `Failed to delete: ${message}` });
