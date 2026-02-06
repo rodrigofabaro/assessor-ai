@@ -17,6 +17,7 @@ export default function SpecsAdminPage() {
   const admin = useSpecsAdmin();
   const { vm } = admin;
   const [dragActive, setDragActive] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const selectedDoc = vm.selectedDoc;
   const extractionWarnings = Array.isArray(selectedDoc?.extractionWarnings)
@@ -89,45 +90,75 @@ export default function SpecsAdminPage() {
             <h2 className="text-base font-semibold">Upload specs</h2>
             <p className="mt-1 text-xs text-zinc-500">Drag-and-drop PDF specs or use the upload button.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={admin.uploading}
-            className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-          >
-            Upload spec
-          </button>
+          <div className="flex items-center gap-2">
+            {uploadOpen ? (
+              <button
+                type="button"
+                onClick={() => setUploadOpen(false)}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Collapse
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setUploadOpen((prev) => !prev)}
+              disabled={admin.uploading}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Upload spec
+            </button>
+          </div>
         </div>
 
-        <div
-          className={"mt-4 grid gap-2 rounded-2xl border-2 p-6 text-sm transition " + dragTone}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragActive(true);
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragActive(true);
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragActive(false);
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragActive(false);
-            const files = Array.from(e.dataTransfer?.files || []);
-            admin.uploadFiles(files);
-          }}
-        >
-          <div className="text-sm font-semibold text-zinc-900">Drop PDFs here</div>
-          <div className="text-xs text-zinc-600">Files upload immediately and appear in the Units list.</div>
-          <div className="text-xs text-zinc-500">Accepted: PDF only · Multiple files supported</div>
-        </div>
+        {uploadOpen ? (
+          <div className="mt-4 grid gap-3">
+            <div
+              className={"grid gap-2 rounded-2xl border-2 p-6 text-sm transition " + dragTone}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+                const files = Array.from(e.dataTransfer?.files || []);
+                admin.uploadFiles(files);
+              }}
+            >
+              <div className="text-sm font-semibold text-zinc-900">Drop PDFs here</div>
+              <div className="text-xs text-zinc-600">Files upload immediately and appear in the Units list.</div>
+              <div className="text-xs text-zinc-500">Accepted: PDF only · Multiple files supported</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={admin.uploading}
+                className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+              >
+                Choose files
+              </button>
+              <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+            Upload is collapsed. Click “Upload spec” to add PDFs.
+          </div>
+        )}
       </section>
 
       <section className="flex flex-wrap gap-2">
