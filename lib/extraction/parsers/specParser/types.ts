@@ -20,6 +20,7 @@ export type ParsedSpec = {
     unitCode: string;
     unitTitle: string;
     pearsonUnitCode: string | null;
+    unitCodeQualifier: string | null;
     level: number | null;
     credits: number | null;
     specIssue: string | null;

@@ -19,7 +19,6 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
   const HARD_STOPS = [
     /^\s*Assessment\s*criteria\b/i,
     /^\s*Essential\s*content\b/i,
-    /^\s*Learning\s*outcomes?\s*&?\s*criteria\b/i,
     /^\s*Pass\b/i,
     /^\s*Merit\b/i,
     /^\s*Distinction\b/i,
@@ -31,6 +30,7 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     /\bpearson\s*education\b/i,
     /\beducation\s*limited\b/i,
     /\bengineering\s*suite\b/i,
+    /\blearning\s*outcomes?\s*&?\s*assessment\s*criteria\b/i,
     /\bissue\s*\d+\b/i,
     /^\s*\d{1,4}\s*$/i,
     /^\s*page\s*\d{1,4}\s*$/i,

@@ -149,6 +149,7 @@ export async function POST(req: Request) {
       originalFilename: doc.originalFilename,
       storedFilename: doc.storedFilename,
       unitCode: extractedJson?.unit?.unitCode || null,
+      unitCodeQualifier: extractedJson?.unit?.unitCodeQualifier || null,
       specIssue: extractedJson?.unit?.specIssue || null,
       parserVersion: extractedJson?.parserVersion || null,
       reextractHistory,
