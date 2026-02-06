@@ -74,8 +74,15 @@ type ReferenceAdminOptions = {
   includeArchived?: boolean;
 };
 
-
 const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
+
+function isPdfFile(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function stripExtension(name: string) {
+  return name.replace(/\.[^/.]+$/, "");
+}
 
 export function formatDate(iso?: string | null): string {
   if (!iso) return "";
@@ -384,6 +391,70 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     }
   }
 
+  async function uploadFiles(files: File[]) {
+    setError(null);
+    if (!files.length) return;
+    if (busy) {
+      notifyToast("warn", "Another action is in progress. Please wait.");
+      return;
+    }
+
+    const valid = files.filter(isPdfFile);
+    const skipped = files.filter((f) => !isPdfFile(f));
+    if (skipped.length) {
+      notifyToast(
+        "warn",
+        skipped.length === files.length
+          ? "Only PDF files are supported."
+          : `Skipped ${skipped.length} file(s). Only PDF files are supported.`
+      );
+    }
+    if (!valid.length) return;
+
+    setBusy("Uploading...");
+    try {
+      const settled = await Promise.all(
+        valid.map(async (file) => {
+          const fd = new FormData();
+          fd.set("type", docType);
+          fd.set("title", stripExtension(file.name) || file.name);
+          fd.set("version", "1");
+          fd.set("file", file);
+
+          const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            return {
+              ok: false,
+              reason: (data as any)?.error || (data as any)?.message || "Upload failed",
+            };
+          }
+          return { ok: true };
+        })
+      );
+
+      const okCount = settled.filter((r) => r.ok).length;
+      const failCount = settled.length - okCount;
+
+      if (okCount > 0) {
+        await refreshAll({ keepSelection: false });
+        notifyToast("success", `Uploaded ${okCount} file${okCount > 1 ? "s" : ""}. Ready to extract.`);
+      }
+
+      if (failCount > 0) {
+        const reason = settled.find((r) => !r.ok)?.reason || "Upload failed";
+        setError(`Upload failed: ${reason}`);
+        notifyToast("error", `Upload failed: ${reason}`);
+      }
+    } catch (e: any) {
+      const message = e?.message || "Upload failed";
+      setError(message);
+      notifyToast("error", message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function extractSelected() {
     setError(null);
     if (!selectedDoc) return;
@@ -650,6 +721,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     // actions
     uploadDoc,
+    uploadFiles,
     extractSelected,
     reextractSelected,
     lockSelected,

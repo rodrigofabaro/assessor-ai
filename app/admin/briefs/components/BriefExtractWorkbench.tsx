@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import BriefReviewCard from "./BriefReviewCard";
-import BriefUploadModal from "./BriefUploadModal";
 import { badge } from "../../reference/reference.logic";
+import { ui } from "@/components/ui/uiClasses";
 
 export default function BriefExtractWorkbench({ rx }: { rx: any }) {
-  const [showUpload, setShowUpload] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const f = rx.filters;
   const setF = rx.setFilters;
@@ -19,8 +21,26 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
     return { total, shown, byStatus };
   }, [rx.documents, rx.filteredDocuments]);
 
+  const dragTone = dragActive
+    ? "border-sky-400 bg-sky-50 text-sky-900"
+    : "border-dashed border-zinc-200 bg-zinc-50 text-zinc-600";
+
+  const isUploading = String(rx.busy || "").toLowerCase().includes("upload");
+
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        multiple
+        className="sr-only"
+        onChange={(e) => {
+          rx.uploadFiles?.(Array.from(e.target.files || []));
+          e.target.value = "";
+        }}
+      />
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold">Brief extraction</div>
@@ -30,21 +50,87 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowUpload(true)}
-            className="h-9 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white hover:bg-zinc-800"
-          >
-            Upload brief PDF
-          </button>
-
-          <button
-            onClick={rx.resetFilters}
-            className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
-          >
+          <button onClick={rx.resetFilters} className={ui.btnSecondary + " text-xs"}>
             Reset filters
           </button>
         </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">Upload briefs</h2>
+            <p className="mt-1 text-xs text-zinc-500">Drag-and-drop brief PDFs or use the upload button.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {uploadOpen ? (
+              <button
+                type="button"
+                onClick={() => setUploadOpen(false)}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Collapse
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setUploadOpen((prev) => !prev)}
+              disabled={isUploading}
+              className={ui.btnPrimary + " text-xs disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Upload brief
+            </button>
+          </div>
+        </div>
+
+        {uploadOpen ? (
+          <div className="mt-4 grid gap-3">
+            <div
+              className={"grid gap-2 rounded-2xl border-2 p-6 text-sm transition " + dragTone}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+                const files = Array.from(e.dataTransfer?.files || []);
+                rx.uploadFiles?.(files);
+              }}
+            >
+              <div className="text-sm font-semibold text-zinc-900">Drop PDFs here</div>
+              <div className="text-xs text-zinc-600">Files upload immediately and appear in the Brief inbox list.</div>
+              <div className="text-xs text-zinc-500">Accepted: PDF only · Multiple files supported</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={isUploading}
+                className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+              >
+                Choose files
+              </button>
+              <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+            Upload is collapsed. Click “Upload brief” to add PDFs.
+          </div>
+        )}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[420px_1fr] min-w-0">
@@ -164,8 +250,6 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
 
         <BriefReviewCard rx={rx} />
       </div>
-
-      {showUpload ? <BriefUploadModal rx={rx} onClose={() => setShowUpload(false)} /> : null}
     </section>
   );
 }

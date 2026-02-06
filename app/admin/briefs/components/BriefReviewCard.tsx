@@ -7,6 +7,7 @@ import type {
 } from "../../reference/reference.logic";
 import { Meta } from "./ui";
 import BriefMappingPanel from "./BriefMappingPanel";
+import { ui } from "@/components/ui/uiClasses";
 
 export default function BriefReviewCard({ rx }: { rx: any }) {
   const doc = rx.selectedDoc as ReferenceDocument | null;
@@ -38,6 +39,8 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
     draft && draft.kind === "BRIEF" ? draft.header || {} : {}
   ) as any;
 
+  const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
+
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
       <div className="border-b border-zinc-200 p-4">
@@ -68,17 +71,20 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             />
           </div>
 
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
+            <div className="font-semibold text-zinc-900">Brief meaning (audit)</div>
+            <div className="mt-1">
+              Brief = assignment question paper + context. Spec = criteria universe. Locking fixes the brief-to-spec
+              binding and IV record for defensible grading.
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               disabled={!canExtract}
               onClick={rx.extractSelected}
-              className={
-                "h-10 rounded-xl px-4 text-sm font-semibold " +
-                (!canExtract
-                  ? "bg-zinc-200 text-zinc-600 cursor-not-allowed"
-                  : "bg-zinc-900 text-white hover:bg-zinc-800")
-              }
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
             >
               Extract
             </button>
@@ -87,12 +93,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               type="button"
               disabled={!canExtract}
               onClick={rx.reextractSelected}
-              className={
-                "h-10 rounded-xl border px-4 text-sm font-semibold " +
-                (!canExtract
-                  ? "border-zinc-200 bg-white text-zinc-400 cursor-not-allowed"
-                  : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50")
-              }
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
             >
               Re-extract
             </button>
@@ -101,12 +102,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               type="button"
               disabled={!canLock}
               onClick={rx.lockSelected}
-              className={
-                "h-10 rounded-xl border px-4 text-sm font-semibold " +
-                (!canLock
-                  ? "border-zinc-200 bg-white text-zinc-400 cursor-not-allowed"
-                  : "border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800")
-              }
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
             >
               Lock
             </button>
@@ -115,7 +111,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               href={`/api/reference-documents/${doc.id}/file`}
               target="_blank"
               rel="noreferrer"
-              className="h-10 inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+              className={ui.btnSecondary}
             >
               PDF preview
             </a>
@@ -141,6 +137,17 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             </p>
           </div>
 
+          {draftWarnings.length ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="font-semibold">Extraction warnings</div>
+              <ul className="mt-1 list-disc pl-5">
+                {draftWarnings.map((w: string, i: number) => (
+                  <li key={`${w}-${i}`}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {draft?.kind === "BRIEF" ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -163,7 +170,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                 <div className="mt-3 grid gap-3">
                   {draft.tasks.map((t: any, i: number) => {
                     const title =
-                      t.heading || t.label || (t.n ? `Task ${t.n}` : "Task");
+                      t.title || t.heading || t.label || (t.n ? `Task ${t.n}` : "Task");
                     const raw = String(t.text || "").trim();
 
                     const pretty = raw
