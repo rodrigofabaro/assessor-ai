@@ -99,12 +99,13 @@ export async function POST(req: Request) {
     });
 
     if (!resolved.ok || !resolved.path) {
+      const triedList = resolved.tried.length ? resolved.tried : ["(no candidates)"];
       const msg =
         `File not found for reference document.\n` +
         `originalFilename: ${doc.originalFilename}\n` +
         `storedFilename: ${doc.storedFilename}\n` +
         `storagePath (DB): ${doc.storagePath}\n` +
-        `Tried:\n- ${resolved.tried.join("\n- ")}\n`;
+        `Tried:\n- ${triedList.join("\n- ")}\n`;
 
       await prisma.referenceDocument.update({
         where: { id: doc.id },
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
       },
     });
 
-        // Surface the error in the server console for fast debugging.
+    // Surface the error in the server console for fast debugging.
     // (We still store a truncated stack in extractionWarnings for audit.)
     console.error("REFERENCE_EXTRACT_ERROR", message, stack);
 

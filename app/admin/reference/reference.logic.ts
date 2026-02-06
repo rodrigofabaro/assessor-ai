@@ -68,7 +68,12 @@ async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(url, opts);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
+    const detail = (data as any)?.detail;
+    const fallback = (data as any)?.error || (data as any)?.message || "Request failed";
+    if (detail) {
+      throw new Error(`${fallback}\n\n${detail}`);
+    }
+    throw new Error(fallback);
   }
   return data as T;
 }
