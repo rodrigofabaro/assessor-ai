@@ -41,6 +41,24 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
     });
   }, [extracted, tasksOverride]);
 
+  const taskKeys = useMemo(
+    () => taskRows.map((row: any, idx: number) => String(row?.task?.n ?? idx)),
+    [taskRows]
+  );
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
+
+  const setAllExpanded = (expanded: boolean) => {
+    const next: Record<string, boolean> = {};
+    taskKeys.forEach((key) => {
+      next[key] = expanded;
+    });
+    setExpandedMap(next);
+  };
+
+  const toggleTask = (key: string) => {
+    setExpandedMap((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   // ✅ No effect. Modal opens for the CURRENT linked doc only.
   const linkedId: string | null = linkedDoc?.id ?? null;
   const [editForId, setEditForId] = useState<string | null>(null);
@@ -58,8 +76,25 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Pill cls={tasksOverride ? tone("info") : tone("muted")}>{tasksOverride ? "OVERRIDE" : "EXTRACTED"}</Pill>
+
+          <button
+            type="button"
+            disabled={!taskRows.length}
+            onClick={() => setAllExpanded(true)}
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            disabled={!taskRows.length}
+            onClick={() => setAllExpanded(false)}
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
+          >
+            Collapse all
+          </button>
 
           <button
             type="button"
@@ -91,32 +126,37 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
       ) : null}
 
       <div className="mt-4 grid gap-3">
-      {taskRows && taskRows.length ? (
-        taskRows.map(({ task, extractedTask, overrideApplied }: any) => (
-          <TaskCard
-            key={`${task?.label ?? ""}-${task?.n ?? ""}`}
-            task={task}
-            extractedTask={extractedTask}
-            overrideApplied={overrideApplied}
-          />
-        ))
-      ) : (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <div className="font-semibold">No tasks detected yet</div>
-          <div className="mt-1">
-            Run Extract on the BRIEF PDF in the inbox. If the template is odd, use the override editor below.
+        {taskRows && taskRows.length ? (
+          taskRows.map(({ task, extractedTask, overrideApplied }: any, idx: number) => {
+            const key = taskKeys[idx] ?? `${task?.label ?? ""}-${task?.n ?? ""}-${idx}`;
+            return (
+              <TaskCard
+                key={key}
+                task={task}
+                extractedTask={extractedTask}
+                overrideApplied={overrideApplied}
+                expanded={!!expandedMap[key]}
+                onToggle={() => toggleTask(key)}
+              />
+            );
+          })
+        ) : (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="font-semibold">No tasks detected yet</div>
+            <div className="mt-1">
+              Run Extract on the BRIEF PDF in the inbox. If the template is odd, use the override editor below.
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onGoToExtract?.()}
+                className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                Go to Extract tools
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => onGoToExtract?.()}
-              className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
-            >
-              Go to Extract tools
-            </button>
-          </div>
-        </div>
-      )}
+        )}
       </div>
 
       <TasksOverrideModal
