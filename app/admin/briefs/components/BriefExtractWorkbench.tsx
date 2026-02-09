@@ -8,7 +8,7 @@ import { ui } from "@/components/ui/uiClasses";
 export default function BriefExtractWorkbench({ rx }: { rx: any }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(true);
 
   const f = rx.filters;
   const setF = rx.setFilters;
@@ -53,12 +53,6 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
           <p className="mt-1 text-xs text-zinc-600">
             Inbox is <span className="font-semibold">BRIEF</span>-only. Select a PDF, then Extract → review mapping → Lock.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button onClick={rx.resetFilters} className={ui.btnSecondary + " text-xs"}>
-            Reset filters
-          </button>
         </div>
       </div>
 
@@ -135,7 +129,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
-            Upload is collapsed. Click “Upload brief” to add PDFs.
+            Upload is collapsed. Click “Upload brief” to open the drop zone.
           </div>
         )}
       </div>

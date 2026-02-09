@@ -47,7 +47,7 @@ async function run() {
   }
 
   const { pdfToText } = loadTsModule("lib/extraction/text/pdfToText.ts");
-  const { extractBrief } = loadTsModule("lib/extractors/brief.ts");
+  const { extractBrief } = loadTsModule("lib/extractors/brief/index.ts");
 
   const buf = fs.readFileSync(fixturePath);
   const text = await pdfToText(buf);

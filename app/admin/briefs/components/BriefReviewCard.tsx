@@ -53,9 +53,10 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
   const headerRows: Array<{ label: string; value: string }> = [
     { label: "Qualification", value: header.qualification || "—" },
+    { label: "Unit number/title", value: header.unitNumberAndTitle || "—" },
     { label: "Unit code (Pearson)", value: header.unitCode || "—" },
     { label: "Assignment title", value: header.assignmentTitle || "—" },
-    { label: "Assignment number", value: header.assignment || "—" },
+    { label: "Assignment", value: header.assignment || "—" },
     { label: "Academic year", value: header.academicYear || "—" },
     { label: "Issue date", value: header.issueDate || "—" },
     { label: "Final submission date", value: header.finalSubmissionDate || "—" },
@@ -63,6 +64,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
     { label: "Internal verifier", value: header.internalVerifier || "—" },
     { label: "Verification date", value: header.verificationDate || "—" },
   ];
+  const missingHeaderFields = headerRows.filter((row) => row.value === "—").map((row) => row.label);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
@@ -198,6 +200,12 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                 </button>
               </div>
             </div>
+
+            {missingHeaderFields.length ? (
+              <div className="mt-2 text-xs text-amber-900">
+                Missing fields: {missingHeaderFields.join(", ")}
+              </div>
+            ) : null}
 
             {headerExpanded ? (
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

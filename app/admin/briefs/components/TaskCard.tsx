@@ -9,6 +9,9 @@ type TaskCardProps = {
   task: any;
   extractedTask?: any | null;
   overrideApplied?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
+  defaultExpanded?: boolean;
 };
 
 function confidenceTone(confidence: TaskConfidence) {
@@ -19,6 +22,15 @@ function confidenceTone(confidence: TaskConfidence) {
 
 function normalizeText(text: string) {
   return (text || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").trim();
+}
+
+function stripAiasLines(text: string) {
+  const normalized = normalizeText(text);
+  if (!normalized) return "";
+  const lines = normalized
+    .split("\n")
+    .filter((line) => !/^\(?\s*AIAS\s*\d+\s*\)?$/i.test(line.trim()));
+  return lines.join("\n").trim();
 }
 
 function deriveTitle(task: any) {
@@ -44,11 +56,13 @@ function getCriteria(task: any): string[] {
 
 function buildPreview(text: string) {
   const normalized = normalizeText(text);
-  if (!normalized) return "(empty)";
+  if (!normalized) return { text: "(empty)", hasMore: false };
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
-  const previewLines = lines.slice(0, 3).join(" ");
-  const compact = previewLines.replace(/\s+/g, " ");
-  return compact.length > 220 ? compact.slice(0, 220).trim() + "…" : compact;
+  const previewLines = lines.slice(0, 4);
+  let compact = previewLines.join("\n").replace(/\s+$/g, "");
+  const hasMore = lines.length > previewLines.length;
+  if (compact.length > 420) compact = compact.slice(0, 420).trim();
+  return { text: compact + (hasMore ? "…" : ""), hasMore };
 }
 
 type TextBlock = { type: "p"; text: string } | { type: "ol"; items: string[] };
@@ -122,15 +136,18 @@ function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string
   );
 }
 
-export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps) {
-  const [expanded, setExpanded] = useState(false);
+export function TaskCard({ task, extractedTask, overrideApplied, expanded, onToggle, defaultExpanded }: TaskCardProps) {
+  const [localExpanded, setLocalExpanded] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
+  const isControlled = typeof expanded === "boolean";
+  const isExpanded = isControlled ? expanded : localExpanded;
 
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
   const title = deriveTitle(task);
   const criteria = getCriteria(task);
-  const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
-  const blocks = useMemo(() => parseBlocks(task?.text || ""), [task?.text]);
+  const displayText = useMemo(() => stripAiasLines(task?.text || ""), [task?.text]);
+  const preview = useMemo(() => buildPreview(displayText), [displayText]);
+  const blocks = useMemo(() => parseBlocks(displayText), [displayText]);
 
   const confidence: TaskConfidence = overrideApplied
     ? "OVERRIDDEN"
@@ -161,6 +178,9 @@ export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps
             <Pill cls={confidenceTone(confidence)}>
               {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Heuristic" : "🟢 Clean"}
             </Pill>
+            {task?.aias ? (
+              <Pill cls="bg-sky-50 text-sky-900 ring-1 ring-sky-200">{String(task.aias).toUpperCase()}</Pill>
+            ) : null}
           </div>
           <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
           {criteria.length ? (
@@ -186,10 +206,13 @@ export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps
           ) : null}
           <button
             type="button"
-            onClick={() => setExpanded((prev) => !prev)}
+            onClick={() => {
+              onToggle?.();
+              if (!isControlled) setLocalExpanded((prev) => !prev);
+            }}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
           >
-            {expanded ? "Collapse" : "Expand"}
+            {isExpanded ? "Collapse" : "Expand"}
           </button>
         </div>
       </div>
@@ -198,8 +221,8 @@ export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps
         <div className="mt-3 text-xs text-amber-900">Warning: {task.warnings.join(", ")}</div>
       ) : null}
 
-      {!expanded ? (
-        <div className="mt-3 text-sm text-zinc-700 max-w-3xl">{preview}</div>
+      {!isExpanded ? (
+        <div className="mt-3 max-w-3xl whitespace-pre-wrap text-sm text-zinc-700">{preview.text}</div>
       ) : (
         <div className="mt-4 max-w-3xl text-sm text-zinc-900">
           {blocks.length ? (
