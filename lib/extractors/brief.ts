@@ -619,7 +619,12 @@ function extractBriefTasks(
 
   if (!headings.length) {
     warnings.push("Task headings not found (expected “Task 1”, “Task 2”, …).");
-    return { tasks: [], warnings };
+    return {
+  tasks: [],
+  warnings,
+  endMatter: { sourcesBlock: "", criteriaBlock: "" },
+};
+
   }
 
   const orderedHeadings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];

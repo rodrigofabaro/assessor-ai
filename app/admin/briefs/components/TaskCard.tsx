@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pill } from "./ui";
 
 type TaskConfidence = "CLEAN" | "HEURISTIC" | "OVERRIDDEN";
@@ -156,7 +156,7 @@ function parseBlocks(text: string): TextBlock[] {
 
 function renderInlineText(text: string) {
   const urlRegex = /(https?:\/\/[^\s)]+)/g;
-  const nodes: Array<string | JSX.Element> = [];
+  const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = urlRegex.exec(text))) {

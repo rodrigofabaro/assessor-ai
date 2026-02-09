@@ -24,7 +24,12 @@ export function AssignmentPicker({
     e.preventDefault();
     e.stopPropagation();
 
-    const chosen = pickByEnter(filtered, assignmentQuery, (a) => [a.unitCode, a.assignmentRef ?? "", a.title]);
+    const chosen = pickByEnter(filtered, assignmentQuery, [
+  (a) => a.unitCode,
+  (a) => a.assignmentRef ?? "",
+  (a) => a.title,
+]);
+
     if (!chosen) return;
 
     setAssignmentId(chosen.id);

@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { documentId: string } }) {
-  const documentId = params?.documentId;
+export async function GET(_req: Request, { params }: { params: Promise<{ documentId: string }> }) {
+  const { documentId } = await params;
+
 
   if (!documentId) {
     return NextResponse.json({ error: "MISSING_DOCUMENT_ID", message: "Missing reference document id." }, { status: 400 });

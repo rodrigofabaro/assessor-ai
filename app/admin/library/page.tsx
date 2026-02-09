@@ -1,12 +1,5 @@
 "use client";
 
-import { redirect } from "next/navigation";
-
-export default function Page() {
-  redirect("/admin/specs");
-}
-
-
 import { badge, formatDate, useLibraryAdmin } from "./library.logic";
 
 export default function LibraryAdminPage() {
@@ -268,11 +261,11 @@ export default function LibraryAdminPage() {
                             placeholder="e.g. Issue 5 – June 2025"
                           />
                         </label>
-                        <p className="text-xs text-zinc-500">
-                          Locked units can still update labels without re-extracting.
-                        </p>
+
+                        <p className="text-xs text-zinc-500">Locked units can still update labels without re-extracting.</p>
                       </div>
                     </details>
+
                     <div className="border-t border-zinc-200 pt-4">
                       <div className="text-sm font-semibold text-zinc-900">Briefs/assignments bound to this unit</div>
                       <div className="mt-1 text-xs text-zinc-600">
@@ -287,10 +280,12 @@ export default function LibraryAdminPage() {
                             {vm.boundBriefs.map((b) => (
                               <li key={b.id} className="rounded-xl border border-zinc-200 p-3">
                                 <div className="text-sm font-semibold text-zinc-900">
-                                  {b.assignmentCode || "(no code)"} • {b.briefTitle || "(brief)"}
+                                  {b.assignmentCode || "(no code)"} • {b.title || "(brief)"}
+
                                 </div>
                                 <div className="mt-1 text-xs text-zinc-600">
-                                  Bound at: {formatDate(b.createdAt)} • Brief doc id: {b.briefDocumentId || "-"}
+                                  Brief doc id: {b.briefDocumentId || "-"}
+
                                 </div>
                               </li>
                             ))}
@@ -299,7 +294,6 @@ export default function LibraryAdminPage() {
                       </div>
                     </div>
                   </div>
-                  
                 </div>
               </div>
             )}
@@ -414,15 +408,6 @@ function LearningOutcomeCard({ lo }: { lo: any }) {
           </details>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function Meta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-      <div className="text-xs text-zinc-600">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold text-zinc-900 break-words">{value || "-"}</div>
     </div>
   );
 }
