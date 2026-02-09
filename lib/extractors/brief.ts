@@ -33,8 +33,18 @@ type BriefTask = {
   text: string;
   prompt?: string;
   parts?: Array<{ key: string; text: string }>;
+  tables?: ExtractedTable[];
   warnings?: string[];
   confidence?: "CLEAN" | "HEURISTIC";
+};
+
+type ExtractedTable = {
+  id: string;
+  title?: string;
+  columns: string[];
+  rows: string[][];
+  page?: number;
+  confidence: "CLEAN" | "HEURISTIC";
 };
 
 function uniqSortedCodes(codes: string[]) {
@@ -556,6 +566,7 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   let currentKey: string | null = null;
   let currentText: string[] = [];
   let currentLetter: string | null = null;
+  const topLevelLetterRegex = /^\s{0,2}([a-z])[.)]\s+(.*)$/i;
 
   const flush = () => {
     if (currentKey) {
@@ -587,12 +598,12 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
       continue;
     }
 
-    const letterMatch = trimmed.match(/^([a-z])\)\s+(.*)$/i);
+    const letterMatch = line.match(topLevelLetterRegex);
     if (letterMatch) {
       flush();
       currentKey = letterMatch[1].toLowerCase();
       currentLetter = currentKey;
-      currentText.push(letterMatch[2]);
+      currentText.push(letterMatch[2].trim());
       continue;
     }
 
@@ -610,6 +621,131 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 
   flush();
   return parts.length >= 2 ? parts : null;
+}
+
+function splitTableRow(line: string): string[] {
+  return line
+    .split(/\t| {2,}/)
+    .map((cell) => cell.trim())
+    .filter(Boolean);
+}
+
+function parseTableBlock(lines: string[]): { columns: string[]; rows: string[][]; confidence: "CLEAN" | "HEURISTIC" } | null {
+  const nonEmpty = lines.map((line) => line.trim()).filter(Boolean);
+  if (!nonEmpty.length) return null;
+  let headerIndex = -1;
+  let columns: string[] = [];
+  for (let i = 0; i < nonEmpty.length; i += 1) {
+    const cols = splitTableRow(nonEmpty[i]);
+    if (cols.length >= 2) {
+      headerIndex = i;
+      columns = cols;
+      break;
+    }
+  }
+  if (headerIndex < 0) return null;
+  const rows: string[][] = [];
+  let cleanRows = 0;
+  for (let i = headerIndex + 1; i < nonEmpty.length; i += 1) {
+    const cols = splitTableRow(nonEmpty[i]);
+    if (!cols.length) continue;
+    if (cols.length >= columns.length) {
+      const trimmed = cols.slice(0, columns.length - 1);
+      trimmed.push(cols.slice(columns.length - 1).join(" "));
+      rows.push(trimmed);
+      cleanRows += 1;
+    } else {
+      const padded = [...cols];
+      while (padded.length < columns.length) padded.push("");
+      rows.push(padded);
+    }
+  }
+  if (!rows.length) return null;
+  const confidence = cleanRows === rows.length ? "CLEAN" : "HEURISTIC";
+  return { columns, rows, confidence };
+}
+
+function extractTablesFromTaskText(textBody: string) {
+  const lines = splitLines(textBody);
+  const tables: ExtractedTable[] = [];
+  const cleanedLines: string[] = [];
+  let autoIndex = 1;
+  const tableAnchorRegex = /^\s*Table\s+([0-9]+(?:\.[0-9]+)*)\b[:\-–—]?\s*(.*)$/i;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const tableMatch = line.match(tableAnchorRegex);
+    if (tableMatch) {
+      const idPart = tableMatch[1].replace(/[^0-9.]/g, "");
+      const suffix = tableMatch[2]?.trim();
+      const title = `Table ${tableMatch[1]}${suffix ? `: ${suffix}` : ""}`;
+      const blockLines: string[] = [];
+      let j = i + 1;
+      let blankCount = 0;
+      for (; j < lines.length; j += 1) {
+        const next = lines[j];
+        const trimmed = next.trim();
+        if (tableAnchorRegex.test(next) || /^Task\s*\d+\b/i.test(trimmed)) break;
+        if (!trimmed) {
+          blankCount += 1;
+          if (blankCount >= 2) {
+            j += 1;
+            break;
+          }
+          blockLines.push("");
+          continue;
+        }
+        blankCount = 0;
+        if (blockLines.length && isHeadingLine(trimmed)) break;
+        blockLines.push(next);
+      }
+      const parsed = parseTableBlock(blockLines);
+      if (parsed) {
+        const id = `table-${idPart || autoIndex}`;
+        tables.push({ id, title, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
+        cleanedLines.push(`[TABLE: ${id}]`);
+        i = j;
+        continue;
+      }
+    }
+
+    const candidate = splitTableRow(line);
+    const nextCandidate = lines[i + 1] ? splitTableRow(lines[i + 1]) : [];
+    const numericWeight = candidate.filter((cell) => /\d/.test(cell)).length;
+    const isCandidateRow = candidate.length >= 2 && numericWeight >= 1;
+    const isNextRow = nextCandidate.length >= 2;
+    if (isCandidateRow && isNextRow) {
+      const titleCandidate = cleanedLines.length ? cleanedLines[cleanedLines.length - 1]?.trim() : "";
+      const useTitle = titleCandidate && (isHeadingLine(titleCandidate) || /:$/.test(titleCandidate));
+      if (useTitle) cleanedLines.pop();
+      const blockLines: string[] = [];
+      let j = i;
+      for (; j < lines.length; j += 1) {
+        const next = lines[j];
+        const trimmed = next.trim();
+        if (!trimmed) break;
+        const cols = splitTableRow(next);
+        if (cols.length < 2) break;
+        blockLines.push(next);
+      }
+      const parsed = parseTableBlock(blockLines);
+      if (parsed) {
+        const id = `table-auto-${autoIndex++}`;
+        const title = useTitle ? titleCandidate.replace(/:\s*$/, "") : undefined;
+        tables.push({ id, title, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
+        cleanedLines.push(`[TABLE: ${id}]`);
+        i = j;
+        continue;
+      }
+    }
+
+    cleanedLines.push(line);
+    i += 1;
+  }
+
+  const cleanedText = cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return { tables, cleanedText };
 }
 
 function extractBriefTasks(
@@ -869,7 +1005,8 @@ function extractBriefTasks(
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const reflowedTextBody = reflowProsePreserveLists(textBody);
+    const { tables, cleanedText } = extractTablesFromTaskText(textBody);
+    const reflowedTextBody = reflowProsePreserveLists(cleanedText);
     const parts = extractParts(reflowedTextBody);
     const confidenceWarnings = taskWarnings.filter(
       (warning) => warning !== "duplicate heading candidates merged"
@@ -883,6 +1020,7 @@ function extractBriefTasks(
       text: reflowedTextBody,
       prompt: reflowedTextBody,
       parts: parts || undefined,
+      tables: tables.length ? tables : undefined,
       warnings: taskWarnings.length ? taskWarnings : undefined,
       confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",
     });

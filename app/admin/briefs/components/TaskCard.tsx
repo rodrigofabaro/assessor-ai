@@ -154,6 +154,39 @@ function parseBlocks(text: string): TextBlock[] {
   return blocks;
 }
 
+function buildTableMarkdown(table: any) {
+  const columns = Array.isArray(table?.columns) ? table.columns : [];
+  const rows = Array.isArray(table?.rows) ? table.rows : [];
+  if (!columns.length) return "";
+  const header = `| ${columns.join(" | ")} |`;
+  const separator = `| ${columns.map(() => "---").join(" | ")} |`;
+  const body = rows.map((row: string[]) => `| ${(row || []).map((cell) => cell || "").join(" | ")} |`);
+  return [header, separator, ...body].join("\n");
+}
+
+function buildTableTsv(table: any) {
+  const columns = Array.isArray(table?.columns) ? table.columns : [];
+  const rows = Array.isArray(table?.rows) ? table.rows : [];
+  if (!columns.length) return "";
+  const lines = [columns.join("\t"), ...rows.map((row: string[]) => (row || []).map((cell) => cell || "").join("\t"))];
+  return lines.join("\n");
+}
+
+function buildCopyText(task: any) {
+  const baseText = normalizeText(task?.text || "");
+  const tables = Array.isArray(task?.tables) ? task.tables : [];
+  if (!tables.length) return baseText;
+  const sections = [baseText];
+  tables.forEach((table: any) => {
+    const title = table?.title || table?.id ? String(table?.title || table?.id) : "Table";
+    const markdown = buildTableMarkdown(table);
+    const tsv = buildTableTsv(table);
+    sections.push("", title, markdown);
+    if (tsv) sections.push("", "TSV:", tsv);
+  });
+  return sections.filter((section) => section !== "").join("\n");
+}
+
 function renderInlineText(text: string) {
   const urlRegex = /(https?:\/\/[^\s)]+)/g;
   const nodes: ReactNode[] = [];
@@ -181,6 +214,69 @@ function renderInlineText(text: string) {
   }
   if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
   return nodes;
+}
+
+function renderBlocks(blocks: TextBlock[], duplicateInfo?: { duplicates: Set<number> }, showRepeated?: boolean) {
+  if (!blocks.length) return <div className="text-zinc-500">(no body detected)</div>;
+  return (
+    <div className="grid gap-3">
+      {blocks.map((block, idx) => {
+        const isDuplicate = duplicateInfo?.duplicates.has(idx);
+        if (isDuplicate && !showRepeated) return null;
+        if (block.type === "ol") {
+          return (
+            <ol
+              key={`ol-${idx}`}
+              className={
+                "space-y-1 " +
+                (block.style === "alpha"
+                  ? "list-[lower-alpha] pl-7"
+                  : block.style === "roman"
+                    ? "list-[lower-roman] pl-9"
+                    : "list-decimal pl-6") +
+                (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")
+              }
+            >
+              {block.items.map((item, itemIdx) => (
+                <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
+                  {renderInlineText(item)}
+                </li>
+              ))}
+            </ol>
+          );
+        }
+        if (block.type === "ul") {
+          return (
+            <ul key={`ul-${idx}`} className={"list-disc space-y-1 pl-5 " + (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")}>
+              {block.items.map((item, itemIdx) => (
+                <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
+                  {renderInlineText(item)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        if (block.type === "heading") {
+          return (
+            <div
+              key={`heading-${idx}`}
+              className={"text-sm font-semibold text-zinc-900 " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
+            >
+              {renderInlineText(block.text)}
+            </div>
+          );
+        }
+        return (
+          <p
+            key={`p-${idx}`}
+            className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
+          >
+            {renderInlineText(block.text)}
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string[]; diffIndices: Set<number> }) {
@@ -219,6 +315,8 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const aias = task?.aias ? String(task.aias) : "";
+  const tables = Array.isArray(task?.tables) ? task.tables : [];
+  const parts = Array.isArray(task?.parts) ? task.parts : [];
 
   const duplicateInfo = useMemo(() => {
     if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
@@ -244,6 +342,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
     return { duplicates, hiddenCount: duplicates.size };
   }, [blocks]);
   const hasDuplicates = duplicateInfo.duplicates.size > 0;
+  const showDuplicateControls = hasDuplicates && !parts.length;
 
   const confidence: TaskConfidence = overrideApplied
     ? "OVERRIDDEN"
@@ -268,7 +367,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{label}</Pill>
             <Pill
@@ -284,13 +383,13 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Low confidence" : "🟢 Clean"}
             </Pill>
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
+            {pages.length ? <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">Pages {pages.join(", ")}</Pill> : null}
             {hasDuplicates ? (
               <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Duplicate suspected</Pill>
             ) : null}
           </div>
           <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
-            {pages.length ? <span>Pages: {pages.join(", ")}</span> : null}
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
             {aias ? <span>AIAS: {aias}</span> : null}
           </div>
           {criteria.length ? (
@@ -309,15 +408,15 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             <button
               type="button"
               onClick={() => setShowDiff((prev) => !prev)}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-            >
-              {showDiff ? "Hide differences" : "Show differences"}
-            </button>
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            {showDiff ? "Hide differences" : "Show differences"}
+          </button>
           ) : null}
           <button
             type="button"
             onClick={async () => {
-              const text = normalizeText(task?.text || "");
+              const text = buildCopyText(task);
               if (!text) {
                 setCopyStatus("failed");
                 window.setTimeout(() => setCopyStatus("idle"), 2000);
@@ -340,7 +439,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             onClick={() => setExpanded((prev) => !prev)}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
           >
-            {expanded ? "Collapse" : "View extracted text"}
+            {expanded ? "Collapse" : "Expand"}
           </button>
         </div>
       </div>
@@ -354,7 +453,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
       ) : (
         <div className="mt-4 text-sm text-zinc-900">
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
-            {hasDuplicates ? (
+            {showDuplicateControls ? (
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-900">
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
                   Repeated blocks hidden
@@ -368,70 +467,58 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                 </button>
               </div>
             ) : null}
-            {blocks.length ? (
-              <div className="grid gap-3">
-                {blocks.map((block, idx) => {
-                  const isDuplicate = duplicateInfo.duplicates.has(idx);
-                  if (isDuplicate && !showRepeated) return null;
-                  if (block.type === "ol") {
-                    return (
-                      <ol
-                        key={`ol-${idx}`}
-                        className={
-                          "space-y-1 " +
-                          (block.style === "alpha"
-                            ? "list-[lower-alpha] pl-7"
-                            : block.style === "roman"
-                              ? "list-[lower-roman] pl-9"
-                              : "list-decimal pl-6") +
-                          (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")
-                        }
-                      >
-                        {block.items.map((item, itemIdx) => (
-                          <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
-                            {renderInlineText(item)}
-                          </li>
-                        ))}
-                      </ol>
-                    );
-                  }
-                  if (block.type === "ul") {
-                    return (
-                      <ul
-                        key={`ul-${idx}`}
-                        className={"list-disc space-y-1 pl-5 " + (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")}
-                      >
-                        {block.items.map((item, itemIdx) => (
-                          <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
-                            {renderInlineText(item)}
-                          </li>
-                        ))}
-                      </ul>
-                    );
-                  }
-                  if (block.type === "heading") {
-                    return (
-                      <div
-                        key={`heading-${idx}`}
-                        className={"text-sm font-semibold text-zinc-900 " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
-                      >
-                        {renderInlineText(block.text)}
-                      </div>
-                    );
-                  }
-                  return (
-                    <p
-                      key={`p-${idx}`}
-                      className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
-                    >
-                      {renderInlineText(block.text)}
-                    </p>
-                  );
-                })}
+            {parts.length ? (
+              <div className="grid gap-4">
+                {parts.map((part: any) => (
+                  <div key={part.key} className="rounded-xl border border-zinc-200 bg-white p-3">
+                    <div className="text-xs font-semibold text-zinc-600">{`${part.key}.`}</div>
+                    <div className="mt-2">{renderBlocks(parseBlocks(part.text || ""))}</div>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="text-zinc-500">(no body detected)</div>
+              renderBlocks(blocks, duplicateInfo, showRepeated)
             )}
+            {tables.length ? (
+              <div className="mt-4 grid gap-4">
+                {tables.map((table: any) => (
+                  <div key={table.id} className="rounded-xl border border-zinc-200 bg-white p-3">
+                    {table.title ? <div className="text-xs font-semibold text-zinc-600">{table.title}</div> : null}
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="min-w-full border-collapse text-xs text-zinc-700">
+                        <thead>
+                          <tr>
+                            {Array.isArray(table.columns)
+                              ? table.columns.map((col: string, idx: number) => (
+                                  <th
+                                    key={`${table.id}-col-${idx}`}
+                                    className="border border-zinc-200 bg-zinc-50 px-2 py-1 text-left font-semibold"
+                                  >
+                                    {col}
+                                  </th>
+                                ))
+                              : null}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.isArray(table.rows)
+                            ? table.rows.map((row: string[], rowIdx: number) => (
+                                <tr key={`${table.id}-row-${rowIdx}`}>
+                                  {row.map((cell, cellIdx) => (
+                                    <td key={`${table.id}-cell-${rowIdx}-${cellIdx}`} className="border border-zinc-200 px-2 py-1">
+                                      {cell}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))
+                            : null}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       )}

@@ -39,7 +39,7 @@ function loadTsModule(filePath) {
 async function run() {
   const fixturePath =
     process.env.BRIEF_PDF_PATH ||
-    path.join(process.cwd(), "tests", "fixtures", "U4001 A1 Engineering Design - Sept 2025.pdf");
+    path.join(process.cwd(), "reference_uploads", "briefs", "U4001", "U4001 A1 Engineering Design - Sept 2025.pdf");
 
   if (!fs.existsSync(fixturePath)) {
     console.error(`Missing fixture PDF. Set BRIEF_PDF_PATH or add the file at: ${fixturePath}`);
@@ -64,6 +64,16 @@ async function run() {
   const task3 = tasks.find((t) => t.n === 3);
   assert.ok(task1 && String(task1.text || "").includes("Design Brief"));
   assert.ok(task3 && String(task3.text || "").toLowerCase().includes("debrief report must answer the following"));
+
+  console.log(`Tasks detected: ${tasks.length}`);
+  tasks.forEach((task) => {
+    const partKeys = Array.isArray(task.parts) ? task.parts.map((p) => p.key).join(", ") : "";
+    const tables = Array.isArray(task.tables) ? task.tables : [];
+    const tableIds = tables.map((t) => t.id).join(", ");
+    console.log(
+      `Task ${task.n}: parts=[${partKeys}] tables=${tables.length}${tableIds ? ` (${tableIds})` : ""}`
+    );
+  });
 
   console.log("Brief extraction fixture test passed.");
 }
