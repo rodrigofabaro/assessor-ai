@@ -540,6 +540,66 @@ function extractBriefTasks(
     return { n, title };
   };
 
+  const promoteTasksFromEndMatterBlock = (
+    blockText: string | null,
+    existingNumbers: Set<number>,
+    fallbackPage: number | null
+  ) => {
+    if (!blockText) return { remainingText: blockText, tasks: [] as BriefTask[] };
+    const lines = splitLines(blockText);
+    const headings = lines
+      .map((line, index) => ({ line: normalizeLine(line), index }))
+      .map(({ line, index }) => ({ heading: parseHeading(line), index }))
+      .filter(({ heading }) => !!heading) as Array<{
+      heading: { n: number; title?: string | null };
+      index: number;
+    }>;
+
+    if (!headings.length) return { remainingText: blockText, tasks: [] as BriefTask[] };
+
+    const keepLine = new Array(lines.length).fill(true);
+    const promoted: BriefTask[] = [];
+
+    headings.forEach((entry, idx) => {
+      const start = entry.index;
+      const end = idx + 1 < headings.length ? headings[idx + 1].index : lines.length;
+      for (let i = start; i < end; i += 1) keepLine[i] = false;
+      const n = entry.heading.n;
+      if (existingNumbers.has(n)) return;
+
+      const bodyLines = cleanTaskLines(lines.slice(start + 1, end));
+      let textBody = bodyLines.join("\n").replace(/\n{3,}/g, "\n\n").replace(/\s+$/g, "");
+      const titleLine = entry.heading.title ? normalizeWhitespace(entry.heading.title) : null;
+      if (titleLine && !normalizeWhitespace(textBody).toLowerCase().includes(titleLine.toLowerCase())) {
+        textBody = [titleLine, textBody].filter(Boolean).join("\n");
+      }
+      if (!textBody.trim()) {
+        textBody = titleLine || `Task ${n}`;
+      }
+
+      const previewLines = lines.slice(start, Math.min(start + 6, lines.length));
+      const aiasMatch = normalizeWhitespace(previewLines.join(" ")).match(/\bAIAS\s*(\d)\b/i);
+      const aias = aiasMatch ? `AIAS ${aiasMatch[1]}` : null;
+      const pagesForTask = fallbackPage ? [fallbackPage] : undefined;
+
+      promoted.push({
+        n,
+        label: `Task ${n}`,
+        title: titleLine,
+        aias,
+        pages: pagesForTask,
+        text: textBody,
+        prompt: textBody,
+        confidence: "HEURISTIC",
+      });
+      existingNumbers.add(n);
+    });
+
+    const remainingLines = lines.filter((_, idx) => keepLine[idx]);
+    const remainingText = remainingLines.join("\n").trim() || null;
+    return { remainingText, tasks: promoted };
+  };
+
   let startIndex = 0;
   for (let i = 0; i < linesWithPages.length; i += 1) {
     const h = parseHeading(linesWithPages[i].line);
@@ -641,7 +701,31 @@ function extractBriefTasks(
     });
   });
 
-  return { tasks, warnings, endMatter };
+  let updatedEndMatter = endMatter;
+  if (endMatter) {
+    const existingNumbers = new Set(tasks.map((task) => task.n));
+    const fallbackPage = pages.length ? pages.length : null;
+    const sourcesResult = promoteTasksFromEndMatterBlock(
+      endMatter.sourcesBlock,
+      existingNumbers,
+      fallbackPage
+    );
+    const criteriaResult = promoteTasksFromEndMatterBlock(
+      endMatter.criteriaBlock,
+      existingNumbers,
+      fallbackPage
+    );
+    const promotedTasks = [...sourcesResult.tasks, ...criteriaResult.tasks];
+    if (promotedTasks.length) {
+      tasks.push(...promotedTasks);
+      tasks.sort((a, b) => a.n - b.n);
+    }
+    const sourcesBlock = sourcesResult.remainingText;
+    const criteriaBlock = criteriaResult.remainingText;
+    updatedEndMatter = sourcesBlock || criteriaBlock ? { sourcesBlock, criteriaBlock } : null;
+  }
+
+  return { tasks, warnings, endMatter: updatedEndMatter };
 }
 
 function parseUnitNumberAndTitle(raw: string | null | undefined): { unitNumber?: string; unitTitle?: string } {

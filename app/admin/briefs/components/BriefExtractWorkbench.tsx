@@ -55,14 +55,19 @@ export default function BriefExtractWorkbench({
   const statusSummary = doc?.status
     ? `${doc.status}${lastStatusDate ? ` • ${new Date(lastStatusDate).toLocaleString()}` : ""}`
     : "—";
-  const unitSummary = header?.unitCode
-    ? `${header.unitCode}${header.unitTitle ? ` — ${header.unitTitle}` : ""}`
-    : doc?.sourceMeta?.unitCode
-      ? String(doc.sourceMeta.unitCode)
-      : "—";
+  const unitSummary = header?.unitNumberAndTitle
+    ? header.unitNumberAndTitle
+    : header?.unitCode
+      ? `${header.unitCode}${header.unitTitle ? ` — ${header.unitTitle}` : ""}`
+      : doc?.sourceMeta?.unitCode
+        ? String(doc.sourceMeta.unitCode)
+        : "—";
   const assignmentTitle = header?.assignmentTitle || draft?.title || doc?.title || "—";
   const academicYear = header?.academicYear || "—";
   const issueDate = header?.issueDate || "—";
+  const internalVerifier = header?.internalVerifier || "—";
+  const verificationDate = header?.verificationDate || "—";
+  const finalSubmissionDate = header?.finalSubmissionDate || "—";
   const qualification = header?.qualification || "—";
   const ivSummary = ivLatest?.outcome
     ? `${ivLatest.outcome}${ivLatest?.academicYear ? ` • ${ivLatest.academicYear}` : ""}`
@@ -314,6 +319,9 @@ export default function BriefExtractWorkbench({
                 { label: "Qualification", value: qualification },
                 { label: "Academic year", value: academicYear },
                 { label: "Issue date", value: issueDate },
+                { label: "Internal verifier", value: internalVerifier },
+                { label: "Verification date", value: verificationDate },
+                { label: "Final submission date", value: finalSubmissionDate },
                 { label: "IV status", value: ivSummary },
                 { label: "Last extracted / status", value: statusSummary },
                 {
