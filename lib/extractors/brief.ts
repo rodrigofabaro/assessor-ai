@@ -198,53 +198,83 @@ function stripFooterLines(lines: string[]) {
   return lines.filter((line) => !isFooterLine(line));
 }
 
-const END_MATTER_HEADINGS: Array<{ key: "sourcesBlock" | "criteriaBlock"; regex: RegExp }> = [
+type EndMatterKey = "sourcesBlock" | "criteriaBlock";
+
+const PRIMARY_END_MATTER: Array<{ key: EndMatterKey; regex: RegExp }> = [
   { key: "sourcesBlock", regex: /\bsources\s+of\s+information\b/i },
+  { key: "criteriaBlock", regex: /\brelevant\s+learning\s+outcomes\s+and\s+assessment\s+criteria\b/i },
+];
+
+const SECONDARY_END_MATTER: Array<{ key: EndMatterKey; regex: RegExp }> = [
   { key: "sourcesBlock", regex: /\btextbooks?\b/i },
   { key: "sourcesBlock", regex: /\bwebsites?\b/i },
   { key: "sourcesBlock", regex: /\bfurther\s+reading\b/i },
   { key: "sourcesBlock", regex: /\badditional\s+resources?\b/i },
-  { key: "criteriaBlock", regex: /\brelevant\s+learning\s+outcomes\b/i },
   { key: "criteriaBlock", regex: /\bassessment\s+criteria\b/i },
   { key: "criteriaBlock", regex: /\bpass\s+merit\s+distinction\b/i },
 ];
 
-function getEndMatterKey(line: string) {
-  const trimmed = line.trim();
-  if (!trimmed) return null;
-  return END_MATTER_HEADINGS.find(({ regex }) => regex.test(trimmed))?.key || null;
-}
+const END_MATTER_ANCHOR_WINDOW = 6;
 
 function normalizeHeadingCandidate(text: string) {
   return normalizeWhitespace(text || "").toLowerCase();
 }
 
-function getEndMatterKeyFromWindow(lines: string[], startIndex: number, windowSize = 6) {
+function isHeadingLike(line: string) {
+  const trimmed = normalizeHeadingCandidate(line);
+  if (!trimmed) return false;
+  if (trimmed.length > 70) return false;
+  return !/[.!?]/.test(trimmed);
+}
+
+function getPrimaryEndMatterKeyFromWindow(lines: string[], startIndex: number, windowSize = 6) {
   for (let size = 0; size < windowSize; size += 1) {
-    const window = lines
-      .slice(startIndex, startIndex + size + 1)
+    const windowLines = lines.slice(startIndex, startIndex + size + 1);
+    const window = windowLines
       .map((line) => normalizeHeadingCandidate(line))
       .filter(Boolean)
       .join(" ");
     if (!window) continue;
-    const hit = END_MATTER_HEADINGS.find(({ regex }) => regex.test(window));
-    if (hit) return hit.key;
+    const hit = PRIMARY_END_MATTER.find(({ regex }) => regex.test(window));
+    if (hit) {
+      const headingLike = windowLines.some((line) => isHeadingLike(line));
+      if (headingLike) return hit.key;
+    }
   }
   return null;
 }
 
+function getSecondaryEndMatterKey(line: string) {
+  const trimmed = normalizeHeadingCandidate(line);
+  if (!trimmed) return null;
+  return SECONDARY_END_MATTER.find(({ regex }) => regex.test(trimmed))?.key || null;
+}
+
 function extractEndMatterBlocks(pages: string[]) {
   const blocks: Record<string, string[]> = {};
-  let currentKey: "sourcesBlock" | "criteriaBlock" | null = null;
+  let currentKey: EndMatterKey | null = null;
+  let lastPrimaryIndex = -999;
 
   pages.forEach((pageText) => {
     const lines = splitLines(pageText);
     lines.forEach((line, idx) => {
-      const key = getEndMatterKey(line) || getEndMatterKeyFromWindow(lines, idx);
-      if (key) {
-        currentKey = key;
+      const primaryKey = getPrimaryEndMatterKeyFromWindow(lines, idx);
+      if (primaryKey) {
+        currentKey = primaryKey;
+        lastPrimaryIndex = idx;
         if (!blocks[currentKey]) blocks[currentKey] = [];
+      } else {
+        const secondaryKey = getSecondaryEndMatterKey(line);
+        if (secondaryKey) {
+          const withinWindow = idx - lastPrimaryIndex <= END_MATTER_ANCHOR_WINDOW;
+          const headingLike = isHeadingLike(line);
+          if (currentKey === "sourcesBlock" || withinWindow || headingLike) {
+            currentKey = secondaryKey;
+            if (!blocks[currentKey]) blocks[currentKey] = [];
+          }
+        }
       }
+
       if (currentKey) blocks[currentKey].push(line);
     });
   });
@@ -448,7 +478,7 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
       continue;
     }
 
-    const numberMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    const numberMatch = trimmed.match(/^(\d+)[\.\)]\s+(.*)$/);
     if (numberMatch) {
       flush();
       currentKey = numberMatch[1];
@@ -466,10 +496,11 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
       continue;
     }
 
-    const romanMatch = trimmed.match(/^([ivxlcdm]+)\.\s+(.*)$/i);
-    if (romanMatch && currentLetter) {
+    const romanMatch = trimmed.match(/^([ivxlcdm]+)[\.\)]\s+(.*)$/i);
+    if (romanMatch) {
       flush();
-      currentKey = `${currentLetter}.${romanMatch[1].toLowerCase()}`;
+      const romanKey = romanMatch[1].toLowerCase();
+      currentKey = currentLetter ? `${currentLetter}.${romanKey}` : romanKey;
       currentText.push(romanMatch[2]);
       continue;
     }
@@ -487,14 +518,16 @@ function extractBriefTasks(
 ): { tasks: BriefTask[]; warnings: string[]; endMatter: { sourcesBlock: string | null; criteriaBlock: string | null } | null } {
   const warnings: string[] = [];
   const sourcePages = pages.length ? pages : [text];
+  const normalizeLine = (line: string) =>
+    normalizeWhitespace(line.replace(/\t/g, " ").replace(/[ \u00a0]+/g, " ")).trim();
   const cleanedPages = sourcePages.map((pageText) => {
     const lines = stripFooterLines(splitLines(pageText));
-    return lines.join("\n");
+    return lines.map((line) => normalizeLine(line)).join("\n");
   });
   const linesWithPages: Array<{ line: string; page: number }> = [];
   const endMatter = extractEndMatterBlocks(cleanedPages);
-
-  const normalizeLine = (line: string) => line.replace(/\s+/g, " ").trim();
+  const pageBreaksMissing = pages.length <= 1;
+  if (pageBreaksMissing) warnings.push("page breaks missing; page numbers unreliable.");
 
   let stop = false;
   cleanedPages.forEach((pageText, idx) => {
@@ -503,16 +536,25 @@ function extractBriefTasks(
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
       let normalizedLine = normalizeLine(lines[lineIdx]);
-      const endMatterKey = getEndMatterKey(normalizedLine) || getEndMatterKeyFromWindow(lines, lineIdx);
-      if (endMatterKey) {
+      const primaryKey = getPrimaryEndMatterKeyFromWindow(lines, lineIdx);
+      if (primaryKey) {
         stop = true;
         break;
       }
+      const secondaryKey = getSecondaryEndMatterKey(normalizedLine);
+      if (secondaryKey) {
+        const headingLike = isHeadingLike(normalizedLine);
+        if (headingLike) {
+          stop = true;
+          break;
+        }
+      }
 
       const nextLine = lines[lineIdx + 1] ? normalizeLine(lines[lineIdx + 1]) : "";
+      const taskWordCandidate = normalizedLine.replace(/^[^A-Za-z0-9]+/, "").trim();
       const isTaskWordOnly =
-        /^task$/i.test(normalizedLine) ||
-        (/\bt\s*a\s*s\s*k\b/i.test(normalizedLine) && !/\bt\s*a\s*s\s*k\s*\d/i.test(normalizedLine));
+        /^task$/i.test(taskWordCandidate) ||
+        (/\bt\s*a\s*s\s*k\b/i.test(taskWordCandidate) && !/\bt\s*a\s*s\s*k\s*\d/i.test(taskWordCandidate));
       if (isTaskWordOnly && nextLine && /^\d{1,2}\b/.test(nextLine)) {
         normalizedLine = `Task ${nextLine}`.trim();
         linesWithPages.push({ line: normalizedLine, page: pageNumber });
@@ -524,20 +566,29 @@ function extractBriefTasks(
     }
   });
 
+  const scoreHeadingCandidate = (raw: string, title: string | null) => {
+    let score = 0;
+    if (title) score += 10;
+    if (/activity/i.test(raw)) score += 5;
+    if (/[:\-–—]\s*\S/.test(raw)) score += 2;
+    if (title) score += Math.min(3, Math.floor(title.length / 40));
+    return score;
+  };
+
   const parseHeading = (raw: string) => {
     if (!raw) return null;
-    const match = raw.match(/^\s*[^A-Za-z0-9]{0,3}Task\s*(\d{1,2})\b/i);
+    const match = raw.match(/^\s*[^A-Za-z0-9]{0,6}Task\s*(\d{1,2})\b(.*)$/i);
     if (!match) return null;
     const n = Number(match[1]);
     if (!n || Number.isNaN(n)) return null;
-    const idx = match.index ?? 0;
-    const remainder = raw.slice(idx + match[0].length);
+    const remainder = match[2] || "";
     const cleanedRemainder = remainder
       .replace(/^\s*\(.*?\)\s*/i, "")
       .replace(/^\s*[:\-–—]\s*/i, "")
       .trim();
     const title = cleanedRemainder ? normalizeWhitespace(cleanedRemainder) : null;
-    return { n, title };
+    const score = scoreHeadingCandidate(raw, title);
+    return { n, title, score };
   };
 
   const promoteTasksFromEndMatterBlock = (
@@ -551,7 +602,7 @@ function extractBriefTasks(
       .map((line, index) => ({ line: normalizeLine(line), index }))
       .map(({ line, index }) => ({ heading: parseHeading(line), index }))
       .filter(({ heading }) => !!heading) as Array<{
-      heading: { n: number; title?: string | null };
+      heading: { n: number; title?: string | null; score: number };
       index: number;
     }>;
 
@@ -609,38 +660,45 @@ function extractBriefTasks(
     }
   }
 
-  const headings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];
+  const candidates: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
+  const headingCandidateIndices = new Set<number>();
   for (let i = startIndex; i < linesWithPages.length; i += 1) {
     const raw = linesWithPages[i].line;
     const heading = parseHeading(raw);
     if (!heading) continue;
-    headings.push({ index: i, n: heading.n, title: heading.title, page: linesWithPages[i].page });
+    headingCandidateIndices.add(i);
+    candidates.push({
+      index: i,
+      n: heading.n,
+      title: heading.title,
+      page: linesWithPages[i].page,
+      score: heading.score,
+    });
   }
 
-  if (!headings.length) {
+  if (!candidates.length) {
     warnings.push("Task headings not found (expected “Task 1”, “Task 2”, …).");
-    return {
-  tasks: [],
-  warnings,
-  endMatter: { sourcesBlock: "", criteriaBlock: "" },
-};
-
+    return { tasks: [], warnings, endMatter };
   }
 
-  const orderedHeadings: Array<{ index: number; n: number; title?: string | null; page: number }> = [];
-  const seen = new Set<number>();
-  let lastN = 0;
-  for (const heading of headings) {
-    if (seen.has(heading.n)) continue;
-    if (heading.n < lastN) continue;
-    seen.add(heading.n);
-    orderedHeadings.push(heading);
-    lastN = heading.n;
+  const candidatesByNumber = new Map<number, Array<{ index: number; n: number; title?: string | null; page: number; score: number }>>();
+  for (const candidate of candidates) {
+    if (!candidatesByNumber.has(candidate.n)) candidatesByNumber.set(candidate.n, []);
+    candidatesByNumber.get(candidate.n)!.push(candidate);
   }
+
+  const duplicateHeadingNumbers = new Set<number>();
+  const selectedHeadings: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
+  for (const [n, group] of candidatesByNumber.entries()) {
+    if (group.length > 1) duplicateHeadingNumbers.add(n);
+    const best = [...group].sort((a, b) => b.score - a.score || b.index - a.index)[0];
+    selectedHeadings.push(best);
+  }
+  selectedHeadings.sort((a, b) => a.index - b.index);
 
   const tasks: BriefTask[] = [];
 
-  const firstHeading = orderedHeadings[0];
+  const firstHeading = selectedHeadings[0];
   if (firstHeading && firstHeading.index > 0) {
     const preLines = linesWithPages.slice(0, firstHeading.index).map((l) => l.line).join("\n");
     if (/Initial Idea Proposal/i.test(preLines)) {
@@ -659,10 +717,27 @@ function extractBriefTasks(
     }
   }
 
-  orderedHeadings.forEach((heading, idx) => {
+  const MIN_TASK_BODY_CHARS = 250;
+  const contaminationCues = [
+    /\bsources\s+of\s+information\b/i,
+    /\btextbooks?\b/i,
+    /\bwebsites?\b/i,
+    /\bfurther\s+reading\b/i,
+    /\badditional\s+resources?\b/i,
+    /\brelevant\s+learning\s+outcomes\b/i,
+    /\bassessment\s+criteria\b/i,
+    /\bpass\s+merit\s+distinction\b/i,
+  ];
+
+  selectedHeadings.forEach((heading, idx) => {
     const start = heading.index + 1;
-    const end = idx + 1 < orderedHeadings.length ? orderedHeadings[idx + 1].index : linesWithPages.length;
-    const bodyLines = cleanTaskLines(linesWithPages.slice(start, end).map((l) => l.line));
+    const end = idx + 1 < selectedHeadings.length ? selectedHeadings[idx + 1].index : linesWithPages.length;
+    const bodyLines = cleanTaskLines(
+      linesWithPages
+        .slice(start, end)
+        .filter((_line, lineIndex) => !headingCandidateIndices.has(start + lineIndex))
+        .map((l) => l.line)
+    );
     let textBody = bodyLines.join("\n");
     textBody = textBody.replace(/\n{3,}/g, "\n\n").replace(/\s+$/g, "");
 
@@ -673,20 +748,24 @@ function extractBriefTasks(
       taskWarnings.push("task body: empty");
     }
 
-    const contaminationCues = [
-      /\bsources\s+of\s+information\b/i,
-      /\btextbooks?\b/i,
-      /\bwebsites?\b/i,
-      /\bfurther\s+reading\b/i,
-      /\badditional\s+resources?\b/i,
-      /\brelevant\s+learning\s+outcomes\b/i,
-      /\bassessment\s+criteria\b/i,
-      /\bpass\s+merit\s+distinction\b/i,
-    ];
-    const contaminated = contaminationCues.some((cue) => cue.test(textBody));
-    if (contaminated) taskWarnings.push("end-matter contamination detected");
+    if (duplicateHeadingNumbers.has(heading.n)) {
+      taskWarnings.push("duplicate heading candidates merged");
+    }
 
-    const previewLines = linesWithPages.slice(heading.index, Math.min(heading.index + 6, linesWithPages.length)).map((l) => l.line);
+    const contaminated = contaminationCues.some((cue) => cue.test(textBody));
+    if (contaminated) taskWarnings.push("possible end-matter contamination");
+
+    if (textBody.trim().length < MIN_TASK_BODY_CHARS) {
+      taskWarnings.push("task body: suspiciously short");
+    }
+
+    if (pageBreaksMissing) {
+      taskWarnings.push("page breaks missing; page numbers unreliable");
+    }
+
+    const previewLines = linesWithPages
+      .slice(heading.index, Math.min(heading.index + 6, linesWithPages.length))
+      .map((l) => l.line);
     const aiasMatch = normalizeWhitespace(previewLines.join(" ")).match(/\bAIAS\s*(\d)\b/i);
     const aias = aiasMatch ? `AIAS ${aiasMatch[1]}` : null;
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
@@ -771,6 +850,30 @@ function extractLoHeaders(pageText: string) {
   return out;
 }
 
+function findCriteriaRegion(pages: string[]) {
+  if (!pages.length) return { text: "", pages: [] as number[] };
+  const anchorRegex = /\brelevant\s+learning\s+outcomes\s+and\s+assessment\s+criteria\b/i;
+
+  for (let idx = 0; idx < pages.length; idx += 1) {
+    const lines = splitLines(pages[idx]);
+    for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
+      const window = lines
+        .slice(lineIdx, lineIdx + END_MATTER_ANCHOR_WINDOW)
+        .map((line) => normalizeHeadingCandidate(line))
+        .filter(Boolean)
+        .join(" ");
+      if (anchorRegex.test(window)) {
+        const nextPage = pages[idx + 1];
+        const regionText = [pages[idx], nextPage].filter(Boolean).join("\n");
+        const regionPages = [idx + 1, idx + 2].filter((page) => page <= pages.length);
+        return { text: regionText, pages: regionPages };
+      }
+    }
+  }
+
+  return { text: "", pages: [] as number[] };
+}
+
 export function extractBrief(text: string, fallbackTitle: string) {
   const t = text || "";
 
@@ -810,9 +913,9 @@ export function extractBrief(text: string, fallbackTitle: string) {
   const headerSource = pages[0] || t.slice(0, 4500);
   const header = extractBriefHeaderFromPreview(headerSource);
   const tasksResult = extractBriefTasks(t, pages);
-  const criteriaPage = pages[8] || "";
-  const criteriaRefs = detectedCriterionCodes;
-  const loHeaders = criteriaPage ? extractLoHeaders(criteriaPage) : [];
+  const criteriaRegion = findCriteriaRegion(pages);
+  const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : detectedCriterionCodes;
+  const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
 
   const warnings = [
     ...(header.warnings || []),
@@ -844,12 +947,13 @@ export function debugBriefExtraction(text: string) {
   const headerSource = pages[0] || text;
   const header = extractBriefHeaderFromPreview(headerSource);
   const tasks = extractBriefTasks(text, pages);
-  const criteriaPage = pages[8] || "";
-  const criteriaRefs = criteriaPage ? extractCriteriaRefs(criteriaPage) : [];
-  const loHeaders = criteriaPage ? extractLoHeaders(criteriaPage) : [];
+  const criteriaRegion = findCriteriaRegion(pages);
+  const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : [];
+  const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
 
   return {
     pageCount: pages.length,
+    criteriaPages: criteriaRegion.pages,
     pages: pages.map((p, idx) => ({
       page: idx + 1,
       chars: p.length,

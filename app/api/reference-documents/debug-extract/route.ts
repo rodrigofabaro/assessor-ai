@@ -24,10 +24,10 @@ export async function POST(req: Request) {
 
     const filePath = path.join(process.cwd(), doc.storagePath);
     const buf = await fs.readFile(filePath);
-    const text = await pdfToText(buf);
+    const { text, pageCount } = await pdfToText(buf);
 
     const debug = debugBriefExtraction(text);
-    return NextResponse.json({ documentId, debug });
+    return NextResponse.json({ documentId, pageCount, debug });
   } catch (err) {
     console.error("DEBUG_EXTRACT_ERROR:", err);
     return NextResponse.json({ error: "Debug extract failed" }, { status: 500 });

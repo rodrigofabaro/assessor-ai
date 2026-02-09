@@ -14,23 +14,40 @@ export async function extractReferenceDocument(args: {
   const buf = await fs.readFile(args.filePath);
 
   // Today: always PDF->text.
-  const text = await pdfToText(buf);
+  const { text, pageCount } = await pdfToText(buf);
+  const hasFormFeedBreaks = /\f|\u000c/.test(text);
 
   const warnings: string[] = [];
+  const extractionWarnings: string[] = [];
   if (!text || text.length < 50) {
-    warnings.push(
+    const warning =
       "Extraction produced empty/short text. This may be a scanned PDF. Vision OCR is not enabled yet."
-    );
+    extractionWarnings.push(warning);
+    warnings.push(warning);
+  }
+  if (!pageCount || pageCount <= 1) {
+    extractionWarnings.push("pageCount: missing or too low; page boundaries may be unreliable.");
+  }
+  if (!hasFormFeedBreaks) {
+    extractionWarnings.push("page breaks missing; page numbers may be unreliable.");
   }
 
   let extractedJson: any = null;
 
   if (args.type === "SPEC") {
-    extractedJson = parseSpec(text, args.docTitleFallback);
+    extractedJson = {
+      ...parseSpec(text, args.docTitleFallback),
+      pageCount,
+      hasFormFeedBreaks,
+      extractionWarnings: extractionWarnings.length ? extractionWarnings : undefined,
+    };
   } else if (args.type === "BRIEF") {
     const brief = extractBrief(text, args.docTitleFallback);
     extractedJson = {
       ...brief,
+      pageCount,
+      hasFormFeedBreaks,
+      extractionWarnings: extractionWarnings.length ? extractionWarnings : undefined,
       warnings: [
         ...(brief.warnings || []),
         ...warnings,
@@ -43,6 +60,9 @@ export async function extractReferenceDocument(args: {
       kind: args.type,
       preview: text.slice(0, 4000),
       charCount: text.length,
+      pageCount,
+      hasFormFeedBreaks,
+      extractionWarnings: extractionWarnings.length ? extractionWarnings : undefined,
     };
   }
 
