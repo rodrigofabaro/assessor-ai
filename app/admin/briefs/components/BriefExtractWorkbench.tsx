@@ -73,135 +73,8 @@ export default function BriefExtractWorkbench({
 
   return (
     <section className="grid gap-4 min-w-0">
-      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          multiple
-          className="sr-only"
-          onChange={(e) => {
-            handleFiles(Array.from(e.target.files || []));
-            e.target.value = "";
-          }}
-        />
-
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold">Extraction overview</div>
-            <p className="mt-1 text-xs text-zinc-600">Upload briefs, review the summary, then extract and lock.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setUploadOpen((prev) => !prev)}
-              disabled={isUploading}
-              className={ui.btnPrimary + " text-xs disabled:cursor-not-allowed disabled:bg-zinc-300"}
-            >
-              Upload brief
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-zinc-900">Brief summary</div>
-              <p className="mt-1 text-xs text-zinc-600">Quick facts for the selected PDF.</p>
-            </div>
-            {doc?.lockedAt ? (
-              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900">
-                Locked
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              { label: "Unit", value: unitSummary },
-              { label: "Assignment title", value: assignmentTitle },
-              { label: "Academic year / issue date", value: academicIssue },
-              { label: "IV status", value: ivSummary },
-              { label: "Last extracted / status", value: statusSummary },
-              {
-                label: "Criteria codes",
-                value: doc ? `P${criteriaCounts.P} · M${criteriaCounts.M} · D${criteriaCounts.D}` : "—",
-              },
-              {
-                label: "File",
-                value: doc?.originalFilename ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate">{doc.originalFilename}</span>
-                    <a
-                      href={`/api/reference-documents/${doc.id}/file`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-semibold text-sky-700 hover:text-sky-800"
-                    >
-                      Open PDF
-                    </a>
-                  </div>
-                ) : (
-                  "—"
-                ),
-              },
-            ].map((cell) => (
-              <div key={cell.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                <div className="text-xs font-semibold text-zinc-600">{cell.label}</div>
-                <div className="mt-1 text-sm font-semibold text-zinc-900">{cell.value || "—"}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {uploadOpen ? (
-          <div className="mt-4 grid gap-3">
-            <div
-              className={"grid gap-2 rounded-2xl border-2 p-6 text-sm transition " + dragTone}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(true);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(false);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(false);
-                const files = Array.from(e.dataTransfer?.files || []);
-                handleFiles(files);
-              }}
-            >
-              <div className="text-sm font-semibold text-zinc-900">Drop PDFs here</div>
-              <div className="text-xs text-zinc-600">Files upload immediately and appear in the Brief inbox list.</div>
-              <div className="text-xs text-zinc-500">Accepted: PDF only · Multiple files supported</div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={isUploading}
-                className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
-              >
-                Choose files
-              </button>
-              <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
-              <span className={"text-xs " + (isUploading ? "text-sky-700" : "text-zinc-400")}>{uploadStatus}</span>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div className="min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -214,7 +87,7 @@ export default function BriefExtractWorkbench({
               </div>
             </div>
 
-            <div className="mt-4 grid gap-2 max-h-[55vh] overflow-auto pr-1">
+            <div className="mt-4 grid gap-2 max-h-[520px] overflow-auto pr-1">
               {rx.filteredDocuments.map((d: any) => {
                 const active = rx.selectedDocId === d.id;
                 const b = badge(d.status);
@@ -341,6 +214,139 @@ export default function BriefExtractWorkbench({
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          multiple
+          className="sr-only"
+          onChange={(e) => {
+            handleFiles(Array.from(e.target.files || []));
+            e.target.value = "";
+          }}
+        />
+
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold">Extraction overview</div>
+            <p className="mt-1 text-xs text-zinc-600">Upload briefs, review the summary, then extract and lock.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setUploadOpen((prev) => !prev)}
+              disabled={isUploading}
+              className={ui.btnPrimary + " text-xs disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Upload brief
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-zinc-900">Brief summary</div>
+              <p className="mt-1 text-xs text-zinc-600">Quick facts for the selected PDF.</p>
+            </div>
+            {doc?.lockedAt ? (
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900">
+                Locked
+              </span>
+            ) : null}
+          </div>
+          {doc ? (
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { label: "Unit", value: unitSummary },
+                { label: "Assignment title", value: assignmentTitle },
+                { label: "Academic year / issue date", value: academicIssue },
+                { label: "IV status", value: ivSummary },
+                { label: "Last extracted / status", value: statusSummary },
+                {
+                  label: "Criteria codes",
+                  value: doc ? `P${criteriaCounts.P} · M${criteriaCounts.M} · D${criteriaCounts.D}` : "—",
+                },
+                {
+                  label: "File",
+                  value: doc?.originalFilename ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate">{doc.originalFilename}</span>
+                      <a
+                        href={`/api/reference-documents/${doc.id}/file`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-sky-700 hover:text-sky-800"
+                      >
+                        Open PDF
+                      </a>
+                    </div>
+                  ) : (
+                    "—"
+                  ),
+                },
+              ].map((cell) => (
+                <div key={cell.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                  <div className="text-xs font-semibold text-zinc-600">{cell.label}</div>
+                  <div className="mt-1 text-sm font-semibold text-zinc-900">{cell.value || "—"}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600">
+              Select a brief from the inbox to view summary and run extraction.
+            </div>
+          )}
+        </div>
+
+        {uploadOpen ? (
+          <div className="mt-4 grid gap-3">
+            <div
+              className={"grid gap-2 rounded-2xl border-2 p-6 text-sm transition " + dragTone}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+                const files = Array.from(e.dataTransfer?.files || []);
+                handleFiles(files);
+              }}
+            >
+              <div className="text-sm font-semibold text-zinc-900">Drop PDFs here</div>
+              <div className="text-xs text-zinc-600">Files upload immediately and appear in the Brief inbox list.</div>
+              <div className="text-xs text-zinc-500">Accepted: PDF only · Multiple files supported</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={isUploading}
+                className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+              >
+                Choose files
+              </button>
+              <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
+              <span className={"text-xs " + (isUploading ? "text-sky-700" : "text-zinc-400")}>{uploadStatus}</span>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <BriefReviewCard rx={rx} />

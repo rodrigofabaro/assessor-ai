@@ -90,53 +90,53 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
           ) : null}
         </div>
 
-        {doc ? (
-          <div className="mt-3 grid gap-3">
-            <div className="text-sm font-semibold text-zinc-900">
-              Selected: {doc.title || doc.originalFilename || "Untitled brief"}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={!canExtract}
-                onClick={rx.extractSelected}
-                className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-              >
-                Extract
-              </button>
-              <button
-                type="button"
-                disabled={!canExtract}
-                onClick={rx.reextractSelected}
-                className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
-              >
-                Re-extract
-              </button>
-              <button
-                type="button"
-                disabled={!canLock}
-                onClick={rx.lockSelected}
-                className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-              >
-                Lock brief
-              </button>
-              <button
-                type="button"
-                disabled={!canUnlock}
-                onClick={rx.unlockSelectedDocument}
-                title={
-                  usageLoading
-                    ? "Checking usage…"
-                    : usage?.inUse
-                      ? "This brief has submissions attached and cannot be unlocked."
-                      : !doc?.lockedAt
-                        ? "Brief is not locked."
-                        : ""
-                }
-                className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
-              >
-                Unlock
-              </button>
+        <div className="mt-3 grid gap-3">
+          <div className="text-sm font-semibold text-zinc-900">
+            {doc ? `Selected: ${doc.title || doc.originalFilename || "Untitled brief"}` : "No brief selected yet."}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={!canExtract}
+              onClick={rx.extractSelected}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Extract
+            </button>
+            <button
+              type="button"
+              disabled={!canExtract}
+              onClick={rx.reextractSelected}
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+            >
+              Re-extract
+            </button>
+            <button
+              type="button"
+              disabled={!canLock}
+              onClick={rx.lockSelected}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Lock brief
+            </button>
+            <button
+              type="button"
+              disabled={!canUnlock}
+              onClick={rx.unlockSelectedDocument}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : usage?.inUse
+                    ? "This brief has submissions attached and cannot be unlocked."
+                    : !doc?.lockedAt
+                      ? "Brief is not locked."
+                      : ""
+              }
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+            >
+              Unlock
+            </button>
+            {doc ? (
               <a
                 href={`/api/reference-documents/${doc.id}/file`}
                 target="_blank"
@@ -145,38 +145,40 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               >
                 PDF preview
               </a>
-              <button
-                type="button"
-                disabled={!canDelete}
-                onClick={rx.deleteSelectedDocument}
-                title={
-                  usageLoading
-                    ? "Checking usage…"
-                    : doc?.lockedAt
-                      ? "Locked briefs cannot be deleted. Unlock first."
-                      : usage?.inUse
-                        ? "This brief has submissions attached and cannot be deleted."
-                        : ""
-                }
-                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Delete
+            ) : (
+              <button type="button" disabled className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}>
+                PDF preview
               </button>
-            </div>
-            <details className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-              <summary className="cursor-pointer font-semibold text-zinc-700">Why locking matters</summary>
-              <p className="mt-2">
-                Locking binds this brief to a fixed spec version for audit-ready grading. Unlock only when corrections are required.
-              </p>
-            </details>
+            )}
+            <button
+              type="button"
+              disabled={!canDelete}
+              onClick={rx.deleteSelectedDocument}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : doc?.lockedAt
+                    ? "Locked briefs cannot be deleted. Unlock first."
+                    : usage?.inUse
+                      ? "This brief has submissions attached and cannot be deleted."
+                      : ""
+              }
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Delete
+            </button>
           </div>
-        ) : null}
+          <details className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+            <summary className="cursor-pointer font-semibold text-zinc-700">Why locking matters</summary>
+            <p className="mt-2">
+              Locking binds this brief to a fixed spec version for audit-ready grading. Unlock only when corrections are required.
+            </p>
+          </details>
+        </div>
       </div>
 
       {!doc ? (
-        <div className="p-4 text-sm text-zinc-600">
-          Select a BRIEF PDF from the inbox to review it.
-        </div>
+        <div className="p-4 text-sm text-zinc-600">Select a brief to review extracted header and tasks.</div>
       ) : (
         <div className="p-4 grid gap-4">
           <section className="rounded-2xl border border-zinc-200 bg-white p-4">
