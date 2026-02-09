@@ -317,6 +317,16 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const aias = task?.aias ? String(task.aias) : "";
   const tables = Array.isArray(task?.tables) ? task.tables : [];
   const parts = Array.isArray(task?.parts) ? task.parts : [];
+  const partKeyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    parts.forEach((part: any) => {
+      const key = String(part?.key || "").trim();
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return counts;
+  }, [parts]);
+  const hasDuplicatePartKeys = Array.from(partKeyCounts.values()).some((count) => count > 1);
 
   const duplicateInfo = useMemo(() => {
     if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
@@ -444,8 +454,10 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
         </div>
       </div>
 
-      {task?.warnings?.length ? (
-        <div className="mt-3 text-xs text-amber-900">Warning: {task.warnings.join(", ")}</div>
+      {task?.warnings?.length || hasDuplicatePartKeys ? (
+        <div className="mt-3 text-xs text-amber-900">
+          Warning: {[...(task?.warnings || []), ...(hasDuplicatePartKeys ? ["duplicate part labels detected"] : [])].join(", ")}
+        </div>
       ) : null}
 
       {!expanded ? (
@@ -469,12 +481,16 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             ) : null}
             {parts.length ? (
               <div className="grid gap-4">
-                {parts.map((part: any) => (
-                  <div key={part.key} className="rounded-xl border border-zinc-200 bg-white p-3">
-                    <div className="text-xs font-semibold text-zinc-600">{`${part.key}.`}</div>
+                {parts.map((part: any, idx: number) => {
+                  const rawKey = String(part?.key || "").trim();
+                  const displayKey = rawKey ? (/[\.\)]$/.test(rawKey) ? rawKey : `${rawKey}.`) : `Part ${idx + 1}`;
+                  return (
+                  <div key={`${part.key || "part"}-${idx}`} className="rounded-xl border border-zinc-200 bg-white p-3">
+                    <div className="text-xs font-semibold text-zinc-600">{displayKey}</div>
                     <div className="mt-2">{renderBlocks(parseBlocks(part.text || ""))}</div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             ) : (
               renderBlocks(blocks, duplicateInfo, showRepeated)

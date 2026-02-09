@@ -566,7 +566,7 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   let currentKey: string | null = null;
   let currentText: string[] = [];
   let currentLetter: string | null = null;
-  const topLevelLetterRegex = /^\s{0,2}([a-z])[.)]\s+(.*)$/i;
+  const topLevelLetterRegex = /^([a-z])[.)]\s+(.*)$/i;
 
   const flush = () => {
     if (currentKey) {
@@ -598,7 +598,7 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
       continue;
     }
 
-    const letterMatch = line.match(topLevelLetterRegex);
+    const letterMatch = trimmed.match(topLevelLetterRegex);
     if (letterMatch) {
       flush();
       currentKey = letterMatch[1].toLowerCase();
@@ -628,6 +628,104 @@ function splitTableRow(line: string): string[] {
     .split(/\t| {2,}/)
     .map((cell) => cell.trim())
     .filter(Boolean);
+}
+
+function mergeQcHeaderLines(lines: string[]) {
+  const merged: string[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const current = normalizeWhitespace(lines[i] || "").trim();
+    const next = normalizeWhitespace(lines[i + 1] || "").trim();
+    if (/^before$/i.test(current) && /^qc$/i.test(next)) {
+      merged.push("Before QC");
+      i += 1;
+      continue;
+    }
+    if (/^after$/i.test(current) && /^qc$/i.test(next)) {
+      merged.push("After QC");
+      i += 1;
+      continue;
+    }
+    merged.push(current);
+  }
+  return merged;
+}
+
+function parseVoltageTableBlock(lines: string[]): { columns: string[]; rows: string[][]; confidence: "CLEAN" | "HEURISTIC" } | null {
+  const merged = mergeQcHeaderLines(lines);
+  const rows: string[][] = [];
+  let headerSeen = false;
+  let beforeSeen = false;
+  let afterSeen = false;
+  const rowRegex = /^(<\s*\d+|>\s*\d+|\d+\s*-\s*\d+|Total)\s+(\d+)\s+(\d+)$/i;
+
+  for (const line of merged) {
+    const cleaned = normalizeWhitespace(line || "").trim();
+    if (!cleaned) continue;
+    if (/output\s+voltage/i.test(cleaned)) headerSeen = true;
+    if (/before\s+qc/i.test(cleaned)) beforeSeen = true;
+    if (/after\s+qc/i.test(cleaned)) afterSeen = true;
+    const match = cleaned.match(rowRegex);
+    if (match) {
+      const range = match[1].replace(/\s*-\s*/g, " - ").replace(/\s+/g, " ").trim();
+      rows.push([range, match[2], match[3]]);
+      continue;
+    }
+    if (rows.length && /using\s+the\s+data|based\s+on\s+the\s+data|answer\s+the\s+following/i.test(cleaned)) break;
+  }
+
+  if (!rows.length) return null;
+  const columns = ["Output Voltage (V)", "Before QC", "After QC"];
+  const confidence = rows.length >= 8 && headerSeen && beforeSeen && afterSeen ? "CLEAN" : "HEURISTIC";
+  return { columns, rows, confidence };
+}
+
+function parseCostingTemplateTableBlock(
+  lines: string[]
+): { columns: string[]; rows: string[][]; confidence: "CLEAN" | "HEURISTIC" } | null {
+  const merged = mergeQcHeaderLines(lines);
+  const headerWindow = merged.slice(0, 8).join(" ").toLowerCase();
+  if (!headerWindow.includes("before qc") || !headerWindow.includes("after qc")) return null;
+
+  const headerLines = merged
+    .map((line, idx) => ({ line: normalizeWhitespace(line).trim(), idx }))
+    .filter(({ line }) => /before\s+qc|after\s+qc|month/i.test(line));
+  const headerEndIndex = headerLines.length ? headerLines[headerLines.length - 1].idx : 0;
+  const columns = [/month/i.test(headerWindow) ? "Month" : "", "Before QC", "After QC"];
+
+  const labelMap = new Map(
+    [
+      "Units Produced",
+      "Gross Sales",
+      "Units Sold",
+      "Material Cost",
+      "Net Sales",
+      "Wages",
+      "Rent",
+      "Overheads",
+      "Variances",
+      "Net Profit/Loss",
+    ].map((label) => [label.toLowerCase(), label])
+  );
+
+  const rows: string[][] = [];
+  for (let i = headerEndIndex + 1; i < merged.length; i += 1) {
+    const cleaned = normalizeWhitespace(merged[i] || "").trim();
+    if (!cleaned) {
+      if (rows.length) break;
+      continue;
+    }
+    const label = labelMap.get(cleaned.toLowerCase());
+    if (label) {
+      rows.push([label, "", ""]);
+      continue;
+    }
+    if (rows.length && /task\s*\d+|using\s+the\s+data|answer\s+the\s+following/i.test(cleaned)) break;
+    if (rows.length && /[.]/.test(cleaned)) break;
+  }
+
+  if (!rows.length) return null;
+  const confidence = rows.length >= 8 ? "CLEAN" : "HEURISTIC";
+  return { columns, rows, confidence };
 }
 
 function parseTableBlock(lines: string[]): { columns: string[]; rows: string[][]; confidence: "CLEAN" | "HEURISTIC" } | null {
@@ -700,10 +798,41 @@ function extractTablesFromTaskText(textBody: string) {
         if (blockLines.length && isHeadingLine(trimmed)) break;
         blockLines.push(next);
       }
-      const parsed = parseTableBlock(blockLines);
+      const anchoredParsed =
+        /^2\.1$/.test(idPart) || /output\s+voltage/i.test(blockLines.join(" "))
+          ? parseVoltageTableBlock(blockLines)
+          : parseCostingTemplateTableBlock(blockLines);
+      const parsed = anchoredParsed || parseTableBlock(blockLines);
       if (parsed) {
         const id = `table-${idPart || autoIndex}`;
         tables.push({ id, title, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
+        cleanedLines.push(`[TABLE: ${id}]`);
+        i = j;
+        continue;
+      }
+    }
+
+    const templateWindow = lines.slice(i, i + 8).join(" ").toLowerCase();
+    if (templateWindow.includes("before qc") && templateWindow.includes("after qc") && templateWindow.includes("month")) {
+      const blockLines: string[] = [];
+      let j = i;
+      for (; j < lines.length; j += 1) {
+        const next = lines[j];
+        const trimmed = next.trim();
+        if (!trimmed) {
+          if (blockLines.length) {
+            j += 1;
+            break;
+          }
+          continue;
+        }
+        if (/^Task\s*\d+\b/i.test(trimmed)) break;
+        blockLines.push(next);
+      }
+      const parsed = parseCostingTemplateTableBlock(blockLines);
+      if (parsed) {
+        const id = `table-auto-${autoIndex++}`;
+        tables.push({ id, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
         cleanedLines.push(`[TABLE: ${id}]`);
         i = j;
         continue;
@@ -1008,6 +1137,13 @@ function extractBriefTasks(
     const { tables, cleanedText } = extractTablesFromTaskText(textBody);
     const reflowedTextBody = reflowProsePreserveLists(cleanedText);
     const parts = extractParts(reflowedTextBody);
+    if (parts && parts.length) {
+      const partKeys = parts.map((part) => part.key);
+      const uniqueKeys = new Set(partKeys);
+      if (uniqueKeys.size !== partKeys.length) {
+        taskWarnings.push("duplicate part labels detected");
+      }
+    }
     const confidenceWarnings = taskWarnings.filter(
       (warning) => warning !== "duplicate heading candidates merged"
     );
