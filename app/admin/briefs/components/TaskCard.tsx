@@ -9,6 +9,7 @@ type TaskCardProps = {
   task: any;
   extractedTask?: any | null;
   overrideApplied?: boolean;
+  defaultExpanded?: boolean;
 };
 
 function confidenceTone(confidence: TaskConfidence) {
@@ -51,7 +52,9 @@ function buildPreview(text: string) {
   return compact.length > 220 ? compact.slice(0, 220).trim() + "…" : compact;
 }
 
-type TextBlock = { type: "p"; text: string } | { type: "ol"; items: string[] };
+type TextBlock =
+  | { type: "p"; text: string }
+  | { type: "ol"; items: string[]; style: "decimal" | "alpha" | "roman" };
 
 function parseBlocks(text: string): TextBlock[] {
   const normalized = normalizeText(text);
@@ -60,6 +63,7 @@ function parseBlocks(text: string): TextBlock[] {
   const blocks: TextBlock[] = [];
   let paragraph: string[] = [];
   let listItems: string[] = [];
+  let listStyle: "decimal" | "alpha" | "roman" | null = null;
 
   const flushParagraph = () => {
     const content = paragraph.join("\n").trim();
@@ -68,9 +72,18 @@ function parseBlocks(text: string): TextBlock[] {
   };
 
   const flushList = () => {
-    if (listItems.length) blocks.push({ type: "ol", items: [...listItems] });
+    if (listItems.length) {
+      blocks.push({ type: "ol", items: [...listItems], style: listStyle || "decimal" });
+    }
     listItems = [];
+    listStyle = null;
   };
+
+  const listMatchers: Array<{ style: "decimal" | "alpha" | "roman"; regex: RegExp }> = [
+    { style: "decimal", regex: /^(\d+)\.\s+(.*)$/ },
+    { style: "alpha", regex: /^([a-z])\)\s+(.*)$/i },
+    { style: "roman", regex: /^([ivxlcdm]+)\.\s+(.*)$/i },
+  ];
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
@@ -80,10 +93,12 @@ function parseBlocks(text: string): TextBlock[] {
       continue;
     }
 
-    const listMatch = line.match(/^(\d+)\.\s+(.*)$/);
-    if (listMatch) {
+    const match = listMatchers.map((m) => ({ match: line.match(m.regex), style: m.style })).find((m) => m.match);
+    if (match?.match) {
       flushParagraph();
-      listItems.push(listMatch[2]);
+      if (listStyle && listStyle !== match.style) flushList();
+      listStyle = match.style;
+      listItems.push(match.match[2]);
       continue;
     }
 
@@ -122,15 +137,18 @@ function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string
   );
 }
 
-export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps) {
-  const [expanded, setExpanded] = useState(false);
+export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded }: TaskCardProps) {
+  const [expanded, setExpanded] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
   const title = deriveTitle(task);
   const criteria = getCriteria(task);
   const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
   const blocks = useMemo(() => parseBlocks(task?.text || ""), [task?.text]);
+  const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
+  const aias = task?.aias ? String(task.aias) : "";
 
   const confidence: TaskConfidence = overrideApplied
     ? "OVERRIDDEN"
@@ -159,10 +177,14 @@ export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps
           <div className="flex flex-wrap items-center gap-2">
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{label}</Pill>
             <Pill cls={confidenceTone(confidence)}>
-              {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Heuristic" : "🟢 Clean"}
+              {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Needs review" : "🟢 Clean"}
             </Pill>
           </div>
           <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
+            {pages.length ? <span>Pages: {pages.join(", ")}</span> : null}
+            {aias ? <span>AIAS: {aias}</span> : null}
+          </div>
           {criteria.length ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {criteria.map((code) => (
@@ -186,6 +208,27 @@ export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps
           ) : null}
           <button
             type="button"
+            onClick={async () => {
+              const text = normalizeText(task?.text || "");
+              if (!text) {
+                setCopyStatus("failed");
+                window.setTimeout(() => setCopyStatus("idle"), 2000);
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(text);
+                setCopyStatus("copied");
+              } catch {
+                setCopyStatus("failed");
+              }
+              window.setTimeout(() => setCopyStatus("idle"), 2000);
+            }}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            {copyStatus === "copied" ? "Copied" : copyStatus === "failed" ? "Copy failed" : "Copy text"}
+          </button>
+          <button
+            type="button"
             onClick={() => setExpanded((prev) => !prev)}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
           >
@@ -199,14 +242,24 @@ export function TaskCard({ task, extractedTask, overrideApplied }: TaskCardProps
       ) : null}
 
       {!expanded ? (
-        <div className="mt-3 text-sm text-zinc-700 max-w-3xl">{preview}</div>
+        <div className="mt-3 text-sm text-zinc-700">{preview}</div>
       ) : (
-        <div className="mt-4 max-w-3xl text-sm text-zinc-900">
+        <div className="mt-4 text-sm text-zinc-900">
           {blocks.length ? (
             <div className="grid gap-3">
               {blocks.map((block, idx) =>
                 block.type === "ol" ? (
-                  <ol key={`ol-${idx}`} className="list-decimal space-y-1 pl-5">
+                  <ol
+                    key={`ol-${idx}`}
+                    className={
+                      "space-y-1 pl-6 " +
+                      (block.style === "alpha"
+                        ? "list-[lower-alpha]"
+                        : block.style === "roman"
+                          ? "list-[lower-roman]"
+                          : "list-decimal")
+                    }
+                  >
                     {block.items.map((item, itemIdx) => (
                       <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
                         {item}

@@ -199,14 +199,14 @@ function stripFooterLines(lines: string[]) {
 }
 
 const END_MATTER_HEADINGS: Array<{ key: "sourcesBlock" | "criteriaBlock"; regex: RegExp }> = [
-  { key: "sourcesBlock", regex: /^Sources\s+of\s+information/i },
-  { key: "sourcesBlock", regex: /^Textbooks?/i },
-  { key: "sourcesBlock", regex: /^Websites?/i },
-  { key: "sourcesBlock", regex: /^Further\s+reading/i },
-  { key: "sourcesBlock", regex: /^Additional\s+resources?/i },
-  { key: "criteriaBlock", regex: /^Relevant Learning Outcomes/i },
-  { key: "criteriaBlock", regex: /^Assessment Criteria/i },
-  { key: "criteriaBlock", regex: /^Pass Merit Distinction/i },
+  { key: "sourcesBlock", regex: /\bsources\s+of\s+information\b/i },
+  { key: "sourcesBlock", regex: /\btextbooks?\b/i },
+  { key: "sourcesBlock", regex: /\bwebsites?\b/i },
+  { key: "sourcesBlock", regex: /\bfurther\s+reading\b/i },
+  { key: "sourcesBlock", regex: /\badditional\s+resources?\b/i },
+  { key: "criteriaBlock", regex: /\brelevant\s+learning\s+outcomes\b/i },
+  { key: "criteriaBlock", regex: /\bassessment\s+criteria\b/i },
+  { key: "criteriaBlock", regex: /\bpass\s+merit\s+distinction\b/i },
 ];
 
 function getEndMatterKey(line: string) {
@@ -215,21 +215,37 @@ function getEndMatterKey(line: string) {
   return END_MATTER_HEADINGS.find(({ regex }) => regex.test(trimmed))?.key || null;
 }
 
+function normalizeHeadingCandidate(text: string) {
+  return normalizeWhitespace(text || "").toLowerCase();
+}
+
+function getEndMatterKeyFromWindow(lines: string[], startIndex: number, windowSize = 6) {
+  for (let size = 0; size < windowSize; size += 1) {
+    const window = lines
+      .slice(startIndex, startIndex + size + 1)
+      .map((line) => normalizeHeadingCandidate(line))
+      .filter(Boolean)
+      .join(" ");
+    if (!window) continue;
+    const hit = END_MATTER_HEADINGS.find(({ regex }) => regex.test(window));
+    if (hit) return hit.key;
+  }
+  return null;
+}
+
 function extractEndMatterBlocks(pages: string[]) {
   const blocks: Record<string, string[]> = {};
   let currentKey: "sourcesBlock" | "criteriaBlock" | null = null;
 
   pages.forEach((pageText) => {
     const lines = splitLines(pageText);
-    lines.forEach((line) => {
-      const key = getEndMatterKey(line);
+    lines.forEach((line, idx) => {
+      const key = getEndMatterKey(line) || getEndMatterKeyFromWindow(lines, idx);
       if (key) {
         currentKey = key;
         if (!blocks[currentKey]) blocks[currentKey] = [];
       }
-      if (currentKey) {
-        blocks[currentKey].push(line);
-      }
+      if (currentKey) blocks[currentKey].push(line);
     });
   });
 
@@ -487,7 +503,8 @@ function extractBriefTasks(
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
       let normalizedLine = normalizeLine(lines[lineIdx]);
-      if (getEndMatterKey(normalizedLine)) {
+      const endMatterKey = getEndMatterKey(normalizedLine) || getEndMatterKeyFromWindow(lines, lineIdx);
+      if (endMatterKey) {
         stop = true;
         break;
       }
@@ -590,6 +607,19 @@ function extractBriefTasks(
       textBody = fallback;
       taskWarnings.push("task body: empty");
     }
+
+    const contaminationCues = [
+      /\bsources\s+of\s+information\b/i,
+      /\btextbooks?\b/i,
+      /\bwebsites?\b/i,
+      /\bfurther\s+reading\b/i,
+      /\badditional\s+resources?\b/i,
+      /\brelevant\s+learning\s+outcomes\b/i,
+      /\bassessment\s+criteria\b/i,
+      /\bpass\s+merit\s+distinction\b/i,
+    ];
+    const contaminated = contaminationCues.some((cue) => cue.test(textBody));
+    if (contaminated) taskWarnings.push("end-matter contamination detected");
 
     const previewLines = linesWithPages.slice(heading.index, Math.min(heading.index + 6, linesWithPages.length)).map((l) => l.line);
     const aiasMatch = normalizeWhitespace(previewLines.join(" ")).match(/\bAIAS\s*(\d)\b/i);
