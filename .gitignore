@@ -65,3 +65,8 @@ latested version.zip
 # Local uploaded reference files
 reference_uploads/
 
+# Allow committed extraction fixtures (small curated set)
+!reference_uploads/briefs/
+!reference_uploads/briefs/**
+
+
