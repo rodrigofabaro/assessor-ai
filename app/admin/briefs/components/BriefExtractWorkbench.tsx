@@ -61,7 +61,9 @@ export default function BriefExtractWorkbench({
       ? String(doc.sourceMeta.unitCode)
       : "—";
   const assignmentTitle = header?.assignmentTitle || draft?.title || doc?.title || "—";
-  const academicIssue = [header?.academicYear, header?.issueDate].filter(Boolean).join(" • ") || "—";
+  const academicYear = header?.academicYear || "—";
+  const issueDate = header?.issueDate || "—";
+  const qualification = header?.qualification || "—";
   const ivSummary = ivLatest?.outcome
     ? `${ivLatest.outcome}${ivLatest?.academicYear ? ` • ${ivLatest.academicYear}` : ""}`
     : "—";
@@ -309,7 +311,9 @@ export default function BriefExtractWorkbench({
               {[
                 { label: "Unit", value: unitSummary },
                 { label: "Assignment title", value: assignmentTitle },
-                { label: "Academic year / issue date", value: academicIssue },
+                { label: "Qualification", value: qualification },
+                { label: "Academic year", value: academicYear },
+                { label: "Issue date", value: issueDate },
                 { label: "IV status", value: ivSummary },
                 { label: "Last extracted / status", value: statusSummary },
                 {

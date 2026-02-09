@@ -31,10 +31,6 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
     : (doc?.extractedJson ?? null);
 
   
-  const header = (
-    draft && draft.kind === "BRIEF" ? draft.header || {} : {}
-  ) as any;
-
   const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
   const taskWarnings = draftWarnings.filter((w: any) => String(w).toLowerCase().includes("task"));
   const lockConflict = rx.lockConflict;
@@ -48,20 +44,14 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const canUnlock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !!doc.lockedAt && !!usage && !usage.inUse;
   const canDelete = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt && !!usage && !usage.inUse;
 
-  const headerRows: Array<{ label: string; value: string; missing: boolean }> = [
-    { label: "Qualification", value: header.qualification || "—", missing: !header.qualification },
-    { label: "Unit code", value: header.unitCode || "—", missing: !header.unitCode },
-    { label: "Unit title", value: header.unitTitle || "—", missing: !header.unitTitle },
-    { label: "Assignment title", value: header.assignmentTitle || "—", missing: !header.assignmentTitle },
-    { label: "Assignment number", value: header.assignment || "—", missing: !header.assignment },
-    { label: "Academic year", value: header.academicYear || "—", missing: !header.academicYear },
-    { label: "Issue date", value: header.issueDate || "—", missing: !header.issueDate },
-    { label: "Final submission date", value: header.finalSubmissionDate || "—", missing: !header.finalSubmissionDate },
-    { label: "Verification date", value: header.verificationDate || "—", missing: !header.verificationDate },
-  ];
-  const missingHeaderCount = headerRows.filter((row) => row.missing).length;
-  const tasks = Array.isArray(draft?.tasks) ? draft.tasks : [];
-  const taskWarningCount = tasks.reduce((sum: number, task: any) => sum + (task?.warnings?.length || 0), 0);
+  const rawTasks = Array.isArray(draft?.tasks) ? draft.tasks : [];
+  const tasks = rawTasks.filter((task: any) => {
+    const text = typeof task?.text === "string" ? task.text : "";
+    return text.trim().length > 0;
+  });
+  const tasksTotal = rawTasks.length;
+  const tasksShown = tasks.length;
+  const taskWarningCount = rawTasks.reduce((sum: number, task: any) => sum + (task?.warnings?.length || 0), 0);
   const warningCount = draftWarnings.length + taskWarningCount;
   const toggleExpandAll = (next: boolean) => {
     setExpandAll(next);
@@ -74,7 +64,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-sm font-semibold">Review</div>
-            <div className="mt-1 text-xs text-zinc-600">Review extracted header fields, tasks, and warnings.</div>
+            <div className="mt-1 text-xs text-zinc-600">Review extracted tasks and warnings.</div>
           </div>
           {doc ? (
             <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -178,39 +168,9 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
       </div>
 
       {!doc ? (
-        <div className="p-4 text-sm text-zinc-600">Select a brief to review extracted header and tasks.</div>
+        <div className="p-4 text-sm text-zinc-600">Select a brief to review extracted tasks and warnings.</div>
       ) : (
         <div className="p-4 grid gap-4">
-          <section className="rounded-2xl border border-zinc-200 bg-white p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-zinc-900">Header (extracted)</div>
-                <p className="mt-1 text-xs text-zinc-600">Verify key cover fields before locking.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Pill cls={header ? tone("ok") : tone("warn")}>{header ? "Extracted" : "Missing"}</Pill>
-                <Pill cls={missingHeaderCount ? tone("warn") : tone("ok")}>{missingHeaderCount} missing</Pill>
-              </div>
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {headerRows.map((row) => (
-                <div key={row.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <div className="flex items-center gap-2 text-xs text-zinc-600">
-                    <span>{row.label}</span>
-                    {row.missing ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">Missing</span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 break-words text-sm font-semibold text-zinc-900">{row.value || "—"}</div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              Missing fields matter for audit. Re-extract or adjust JSON before locking.
-            </p>
-          </section>
-
           {draft?.kind === "BRIEF" ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -221,7 +181,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
-                    {tasks.length} tasks
+                    {tasksTotal} tasks
                   </span>
                   <button
                     type="button"
@@ -240,7 +200,12 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                 </div>
               </div>
 
-              {tasks.length ? (
+              <div className="mt-2 text-xs text-zinc-500">
+                Showing <span className="font-semibold text-zinc-700">{tasksShown}</span> of{" "}
+                <span className="font-semibold text-zinc-700">{tasksTotal}</span> tasks
+              </div>
+
+              {tasksShown ? (
                 <div className="mt-3 grid gap-3">
                   {tasks.map((t: any, i: number) => (
                     <TaskCard
@@ -318,24 +283,35 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             setAssignmentCodeInput={rx.setAssignmentCodeInput}
           />
 
-          <div id="brief-raw-json" className="rounded-2xl border border-zinc-200 bg-white p-4">
-            <label className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
-              <input type="checkbox" checked={!!rx.showRawJson} onChange={(e) => rx.setShowRawJson?.(e.target.checked)} />
-              Manual override (raw JSON)
-            </label>
-            <p className="mt-1 text-xs text-zinc-600">Use only when extraction misses structure. Overrides are logged at lock time.</p>
-            {rx.showRawJson ? (
-              <textarea
-                value={rx.rawJson}
-                onChange={(e) => rx.setRawJson?.(e.target.value)}
-                className="mt-3 h-[240px] w-full rounded-xl border border-zinc-300 p-3 font-mono text-xs"
-                placeholder="Paste adjusted JSON here before locking."
-              />
-            ) : (
-              <pre className="mt-3 max-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
-                {JSON.stringify(draft, null, 2)}
-              </pre>
-            )}
+          <div id="brief-raw-json" className="rounded-2xl border border-zinc-200 bg-white p-4 max-w-full overflow-hidden">
+            <details className="max-w-full">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Manual override (raw JSON)</summary>
+              <div className="mt-3 grid gap-2 max-w-full">
+                <label className="flex items-start gap-2 max-w-full text-sm font-semibold text-zinc-900">
+                  <input
+                    type="checkbox"
+                    checked={!!rx.showRawJson}
+                    onChange={(e) => rx.setShowRawJson?.(e.target.checked)}
+                  />
+                  <span className="break-words">Enable manual override editing</span>
+                </label>
+                <p className="text-xs text-zinc-600">Use only when extraction misses structure. Overrides are logged at lock time.</p>
+                {rx.showRawJson ? (
+                  <div className="overflow-x-auto max-w-full">
+                    <textarea
+                      value={rx.rawJson}
+                      onChange={(e) => rx.setRawJson?.(e.target.value)}
+                      className="h-[240px] w-full max-w-full rounded-xl border border-zinc-300 p-3 font-mono text-xs"
+                      placeholder="Paste adjusted JSON here before locking."
+                    />
+                  </div>
+                ) : (
+                  <pre className="max-h-[240px] overflow-x-auto overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+                    {JSON.stringify(draft, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </details>
           </div>
         </div>
       )}
