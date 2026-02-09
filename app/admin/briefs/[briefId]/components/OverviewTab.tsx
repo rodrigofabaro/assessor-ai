@@ -1,6 +1,6 @@
 "use client";
 
-import { Btn, Pill } from "../../components/ui";
+import { Pill } from "../../components/ui";
 import { tone, statusTone } from "./briefStyles";
 
 function Field({ label, value }: { label: string; value: any }) {
@@ -41,7 +41,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
         </div>
 
         <div className="mt-4 rounded-xl border border-zinc-200 p-3">
-          <div className="text-xs font-semibold text-zinc-700">Linked PDF (reference document)</div>
+          <div className="text-xs font-semibold text-zinc-700">Linked PDF</div>
 
           {vm.linkedDoc ? (
             <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -67,7 +67,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
               </div>
             </div>
           ) : (
-            <div className="mt-2 text-sm text-zinc-700">No linked document found. Use Extract tools to lock the correct brief PDF.</div>
+            <div className="mt-2 text-sm text-zinc-700">No linked PDF yet. Use Extract tools to select and lock a brief.</div>
           )}
         </div>
 
@@ -75,9 +75,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-zinc-900">Pearson header (from PDF)</h3>
-              <p className="mt-1 text-sm text-zinc-700">
-                Snapshot of the brief’s cover/header fields. These are extracted for auditability.
-              </p>
+              <p className="mt-1 text-sm text-zinc-700">Extracted cover fields for audit.</p>
             </div>
             <Pill cls={header ? tone("ok") : tone("warn")}>{header ? "Extracted" : "Not extracted yet"}</Pill>
           </div>
@@ -106,7 +104,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Audit later</h2>
-        <p className="mt-1 text-sm text-zinc-700">These counters populate once grading is implemented.</p>
+        <p className="mt-1 text-sm text-zinc-700">Counters populate after grading is enabled.</p>
 
         <div className="mt-4 grid gap-2">
           <div className="flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2">
@@ -123,7 +121,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
           </div>
         </div>
 
-        <div className="mt-3 text-xs text-zinc-600">Rule: grading records will reference the exact brief document used at the time (no drift).</div>
+        <div className="mt-3 text-xs text-zinc-600">Rule: grading records reference the exact brief document used (no drift).</div>
       </section>
     </div>
   );

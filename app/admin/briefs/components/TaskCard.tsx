@@ -49,7 +49,13 @@ function buildPreview(text: string) {
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
   const previewLines = lines.slice(0, 3).join(" ");
   const compact = previewLines.replace(/\s+/g, " ");
-  return compact.length > 220 ? compact.slice(0, 220).trim() + "…" : compact;
+  return compact.length > 160 ? compact.slice(0, 160).trim() + "…" : compact;
+}
+
+function wordCount(text: string) {
+  const normalized = normalizeText(text);
+  if (!normalized) return 0;
+  return normalized.split(/\s+/).filter(Boolean).length;
 }
 
 type TextBlock =
@@ -140,6 +146,7 @@ function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string
 export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded }: TaskCardProps) {
   const [expanded, setExpanded] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
+  const [showRepeated, setShowRepeated] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
@@ -147,8 +154,31 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const criteria = getCriteria(task);
   const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
   const blocks = useMemo(() => parseBlocks(task?.text || ""), [task?.text]);
+  const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const aias = task?.aias ? String(task.aias) : "";
+
+  const duplicateInfo = useMemo(() => {
+    if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
+    const keyFor = (block: TextBlock) => {
+      const raw = block.type === "ol" ? block.items.join(" ") : block.text;
+      const key = normalizeText(raw).toLowerCase();
+      return key.length >= 80 ? key : "";
+    };
+    const counts = new Map<string, number>();
+    blocks.forEach((block) => {
+      const key = keyFor(block);
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    const duplicates = new Set<number>();
+    blocks.forEach((block, idx) => {
+      const key = keyFor(block);
+      if (key && (counts.get(key) || 0) > 1) duplicates.add(idx);
+    });
+    return { duplicates, hiddenCount: duplicates.size };
+  }, [blocks]);
+  const hasDuplicates = duplicateInfo.duplicates.size > 0;
 
   const confidence: TaskConfidence = overrideApplied
     ? "OVERRIDDEN"
@@ -179,6 +209,10 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             <Pill cls={confidenceTone(confidence)}>
               {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Needs review" : "🟢 Clean"}
             </Pill>
+            <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
+            {hasDuplicates ? (
+              <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Duplicate suspected</Pill>
+            ) : null}
           </div>
           <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
@@ -203,7 +237,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               onClick={() => setShowDiff((prev) => !prev)}
               className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
             >
-              {showDiff ? "Hide changes" : "View changes"}
+              {showDiff ? "Hide differences" : "Show differences"}
             </button>
           ) : null}
           <button
@@ -232,7 +266,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             onClick={() => setExpanded((prev) => !prev)}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
           >
-            {expanded ? "Collapse" : "Expand"}
+            {expanded ? "Collapse" : "View extracted text"}
           </button>
         </div>
       </div>
@@ -245,37 +279,62 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
         <div className="mt-3 text-sm text-zinc-700">{preview}</div>
       ) : (
         <div className="mt-4 text-sm text-zinc-900">
-          {blocks.length ? (
-            <div className="grid gap-3">
-              {blocks.map((block, idx) =>
-                block.type === "ol" ? (
-                  <ol
-                    key={`ol-${idx}`}
-                    className={
-                      "space-y-1 pl-6 " +
-                      (block.style === "alpha"
-                        ? "list-[lower-alpha]"
-                        : block.style === "roman"
-                          ? "list-[lower-roman]"
-                          : "list-decimal")
-                    }
-                  >
-                    {block.items.map((item, itemIdx) => (
-                      <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
-                        {item}
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p key={`p-${idx}`} className="whitespace-pre-wrap leading-relaxed">
-                    {block.text}
-                  </p>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="text-zinc-500">(no body detected)</div>
-          )}
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-800">
+            {hasDuplicates ? (
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-amber-900">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
+                  Repeated blocks hidden
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowRepeated((prev) => !prev)}
+                  className="rounded-full border border-amber-200 bg-white px-2 py-0.5 font-semibold text-amber-900 hover:bg-amber-50"
+                >
+                  {showRepeated ? "Hide repeated blocks" : `Show repeated blocks (${duplicateInfo.hiddenCount})`}
+                </button>
+              </div>
+            ) : null}
+            {blocks.length ? (
+              <div className="grid gap-3">
+                {blocks.map((block, idx) => {
+                  const isDuplicate = duplicateInfo.duplicates.has(idx);
+                  if (isDuplicate && !showRepeated) return null;
+                  if (block.type === "ol") {
+                    return (
+                      <ol
+                        key={`ol-${idx}`}
+                        className={
+                          "space-y-1 pl-6 " +
+                          (block.style === "alpha"
+                            ? "list-[lower-alpha]"
+                            : block.style === "roman"
+                              ? "list-[lower-roman]"
+                              : "list-decimal") +
+                          (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")
+                        }
+                      >
+                        {block.items.map((item, itemIdx) => (
+                          <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
+                            {item}
+                          </li>
+                        ))}
+                      </ol>
+                    );
+                  }
+                  return (
+                    <p
+                      key={`p-${idx}`}
+                      className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
+                    >
+                      {block.text}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-zinc-500">(no body detected)</div>
+            )}
+          </div>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import BriefReviewCard from "./BriefReviewCard";
-import { badge } from "../../reference/reference.logic";
+import { badge, type ReferenceDocument } from "../../reference/reference.logic";
 import { ui } from "@/components/ui/uiClasses";
 
 export default function BriefExtractWorkbench({ rx }: { rx: any }) {
@@ -27,6 +27,42 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
 
   const isUploading = String(rx.busy || "").toLowerCase().includes("upload");
   const uploadStatus = rx.busy ? String(rx.busy) : "Ready";
+  const doc = rx.selectedDoc as ReferenceDocument | null;
+  const latestDraft: any = doc?.extractedJson || null;
+  const isValidDraft = (d: any) => d && typeof d === "object" && (d.kind || d.header || d.tasks);
+  const draft: any = isValidDraft(latestDraft) ? latestDraft : doc?.extractedJson ?? null;
+  const header = (draft && draft.kind === "BRIEF" ? draft.header || {} : {}) as any;
+  const ivRecords = Array.isArray(doc?.sourceMeta?.ivRecords) ? doc?.sourceMeta?.ivRecords : [];
+  const ivLatest = ivRecords[0] || null;
+  const detectedCriterionCodes = Array.isArray(draft?.detectedCriterionCodes) ? draft.detectedCriterionCodes : [];
+  const criteriaCounts = detectedCriterionCodes.reduce(
+    (acc: { P: number; M: number; D: number }, code: string) => {
+      const prefix = String(code || "").trim().toUpperCase()[0];
+      if (prefix === "P") acc.P += 1;
+      if (prefix === "M") acc.M += 1;
+      if (prefix === "D") acc.D += 1;
+      return acc;
+    },
+    { P: 0, M: 0, D: 0 }
+  );
+  const lastStatusDate = (doc as any)?.updatedAt || doc?.uploadedAt || "";
+  const statusSummary = doc?.status ? `${doc.status}${lastStatusDate ? ` • ${new Date(lastStatusDate).toLocaleString()}` : ""}` : "—";
+  const unitSummary = header?.unitCode
+    ? `${header.unitCode}${header.unitTitle ? ` — ${header.unitTitle}` : ""}`
+    : doc?.sourceMeta?.unitCode
+      ? String(doc.sourceMeta.unitCode)
+      : "—";
+  const assignmentTitle = header?.assignmentTitle || draft?.title || doc?.title || "—";
+  const academicIssue = [header?.academicYear, header?.issueDate].filter(Boolean).join(" • ") || "—";
+  const ivSummary = ivLatest?.outcome
+    ? `${ivLatest.outcome}${ivLatest?.academicYear ? ` • ${ivLatest.academicYear}` : ""}`
+    : "—";
+  const canExtract = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
+  const canLock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
+  const usage = rx.selectedDocUsage;
+  const usageLoading = rx.usageLoading;
+  const canUnlock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !!doc.lockedAt && !!usage && !usage.inUse;
+  const canDelete = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt && !!usage && !usage.inUse;
 
   const handleFiles = (files: File[]) => {
     if (!files.length) return;
@@ -50,15 +86,7 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold">Brief extraction</div>
-          <p className="mt-1 text-xs text-zinc-600">
-            Inbox is <span className="font-semibold">BRIEF</span>-only. Select a PDF, then Extract → review mapping → Lock.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button onClick={rx.resetFilters} className={ui.btnSecondary + " text-xs"}>
-            Reset filters
-          </button>
+          <p className="mt-1 text-xs text-zinc-600">Select a BRIEF PDF, run Extract, review tasks, then Lock.</p>
         </div>
       </div>
 
@@ -140,23 +168,144 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
         )}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[420px_1fr] min-w-0">
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
+      <section className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-zinc-900">Brief summary</div>
+            <p className="mt-1 text-xs text-zinc-600">Quick facts for the selected PDF.</p>
+          </div>
+          {doc?.lockedAt ? (
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900">
+              Locked
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            { label: "Unit", value: unitSummary },
+            { label: "Assignment title", value: assignmentTitle },
+            { label: "Academic year / issue date", value: academicIssue },
+            { label: "IV status", value: ivSummary },
+            { label: "Last extracted / status", value: statusSummary },
+            {
+              label: "Criteria codes",
+              value: doc ? `P${criteriaCounts.P} · M${criteriaCounts.M} · D${criteriaCounts.D}` : "—",
+            },
+            {
+              label: "File",
+              value: doc?.originalFilename ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate">{doc.originalFilename}</span>
+                  <a
+                    href={`/api/reference-documents/${doc.id}/file`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-sky-700 hover:text-sky-800"
+                  >
+                    Open PDF
+                  </a>
+                </div>
+              ) : (
+                "—"
+              ),
+            },
+          ].map((cell) => (
+            <div key={cell.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-xs font-semibold text-zinc-600">{cell.label}</div>
+              <div className="mt-1 text-sm font-semibold text-zinc-900">{cell.value || "—"}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold">Inbox</h2>
-              <p className="mt-1 text-xs text-zinc-500">BRIEF documents only.</p>
+              <div className="text-sm font-semibold text-zinc-900">Actions</div>
+              <p className="mt-1 text-xs text-zinc-600">Run extraction and lock the selected brief.</p>
             </div>
-
+            {doc ? (
+              <span className="text-xs text-zinc-500">
+                {doc.status} {doc.lockedAt ? "• locked" : ""}
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
-              onClick={rx.resetFilters}
-              className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+              type="button"
+              disabled={!canExtract}
+              onClick={rx.extractSelected}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
             >
-              Reset
+              Extract
+            </button>
+            <button
+              type="button"
+              disabled={!canExtract}
+              onClick={rx.reextractSelected}
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+            >
+              Re-extract
+            </button>
+            <button
+              type="button"
+              disabled={!canLock}
+              onClick={rx.lockSelected}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Lock brief
+            </button>
+            <button
+              type="button"
+              disabled={!canUnlock}
+              onClick={rx.unlockSelectedDocument}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : usage?.inUse
+                    ? "This brief has submissions attached and cannot be unlocked."
+                    : !doc?.lockedAt
+                      ? "Brief is not locked."
+                      : ""
+              }
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+            >
+              Unlock
+            </button>
+            <button
+              type="button"
+              disabled={!canDelete}
+              onClick={rx.deleteSelectedDocument}
+              title={
+                usageLoading
+                  ? "Checking usage…"
+                  : doc?.lockedAt
+                    ? "Locked briefs cannot be deleted. Unlock first."
+                    : usage?.inUse
+                      ? "This brief has submissions attached and cannot be deleted."
+                      : ""
+              }
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Delete
             </button>
           </div>
+        </div>
 
-          <div className="mt-4 grid gap-3">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-zinc-900">Filters</div>
+              <p className="mt-1 text-xs text-zinc-600">Refine the brief inbox list.</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
+              Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
+              <span className="font-semibold text-zinc-900">{counts.total}</span>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-3">
             <input
               value={f.q}
               onChange={(e: any) => setF({ ...f, q: e.target.value })}
@@ -215,11 +364,6 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
                 <option value="uploaded">Sort: uploaded</option>
                 <option value="title">Sort: title</option>
               </select>
-
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
-                Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
-                <span className="font-semibold text-zinc-900">{counts.total}</span>
-              </div>
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs">
@@ -229,12 +373,25 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
                   onClick={() => setF({ ...f, status: f.status === s ? "" : (s as any) })}
                   className={
                     "rounded-full border px-3 py-1 font-semibold " +
-                    (f.status === s ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                    (f.status === s
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
                   }
                 >
                   {s} <span className="opacity-70">({counts.byStatus[s] || 0})</span>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[420px_1fr] min-w-0">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold">Inbox</h2>
+              <p className="mt-1 text-xs text-zinc-500">BRIEF documents only.</p>
             </div>
           </div>
 

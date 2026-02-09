@@ -72,11 +72,16 @@ export default function AdminBriefsPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
-                {refreshing ? "Refreshing…" : "Refresh"}
+          <div className="flex items-center gap-2">
+            {vm.tab === "extract" ? (
+              <Btn kind="secondary" onClick={rx.resetFilters} disabled={busy || refreshing}>
+                Reset filters
               </Btn>
-              <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
+            ) : null}
+            <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Btn>
+            <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
                 <span className={"h-2 w-2 rounded-full " + (err ? "bg-rose-500" : "bg-emerald-500")} />
                 {busy ? "Working…" : "Ready"}
               </div>
