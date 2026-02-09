@@ -47,9 +47,9 @@ function buildPreview(text: string) {
   const normalized = normalizeText(text);
   if (!normalized) return "(empty)";
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
-  const previewLines = lines.slice(0, 3).join(" ");
+  const previewLines = lines.slice(0, 2).join(" ");
   const compact = previewLines.replace(/\s+/g, " ");
-  return compact.length > 160 ? compact.slice(0, 160).trim() + "…" : compact;
+  return compact.length > 140 ? compact.slice(0, 140).trim() + "…" : compact;
 }
 
 function wordCount(text: string) {
@@ -59,8 +59,10 @@ function wordCount(text: string) {
 }
 
 type TextBlock =
+  | { type: "heading"; text: string }
   | { type: "p"; text: string }
-  | { type: "ol"; items: string[]; style: "decimal" | "alpha" | "roman" };
+  | { type: "ol"; items: string[]; style: "decimal" | "alpha" | "roman" }
+  | { type: "ul"; items: string[] };
 
 function parseBlocks(text: string): TextBlock[] {
   const normalized = normalizeText(text);
@@ -69,7 +71,7 @@ function parseBlocks(text: string): TextBlock[] {
   const blocks: TextBlock[] = [];
   let paragraph: string[] = [];
   let listItems: string[] = [];
-  let listStyle: "decimal" | "alpha" | "roman" | null = null;
+  let listStyle: "decimal" | "alpha" | "roman" | "bullet" | null = null;
 
   const flushParagraph = () => {
     const content = paragraph.join("\n").trim();
@@ -79,10 +81,24 @@ function parseBlocks(text: string): TextBlock[] {
 
   const flushList = () => {
     if (listItems.length) {
-      blocks.push({ type: "ol", items: [...listItems], style: listStyle || "decimal" });
+      if (listStyle === "bullet") {
+        blocks.push({ type: "ul", items: [...listItems] });
+      } else {
+        blocks.push({ type: "ol", items: [...listItems], style: (listStyle || "decimal") as "decimal" | "alpha" | "roman" });
+      }
     }
     listItems = [];
     listStyle = null;
+  };
+
+  const isHeadingLine = (line: string) => {
+    if (!line) return false;
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    if (/^Task\s*\d+\b/i.test(trimmed)) return true;
+    if (/^[A-Z0-9][A-Z0-9\s\-–—()]+$/.test(trimmed) && trimmed.length <= 80) return true;
+    if (/^[A-Z][A-Za-z0-9\s\-–—()]+:$/.test(trimmed) && trimmed.length <= 80) return true;
+    return false;
   };
 
   const listMatchers: Array<{ style: "decimal" | "alpha" | "roman"; regex: RegExp }> = [
@@ -90,6 +106,7 @@ function parseBlocks(text: string): TextBlock[] {
     { style: "alpha", regex: /^([a-z])\)\s+(.*)$/i },
     { style: "roman", regex: /^([ivxlcdm]+)\.\s+(.*)$/i },
   ];
+  const bulletMatcher = /^[-•]\s+(.*)$/;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
@@ -99,12 +116,28 @@ function parseBlocks(text: string): TextBlock[] {
       continue;
     }
 
+    if (isHeadingLine(line)) {
+      flushList();
+      flushParagraph();
+      blocks.push({ type: "heading", text: line.replace(/:\s*$/, "") });
+      continue;
+    }
+
     const match = listMatchers.map((m) => ({ match: line.match(m.regex), style: m.style })).find((m) => m.match);
     if (match?.match) {
       flushParagraph();
       if (listStyle && listStyle !== match.style) flushList();
       listStyle = match.style;
       listItems.push(match.match[2]);
+      continue;
+    }
+
+    const bulletMatch = line.match(bulletMatcher);
+    if (bulletMatch) {
+      flushParagraph();
+      if (listStyle && listStyle !== "bullet") flushList();
+      listStyle = "bullet";
+      listItems.push(bulletMatch[1]);
       continue;
     }
 
@@ -119,6 +152,35 @@ function parseBlocks(text: string): TextBlock[] {
   flushList();
   flushParagraph();
   return blocks;
+}
+
+function renderInlineText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s)]+)/g;
+  const nodes: Array<string | JSX.Element> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = urlRegex.exec(text))) {
+    const start = match.index;
+    const url = match[0];
+    if (start > lastIndex) nodes.push(text.slice(lastIndex, start));
+    const cleaned = url.replace(/[),.;]+$/g, "");
+    const trailing = url.slice(cleaned.length);
+    nodes.push(
+      <a
+        key={`url-${start}`}
+        href={cleaned}
+        target="_blank"
+        rel="noreferrer"
+        className="underline decoration-dotted decoration-sky-400 underline-offset-2 break-all text-sky-700 hover:text-sky-800"
+      >
+        {cleaned}
+      </a>
+    );
+    if (trailing) nodes.push(trailing);
+    lastIndex = start + url.length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
 }
 
 function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string[]; diffIndices: Set<number> }) {
@@ -161,7 +223,10 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const duplicateInfo = useMemo(() => {
     if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
     const keyFor = (block: TextBlock) => {
-      const raw = block.type === "ol" ? block.items.join(" ") : block.text;
+      const raw =
+        block.type === "ol" || block.type === "ul"
+          ? block.items.join(" ")
+          : block.text;
       const key = normalizeText(raw).toLowerCase();
       return key.length >= 80 ? key : "";
     };
@@ -276,12 +341,12 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
       ) : null}
 
       {!expanded ? (
-        <div className="mt-3 text-sm text-zinc-700">{preview}</div>
+        <div className="mt-3 text-sm text-zinc-700 line-clamp-2">{preview}</div>
       ) : (
         <div className="mt-4 text-sm text-zinc-900">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-800">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             {hasDuplicates ? (
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-amber-900">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-900">
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
                   Repeated blocks hidden
                 </span>
@@ -304,21 +369,45 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                       <ol
                         key={`ol-${idx}`}
                         className={
-                          "space-y-1 pl-6 " +
+                          "space-y-1 " +
                           (block.style === "alpha"
-                            ? "list-[lower-alpha]"
+                            ? "list-[lower-alpha] pl-7"
                             : block.style === "roman"
-                              ? "list-[lower-roman]"
-                              : "list-decimal") +
+                              ? "list-[lower-roman] pl-9"
+                              : "list-decimal pl-6") +
                           (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")
                         }
                       >
                         {block.items.map((item, itemIdx) => (
                           <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
-                            {item}
+                            {renderInlineText(item)}
                           </li>
                         ))}
                       </ol>
+                    );
+                  }
+                  if (block.type === "ul") {
+                    return (
+                      <ul
+                        key={`ul-${idx}`}
+                        className={"list-disc space-y-1 pl-5 " + (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")}
+                      >
+                        {block.items.map((item, itemIdx) => (
+                          <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
+                            {renderInlineText(item)}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  if (block.type === "heading") {
+                    return (
+                      <div
+                        key={`heading-${idx}`}
+                        className={"text-sm font-semibold text-zinc-900 " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
+                      >
+                        {renderInlineText(block.text)}
+                      </div>
                     );
                   }
                   return (
@@ -326,7 +415,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                       key={`p-${idx}`}
                       className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
                     >
-                      {block.text}
+                      {renderInlineText(block.text)}
                     </p>
                   );
                 })}
