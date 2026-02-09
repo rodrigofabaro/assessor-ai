@@ -161,12 +161,10 @@ function isListMarkerLine(line: string) {
 function isHeadingLine(line: string) {
   const trimmed = line.trim();
   if (!trimmed) return false;
-  if (trimmed.length > 70) return false;
-  if (/[.!?:;]/.test(trimmed)) return false;
-  const words = trimmed.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return false;
-  const titleCaseCount = words.filter((word) => /^[A-Z][A-Za-z0-9'’-]*$/.test(word)).length;
-  return titleCaseCount / words.length >= 0.6;
+  if (trimmed.length > 60) return false;
+  if (/[.]/.test(trimmed)) return false;
+  if (startsWithLowerish(trimmed)) return false;
+  return true;
 }
 
 function reflowProsePreserveLists(text: string) {
@@ -198,9 +196,9 @@ function reflowProsePreserveLists(text: string) {
       continue;
     }
 
-    const endsWithTerminal = /[.:;?!]$/.test(currentLine);
+    const endsWithTerminal = /[.?!:]$/.test(currentLine);
     const endsWithComma = /,$/.test(currentLine);
-    const shouldJoin = (!endsWithTerminal || endsWithComma) && startsWithLowerish(trimmed);
+    const shouldJoin = !endsWithTerminal && (endsWithComma || startsWithLowerish(trimmed));
     if (shouldJoin) {
       currentLine = `${currentLine} ${trimmed}`;
     } else {
@@ -296,9 +294,24 @@ function isHeadingLike(line: string) {
   return !/[.!?]/.test(trimmed);
 }
 
+function extractAiasLevelsFromText(text: string) {
+  const levels: number[] = [];
+  const aiasMatches = text.matchAll(/\bAIAS\s*(?:[–-]\s*LEVEL\s*)?\(?\s*(\d)\s*\)?\b/gi);
+  for (const match of aiasMatches) {
+    const value = Number(match[1]);
+    if (!Number.isNaN(value)) levels.push(value);
+  }
+  const scaleMatches = text.matchAll(/\bAI\s*Assessment\s*Scale\b[\s\S]{0,40}?\bLevel\s*(\d)\b/gi);
+  for (const match of scaleMatches) {
+    const value = Number(match[1]);
+    if (!Number.isNaN(value)) levels.push(value);
+  }
+  return levels;
+}
+
 function extractAiasValue(text: string) {
-  const match = text.match(/\bAIAS\s*(?:[–-]\s*LEVEL\s*)?\(?\s*(\d)\s*\)?\b/i);
-  return match?.[1] ? `AIAS ${match[1]}` : null;
+  const levels = extractAiasLevelsFromText(text);
+  return levels.length ? `AIAS ${Math.min(...levels)}` : null;
 }
 
 function getPrimaryEndMatterKeyFromWindow(lines: string[], startIndex: number, windowSize = 6) {
@@ -530,6 +543,13 @@ function cleanTaskLines(lines: string[]) {
   return cleaned;
 }
 
+function shouldReflowPartLines(lines: string[]) {
+  const nonEmpty = lines.filter((line) => line.trim());
+  if (!nonEmpty.length) return false;
+  const listLines = nonEmpty.filter((line) => isListMarkerLine(line)).length;
+  return listLines === 0;
+}
+
 function extractParts(text: string): Array<{ key: string; text: string }> | null {
   const lines = splitLines(text);
   const parts: Array<{ key: string; text: string }> = [];
@@ -539,8 +559,14 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 
   const flush = () => {
     if (currentKey) {
-      const blob = normalizeWhitespace(currentText.join(" ").trim());
-      if (blob) parts.push({ key: currentKey, text: blob });
+      const cleanedLines = cleanTaskLines(currentText);
+      if (cleanedLines.length) {
+        const rawBlob = cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+        const blob = shouldReflowPartLines(cleanedLines)
+          ? reflowProsePreserveLists(rawBlob)
+          : rawBlob;
+        if (blob) parts.push({ key: currentKey, text: blob });
+      }
     }
     currentText = [];
   };
@@ -794,15 +820,10 @@ function extractBriefTasks(
   }
 
   const MIN_TASK_BODY_CHARS = 250;
-  const contaminationCues = [
+  const contaminationAnchors = [
     /\bsources\s+of\s+information\b/i,
-    /\btextbooks?\b/i,
-    /\bwebsites?\b/i,
-    /\bfurther\s+reading\b/i,
-    /\badditional\s+resources?\b/i,
-    /\brelevant\s+learning\s+outcomes\b/i,
-    /\bassessment\s+criteria\b/i,
-    /\bpass\s+merit\s+distinction\b/i,
+    /\brelevant\s+learning\s+outcomes\s+and\s+assessment\s+criteria\b/i,
+    /\brecommended\s+resources\b/i,
   ];
 
   selectedHeadings.forEach((heading, idx) => {
@@ -828,10 +849,8 @@ function extractBriefTasks(
       taskWarnings.push("duplicate heading candidates merged");
     }
 
-    const contaminated = bodyLines.some((line) => {
-      const normalizedLine = normalizeWhitespace(line);
-      return isHeadingLike(normalizedLine) && contaminationCues.some((cue) => cue.test(normalizedLine));
-    });
+    const normalizedBody = normalizeWhitespace(textBody);
+    const contaminated = contaminationAnchors.some((cue) => cue.test(normalizedBody));
     if (contaminated) taskWarnings.push("possible end-matter contamination");
 
     if (textBody.trim().length < MIN_TASK_BODY_CHARS) {
@@ -979,11 +998,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     null;
 
   // AIAS – LEVEL 1
-  const aiasLevelMatches = Array.from(
-    t.matchAll(/\bAIAS\s*(?:[–-]\s*LEVEL\s*)?\(?\s*(\d)\s*\)?\b/gi)
-  )
-    .map((match) => Number(match[1]))
-    .filter((value) => !Number.isNaN(value));
+  const aiasLevelMatches = extractAiasLevelsFromText(t);
   const aiasLevelFromDoc = aiasLevelMatches.length ? Math.min(...aiasLevelMatches) : null;
 
   // Assignment code: prefer derived from assignmentNumber
