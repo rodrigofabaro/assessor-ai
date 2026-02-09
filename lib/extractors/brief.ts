@@ -144,6 +144,75 @@ function splitLines(text: string) {
   return (text || "").replace(/\r/g, "").split("\n");
 }
 
+function startsWithLowerish(line: string) {
+  return /^[("'“”‘’\(\[]?[a-z]/.test(line);
+}
+
+function isListMarkerLine(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/^[•\-\–\*]\s+/.test(trimmed)) return true;
+  if (/^[a-z]\)\s+/i.test(trimmed)) return true;
+  if (/^\d+(\.\d+)*[.)]\s+/.test(trimmed)) return true;
+  if (/^[ivxlcdm]+[.)]\s+/i.test(trimmed)) return true;
+  return false;
+}
+
+function isHeadingLine(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (trimmed.length > 70) return false;
+  if (/[.!?:;]/.test(trimmed)) return false;
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return false;
+  const titleCaseCount = words.filter((word) => /^[A-Z][A-Za-z0-9'’-]*$/.test(word)).length;
+  return titleCaseCount / words.length >= 0.6;
+}
+
+function reflowProsePreserveLists(text: string) {
+  const lines = splitLines(text);
+  const output: string[] = [];
+  let currentLine = "";
+
+  const flush = () => {
+    if (currentLine) output.push(currentLine);
+    currentLine = "";
+  };
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      flush();
+      if (output.length === 0 || output[output.length - 1] !== "") output.push("");
+      continue;
+    }
+
+    if (isListMarkerLine(trimmed) || isHeadingLine(trimmed)) {
+      flush();
+      output.push(trimmed);
+      continue;
+    }
+
+    if (!currentLine) {
+      currentLine = trimmed;
+      continue;
+    }
+
+    const endsWithTerminal = /[.:;?!]$/.test(currentLine);
+    const endsWithComma = /,$/.test(currentLine);
+    const shouldJoin = (!endsWithTerminal || endsWithComma) && startsWithLowerish(trimmed);
+    if (shouldJoin) {
+      currentLine = `${currentLine} ${trimmed}`;
+    } else {
+      output.push(currentLine);
+      currentLine = trimmed;
+    }
+  }
+
+  flush();
+  return output.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function escapeLabel(label: string) {
   return label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -225,6 +294,11 @@ function isHeadingLike(line: string) {
   if (!trimmed) return false;
   if (trimmed.length > 70) return false;
   return !/[.!?]/.test(trimmed);
+}
+
+function extractAiasValue(text: string) {
+  const match = text.match(/\bAIAS\s*(?:[–-]\s*LEVEL\s*)?\(?\s*(\d)\s*\)?\b/i);
+  return match?.[1] ? `AIAS ${match[1]}` : null;
 }
 
 function getPrimaryEndMatterKeyFromWindow(lines: string[], startIndex: number, windowSize = 6) {
@@ -629,18 +703,20 @@ function extractBriefTasks(
       }
 
       const previewLines = lines.slice(start, Math.min(start + 6, lines.length));
-      const aiasMatch = normalizeWhitespace(previewLines.join(" ")).match(/\bAIAS\s*(\d)\b/i);
-      const aias = aiasMatch ? `AIAS ${aiasMatch[1]}` : null;
+      const aias =
+        extractAiasValue(normalizeWhitespace(previewLines.join(" "))) ||
+        extractAiasValue(textBody);
       const pagesForTask = fallbackPage ? [fallbackPage] : undefined;
 
+      const reflowedTextBody = reflowProsePreserveLists(textBody);
       promoted.push({
         n,
         label: `Task ${n}`,
         title: titleLine,
         aias,
         pages: pagesForTask,
-        text: textBody,
-        prompt: textBody,
+        text: reflowedTextBody,
+        prompt: reflowedTextBody,
         confidence: "HEURISTIC",
       });
       existingNumbers.add(n);
@@ -752,7 +828,10 @@ function extractBriefTasks(
       taskWarnings.push("duplicate heading candidates merged");
     }
 
-    const contaminated = contaminationCues.some((cue) => cue.test(textBody));
+    const contaminated = bodyLines.some((line) => {
+      const normalizedLine = normalizeWhitespace(line);
+      return isHeadingLike(normalizedLine) && contaminationCues.some((cue) => cue.test(normalizedLine));
+    });
     if (contaminated) taskWarnings.push("possible end-matter contamination");
 
     if (textBody.trim().length < MIN_TASK_BODY_CHARS) {
@@ -766,22 +845,27 @@ function extractBriefTasks(
     const previewLines = linesWithPages
       .slice(heading.index, Math.min(heading.index + 6, linesWithPages.length))
       .map((l) => l.line);
-    const aiasMatch = normalizeWhitespace(previewLines.join(" ")).match(/\bAIAS\s*(\d)\b/i);
-    const aias = aiasMatch ? `AIAS ${aiasMatch[1]}` : null;
+    const aias =
+      extractAiasValue(normalizeWhitespace(previewLines.join(" "))) ||
+      extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const parts = extractParts(textBody);
+    const reflowedTextBody = reflowProsePreserveLists(textBody);
+    const parts = extractParts(reflowedTextBody);
+    const confidenceWarnings = taskWarnings.filter(
+      (warning) => warning !== "duplicate heading candidates merged"
+    );
     tasks.push({
       n: heading.n,
       label: `Task ${heading.n}`,
       title: heading.title || null,
       aias,
       pages: pagesForTask,
-      text: textBody,
-      prompt: textBody,
+      text: reflowedTextBody,
+      prompt: reflowedTextBody,
       parts: parts || undefined,
       warnings: taskWarnings.length ? taskWarnings : undefined,
-      confidence: taskWarnings.length ? "HEURISTIC" : "CLEAN",
+      confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",
     });
   });
 
@@ -895,8 +979,12 @@ export function extractBrief(text: string, fallbackTitle: string) {
     null;
 
   // AIAS – LEVEL 1
-  const aiasLevelRaw = firstMatch(t, /\bAIAS\s*[–-]\s*LEVEL\s*(\d)\b/i);
-  const aiasLevel = aiasLevelRaw ? Number(aiasLevelRaw) : null;
+  const aiasLevelMatches = Array.from(
+    t.matchAll(/\bAIAS\s*(?:[–-]\s*LEVEL\s*)?\(?\s*(\d)\s*\)?\b/gi)
+  )
+    .map((match) => Number(match[1]))
+    .filter((value) => !Number.isNaN(value));
+  const aiasLevelFromDoc = aiasLevelMatches.length ? Math.min(...aiasLevelMatches) : null;
 
   // Assignment code: prefer derived from assignmentNumber
   const codeGuess =
@@ -913,6 +1001,11 @@ export function extractBrief(text: string, fallbackTitle: string) {
   const headerSource = pages[0] || t.slice(0, 4500);
   const header = extractBriefHeaderFromPreview(headerSource);
   const tasksResult = extractBriefTasks(t, pages);
+  const taskAiasLevels = tasksResult.tasks
+    .map((task) => Number(task.aias?.match(/\d/)?.[0]))
+    .filter((value) => !Number.isNaN(value));
+  const aiasLevelFromTasks = taskAiasLevels.length ? Math.min(...taskAiasLevels) : null;
+  const aiasLevel = aiasLevelFromDoc ?? aiasLevelFromTasks ?? null;
   const criteriaRegion = findCriteriaRegion(pages);
   const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : detectedCriterionCodes;
   const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
