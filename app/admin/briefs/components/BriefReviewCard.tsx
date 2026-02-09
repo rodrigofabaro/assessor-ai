@@ -7,7 +7,7 @@ import BriefMappingPanel from "./BriefMappingPanel";
 import { ui } from "@/components/ui/uiClasses";
 import { useRouter } from "next/navigation";
 import { TaskCard } from "./TaskCard";
-import { tone } from "../[briefId]/components/briefStyles";
+import { statusTone, tone } from "../[briefId]/components/briefStyles";
 
 export default function BriefReviewCard({ rx }: { rx: any }) {
   const router = useRouter();
@@ -41,6 +41,12 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const [expandAll, setExpandAll] = useState(false);
   const [expandSignal, setExpandSignal] = useState(0);
   const readiness = (doc as any)?.readiness as string | undefined;
+  const usage = rx.selectedDocUsage;
+  const usageLoading = rx.usageLoading;
+  const canExtract = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
+  const canLock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
+  const canUnlock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !!doc.lockedAt && !!usage && !usage.inUse;
+  const canDelete = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt && !!usage && !usage.inUse;
 
   const headerRows: Array<{ label: string; value: string; missing: boolean }> = [
     { label: "Qualification", value: header.qualification || "—", missing: !header.qualification },
@@ -65,8 +71,106 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
       <div className="border-b border-zinc-200 p-4">
-        <div className="text-sm font-semibold">Review</div>
-        <div className="mt-1 text-xs text-zinc-600">Review extracted header fields, tasks, and warnings.</div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold">Review</div>
+            <div className="mt-1 text-xs text-zinc-600">Review extracted header fields, tasks, and warnings.</div>
+          </div>
+          {doc ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <Pill cls={statusTone(doc.status)}>{doc.status}</Pill>
+              {doc.lockedAt ? <Pill cls={tone("ok")}>Locked</Pill> : <Pill cls={tone("warn")}>Unlocked</Pill>}
+              <Pill cls={warningCount ? tone("warn") : tone("ok")}>{warningCount} warning(s)</Pill>
+              {readiness ? (
+                <Pill cls={readiness === "READY" ? tone("ok") : readiness === "BLOCKED" ? tone("bad") : tone("warn")}>
+                  {readiness === "READY" ? "Ready" : readiness === "BLOCKED" ? "Blocked" : "Needs review"}
+                </Pill>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        {doc ? (
+          <div className="mt-3 grid gap-3">
+            <div className="text-sm font-semibold text-zinc-900">
+              Selected: {doc.title || doc.originalFilename || "Untitled brief"}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!canExtract}
+                onClick={rx.extractSelected}
+                className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+              >
+                Extract
+              </button>
+              <button
+                type="button"
+                disabled={!canExtract}
+                onClick={rx.reextractSelected}
+                className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+              >
+                Re-extract
+              </button>
+              <button
+                type="button"
+                disabled={!canLock}
+                onClick={rx.lockSelected}
+                className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+              >
+                Lock brief
+              </button>
+              <button
+                type="button"
+                disabled={!canUnlock}
+                onClick={rx.unlockSelectedDocument}
+                title={
+                  usageLoading
+                    ? "Checking usage…"
+                    : usage?.inUse
+                      ? "This brief has submissions attached and cannot be unlocked."
+                      : !doc?.lockedAt
+                        ? "Brief is not locked."
+                        : ""
+                }
+                className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+              >
+                Unlock
+              </button>
+              <a
+                href={`/api/reference-documents/${doc.id}/file`}
+                target="_blank"
+                rel="noreferrer"
+                className={ui.btnSecondary}
+              >
+                PDF preview
+              </a>
+              <button
+                type="button"
+                disabled={!canDelete}
+                onClick={rx.deleteSelectedDocument}
+                title={
+                  usageLoading
+                    ? "Checking usage…"
+                    : doc?.lockedAt
+                      ? "Locked briefs cannot be deleted. Unlock first."
+                      : usage?.inUse
+                        ? "This brief has submissions attached and cannot be deleted."
+                        : ""
+                }
+                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Delete
+              </button>
+            </div>
+            <details className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              <summary className="cursor-pointer font-semibold text-zinc-700">Why locking matters</summary>
+              <p className="mt-2">
+                Locking binds this brief to a fixed spec version for audit-ready grading. Unlock only when corrections are required.
+              </p>
+            </details>
+          </div>
+        ) : null}
       </div>
 
       {!doc ? (

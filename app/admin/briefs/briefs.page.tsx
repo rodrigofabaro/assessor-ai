@@ -51,6 +51,7 @@ export default function AdminBriefsPage() {
       setRefreshing(false);
     }
   };
+  const onResetFilters = () => rx.resetFilters();
 
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8">
@@ -73,11 +74,6 @@ export default function AdminBriefsPage() {
             </div>
 
           <div className="flex items-center gap-2">
-            {vm.tab === "extract" ? (
-              <Btn kind="secondary" onClick={rx.resetFilters} disabled={busy || refreshing}>
-                Reset filters
-              </Btn>
-            ) : null}
             <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
               {refreshing ? "Refreshing…" : "Refresh"}
             </Btn>
@@ -126,7 +122,7 @@ export default function AdminBriefsPage() {
           />
         ) : null}
 
-        {vm.tab === "extract" ? <BriefExtractWorkbench rx={rx} /> : null}
+        {vm.tab === "extract" ? <BriefExtractWorkbench rx={rx} onResetFilters={onResetFilters} /> : null}
       </div>
     </div>
   );

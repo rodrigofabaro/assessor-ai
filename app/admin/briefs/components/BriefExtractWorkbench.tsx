@@ -5,7 +5,13 @@ import BriefReviewCard from "./BriefReviewCard";
 import { badge, type ReferenceDocument } from "../../reference/reference.logic";
 import { ui } from "@/components/ui/uiClasses";
 
-export default function BriefExtractWorkbench({ rx }: { rx: any }) {
+export default function BriefExtractWorkbench({
+  rx,
+  onResetFilters,
+}: {
+  rx: any;
+  onResetFilters: () => void;
+}) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -46,7 +52,9 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
     { P: 0, M: 0, D: 0 }
   );
   const lastStatusDate = (doc as any)?.updatedAt || doc?.uploadedAt || "";
-  const statusSummary = doc?.status ? `${doc.status}${lastStatusDate ? ` • ${new Date(lastStatusDate).toLocaleString()}` : ""}` : "—";
+  const statusSummary = doc?.status
+    ? `${doc.status}${lastStatusDate ? ` • ${new Date(lastStatusDate).toLocaleString()}` : ""}`
+    : "—";
   const unitSummary = header?.unitCode
     ? `${header.unitCode}${header.unitTitle ? ` — ${header.unitTitle}` : ""}`
     : doc?.sourceMeta?.unitCode
@@ -57,12 +65,6 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
   const ivSummary = ivLatest?.outcome
     ? `${ivLatest.outcome}${ivLatest?.academicYear ? ` • ${ivLatest.academicYear}` : ""}`
     : "—";
-  const canExtract = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
-  const canLock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
-  const usage = rx.selectedDocUsage;
-  const usageLoading = rx.usageLoading;
-  const canUnlock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !!doc.lockedAt && !!usage && !usage.inUse;
-  const canDelete = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt && !!usage && !usage.inUse;
 
   const handleFiles = (files: File[]) => {
     if (!files.length) return;
@@ -70,42 +72,26 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
   };
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="application/pdf,.pdf"
-        multiple
-        className="sr-only"
-        onChange={(e) => {
-          handleFiles(Array.from(e.target.files || []));
-          e.target.value = "";
-        }}
-      />
+    <section className="grid gap-4 min-w-0">
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 min-w-0">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          multiple
+          className="sr-only"
+          onChange={(e) => {
+            handleFiles(Array.from(e.target.files || []));
+            e.target.value = "";
+          }}
+        />
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold">Brief extraction</div>
-          <p className="mt-1 text-xs text-zinc-600">Select a BRIEF PDF, run Extract, review tasks, then Lock.</p>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold">Upload briefs</h2>
-            <p className="mt-1 text-xs text-zinc-500">Drag-and-drop brief PDFs or use the upload button.</p>
+            <div className="text-sm font-semibold">Extraction overview</div>
+            <p className="mt-1 text-xs text-zinc-600">Upload briefs, review the summary, then extract and lock.</p>
           </div>
           <div className="flex items-center gap-2">
-            {uploadOpen ? (
-              <button
-                type="button"
-                onClick={() => setUploadOpen(false)}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-              >
-                Collapse
-              </button>
-            ) : null}
             <button
               type="button"
               onClick={() => setUploadOpen((prev) => !prev)}
@@ -114,6 +100,56 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
             >
               Upload brief
             </button>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-zinc-900">Brief summary</div>
+              <p className="mt-1 text-xs text-zinc-600">Quick facts for the selected PDF.</p>
+            </div>
+            {doc?.lockedAt ? (
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900">
+                Locked
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { label: "Unit", value: unitSummary },
+              { label: "Assignment title", value: assignmentTitle },
+              { label: "Academic year / issue date", value: academicIssue },
+              { label: "IV status", value: ivSummary },
+              { label: "Last extracted / status", value: statusSummary },
+              {
+                label: "Criteria codes",
+                value: doc ? `P${criteriaCounts.P} · M${criteriaCounts.M} · D${criteriaCounts.D}` : "—",
+              },
+              {
+                label: "File",
+                value: doc?.originalFilename ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate">{doc.originalFilename}</span>
+                    <a
+                      href={`/api/reference-documents/${doc.id}/file`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-semibold text-sky-700 hover:text-sky-800"
+                    >
+                      Open PDF
+                    </a>
+                  </div>
+                ) : (
+                  "—"
+                ),
+              },
+            ].map((cell) => (
+              <div key={cell.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                <div className="text-xs font-semibold text-zinc-600">{cell.label}</div>
+                <div className="mt-1 text-sm font-semibold text-zinc-900">{cell.value || "—"}</div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -161,275 +197,153 @@ export default function BriefExtractWorkbench({ rx }: { rx: any }) {
               <span className={"text-xs " + (isUploading ? "text-sky-700" : "text-zinc-400")}>{uploadStatus}</span>
             </div>
           </div>
-        ) : (
-          <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
-            Upload is collapsed. Click “Upload brief” to add PDFs.
-          </div>
-        )}
-      </div>
+        ) : null}
+      </section>
 
-      <section className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-zinc-900">Brief summary</div>
-            <p className="mt-1 text-xs text-zinc-600">Quick facts for the selected PDF.</p>
-          </div>
-          {doc?.lockedAt ? (
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900">
-              Locked
-            </span>
-          ) : null}
-        </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {[
-            { label: "Unit", value: unitSummary },
-            { label: "Assignment title", value: assignmentTitle },
-            { label: "Academic year / issue date", value: academicIssue },
-            { label: "IV status", value: ivSummary },
-            { label: "Last extracted / status", value: statusSummary },
-            {
-              label: "Criteria codes",
-              value: doc ? `P${criteriaCounts.P} · M${criteriaCounts.M} · D${criteriaCounts.D}` : "—",
-            },
-            {
-              label: "File",
-              value: doc?.originalFilename ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate">{doc.originalFilename}</span>
-                  <a
-                    href={`/api/reference-documents/${doc.id}/file`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs font-semibold text-sky-700 hover:text-sky-800"
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <div className="min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">Inbox</h2>
+                <p className="mt-1 text-xs text-zinc-500">BRIEF documents only.</p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
+                Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
+                <span className="font-semibold text-zinc-900">{counts.total}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 max-h-[55vh] overflow-auto pr-1">
+              {rx.filteredDocuments.map((d: any) => {
+                const active = rx.selectedDocId === d.id;
+                const b = badge(d.status);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => rx.setSelectedDocId(d.id)}
+                    className={
+                      "w-full rounded-xl border p-3 text-left transition " +
+                      (active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white hover:bg-zinc-50")
+                    }
                   >
-                    Open PDF
-                  </a>
-                </div>
-              ) : (
-                "—"
-              ),
-            },
-          ].map((cell) => (
-            <div key={cell.label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-              <div className="text-xs font-semibold text-zinc-600">{cell.label}</div>
-              <div className="mt-1 text-sm font-semibold text-zinc-900">{cell.value || "—"}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={"inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold " + b.cls}>
+                        {b.text}
+                      </span>
+                      <span className={"text-xs " + (active ? "text-zinc-200" : "text-zinc-500")}>v{d.version}</span>
+                    </div>
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-zinc-900">Actions</div>
-              <p className="mt-1 text-xs text-zinc-600">Run extraction and lock the selected brief.</p>
-            </div>
-            {doc ? (
-              <span className="text-xs text-zinc-500">
-                {doc.status} {doc.lockedAt ? "• locked" : ""}
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={!canExtract}
-              onClick={rx.extractSelected}
-              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-            >
-              Extract
-            </button>
-            <button
-              type="button"
-              disabled={!canExtract}
-              onClick={rx.reextractSelected}
-              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
-            >
-              Re-extract
-            </button>
-            <button
-              type="button"
-              disabled={!canLock}
-              onClick={rx.lockSelected}
-              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-            >
-              Lock brief
-            </button>
-            <button
-              type="button"
-              disabled={!canUnlock}
-              onClick={rx.unlockSelectedDocument}
-              title={
-                usageLoading
-                  ? "Checking usage…"
-                  : usage?.inUse
-                    ? "This brief has submissions attached and cannot be unlocked."
-                    : !doc?.lockedAt
-                      ? "Brief is not locked."
-                      : ""
-              }
-              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
-            >
-              Unlock
-            </button>
-            <button
-              type="button"
-              disabled={!canDelete}
-              onClick={rx.deleteSelectedDocument}
-              title={
-                usageLoading
-                  ? "Checking usage…"
-                  : doc?.lockedAt
-                    ? "Locked briefs cannot be deleted. Unlock first."
-                    : usage?.inUse
-                      ? "This brief has submissions attached and cannot be deleted."
-                      : ""
-              }
-              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+                    <div className="mt-2 text-sm font-semibold leading-5">{d.title}</div>
+                    <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-600")}>{d.originalFilename}</div>
+                  </button>
+                );
+              })}
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-zinc-900">Filters</div>
-              <p className="mt-1 text-xs text-zinc-600">Refine the brief inbox list.</p>
-            </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
-              Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
-              <span className="font-semibold text-zinc-900">{counts.total}</span>
+              {rx.filteredDocuments.length === 0 ? (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No docs match your filters.</div>
+              ) : null}
             </div>
           </div>
 
-          <div className="mt-3 grid gap-3">
-            <input
-              value={f.q}
-              onChange={(e: any) => setF({ ...f, q: e.target.value })}
-              placeholder="Search title, filename, unit code…"
-              className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
-            />
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm flex items-center">Type: BRIEF</div>
-
-              <select
-                value={f.status}
-                onChange={(e: any) => setF({ ...f, status: (e.target.value as any) || "" })}
-                className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-              >
-                <option value="">All statuses</option>
-                <option value="UPLOADED">UPLOADED</option>
-                <option value="EXTRACTED">EXTRACTED</option>
-                <option value="REVIEWED">REVIEWED</option>
-                <option value="LOCKED">LOCKED</option>
-                <option value="FAILED">FAILED</option>
-              </select>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-zinc-900">Filters</div>
+                <p className="mt-1 text-xs text-zinc-600">Refine the brief inbox list.</p>
+              </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={!!f.onlyLocked}
-                  onChange={(e: any) =>
-                    setF({ ...f, onlyLocked: e.target.checked, onlyUnlocked: e.target.checked ? false : f.onlyUnlocked })
-                  }
-                />
-                Only locked
-              </label>
+            <div className="mt-3 grid gap-3">
+              <input
+                value={f.q}
+                onChange={(e: any) => setF({ ...f, q: e.target.value })}
+                placeholder="Search title, filename, unit code…"
+                className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+              />
 
-              <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={!!f.onlyUnlocked}
-                  onChange={(e: any) =>
-                    setF({ ...f, onlyUnlocked: e.target.checked, onlyLocked: e.target.checked ? false : f.onlyLocked })
-                  }
-                />
-                Only unlocked
-              </label>
-            </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm flex items-center">Type: BRIEF</div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <select
-                value={f.sort}
-                onChange={(e: any) => setF({ ...f, sort: e.target.value as any })}
-                className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-              >
-                <option value="updated">Sort: updated</option>
-                <option value="uploaded">Sort: uploaded</option>
-                <option value="title">Sort: title</option>
-              </select>
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-xs">
-              {(["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setF({ ...f, status: f.status === s ? "" : (s as any) })}
-                  className={
-                    "rounded-full border px-3 py-1 font-semibold " +
-                    (f.status === s
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
-                  }
+                <select
+                  value={f.status}
+                  onChange={(e: any) => setF({ ...f, status: (e.target.value as any) || "" })}
+                  className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
                 >
-                  {s} <span className="opacity-70">({counts.byStatus[s] || 0})</span>
+                  <option value="">All statuses</option>
+                  <option value="UPLOADED">UPLOADED</option>
+                  <option value="EXTRACTED">EXTRACTED</option>
+                  <option value="REVIEWED">REVIEWED</option>
+                  <option value="LOCKED">LOCKED</option>
+                  <option value="FAILED">FAILED</option>
+                </select>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={!!f.onlyLocked}
+                    onChange={(e: any) =>
+                      setF({ ...f, onlyLocked: e.target.checked, onlyUnlocked: e.target.checked ? false : f.onlyUnlocked })
+                    }
+                  />
+                  Only locked
+                </label>
+
+                <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={!!f.onlyUnlocked}
+                    onChange={(e: any) =>
+                      setF({ ...f, onlyUnlocked: e.target.checked, onlyLocked: e.target.checked ? false : f.onlyLocked })
+                    }
+                  />
+                  Only unlocked
+                </label>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <select
+                  value={f.sort}
+                  onChange={(e: any) => setF({ ...f, sort: e.target.value as any })}
+                  className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                >
+                  <option value="updated">Sort: updated</option>
+                  <option value="uploaded">Sort: uploaded</option>
+                  <option value="title">Sort: title</option>
+                </select>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setF({ ...f, status: f.status === s ? "" : (s as any) })}
+                    className={
+                      "rounded-full border px-3 py-1 font-semibold " +
+                      (f.status === s
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                    }
+                  >
+                    {s} <span className="opacity-70">({counts.byStatus[s] || 0})</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={onResetFilters} className={ui.btnSecondary + " text-xs"}>
+                  Reset filters
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[420px_1fr] min-w-0">
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold">Inbox</h2>
-              <p className="mt-1 text-xs text-zinc-500">BRIEF documents only.</p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-2 max-h-[55vh] overflow-auto pr-1">
-            {rx.filteredDocuments.map((d: any) => {
-              const active = rx.selectedDocId === d.id;
-              const b = badge(d.status);
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => rx.setSelectedDocId(d.id)}
-                  className={
-                    "w-full rounded-xl border p-3 text-left transition " +
-                    (active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white hover:bg-zinc-50")
-                  }
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={"inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold " + b.cls}>
-                      {b.text}
-                    </span>
-                    <span className={"text-xs " + (active ? "text-zinc-200" : "text-zinc-500")}>v{d.version}</span>
-                  </div>
-
-                  <div className="mt-2 text-sm font-semibold leading-5">{d.title}</div>
-                  <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-600")}>{d.originalFilename}</div>
-                </button>
-              );
-            })}
-
-            {rx.filteredDocuments.length === 0 ? (
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No docs match your filters.</div>
-            ) : null}
-          </div>
-        </section>
-
-        <BriefReviewCard rx={rx} />
-      </div>
+      <BriefReviewCard rx={rx} />
     </section>
   );
 }
