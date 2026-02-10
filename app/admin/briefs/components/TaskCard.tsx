@@ -271,8 +271,17 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{label}</Pill>
-            <Pill cls={confidenceTone(confidence)}>
-              {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Needs review" : "🟢 Clean"}
+            <Pill
+              cls={confidenceTone(confidence)}
+              title={
+                confidence === "HEURISTIC"
+                  ? 'Low confidence means the extractor found the task, but the formatting/structure looks unreliable (e.g., duplicated markers like "a a a", broken line wraps, or missing headings). Review before locking.'
+                  : confidence === "CLEAN"
+                    ? "Clean means the task structure looks consistent (heading + body + lists detected reliably)."
+                    : undefined
+              }
+            >
+              {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Low confidence" : "🟢 Clean"}
             </Pill>
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
             {hasDuplicates ? (

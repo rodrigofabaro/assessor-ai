@@ -2,8 +2,12 @@
 
 import { ui } from "@/components/ui/uiClasses";
 
-export function Pill({ cls, children }: { cls: string; children: any }) {
-  return <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + cls}>{children}</span>;
+export function Pill({ cls, children, title }: { cls: string; children: any; title?: string }) {
+  return (
+    <span title={title} className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + cls}>
+      {children}
+    </span>
+  );
 }
 
 export function Btn({

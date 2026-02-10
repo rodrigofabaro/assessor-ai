@@ -50,7 +50,7 @@ async function run() {
   const { extractBrief } = loadTsModule("lib/extractors/brief.ts");
 
   const buf = fs.readFileSync(fixturePath);
-  const text = await pdfToText(buf);
+  const { text } = await pdfToText(buf);
   const brief = extractBrief(text, path.basename(fixturePath));
 
   assert.strictEqual(brief?.header?.academicYear, "1");
