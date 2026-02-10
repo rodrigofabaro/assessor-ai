@@ -7,6 +7,20 @@ import { tone } from "./briefStyles";
 
 type Part = { key: string; text: string };
 
+type RenderedPart = {
+  key: string;
+  rawText: string;
+  renderedText: string;
+  tableLines: string[];
+};
+
+type TaskDisplayModel = {
+  intro: string;
+  parts: RenderedPart[];
+  rawText: string;
+  html: string;
+};
+
 type TaskRow = {
   task: any;
   extractedTask: any;
@@ -25,20 +39,88 @@ function detectTableLines(text: string) {
   });
 }
 
+function stripTableLines(text: string, tableLines: string[]) {
+  if (!tableLines.length) return text;
+  const tableSet = new Set(tableLines.map((line) => line.trim()));
+  const lines = String(text || "").split(/\r?\n/);
+  return lines
+    .filter((line) => !tableSet.has(line.trim()))
+    .join("\n")
+    .trim();
+}
+
+function dedupeParagraphs(text: string) {
+  const paras = String(text || "")
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const para of paras) {
+    const normalized = para.replace(/\s+/g, " ").trim().toLowerCase();
+    if (normalized.length > 80 && seen.has(normalized)) continue;
+    out.push(para);
+    if (normalized.length > 80) seen.add(normalized);
+  }
+  return out.join("\n\n");
+}
+
 function isFormulaLike(text: string) {
   return /[=^/√π]|\bsqrt\b/i.test(text || "");
 }
 
-function PartCard({ part }: { part: Part }) {
-  const [showRaw, setShowRaw] = useState(false);
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildTaskDisplayModel(task: any): TaskDisplayModel {
+  const hasParts = Array.isArray(task?.parts) && task.parts.length > 0;
+  const sourceParts: Part[] = hasParts ? task.parts : [{ key: "body", text: task?.text || "" }];
+
+  const parts: RenderedPart[] = sourceParts.map((part) => {
+    const rawText = String(part?.text || "");
+    const tableLines = detectTableLines(rawText);
+    const withoutTables = stripTableLines(rawText, tableLines);
+    const renderedText = dedupeParagraphs(withoutTables);
+    return {
+      key: String(part?.key || "part"),
+      rawText,
+      renderedText,
+      tableLines,
+    };
+  });
+
+  const intro = String(task?.heading || task?.title || "").trim();
+  const rawText = String(task?.text || "");
+  const html = [
+    intro ? `<p>${escapeHtml(intro)}</p>` : "",
+    ...parts.map((part) => {
+      const title = `<h4>${escapeHtml(part.key)}</h4>`;
+      const body = part.tableLines.length
+        ? `<pre>${escapeHtml(part.renderedText || "")}</pre>`
+        : `<p>${escapeHtml(part.renderedText || "").replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br />")}</p>`;
+      return `<section>${title}${body}</section>`;
+    }),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return { intro, parts, rawText, html };
+}
+
+function PartCard({ part }: { part: RenderedPart }) {
   const [tableRaw, setTableRaw] = useState(false);
-  const tableLines = detectTableLines(part.text);
-  const formula = isFormulaLike(part.text);
-  const mathUnclean = hasUncleanMath(part.text);
+  const formula = isFormulaLike(part.renderedText);
+  const mathUnclean = hasUncleanMath(part.renderedText);
 
   const copyText = async () => {
     try {
-      await navigator.clipboard.writeText(showRaw ? part.text : part.text);
+      await navigator.clipboard.writeText(part.renderedText || part.rawText);
       window.alert(`Copied ${part.key}`);
     } catch {
       window.alert(`Copy failed for ${part.key}`);
@@ -51,16 +133,9 @@ function PartCard({ part }: { part: Part }) {
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-800">{part.key}</span>
           {mathUnclean ? <Pill cls={tone("warn")}>MATH_UNCLEAN</Pill> : null}
-          {tableLines.length > 0 ? <Pill cls={tone("ok")}>TABLE</Pill> : null}
+          {part.tableLines.length > 0 ? <Pill cls={tone("ok")}>TABLE</Pill> : null}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowRaw((v) => !v)}
-            className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-          >
-            {showRaw ? "Clean" : "Raw"}
-          </button>
           <button
             type="button"
             onClick={copyText}
@@ -71,7 +146,7 @@ function PartCard({ part }: { part: Part }) {
         </div>
       </div>
 
-      {tableLines.length > 0 ? (
+      {part.tableLines.length > 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-xs font-semibold text-zinc-700">Table block</div>
@@ -84,12 +159,12 @@ function PartCard({ part }: { part: Part }) {
             </button>
           </div>
           {tableRaw ? (
-            <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-zinc-900">{part.text}</pre>
+            <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-zinc-900">{part.rawText}</pre>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-xs">
                 <tbody>
-                  {tableLines.map((line, idx) => {
+                  {part.tableLines.map((line, idx) => {
                     const cols = line.trim().split(/\s{2,}|\t+/).filter(Boolean);
                     return (
                       <tr key={`${idx}-${line}`} className="border-b border-zinc-200 last:border-b-0">
@@ -108,10 +183,10 @@ function PartCard({ part }: { part: Part }) {
         </div>
       ) : formula ? (
         <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-2 font-mono text-xs text-zinc-900">
-          {part.text}
+          {part.renderedText}
         </pre>
       ) : (
-        <div className="whitespace-pre-wrap text-sm text-zinc-800">{part.text}</div>
+        <div className="whitespace-pre-wrap text-sm text-zinc-800">{part.renderedText}</div>
       )}
     </article>
   );
@@ -152,6 +227,7 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
   const linkedId: string | null = linkedDoc?.id ?? null;
   const [editForId, setEditForId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<number | null>(taskRows[0]?.task?.n ?? null);
+  const [taskTab, setTaskTab] = useState<"rendered" | "html" | "raw">("rendered");
 
   const editOpen = editForId !== null && editForId === linkedId;
 
@@ -159,6 +235,11 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
     taskRows.find((r) => Number(r.task?.n) === Number(selectedTask)) ||
     taskRows[0] ||
     null;
+
+  const selectedModel = useMemo(() => {
+    if (!selected?.task) return null;
+    return buildTaskDisplayModel(selected.task);
+  }, [selected]);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
@@ -215,7 +296,10 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
                   <button
                     key={`task-rail-${task?.n}`}
                     type="button"
-                    onClick={() => setSelectedTask(task?.n)}
+                    onClick={() => {
+                      setSelectedTask(task?.n);
+                      setTaskTab("rendered");
+                    }}
                     className={`rounded-lg border px-2 py-2 text-left ${selectedNow ? "border-zinc-900 bg-white" : "border-zinc-200 bg-white hover:bg-zinc-100"}`}
                   >
                     <div className="text-sm font-semibold text-zinc-900">Task {task?.n}</div>
@@ -228,7 +312,7 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
           </aside>
 
           <main className="grid gap-3">
-            {selected ? (
+            {selected && selectedModel ? (
               <>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
                   <div className="text-sm font-semibold text-zinc-900">{selected.task?.label || `Task ${selected.task?.n}`}</div>
@@ -242,12 +326,68 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
                   ) : null}
                 </div>
 
-                {(Array.isArray(selected.task?.parts) && selected.task.parts.length
-                  ? selected.task.parts
-                  : [{ key: "body", text: selected.task?.text || "" }]
-                ).map((part: Part) => (
-                  <PartCard key={`${selected.task?.n}-${part.key}`} part={part} />
-                ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTaskTab("rendered")}
+                    className={`rounded-md border px-2 py-1 text-xs font-semibold ${taskTab === "rendered" ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"}`}
+                  >
+                    Rendered
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTaskTab("html")}
+                    className={`rounded-md border px-2 py-1 text-xs font-semibold ${taskTab === "html" ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"}`}
+                  >
+                    HTML
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTaskTab("raw")}
+                    className={`rounded-md border px-2 py-1 text-xs font-semibold ${taskTab === "raw" ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"}`}
+                  >
+                    Raw
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(selectedModel.html);
+                        window.alert("Copied task HTML");
+                      } catch {
+                        window.alert("Copy HTML failed");
+                      }
+                    }}
+                    className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Copy HTML
+                  </button>
+                </div>
+
+                {taskTab === "rendered" ? (
+                  <>
+                    {selectedModel.intro ? (
+                      <article className="rounded-xl border border-zinc-200 bg-white p-3">
+                        <div className="whitespace-pre-wrap text-sm text-zinc-800">{selectedModel.intro}</div>
+                      </article>
+                    ) : null}
+                    {selectedModel.parts.map((part) => (
+                      <PartCard key={`${selected.task?.n}-${part.key}`} part={part} />
+                    ))}
+                  </>
+                ) : null}
+
+                {taskTab === "html" ? (
+                  <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-900">
+                    {selectedModel.html}
+                  </pre>
+                ) : null}
+
+                {taskTab === "raw" ? (
+                  <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-900">
+                    {selectedModel.rawText}
+                  </pre>
+                ) : null}
               </>
             ) : null}
           </main>
