@@ -565,6 +565,28 @@ function shouldReflowPartLines(lines: string[]) {
   return listLines === 0;
 }
 
+export function normalizeMathGlyphs(text: string): string {
+  const source = text || "";
+  if (!source) return "";
+
+  const withKnownGlyphs = source
+    .replace(/푙/g, "ℓ")
+    .replace(/퐷/g, "D")
+    .replace(/�/g, " ");
+
+  const dedupedVariableTokens = withKnownGlyphs
+    .replace(/\((ℓ)\1\)/g, "($1)")
+    .replace(/\((D)\1\)/g, "($1)")
+    .replace(/(^|[^\p{L}\p{N}_])(ℓ)\2(?=[^\p{L}\p{N}_]|$)/gu, "$1$2")
+    .replace(/(^|[^\p{L}\p{N}_])(D)\2(?=[^\p{L}\p{N}_]|$)/g, "$1$2")
+    .replace(/(\bmatrix\s+)DD(?=\s*=)/gi, "$1D")
+    .replace(/(^|[\s(])DD(?=\s*=)/g, "$1D");
+
+  return dedupedVariableTokens
+    .replace(/\b(\d{1,3}(?:\.\d+)?)\s*[oº]\b/giu, "$1°")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
 function extractParts(text: string): Array<{ key: string; text: string }> | null {
   const lines = splitLines(text);
   const parts: Array<{ key: string; text: string }> = [];
@@ -572,7 +594,29 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   let currentText: string[] = [];
   let currentLetter: string | null = null;
   const topLevelLetterRegex = /^\s*([a-z])[\)\.]\s+(.*)$/i;
-  const romanRegex = /^\s*([ivxlcdm]+)[\)\.]\s+(.*)$/i;
+  const romanRegex = /^\s*((?:i{1,3}|iv|v|vi{0,3}|ix|x))[\)\.]\s+(.*)$/i;
+
+  const isRomanToken = (token: string) => /^(?:i{1,3}|iv|v|vi{0,3}|ix|x)$/i.test(token);
+  const isLetterToken = (token: string) => /^[a-z]$/i.test(token);
+
+  const resolveAmbiguousIMarker = (startIndex: number): "roman" | "letter" => {
+    for (let lookahead = startIndex + 1; lookahead < lines.length; lookahead += 1) {
+      const probe = lines[lookahead]?.trim();
+      if (!probe) continue;
+      const roman = probe.match(romanRegex);
+      if (roman) {
+        const token = roman[1].toLowerCase();
+        if (["ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"].includes(token)) return "roman";
+      }
+      const letter = probe.match(topLevelLetterRegex);
+      if (letter) {
+        const token = letter[1].toLowerCase();
+        if (/[j-z]/.test(token)) return "letter";
+      }
+      break;
+    }
+    return currentLetter ? "roman" : "letter";
+  };
 
   const flush = () => {
     if (currentKey) {
@@ -588,7 +632,8 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
     currentText = [];
   };
 
-  for (const line of lines) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex];
     const trimmed = line.trim();
     if (!trimmed) {
       currentText.push("");
@@ -605,19 +650,30 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
     }
 
     const romanMatch = line.match(romanRegex);
-    if (romanMatch && (currentLetter || romanMatch[1].length > 1)) {
-      flush();
-      const romanKey = romanMatch[1].toLowerCase();
-      currentKey = currentLetter ? `${currentLetter}.${romanKey}` : romanKey;
-      currentText.push(romanMatch[2]);
-      continue;
+    if (romanMatch && isRomanToken(romanMatch[1])) {
+      if (romanMatch[1].toLowerCase() === "i" && resolveAmbiguousIMarker(lineIndex) === "letter") {
+        // handled by letter matcher below
+      } else {
+        flush();
+        const romanKey = romanMatch[1].toLowerCase();
+        currentKey = currentLetter ? `${currentLetter}.${romanKey}` : romanKey;
+        currentText.push(romanMatch[2]);
+        continue;
+      }
     }
 
     const letterMatch = line.match(topLevelLetterRegex);
-    if (letterMatch) {
+    if (letterMatch && isLetterToken(letterMatch[1])) {
+      const letterKey = letterMatch[1].toLowerCase();
+      if (letterKey === "i" && currentLetter && resolveAmbiguousIMarker(lineIndex) === "roman") {
+        flush();
+        currentKey = `${currentLetter}.i`;
+        currentText.push(letterMatch[2].trim());
+        continue;
+      }
       flush();
-      currentKey = letterMatch[1].toLowerCase();
-      currentLetter = /^[a-d]$/.test(currentKey) ? currentKey : null;
+      currentKey = letterKey;
+      currentLetter = /^[a-d]$/.test(letterKey) ? letterKey : null;
       currentText.push(letterMatch[2].trim());
       continue;
     }
@@ -712,7 +768,7 @@ function extractTask3TemplateFallback(lines: string[]) {
   const foundLabels = orderedLabels.filter((label) => joined.includes(label.toLowerCase()));
   if (foundLabels.length < 8) return null;
   return {
-    columns: ["Month/Item", "Before QC", "After QC"],
+    columns: ["Item", "Before QC", "After QC"],
     rows: orderedLabels.map((label) => [label, "", ""]),
     confidence: foundLabels.length === orderedLabels.length ? ("CLEAN" as const) : ("HEURISTIC" as const),
   };
@@ -729,8 +785,7 @@ function parseCostingTemplateTableBlock(
     .map((line, idx) => ({ line: normalizeWhitespace(line).trim(), idx }))
     .filter(({ line }) => /before\s+qc|after\s+qc|month/i.test(line));
   const headerEndIndex = headerLines.length ? headerLines[headerLines.length - 1].idx : 0;
-  const columns = [/month/i.test(headerWindow) ? "Month" : "", "Before QC", "After QC"];
-  columns[0] = "Month/Item";
+  const columns = ["Item", "Before QC", "After QC"];
 
   const orderedLabels = [
     "Units Produced",
@@ -772,10 +827,8 @@ function parseCostingTemplateTableBlock(
 }
 
 function cleanMathEncodingNoise(line: string) {
-  return (line || "")
-    .replace(/�+/g, "")
+  return normalizeMathGlyphs(line || "")
     .replace(/([\u{1D400}-\u{1D7FF}])\1(?=\s*=)/gu, "$1")
-    .replace(/\s{2,}/g, " ")
     .trimEnd();
 }
 
@@ -907,7 +960,6 @@ function extractTablesFromTaskText(textBody: string) {
       if (parsed) {
         const id = /^2\.1$/.test(idPart) ? "table-2.1" : `table-${idPart || autoIndex}`;
         tables.push({ id, title, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
-        cleanedLines.push(`[TABLE: ${id}]`);
         i = j;
         continue;
       }
@@ -934,7 +986,6 @@ function extractTablesFromTaskText(textBody: string) {
       if (parsed) {
         const id = "task3-template";
         tables.push({ id, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
-        cleanedLines.push(`[TABLE: ${id}]`);
         i = j;
         continue;
       }
@@ -964,7 +1015,6 @@ function extractTablesFromTaskText(textBody: string) {
         const id = `table-auto-${autoIndex++}`;
         const title = useTitle ? titleCandidate.replace(/:\s*$/, "") : undefined;
         tables.push({ id, title, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
-        cleanedLines.push(`[TABLE: ${id}]`);
         i = j;
         continue;
       }
@@ -998,7 +1048,6 @@ function extractTablesFromTaskText(textBody: string) {
           "net profit/loss",
         ].includes(lowered);
       });
-      filteredLines.push("[TABLE: task3-template]");
       return { tables, cleanedText: filteredLines.join("\n").replace(/\n{3,}/g, "\n\n").trim() };
     }
   }
@@ -1014,7 +1063,7 @@ function extractBriefTasks(
   const warnings: string[] = [];
   const sourcePages = pages.length ? pages : [text];
   const normalizeLine = (line: string) =>
-    normalizeWhitespace(line.replace(/\t/g, " ").replace(/[ \u00a0]+/g, " ")).trim();
+    normalizeMathGlyphs(normalizeWhitespace(line.replace(/\t/g, " ").replace(/[ \u00a0]+/g, " "))).trim();
   const cleanedPages = sourcePages.map((pageText) => {
     const lines = stripFooterLines(splitLines(pageText));
     return lines.map((line) => normalizeLine(line)).join("\n");
@@ -1384,7 +1433,7 @@ function findCriteriaRegion(pages: string[]) {
 }
 
 export function extractBrief(text: string, fallbackTitle: string) {
-  const t = text || "";
+  const t = normalizeMathGlyphs(text || "");
 
   // Unit number and title 4015: ...
   const unitCodeGuess =

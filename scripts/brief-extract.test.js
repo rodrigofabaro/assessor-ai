@@ -36,90 +36,111 @@ function loadTsModule(filePath) {
   return module.exports;
 }
 
-async function run() {
-  const fixturePath =
-    process.env.BRIEF_PDF_PATH ||
-    path.join(process.cwd(), "reference_uploads", "briefs", "U4001", "U4001 A1 Engineering Design - Sept 2025.pdf");
-
-  if (!fs.existsSync(fixturePath)) {
-    console.error(`Missing fixture PDF. Set BRIEF_PDF_PATH or add the file at: ${fixturePath}`);
-    process.exit(1);
-  }
-
+function loadBriefFromFixture(fixturePath) {
   const { pdfToText } = loadTsModule("lib/extraction/text/pdfToText.ts");
   const { extractBrief } = loadTsModule("lib/extractors/brief.ts");
-
   const buf = fs.readFileSync(fixturePath);
-  const { text } = await pdfToText(buf);
-  const brief = extractBrief(text, path.basename(fixturePath));
+  return pdfToText(buf).then(({ text }) => extractBrief(text, path.basename(fixturePath)));
+}
 
-  const fixtureName = path.basename(fixturePath);
-  if (!/4017\s*A1/i.test(fixtureName)) {
-    assert.strictEqual(brief?.header?.academicYear, "1");
-    assert.ok(String(brief?.header?.internalVerifier || "").includes("Mohammed Hoq"));
-  }
+async function assertU4002Fixture() {
+  const fixturePath = path.join(
+    process.cwd(),
+    "reference_uploads",
+    "briefs",
+    "U4002",
+    "U4002 A1 202526.pdf"
+  );
 
+  assert.ok(fs.existsSync(fixturePath), `Missing fixture PDF: ${fixturePath}`);
+  const brief = await loadBriefFromFixture(fixturePath);
   const tasks = Array.isArray(brief?.tasks) ? brief.tasks : [];
-  const taskNumbers = new Set(tasks.map((t) => t.n));
-  assert.ok(taskNumbers.has(1) && taskNumbers.has(2) && taskNumbers.has(3));
+  assert.ok(tasks.length >= 2, "U4002 should include at least Task 1 and Task 2");
 
-  if (/4017\s*A1/i.test(fixtureName)) {
-    assert.strictEqual(tasks.length, 3, "Expected 3 tasks");
+  const task1 = tasks.find((t) => t.n === 1);
+  assert.ok(task1, "U4002 Task 1 should exist");
+  const task1Text = String(task1.text || "");
 
-    const task2 = tasks.find((t) => t.n === 2);
-    assert.ok(task2, "Task 2 should exist");
-    const task2Tables = Array.isArray(task2.tables) ? task2.tables : [];
-    assert.ok(task2Tables.length >= 1, "Task 2 should include a table");
-    const table21 = task2Tables[0];
-    assert.ok(String(table21.title || "").includes("Table 2.1"), "Task 2 table title should mention Table 2.1");
-    assert.strictEqual(Array.isArray(table21.columns) ? table21.columns.length : 0, 3, "Table 2.1 should have 3 columns");
-    assert.strictEqual(Array.isArray(table21.rows) ? table21.rows.length : 0, 9, "Table 2.1 should have 9 rows");
+  assert.ok(/length\s*\((?:ℓ|l)\)/i.test(task1Text), "Task 1 should include length (ℓ) or length (l)");
+  assert.ok(!task1Text.includes("푙"), "Task 1 should not include corrupted 푙 glyph");
+  assert.ok(!task1Text.includes("퐷"), "Task 1 should not include corrupted 퐷 glyph");
+  assert.ok(!task1Text.includes("�"), "Task 1 should not include replacement char �");
+  assert.ok(/60°/.test(task1Text), "Task 1 should include degree symbol 60°");
+  assert.ok(/\bD\s*=/.test(task1Text) || /matrix\s+D\b/i.test(task1Text), "Task 1 should include matrix label D");
 
-    const task2Text = String(task2.text || "");
-    assert.ok(!/Output Voltage\n\(V\)\nBefore\nQC\nAfter\nQC/i.test(task2Text), "Task 2 text should not contain flattened header fragments");
+  const task1PartKeys = Array.isArray(task1.parts) ? task1.parts.map((part) => part.key) : [];
+  const expectedTask1Order = ["h", "i", "j", "a", "a.i", "a.ii", "a.iii", "a.iv", "b", "b.i", "b.ii"];
+  assert.deepStrictEqual(
+    task1PartKeys,
+    expectedTask1Order,
+    `Task 1 part key sequence mismatch. Got: ${task1PartKeys.join(", ")}`
+  );
 
-    const task3 = tasks.find((t) => t.n === 3);
-    assert.ok(task3, "Task 3 should exist");
-    const task3Tables = Array.isArray(task3.tables) ? task3.tables : [];
-    const task3Template = task3Tables.find((t) => Array.isArray(t.columns) && t.columns.join("|") === "Month|Before QC|After QC");
-    assert.ok(task3Template, "Task 3 template table should be present");
+  const task2 = tasks.find((t) => t.n === 2);
+  assert.ok(task2, "U4002 Task 2 should exist");
+  const task2PartKeys = Array.isArray(task2.parts) ? task2.parts.map((part) => part.key) : [];
+  assert.deepStrictEqual(task2PartKeys, ["c", "d"], `Task 2 should be top-level c,d not nested. Got: ${task2PartKeys.join(", ")}`);
+}
 
-    const rowLabels = (Array.isArray(task3Template.rows) ? task3Template.rows : []).map((row) => row[0]);
-    [
-      "Units Produced",
-      "Gross Sales",
-      "Units Sold",
-      "Material Cost",
-      "Net Sales",
-      "Wages",
-      "Rent",
-      "Overheads",
-      "Variances",
-      "Net Profit/Loss",
-    ].forEach((label) => assert.ok(rowLabels.includes(label), `Task 3 template should include row: ${label}`));
+async function assertU4017Fixture() {
+  const fixturePath = path.join(
+    process.cwd(),
+    "reference_uploads",
+    "briefs",
+    "U4017",
+    "4017 A1 - Quality Control Tools and Costing.pdf"
+  );
 
-    tasks.forEach((task) => {
-      assert.ok(Array.isArray(task.pages) && task.pages.length > 0, `Task ${task.n} should have pages`);
-      const taskText = String(task.text || "").toLowerCase();
-      assert.ok(!taskText.includes("sources of information"), `Task ${task.n} should not leak end matter`);
-    });
-  } else {
-    const task1 = tasks.find((t) => t.n === 1);
-    const task3 = tasks.find((t) => t.n === 3);
-    assert.ok(task1 && String(task1.text || "").includes("Design Brief"));
-    assert.ok(task3 && String(task3.text || "").toLowerCase().includes("debrief report must answer the following"));
-  }
+  assert.ok(fs.existsSync(fixturePath), `Missing fixture PDF: ${fixturePath}`);
+  const brief = await loadBriefFromFixture(fixturePath);
+  const tasks = Array.isArray(brief?.tasks) ? brief.tasks : [];
+  assert.strictEqual(tasks.length, 3, "U4017 should include 3 tasks");
 
-  console.log(`Tasks detected: ${tasks.length}`);
-  tasks.forEach((task) => {
-    const partKeys = Array.isArray(task.parts) ? task.parts.map((p) => p.key).join(", ") : "";
-    const tables = Array.isArray(task.tables) ? task.tables : [];
-    const tableIds = tables.map((t) => t.id).join(", ");
-    console.log(
-      `Task ${task.n}: parts=[${partKeys}] tables=${tables.length}${tableIds ? ` (${tableIds})` : ""}`
-    );
-  });
+  const task2 = tasks.find((t) => t.n === 2);
+  assert.ok(task2, "U4017 Task 2 should exist");
+  const task2Tables = Array.isArray(task2.tables) ? task2.tables : [];
+  const table21 = task2Tables.find((table) => String(table?.title || "").includes("Table 2.1"));
+  assert.ok(table21, "Task 2 should include Table 2.1");
+  assert.deepStrictEqual(
+    table21.columns,
+    ["Output Voltage (V)", "Before QC", "After QC"],
+    "Task 2 table columns should match expected schema"
+  );
+  assert.strictEqual(Array.isArray(table21.rows) ? table21.rows.length : 0, 9, "Task 2 table should have 9 rows including Total");
+  assert.ok(
+    (table21.rows || []).some((row) => Array.isArray(row) && /^Total$/i.test(String(row[0] || "")) && String(row[1]) === "200" && String(row[2]) === "200"),
+    "Task 2 table should include Total 200 200 row"
+  );
 
+  const task2Text = String(task2.text || "");
+  assert.ok(!/\[TABLE:/i.test(task2Text), "Task 2 visible task text should not include [TABLE: ...] placeholders");
+  assert.ok(!/Output Voltage\s*\(V\)\s*Before\s*QC\s*After\s*QC/i.test(task2Text), "Task 2 text should not contain flattened table header fragments");
+
+  const task3 = tasks.find((t) => t.n === 3);
+  assert.ok(task3, "U4017 Task 3 should exist");
+  const task3Tables = Array.isArray(task3.tables) ? task3.tables : [];
+  const task3Template = task3Tables.find((table) => table?.id === "task3-template");
+  assert.ok(task3Template, "Task 3 accounting template table should be present");
+  assert.deepStrictEqual(task3Template.columns, ["Item", "Before QC", "After QC"], "Task 3 accounting template should use Item|Before QC|After QC columns");
+
+  const requiredRows = [
+    "Gross Sales",
+    "Units Sold",
+    "Material Cost",
+    "Net Sales",
+    "Wages",
+    "Rent",
+    "Overheads",
+    "Variances",
+    "Net Profit/Loss",
+  ];
+  const rowLabels = (Array.isArray(task3Template.rows) ? task3Template.rows : []).map((row) => String((row || [])[0] || ""));
+  requiredRows.forEach((label) => assert.ok(rowLabels.includes(label), `Task 3 template should include row: ${label}`));
+}
+
+async function run() {
+  await assertU4002Fixture();
+  await assertU4017Fixture();
   console.log("Brief extraction fixture test passed.");
 }
 

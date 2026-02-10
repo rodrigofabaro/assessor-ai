@@ -19,7 +19,13 @@ function confidenceTone(confidence: TaskConfidence) {
 }
 
 function normalizeText(text: string) {
-  return (text || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").trim();
+  return (text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\t/g, " ")
+    .split("\n")
+    .filter((line) => !/^\s*\[TABLE:\s*[^\]]+\]\s*$/i.test(line))
+    .join("\n")
+    .trim();
 }
 
 function deriveTitle(task: any) {
@@ -104,7 +110,7 @@ function parseBlocks(text: string): TextBlock[] {
   const listMatchers: Array<{ style: "decimal" | "alpha" | "roman"; regex: RegExp }> = [
     { style: "decimal", regex: /^(\d+)\.\s+(.*)$/ },
     { style: "alpha", regex: /^([a-z])\)\s+(.*)$/i },
-    { style: "roman", regex: /^([ivxlcdm]+)\.\s+(.*)$/i },
+    { style: "roman", regex: /^((?:i{1,3}|iv|v|vi{0,3}|ix|x))[\)\.]\s+(.*)$/i },
   ];
   const bulletMatcher = /^[-•]\s+(.*)$/;
 
@@ -552,7 +558,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                               ? table.columns.map((col: string, idx: number) => (
                                   <th
                                     key={`${table.id}-col-${idx}`}
-                                    className={`border border-zinc-700/80 bg-zinc-100/60 px-2 py-1 font-semibold ${idx === 0 ? "w-[45%] text-left" : "w-[27.5%] text-center"}` }
+                                    className={`whitespace-pre-line border border-zinc-700/80 bg-zinc-100/60 px-2 py-1 font-semibold ${idx === 0 ? "w-[45%] text-left" : "w-[27.5%] text-center"}` }
                                   >
                                     {col}
                                   </th>
