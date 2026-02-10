@@ -19,9 +19,15 @@ function normalizeText(text: string) {
 function splitColumns(line: string): string[] {
   const clean = line.trim().replace(/^\|/, "").replace(/\|$/, "");
   if (clean.includes("|")) {
-    return clean.split("|").map((part) => part.trim()).filter(Boolean);
+    return clean
+      .split("|")
+      .map((part) => part.trim())
+      .filter(Boolean);
   }
-  return clean.split(/\s{2,}|\t+/).map((part) => part.trim()).filter(Boolean);
+  return clean
+    .split(/\s{2,}|\t+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 function hasMostlyNumericCells(cells: string[]) {
@@ -42,6 +48,14 @@ function fromStructured(task: any): TableBlock[] {
       return { type: "table", headers, rows } as StructuredTableBlock;
     })
     .filter(Boolean) as TableBlock[];
+}
+
+function consistentColumnCounts(matrix: string[][]) {
+  const counts = matrix.map((row) => row.length).filter((count) => count >= 2);
+  if (counts.length < 2) return false;
+  const maxCount = Math.max(...counts);
+  const minCount = Math.min(...counts);
+  return maxCount - minCount <= 1;
 }
 
 export function detectTableBlocks(task: any): TableBlock[] {
@@ -74,24 +88,39 @@ export function detectTableBlocks(task: any): TableBlock[] {
       j += 1;
     }
 
-    if (candidateLines.length >= 3) {
+    if (candidateLines.length >= 2) {
       const matrix = candidateLines.map(splitColumns);
       const columnCount = Math.max(...matrix.map((row) => row.length));
-      const consistentRows = matrix.filter((row) => row.length >= Math.max(2, columnCount - 1));
-      const likelyTable = consistentRows.length >= 3;
+      const enoughColsEachLine = matrix.every((row) => row.length >= 2);
+      const consistentRows = consistentColumnCounts(matrix);
+      const likelyTable = enoughColsEachLine && consistentRows && columnCount >= 2;
+
       if (likelyTable) {
-        const headers = matrix[0];
+        let headers = matrix[0];
         const rows = matrix.slice(1);
-        const shouldFallback = headers.length < 2 || !rows.some((row) => hasMostlyNumericCells(row));
-        if (shouldFallback) {
-          blocks.push({
-            type: "unstructured",
-            text: candidateLines.join("\n"),
-            warning: "TABLE UNSTRUCTURED",
-          });
-        } else {
-          blocks.push({ type: "table", headers, rows });
+        const headerLooksNumeric = hasMostlyNumericCells(headers);
+        const dataNumeric = rows.some((row) => hasMostlyNumericCells(row));
+
+        if (headerLooksNumeric && dataNumeric) {
+          headers = Array.from({ length: columnCount }, (_, idx) => `c${idx + 1}`);
         }
+
+        const normalizedRows = rows.map((row) => {
+          if (row.length >= columnCount) return row;
+          return row.concat(Array.from({ length: columnCount - row.length }, () => ""));
+        });
+
+        if (headers.length < columnCount) {
+          headers = headers.concat(Array.from({ length: columnCount - headers.length }, (_, idx) => `c${headers.length + idx + 1}`));
+        }
+
+        blocks.push({ type: "table", headers, rows: normalizedRows });
+      } else {
+        blocks.push({
+          type: "unstructured",
+          text: candidateLines.join("\n"),
+          warning: "TABLE UNSTRUCTURED",
+        });
       }
       i = j;
       continue;

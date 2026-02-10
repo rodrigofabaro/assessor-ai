@@ -539,6 +539,17 @@ function shouldReflowPartLines(lines: string[]) {
   return listLines === 0;
 }
 
+function hasRomanContinuation(lines: string[], startIndex: number, lookahead = 6) {
+  let seen = 0;
+  for (let i = startIndex + 1; i < lines.length && seen < lookahead; i += 1) {
+    const candidate = lines[i].trim();
+    if (!candidate) continue;
+    seen += 1;
+    if (/^ii[\.)]\s+/i.test(candidate)) return true;
+  }
+  return false;
+}
+
 function extractParts(text: string): Array<{ key: string; text: string }> | null {
   const lines = splitLines(text);
   const parts: Array<{ key: string; text: string }> = [];
@@ -560,7 +571,8 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
     currentText = [];
   };
 
-  for (const line of lines) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex];
     const trimmed = line.trim();
     if (!trimmed) {
       currentText.push("");
@@ -578,8 +590,20 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 
     const letterMatch = trimmed.match(/^([a-z])\)\s+(.*)$/i);
     if (letterMatch) {
+      const letterKey = letterMatch[1].toLowerCase();
+      const shouldTreatAsRomanI =
+        letterKey === "i" &&
+        currentLetter !== null &&
+        hasRomanContinuation(lines, lineIndex);
+      if (shouldTreatAsRomanI) {
+        flush();
+        currentKey = `${currentLetter}.i`;
+        currentText.push(letterMatch[2]);
+        continue;
+      }
+
       flush();
-      currentKey = letterMatch[1].toLowerCase();
+      currentKey = letterKey;
       currentLetter = currentKey;
       currentText.push(letterMatch[2]);
       continue;
@@ -607,13 +631,13 @@ function extractBriefTasks(
 ): { tasks: BriefTask[]; warnings: string[]; endMatter: { sourcesBlock: string | null; criteriaBlock: string | null } | null } {
   const warnings: string[] = [];
   const sourcePages = pages.length ? pages : [text];
-  const normalizeLine = (line: string) =>
-    normalizeWhitespace(line.replace(/\t/g, " ").replace(/[ \u00a0]+/g, " ")).trim();
+  const normalizeLine = (line: string) => normalizeWhitespace(line.replace(/\t/g, "  ")).trim();
+  const preserveLine = (line: string) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, "");
   const cleanedPages = sourcePages.map((pageText) => {
     const lines = stripFooterLines(splitLines(pageText));
-    return lines.map((line) => normalizeLine(line)).join("\n");
+    return lines.map((line) => preserveLine(line)).join("\n");
   });
-  const linesWithPages: Array<{ line: string; page: number }> = [];
+  const linesWithPages: Array<{ raw: string; normalized: string; page: number }> = [];
   const endMatter = extractEndMatterBlocks(cleanedPages);
   const pageBreaksMissing = pages.length <= 1;
   if (pageBreaksMissing) warnings.push("page breaks missing; page numbers unreliable.");
@@ -624,7 +648,8 @@ function extractBriefTasks(
     const pageNumber = pages.length ? idx + 1 : 1;
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
-      let normalizedLine = normalizeLine(lines[lineIdx]);
+      let rawLine = lines[lineIdx];
+      let normalizedLine = normalizeLine(rawLine);
       const primaryKey = getPrimaryEndMatterKeyFromWindow(lines, lineIdx);
       if (primaryKey) {
         stop = true;
@@ -645,13 +670,14 @@ function extractBriefTasks(
         /^task$/i.test(taskWordCandidate) ||
         (/\bt\s*a\s*s\s*k\b/i.test(taskWordCandidate) && !/\bt\s*a\s*s\s*k\s*\d/i.test(taskWordCandidate));
       if (isTaskWordOnly && nextLine && /^\d{1,2}\b/.test(nextLine)) {
-        normalizedLine = `Task ${nextLine}`.trim();
-        linesWithPages.push({ line: normalizedLine, page: pageNumber });
+        rawLine = `Task ${nextLine}`;
+        normalizedLine = normalizeLine(rawLine);
+        linesWithPages.push({ raw: rawLine, normalized: normalizedLine, page: pageNumber });
         lineIdx += 1;
         continue;
       }
 
-      linesWithPages.push({ line: normalizedLine, page: pageNumber });
+      linesWithPages.push({ raw: rawLine, normalized: normalizedLine, page: pageNumber });
     }
   });
 
@@ -688,7 +714,7 @@ function extractBriefTasks(
     if (!blockText) return { remainingText: blockText, tasks: [] as BriefTask[] };
     const lines = splitLines(blockText);
     const headings = lines
-      .map((line, index) => ({ line: normalizeLine(line), index }))
+      .map((line, index) => ({ line: preserveLine(line), index }))
       .map(({ line, index }) => ({ heading: parseHeading(line), index }))
       .filter(({ heading }) => !!heading) as Array<{
       heading: { n: number; title?: string | null; score: number };
@@ -723,15 +749,14 @@ function extractBriefTasks(
         extractAiasValue(textBody);
       const pagesForTask = fallbackPage ? [fallbackPage] : undefined;
 
-      const reflowedTextBody = reflowProsePreserveLists(textBody);
       promoted.push({
         n,
         label: `Task ${n}`,
         title: titleLine,
         aias,
         pages: pagesForTask,
-        text: reflowedTextBody,
-        prompt: reflowedTextBody,
+        text: textBody,
+        prompt: textBody,
         confidence: "HEURISTIC",
       });
       existingNumbers.add(n);
@@ -744,7 +769,7 @@ function extractBriefTasks(
 
   let startIndex = 0;
   for (let i = 0; i < linesWithPages.length; i += 1) {
-    const h = parseHeading(linesWithPages[i].line);
+    const h = parseHeading(linesWithPages[i].normalized);
     if (h?.n === 1) {
       startIndex = Math.max(0, i - 10);
       break;
@@ -754,7 +779,7 @@ function extractBriefTasks(
   const candidates: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
   const headingCandidateIndices = new Set<number>();
   for (let i = startIndex; i < linesWithPages.length; i += 1) {
-    const raw = linesWithPages[i].line;
+    const raw = linesWithPages[i].normalized;
     const heading = parseHeading(raw);
     if (!heading) continue;
     headingCandidateIndices.add(i);
@@ -791,7 +816,7 @@ function extractBriefTasks(
 
   const firstHeading = selectedHeadings[0];
   if (firstHeading && firstHeading.index > 0) {
-    const preLines = linesWithPages.slice(0, firstHeading.index).map((l) => l.line).join("\n");
+    const preLines = linesWithPages.slice(0, firstHeading.index).map((l) => l.raw).join("\n");
     if (/Initial Idea Proposal/i.test(preLines)) {
       const preText = cleanTaskLines(preLines.split("\n")).join("\n").trim();
       if (preText) {
@@ -822,7 +847,7 @@ function extractBriefTasks(
       linesWithPages
         .slice(start, end)
         .filter((_line, lineIndex) => !headingCandidateIndices.has(start + lineIndex))
-        .map((l) => l.line)
+        .map((l) => l.raw)
     );
     let textBody = bodyLines.join("\n");
     textBody = textBody.replace(/\n{3,}/g, "\n\n").replace(/\s+$/g, "");
@@ -852,14 +877,13 @@ function extractBriefTasks(
 
     const previewLines = linesWithPages
       .slice(heading.index, Math.min(heading.index + 6, linesWithPages.length))
-      .map((l) => l.line);
+      .map((l) => l.normalized);
     const aias =
       extractAiasValue(normalizeWhitespace(previewLines.join(" "))) ||
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const reflowedTextBody = reflowProsePreserveLists(textBody);
-    const parts = extractParts(reflowedTextBody);
+    const parts = extractParts(textBody);
     const confidenceWarnings = taskWarnings.filter(
       (warning) => warning !== "duplicate heading candidates merged"
     );
@@ -869,8 +893,8 @@ function extractBriefTasks(
       title: heading.title || null,
       aias,
       pages: pagesForTask,
-      text: reflowedTextBody,
-      prompt: reflowedTextBody,
+      text: textBody,
+      prompt: textBody,
       parts: parts || undefined,
       warnings: taskWarnings.length ? taskWarnings : undefined,
       confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",

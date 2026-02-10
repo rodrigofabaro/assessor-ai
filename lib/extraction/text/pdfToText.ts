@@ -15,18 +15,52 @@ export async function pdfToText(
       normalizeWhitespace: false,
       disableCombineTextItems: false,
     });
-    let lastY: number | null = null;
-    let text = "";
+
+    const yTolerance = 2;
+    const lines: string[] = [];
+    let currentY: number | null = null;
+    let currentLine = "";
+    let lastRightX: number | null = null;
+
+    const flushLine = () => {
+      lines.push(currentLine);
+      currentLine = "";
+      lastRightX = null;
+    };
+
     for (const item of textContent.items || []) {
-      if (lastY === null || lastY === item.transform[5]) {
-        text += item.str;
-      } else {
-        text += `\n${item.str}`;
+      const str = String(item?.str || "");
+      if (!str) continue;
+      const x = Number(item?.transform?.[4] || 0);
+      const y = Number(item?.transform?.[5] || 0);
+      const width = Number(item?.width || 0);
+      const avgCharWidth = str.length ? width / str.length : 0;
+
+      const sameLine = currentY !== null && Math.abs(y - currentY) <= yTolerance;
+      if (!sameLine) {
+        if (currentY !== null) flushLine();
+        currentY = y;
       }
-      lastY = item.transform[5];
+
+      if (currentLine && lastRightX !== null) {
+        const gap = x - lastRightX;
+        if (gap > 0.75) {
+          const charUnit = avgCharWidth > 0 ? avgCharWidth : 3;
+          const spaces = Math.max(1, Math.round(gap / charUnit));
+          currentLine += " ".repeat(spaces);
+        }
+      }
+
+      currentLine += str;
+      const fallbackWidth = avgCharWidth > 0 ? avgCharWidth * str.length : str.length * 3;
+      lastRightX = x + (width > 0 ? width : fallbackWidth);
     }
-    pages.push(text);
-    return text;
+
+    if (currentY !== null) flushLine();
+
+    const pageText = lines.join("\n");
+    pages.push(pageText);
+    return pageText;
   };
 
   const parsed = await pdfParse(buf, { pagerender });

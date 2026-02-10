@@ -44,6 +44,17 @@ function normalizeProvidedParts(parts: Array<{ key?: string; text?: string }> | 
   return roots.map((node) => ({ ...node, children: node.children?.length ? node.children : undefined }));
 }
 
+function hasRomanContinuation(lines: string[], startIndex: number, lookahead = 6) {
+  let seen = 0;
+  for (let i = startIndex + 1; i < lines.length && seen < lookahead; i += 1) {
+    const candidate = lines[i].trim();
+    if (!candidate) continue;
+    seen += 1;
+    if (/^ii[\.)]\s+/i.test(candidate)) return true;
+  }
+  return false;
+}
+
 export function parseParts(text: string, providedParts?: Array<{ key?: string; text?: string }>): ParsedPart[] {
   const fromProvided = normalizeProvidedParts(providedParts);
   if (fromProvided.length) return fromProvided;
@@ -70,7 +81,8 @@ export function parseParts(text: string, providedParts?: Array<{ key?: string; t
     current = null;
   };
 
-  for (const rawLine of lines) {
+  for (let idx = 0; idx < lines.length; idx += 1) {
+    const rawLine = lines[idx];
     const line = rawLine.trim();
     if (!line) {
       if (currentChild) currentChild.text += "\n";
@@ -80,8 +92,16 @@ export function parseParts(text: string, providedParts?: Array<{ key?: string; t
 
     const topMatch = line.match(/^([a-z])[\.)]\s+(.*)$/i);
     if (topMatch) {
+      const key = topMatch[1].toLowerCase();
+      const shouldTreatAsRomanI = key === "i" && current && hasRomanContinuation(lines, idx);
+      if (shouldTreatAsRomanI) {
+        flushChild();
+        currentChild = { key: `${current.key}.i`, text: topMatch[2].trim() };
+        continue;
+      }
+
       flushCurrent();
-      current = { key: topMatch[1].toLowerCase(), text: topMatch[2].trim() };
+      current = { key, text: topMatch[2].trim() };
       continue;
     }
 

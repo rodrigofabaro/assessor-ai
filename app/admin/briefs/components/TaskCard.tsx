@@ -190,6 +190,24 @@ function renderInlineText(text: string) {
   return nodes;
 }
 
+
+function escapeHtml(value: string) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function tableBlockToHtml(headers: string[], rows: string[][]) {
+  const thead = `<thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>`;
+  const tbody = `<tbody>${rows
+    .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`)
+    .join("")}</tbody>`;
+  return `<table>${thead}${tbody}</table>`;
+}
+
 function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string[]; diffIndices: Set<number> }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3">
@@ -218,6 +236,8 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const [showRepeated, setShowRepeated] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [tableViewModes, setTableViewModes] = useState<Record<number, "rendered" | "html" | "raw">>({});
+  const [copyHtmlStatus, setCopyHtmlStatus] = useState<Record<number, "idle" | "copied" | "failed">>({});
 
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
@@ -417,39 +437,101 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
 
             {tableBlocks.length ? (
               <div className="mb-4 space-y-3">
-                {tableBlocks.map((tableBlock, tableIndex) =>
-                  tableBlock.type === "table" ? (
-                    <div key={`table-${tableIndex}`} className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
-                      <table className="min-w-full text-left text-xs text-zinc-800">
-                        <thead className="bg-zinc-100">
-                          <tr>
-                            {tableBlock.headers.map((header, idx) => (
-                              <th key={`h-${tableIndex}-${idx}`} className="whitespace-nowrap px-3 py-2 font-semibold">
-                                {header}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tableBlock.rows.map((row, rowIdx) => (
-                            <tr key={`r-${tableIndex}-${rowIdx}`} className="border-t border-zinc-200">
-                              {row.map((cell, cellIdx) => (
-                                <td key={`c-${tableIndex}-${rowIdx}-${cellIdx}`} className="whitespace-nowrap px-3 py-2 align-top">
-                                  {cell}
-                                </td>
+                {tableBlocks.map((tableBlock, tableIndex) => {
+                  const tableMode = tableViewModes[tableIndex] || "rendered";
+                  const html =
+                    tableBlock.type === "table"
+                      ? tableBlockToHtml(tableBlock.headers, tableBlock.rows)
+                      : `<pre>${escapeHtml(tableBlock.text)}</pre>`;
+                  const copyState = copyHtmlStatus[tableIndex] || "idle";
+
+                  return (
+                    <div key={`table-wrap-${tableIndex}`} className="space-y-2 rounded-lg border border-zinc-300 bg-white p-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setTableViewModes((prev) => ({ ...prev, [tableIndex]: "rendered" }))}
+                          className={"rounded-md px-2 py-1 text-xs font-medium " + (tableMode === "rendered" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700")}
+                        >
+                          Rendered
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTableViewModes((prev) => ({ ...prev, [tableIndex]: "html" }))}
+                          className={"rounded-md px-2 py-1 text-xs font-medium " + (tableMode === "html" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700")}
+                        >
+                          HTML
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTableViewModes((prev) => ({ ...prev, [tableIndex]: "raw" }))}
+                          className={"rounded-md px-2 py-1 text-xs font-medium " + (tableMode === "raw" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700")}
+                        >
+                          Raw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(html);
+                              setCopyHtmlStatus((prev) => ({ ...prev, [tableIndex]: "copied" }));
+                            } catch {
+                              setCopyHtmlStatus((prev) => ({ ...prev, [tableIndex]: "failed" }));
+                            }
+                            window.setTimeout(() => {
+                              setCopyHtmlStatus((prev) => ({ ...prev, [tableIndex]: "idle" }));
+                            }, 1200);
+                          }}
+                          className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                        >
+                          {copyState === "copied" ? "HTML copied" : copyState === "failed" ? "Copy failed" : "Copy HTML"}
+                        </button>
+                      </div>
+
+                      {tableMode === "html" ? (
+                        <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-zinc-900 p-3 text-xs text-zinc-100">
+                          <code>{html}</code>
+                        </pre>
+                      ) : tableMode === "raw" ? (
+                        <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-zinc-50 p-3 text-xs text-zinc-800">
+                          {tableBlock.type === "table"
+                            ? [tableBlock.headers.join("  "), ...tableBlock.rows.map((row) => row.join("  "))].join("\n")
+                            : tableBlock.text}
+                        </pre>
+                      ) : tableBlock.type === "table" ? (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-left text-xs text-zinc-800">
+                            <thead className="bg-zinc-100">
+                              <tr>
+                                {tableBlock.headers.map((header, idx) => (
+                                  <th key={`h-${tableIndex}-${idx}`} className="whitespace-nowrap px-3 py-2 font-semibold">
+                                    {header}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {tableBlock.rows.map((row, rowIdx) => (
+                                <tr key={`r-${tableIndex}-${rowIdx}`} className="border-t border-zinc-200">
+                                  {row.map((cell, cellIdx) => (
+                                    <td key={`c-${tableIndex}-${rowIdx}-${cellIdx}`} className="whitespace-nowrap px-3 py-2 align-top">
+                                      {cell}
+                                    </td>
+                                  ))}
+                                </tr>
                               ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                          <div className="mb-1 text-xs font-semibold text-amber-900">{tableBlock.warning}</div>
+                          <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-amber-900">{tableBlock.text}</pre>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div key={`table-fallback-${tableIndex}`} className="rounded-lg border border-amber-300 bg-amber-50 p-3">
-                      <div className="mb-1 text-xs font-semibold text-amber-900">{tableBlock.warning}</div>
-                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-amber-900">{tableBlock.text}</pre>
-                    </div>
-                  )
-                )}
+                  );
+                })}
               </div>
             ) : null}
 

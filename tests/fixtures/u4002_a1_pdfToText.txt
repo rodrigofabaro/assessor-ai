@@ -1,0 +1,26 @@
+Unit 4002
+Assignment 1
+
+Task 1: Power systems analysis
+Use the matrix to discuss sample and power data.
+a) Analyse the matrix below.
+i) Explain source quality.
+ii) Compare rows with sample data.
+iii) Comment on power conversion.
+iv) Summarise findings.
+b) Provide recommendations.
+c) Include assumptions.
+d) Mention operating range.
+e) Explain test boundaries.
+f) Provide evidence.
+g) Confirm safety controls.
+h) Describe reporting approach.
+i) Include references.
+j) Final conclusions.
+
+Sample  Power  Voltage
+S1  100  12
+S2  150  24
+
+Task 2: Reflection
+Summarise lessons learned.

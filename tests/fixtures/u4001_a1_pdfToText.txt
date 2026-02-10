@@ -1,0 +1,15 @@
+Unit 4001
+Assignment 1
+
+Task 1: Design Brief
+You must produce a design brief for the project.
+a) Identify two user needs.
+b) Explain constraints.
+
+Task 2: Prototype
+Create a prototype and evaluate outcomes.
+
+Task 3: Debrief Report
+The debrief report must answer the following:
+a) What worked well?
+b) What would you improve?

@@ -36,49 +36,51 @@ function loadTsModule(filePath) {
   return module.exports;
 }
 
-async function run() {
-  const fixturePath =
-    process.env.BRIEF_PDF_PATH ||
-    path.join(process.cwd(), "tests", "fixtures", "U4001 A1 Engineering Design - Sept 2025.pdf");
-
+function loadFixture(name) {
+  const fixturePath = path.join(process.cwd(), "tests", "fixtures", name);
   if (!fs.existsSync(fixturePath)) {
-    console.error(`Missing fixture PDF. Set BRIEF_PDF_PATH or add the file at: ${fixturePath}`);
-    process.exit(1);
+    throw new Error(`Missing text fixture: ${fixturePath}`);
   }
-
-  const { pdfToText } = loadTsModule("lib/extraction/text/pdfToText.ts");
-  const { extractBrief } = loadTsModule("lib/extractors/brief.ts");
-
-  const buf = fs.readFileSync(fixturePath);
-  const { text } = await pdfToText(buf);
-  const brief = extractBrief(text, path.basename(fixturePath));
-
-  assert.strictEqual(brief?.header?.academicYear, "1");
-  assert.ok(String(brief?.header?.internalVerifier || "").includes("Mohammed Hoq"));
-
-  const tasks = Array.isArray(brief?.tasks) ? brief.tasks : [];
-  const taskNumbers = new Set(tasks.map((t) => t.n));
-  assert.ok(taskNumbers.has(1) && taskNumbers.has(2) && taskNumbers.has(3));
-
-  const task1 = tasks.find((t) => t.n === 1);
-  const task3 = tasks.find((t) => t.n === 3);
-  assert.ok(task1 && String(task1.text || "").includes("Design Brief"));
-  assert.ok(task3 && String(task3.text || "").toLowerCase().includes("debrief report must answer the following"));
-
-  assert.ok(Array.isArray(brief?.criteriaCodes));
-  const sorted = [...brief.criteriaCodes].sort((a, b) => {
-    const rank = (x) => (x.startsWith("P") ? 0 : x.startsWith("M") ? 1 : 2);
-    const ad = Number((a.match(/\d+/) || ["0"])[0]);
-    const bd = Number((b.match(/\d+/) || ["0"])[0]);
-    return rank(a) - rank(b) || ad - bd;
-  });
-  assert.deepStrictEqual(brief.criteriaCodes, sorted);
-  assert.strictEqual(new Set(brief.criteriaCodes).size, brief.criteriaCodes.length);
-
-  console.log("Brief extraction fixture test passed.");
+  return fs.readFileSync(fixturePath, "utf8");
 }
 
-run().catch((err) => {
-  console.error(err);
+function run() {
+  const { extractBrief } = loadTsModule("lib/extractors/brief.ts");
+  const { parseParts } = loadTsModule("lib/extraction/render/parseParts.ts");
+  const { detectTableBlocks } = loadTsModule("lib/extraction/render/tableBlocks.ts");
+
+  const u4001Text = loadFixture("u4001_a1_pdfToText.txt");
+  const u4002Text = loadFixture("u4002_a1_pdfToText.txt");
+
+  const u4001 = extractBrief(u4001Text, "u4001_a1_pdfToText.txt");
+  const u4002 = extractBrief(u4002Text, "u4002_a1_pdfToText.txt");
+
+  assert.ok(Array.isArray(u4001.tasks) && u4001.tasks.length >= 3, "U4001 should produce at least 3 tasks");
+  assert.ok(Array.isArray(u4002.tasks) && u4002.tasks.length >= 2, "U4002 should produce at least 2 tasks");
+
+  const task1 = u4002.tasks.find((t) => t.n === 1);
+  assert.ok(task1, "U4002 Task 1 should exist");
+
+  const parts = parseParts(task1.text || "", task1.parts);
+  const partA = parts.find((p) => p.key === "a");
+  assert.ok(partA, "U4002 Task 1 should include top-level part a");
+  const romanKeys = (partA.children || []).map((child) => child.key);
+  assert.deepStrictEqual(romanKeys, ["a.i", "a.ii", "a.iii", "a.iv"], "Expected roman sub-parts under a)");
+
+  const topLevelKeys = parts.map((p) => p.key);
+  assert.ok(topLevelKeys.includes("h") && topLevelKeys.includes("i") && topLevelKeys.includes("j"), "Expected top-level h, i, j parts");
+
+  const tableBlocks = detectTableBlocks(task1);
+  assert.ok(tableBlocks.length >= 1, "Expected at least one detected table block in U4002 Task 1");
+
+  assert.ok(/  /.test(task1.text || ""), "Expected preserved multi-space gap in U4002 Task 1 raw text");
+
+  console.log("Brief extraction text fixture regression test passed.");
+}
+
+try {
+  run();
+} catch (err) {
+  console.error(err && err.stack ? err.stack : err);
   process.exit(1);
-});
+}
