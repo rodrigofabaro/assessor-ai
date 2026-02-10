@@ -148,6 +148,7 @@ export function useBriefDetail(briefId: string) {
 
   const [units, setUnits] = useState<Unit[]>([]);
   const [docs, setDocs] = useState<ReferenceDocument[]>([]);
+  const [specDocs, setSpecDocs] = useState<ReferenceDocument[]>([]);
 
   const [ivBusy, setIvBusy] = useState(false);
   const [ivError, setIvError] = useState<string | null>(null);
@@ -170,6 +171,9 @@ export function useBriefDetail(briefId: string) {
 
       const d = await jsonFetch<any>("/api/reference-documents?type=BRIEF", { cache: "no-store" });
       setDocs(asArray<ReferenceDocument>(d));
+
+      const s = await jsonFetch<any>("/api/reference-documents?type=SPEC", { cache: "no-store" });
+      setSpecDocs(asArray<ReferenceDocument>(s));
     } catch (e: any) {
       setError(e?.message || String(e));
     } finally {
@@ -226,6 +230,46 @@ export function useBriefDetail(briefId: string) {
     // fallback: first locked doc
     return familyDocs.find((d) => !!d.lockedAt) || familyDocs[0] || null;
   }, [brief, docs, familyDocs]);
+
+  const mappedSpecDoc = useMemo(() => {
+    if (!brief) return null;
+
+    if (brief.unit?.specDocumentId) {
+      const byId = (specDocs || []).find((d) => d.id === brief.unit?.specDocumentId);
+      if (byId) return byId;
+    }
+
+    const unitCode = brief.unit?.unitCode || "";
+    const targetIssue = (brief.unit?.specIssue || brief.unit?.specVersionLabel || "").toLowerCase().trim();
+
+    const unitMatches = (specDocs || []).filter((d) => {
+      const docUnitCode = (d.sourceMeta?.unitCode || d.extractedJson?.unit?.unitCode || "").toLowerCase().trim();
+      return !unitCode || (docUnitCode && docUnitCode === unitCode.toLowerCase().trim());
+    });
+
+    if (targetIssue) {
+      const withIssue = unitMatches.find((d) => {
+        const issue = String(
+          d.sourceMeta?.specIssue ||
+            d.sourceMeta?.specVersionLabel ||
+            d.extractedJson?.unit?.specIssue ||
+            d.extractedJson?.unit?.specVersionLabel ||
+            "",
+        )
+          .toLowerCase()
+          .trim();
+        return issue === targetIssue;
+      });
+      if (withIssue) return withIssue;
+    }
+
+    return unitMatches.sort((a, b) => {
+      const al = a.lockedAt ? 1 : 0;
+      const bl = b.lockedAt ? 1 : 0;
+      if (al !== bl) return bl - al;
+      return (b.version || 0) - (a.version || 0);
+    })[0] || null;
+  }, [brief, specDocs]);
 
   const title = useMemo(() => {
     if (!brief) return "Brief detail";
@@ -516,6 +560,7 @@ export function useBriefDetail(briefId: string) {
     refresh,
     brief,
     linkedDoc,
+    mappedSpecDoc,
     familyDocs,
     title,
     pdfHref,
