@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Pill } from "./ui";
+import { detectTableBlocks } from "@/lib/extraction/render/tableBlocks";
+import { parseParts } from "@/lib/extraction/render/parseParts";
 
 type TaskConfidence = "CLEAN" | "HEURISTIC" | "OVERRIDDEN";
 
@@ -10,6 +12,7 @@ type TaskCardProps = {
   extractedTask?: any | null;
   overrideApplied?: boolean;
   defaultExpanded?: boolean;
+  forcedExpanded?: boolean;
 };
 
 function confidenceTone(confidence: TaskConfidence) {
@@ -19,7 +22,11 @@ function confidenceTone(confidence: TaskConfidence) {
 }
 
 function normalizeText(text: string) {
-  return (text || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").trim();
+  return (text || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").replace(/\r/g, "\n").trim();
+}
+
+function cleanEncodingNoise(text: string) {
+  return (text || "").replace(/[\uFFFD\u0000-\u001F]/g, (match) => (match === "\n" ? "\n" : "�"));
 }
 
 function deriveTitle(task: any) {
@@ -44,12 +51,12 @@ function getCriteria(task: any): string[] {
 }
 
 function buildPreview(text: string) {
-  const normalized = normalizeText(text);
+  const normalized = normalizeText(cleanEncodingNoise(text));
   if (!normalized) return "(empty)";
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
   const previewLines = lines.slice(0, 2).join(" ");
   const compact = previewLines.replace(/\s+/g, " ");
-  return compact.length > 140 ? compact.slice(0, 140).trim() + "…" : compact;
+  return compact.length > 180 ? compact.slice(0, 180).trim() + "…" : compact;
 }
 
 function wordCount(text: string) {
@@ -65,7 +72,7 @@ type TextBlock =
   | { type: "ul"; items: string[] };
 
 function parseBlocks(text: string): TextBlock[] {
-  const normalized = normalizeText(text);
+  const normalized = normalizeText(cleanEncodingNoise(text));
   if (!normalized) return [];
   const lines = normalized.split("\n");
   const blocks: TextBlock[] = [];
@@ -103,8 +110,8 @@ function parseBlocks(text: string): TextBlock[] {
 
   const listMatchers: Array<{ style: "decimal" | "alpha" | "roman"; regex: RegExp }> = [
     { style: "decimal", regex: /^(\d+)\.\s+(.*)$/ },
-    { style: "alpha", regex: /^([a-z])\)\s+(.*)$/i },
-    { style: "roman", regex: /^([ivxlcdm]+)\.\s+(.*)$/i },
+    { style: "alpha", regex: /^([a-z])[\.)]\s+(.*)$/i },
+    { style: "roman", regex: /^([ivxlcdm]+)[\.)]\s+(.*)$/i },
   ];
   const bulletMatcher = /^[-•]\s+(.*)$/;
 
@@ -205,28 +212,50 @@ function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string
   );
 }
 
-export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded }: TaskCardProps) {
-  const [expanded, setExpanded] = useState(!!defaultExpanded);
+export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded, forcedExpanded }: TaskCardProps) {
+  const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
   const [showRepeated, setShowRepeated] = useState(false);
+  const [showWarningDetails, setShowWarningDetails] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+
+  const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
   const title = deriveTitle(task);
   const criteria = getCriteria(task);
   const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
-  const blocks = useMemo(() => parseBlocks(task?.text || ""), [task?.text]);
+
+  const contextLines = useMemo(() => {
+    const text = normalizeText(task?.text || "");
+    const lines = text.split("\n").map((line) => line.trim());
+    const deduped = new Set<string>();
+    lines.forEach((line) => {
+      if (/^Further to your discussion\b/i.test(line)) deduped.add(line);
+    });
+    return Array.from(deduped);
+  }, [task?.text]);
+
+  const textWithoutContext = useMemo(() => {
+    if (!contextLines.length) return task?.text || "";
+    return String(task?.text || "")
+      .split("\n")
+      .filter((line: string) => !contextLines.includes(line.trim()))
+      .join("\n");
+  }, [contextLines, task?.text]);
+
+  const blocks = useMemo(() => parseBlocks(textWithoutContext), [textWithoutContext]);
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const aias = task?.aias ? String(task.aias) : "";
+  const parsedParts = useMemo(() => parseParts(task?.text || "", task?.parts), [task?.parts, task?.text]);
+  const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
 
   const duplicateInfo = useMemo(() => {
     if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
     const keyFor = (block: TextBlock) => {
-      const raw =
-        block.type === "ol" || block.type === "ul"
-          ? block.items.join(" ")
-          : block.text;
+      const raw = block.type === "ol" || block.type === "ul" ? block.items.join(" ") : block.text;
       const key = normalizeText(raw).toLowerCase();
       return key.length >= 80 ? key : "";
     };
@@ -265,28 +294,18 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
     return { leftLines, rightLines, diffIndices };
   }, [extractedTask?.text, overrideApplied, task?.text]);
 
+  const warningItems: string[] = Array.isArray(task?.warnings) ? task.warnings.map((w: unknown) => String(w)) : [];
+
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{label}</Pill>
-            <Pill
-              cls={confidenceTone(confidence)}
-              title={
-                confidence === "HEURISTIC"
-                  ? 'Low confidence means the extractor found the task, but the formatting/structure looks unreliable (e.g., duplicated markers like "a a a", broken line wraps, or missing headings). Review before locking.'
-                  : confidence === "CLEAN"
-                    ? "Clean means the task structure looks consistent (heading + body + lists detected reliably)."
-                    : undefined
-              }
-            >
-              {confidence === "OVERRIDDEN" ? "🔴 Overridden" : confidence === "HEURISTIC" ? "🟡 Low confidence" : "🟢 Clean"}
-            </Pill>
+            <Pill cls={confidenceTone(confidence)}>{confidence === "OVERRIDDEN" ? "Overridden" : confidence === "HEURISTIC" ? "Warnings" : "Clean"}</Pill>
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
-            {hasDuplicates ? (
-              <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Duplicate suspected</Pill>
-            ) : null}
+            {warningItems.length ? <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Warnings</Pill> : null}
+            {hasDuplicates ? <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Duplicate suspected</Pill> : null}
           </div>
           <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
@@ -337,28 +356,106 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
           </button>
           <button
             type="button"
-            onClick={() => setExpanded((prev) => !prev)}
+            onClick={() => setExpandedLocal((prev) => !prev)}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
           >
-            {expanded ? "Collapse" : "View extracted text"}
+            {expanded ? "Collapse" : "Expand"}
           </button>
         </div>
       </div>
 
-      {task?.warnings?.length ? (
-        <div className="mt-3 text-xs text-amber-900">Warning: {task.warnings.join(", ")}</div>
+      {warningItems.length ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setShowWarningDetails((prev) => !prev)}
+            className="text-xs font-semibold text-amber-900 underline underline-offset-2"
+          >
+            {showWarningDetails ? "Hide warnings" : `Show warnings (${warningItems.length})`}
+          </button>
+          {showWarningDetails ? (
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-900">
+              {warningItems.map((w, i) => (
+                <li key={`${w}-${i}`}>{w}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
 
       {!expanded ? (
         <div className="mt-3 text-sm text-zinc-700 line-clamp-2">{preview}</div>
       ) : (
-        <div className="mt-4 text-sm text-zinc-900">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+          <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
+            {contextLines.length ? (
+              <div className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-500">
+                <div className="font-semibold text-zinc-600">Context line</div>
+                <div className="mt-1">{contextLines[0]}</div>
+              </div>
+            ) : null}
+
+            {parsedParts.length ? (
+              <div className="mb-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Question parts</div>
+                <ol className="list-[lower-alpha] space-y-2 pl-6">
+                  {parsedParts.map((part) => (
+                    <li key={part.key}>
+                      <div>{renderInlineText(part.text)}</div>
+                      {part.children?.length ? (
+                        <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
+                          {part.children.map((child) => (
+                            <li key={child.key}>{renderInlineText(child.text)}</li>
+                          ))}
+                        </ol>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+
+            {tableBlocks.length ? (
+              <div className="mb-4 space-y-3">
+                {tableBlocks.map((tableBlock, tableIndex) =>
+                  tableBlock.type === "table" ? (
+                    <div key={`table-${tableIndex}`} className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
+                      <table className="min-w-full text-left text-xs text-zinc-800">
+                        <thead className="bg-zinc-100">
+                          <tr>
+                            {tableBlock.headers.map((header, idx) => (
+                              <th key={`h-${tableIndex}-${idx}`} className="whitespace-nowrap px-3 py-2 font-semibold">
+                                {header}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tableBlock.rows.map((row, rowIdx) => (
+                            <tr key={`r-${tableIndex}-${rowIdx}`} className="border-t border-zinc-200">
+                              {row.map((cell, cellIdx) => (
+                                <td key={`c-${tableIndex}-${rowIdx}-${cellIdx}`} className="whitespace-nowrap px-3 py-2 align-top">
+                                  {cell}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div key={`table-fallback-${tableIndex}`} className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                      <div className="mb-1 text-xs font-semibold text-amber-900">{tableBlock.warning}</div>
+                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-amber-900">{tableBlock.text}</pre>
+                    </div>
+                  )
+                )}
+              </div>
+            ) : null}
+
             {hasDuplicates ? (
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-900">
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
-                  Repeated blocks hidden
-                </span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">Repeated blocks hidden</span>
                 <button
                   type="button"
                   onClick={() => setShowRepeated((prev) => !prev)}
@@ -368,6 +465,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                 </button>
               </div>
             ) : null}
+
             {blocks.length ? (
               <div className="grid gap-3">
                 {blocks.map((block, idx) => {
@@ -397,10 +495,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                   }
                   if (block.type === "ul") {
                     return (
-                      <ul
-                        key={`ul-${idx}`}
-                        className={"list-disc space-y-1 pl-5 " + (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")}
-                      >
+                      <ul key={`ul-${idx}`} className={"list-disc space-y-1 pl-5 " + (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")}>
                         {block.items.map((item, itemIdx) => (
                           <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
                             {renderInlineText(item)}
@@ -411,19 +506,13 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                   }
                   if (block.type === "heading") {
                     return (
-                      <div
-                        key={`heading-${idx}`}
-                        className={"text-sm font-semibold text-zinc-900 " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
-                      >
+                      <div key={`heading-${idx}`} className={"text-sm font-semibold text-zinc-900 " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}>
                         {renderInlineText(block.text)}
                       </div>
                     );
                   }
                   return (
-                    <p
-                      key={`p-${idx}`}
-                      className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}
-                    >
+                    <p key={`p-${idx}`} className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}>
                       {renderInlineText(block.text)}
                     </p>
                   );
@@ -433,6 +522,19 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               <div className="text-zinc-500">(no body detected)</div>
             )}
           </div>
+
+          <aside className="rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
+            <div className="font-semibold text-zinc-900">Task metadata</div>
+            <div className="mt-2 space-y-1">
+              <div>Words: {totalWords}</div>
+              <div>Pages: {pages.length ? pages.join(", ") : "—"}</div>
+              <div>Status: {confidence}</div>
+              <div>Warnings: {warningItems.length}</div>
+              <div>Tables: {tableBlocks.length}</div>
+              <div>Parts: {parsedParts.length}</div>
+            </div>
+            <div className="mt-3 border-t border-zinc-200 pt-2 text-zinc-500">Use “Copy text” for plain-text export.</div>
+          </aside>
         </div>
       )}
 

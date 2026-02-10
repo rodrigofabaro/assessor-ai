@@ -44,6 +44,7 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
   // ✅ No effect. Modal opens for the CURRENT linked doc only.
   const linkedId: string | null = linkedDoc?.id ?? null;
   const [editForId, setEditForId] = useState<string | null>(null);
+  const [forceExpanded, setForceExpanded] = useState<boolean | undefined>(undefined);
 
   const editOpen = editForId !== null && editForId === linkedId;
 
@@ -90,7 +91,27 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs text-zinc-500">Default view is compact. Expand only the task you are reviewing.</div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setForceExpanded(true)}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            onClick={() => setForceExpanded(false)}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            Collapse all
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3">
       {taskRows && taskRows.length ? (
         taskRows.map(({ task, extractedTask, overrideApplied }: any) => (
           <TaskCard
@@ -98,6 +119,7 @@ export function TasksTab({ vm, onGoToExtract }: { vm: any; onGoToExtract?: () =>
             task={task}
             extractedTask={extractedTask}
             overrideApplied={overrideApplied}
+            forcedExpanded={forceExpanded}
           />
         ))
       ) : (
