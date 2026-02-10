@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Pill } from "./ui";
 import { detectTableBlocks } from "@/lib/extraction/render/tableBlocks";
 import { parseParts } from "@/lib/extraction/render/parseParts";
+import { normalizeParts } from "./normalizeParts";
 
 type TaskConfidence = "CLEAN" | "HEURISTIC" | "OVERRIDDEN";
 
@@ -63,6 +64,32 @@ function wordCount(text: string) {
   const normalized = normalizeText(text);
   if (!normalized) return 0;
   return normalized.split(/\s+/).filter(Boolean).length;
+}
+
+function buildLinePreview(text: string, lines = 2) {
+  const normalized = normalizeText(text);
+  if (!normalized) return "(empty)";
+  return normalized.split("\n").slice(0, lines).join("\n");
+}
+
+function isTableLikeText(text: string) {
+  const normalized = normalizeText(text);
+  if (!normalized) return false;
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 3) return false;
+
+  const mentionsTable = /\btable\b/i.test(normalized);
+  const numericRows = lines.filter((line) => {
+    const chunks = line.split(/\s{2,}|\t/).filter(Boolean);
+    if (chunks.length < 2) return false;
+    const numericLike = chunks.filter((chunk) => /^[-+]?\d[\d,.:/%-]*$/.test(chunk)).length;
+    return numericLike >= Math.max(2, Math.floor(chunks.length / 2));
+  }).length;
+
+  return numericRows >= 3 || (mentionsTable && numericRows >= 2);
 }
 
 type TextBlock =
@@ -218,6 +245,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const [showRepeated, setShowRepeated] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [expandedParts, setExpandedParts] = useState<Set<string>>(new Set());
 
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
@@ -250,7 +278,14 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const aias = task?.aias ? String(task.aias) : "";
   const parsedParts = useMemo(() => parseParts(task?.text || "", task?.parts), [task?.parts, task?.text]);
+  const normalizedParts = useMemo(() => normalizeParts(parsedParts), [parsedParts]);
   const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
+  const partCount = useMemo(() => normalizedParts.reduce((total, part) => total + 1 + (part.children?.length || 0), 0), [normalizedParts]);
+
+  const allPartsExpanded = useMemo(() => {
+    if (!normalizedParts.length) return false;
+    return normalizedParts.every((part, idx) => expandedParts.has(`${task?.n || "task"}-${idx}-${part.key}`));
+  }, [expandedParts, normalizedParts, task?.n]);
 
   const duplicateInfo = useMemo(() => {
     if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
@@ -295,6 +330,20 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   }, [extractedTask?.text, overrideApplied, task?.text]);
 
   const warningItems: string[] = Array.isArray(task?.warnings) ? task.warnings.map((w: unknown) => String(w)) : [];
+  const noisyPattern = /(no ai|duplicate heading candidates merged|heading merged)/i;
+  const noisyWarnings: string[] = [];
+  const regularWarnings: string[] = [];
+  const seenWarnings = new Set<string>();
+  warningItems.forEach((item) => {
+    const normalized = item.trim();
+    if (!normalized) return;
+    const dedupeKey = normalized.toLowerCase();
+    if (seenWarnings.has(dedupeKey)) return;
+    seenWarnings.add(dedupeKey);
+    if (noisyPattern.test(normalized)) noisyWarnings.push(normalized);
+    else regularWarnings.push(normalized);
+  });
+  const hiddenWarningCount = warningItems.length - noisyWarnings.length - regularWarnings.length;
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -365,20 +414,35 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
       </div>
 
       {warningItems.length ? (
-        <div className="mt-3">
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/60 p-2">
           <button
             type="button"
             onClick={() => setShowWarningDetails((prev) => !prev)}
-            className="text-xs font-semibold text-amber-900 underline underline-offset-2"
+            className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900"
           >
-            {showWarningDetails ? "Hide warnings" : `Show warnings (${warningItems.length})`}
+            {showWarningDetails ? "Hide warning details" : `Show warning details (${warningItems.length})`}
           </button>
           {showWarningDetails ? (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-900">
-              {warningItems.map((w, i) => (
-                <li key={`${w}-${i}`}>{w}</li>
-              ))}
-            </ul>
+            <div className="mt-2 space-y-2 text-xs text-amber-900">
+              {regularWarnings.length ? (
+                <ul className="list-disc space-y-1 pl-5">
+                  {regularWarnings.map((warning, idx) => (
+                    <li key={`warning-regular-${idx}`}>{warning}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {noisyWarnings.length ? (
+                <div className="rounded-lg border border-amber-200 bg-white/70 px-2 py-1 text-[11px] text-amber-800">
+                  <div className="font-semibold">Collapsed repetitive warnings ({noisyWarnings.length})</div>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {noisyWarnings.map((warning, idx) => (
+                      <li key={`warning-noisy-${idx}`}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {hiddenWarningCount > 0 ? <div>{hiddenWarningCount} repeated warning(s) hidden.</div> : null}
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -395,22 +459,63 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               </div>
             ) : null}
 
-            {parsedParts.length ? (
+            {normalizedParts.length ? (
               <div className="mb-4">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Question parts</div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Question parts</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (allPartsExpanded) {
+                        setExpandedParts(new Set());
+                        return;
+                      }
+                      const next = new Set<string>();
+                      normalizedParts.forEach((part, idx) => next.add(`${task?.n || "task"}-${idx}-${part.key}`));
+                      setExpandedParts(next);
+                    }}
+                    className="rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100"
+                  >
+                    {allPartsExpanded ? "Collapse all" : "Expand all"}
+                  </button>
+                </div>
                 <ol className="list-[lower-alpha] space-y-2 pl-6">
-                  {parsedParts.map((part) => (
-                    <li key={part.key}>
-                      <div>{renderInlineText(part.text)}</div>
-                      {part.children?.length ? (
-                        <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
-                          {part.children.map((child) => (
-                            <li key={child.key}>{renderInlineText(child.text)}</li>
-                          ))}
-                        </ol>
-                      ) : null}
-                    </li>
-                  ))}
+                  {normalizedParts.map((part, idx) => {
+                    const partKey = `${task?.n || "task"}-${idx}-${part.key}`;
+                    const isPartExpanded = expandedParts.has(partKey);
+                    const previewText = buildLinePreview(part.text);
+                    return (
+                      <li key={`${task.n}-${idx}-${part.key}`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedParts((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(partKey)) next.delete(partKey);
+                              else next.add(partKey);
+                              return next;
+                            });
+                          }}
+                          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left hover:bg-zinc-100"
+                        >
+                          <div className="line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+                            {renderInlineText(isPartExpanded ? part.text : previewText)}
+                          </div>
+                          <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                            {isPartExpanded ? "Collapse" : "Expand"}
+                            {part.children?.length ? ` • ${part.children.length} subpart${part.children.length === 1 ? "" : "s"}` : ""}
+                          </div>
+                        </button>
+                        {isPartExpanded && part.children?.length ? (
+                          <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
+                            {part.children.map((child, cidx) => (
+                              <li key={`${task.n}-${idx}-${part.key}-${cidx}-${child.key}`}>{renderInlineText(child.text)}</li>
+                            ))}
+                          </ol>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
             ) : null}
@@ -511,6 +616,13 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                       </div>
                     );
                   }
+                  if (block.type === "p" && isTableLikeText(block.text)) {
+                    return (
+                      <pre key={`pre-${idx}`} className="overflow-x-auto rounded-xl bg-zinc-50 p-3 font-mono whitespace-pre ring-1 ring-zinc-200">
+                        {block.text}
+                      </pre>
+                    );
+                  }
                   return (
                     <p key={`p-${idx}`} className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}>
                       {renderInlineText(block.text)}
@@ -531,7 +643,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               <div>Status: {confidence}</div>
               <div>Warnings: {warningItems.length}</div>
               <div>Tables: {tableBlocks.length}</div>
-              <div>Parts: {parsedParts.length}</div>
+              <div>Parts: {partCount}</div>
             </div>
             <div className="mt-3 border-t border-zinc-200 pt-2 text-zinc-500">Use “Copy text” for plain-text export.</div>
           </aside>
