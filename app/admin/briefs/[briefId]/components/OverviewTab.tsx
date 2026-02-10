@@ -2,6 +2,7 @@
 
 import { Pill } from "../../components/ui";
 import { tone, statusTone } from "./briefStyles";
+import { uniqSortedCriteriaCodes } from "@/lib/extraction/utils/criteriaCodes";
 
 function Field({ label, value }: { label: string; value: any }) {
   return (
@@ -13,7 +14,13 @@ function Field({ label, value }: { label: string; value: any }) {
 }
 
 export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
-  const header = vm.linkedDoc?.extractedJson?.header || null;
+  const extracted = vm.linkedDoc?.extractedJson ?? null;
+  const header = extracted?.header || null;
+  const criteriaCodes = uniqSortedCriteriaCodes([
+    ...(Array.isArray(extracted?.criteriaCodes) ? extracted.criteriaCodes : []),
+    ...(Array.isArray(extracted?.detectedCriterionCodes) ? extracted.detectedCriterionCodes : []),
+    ...(Array.isArray(extracted?.criteriaRefs) ? extracted.criteriaRefs : []),
+  ]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -38,6 +45,15 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
             label="PDF link"
             value={<Pill cls={vm.brief.briefDocumentId ? tone("ok") : tone("warn")}>{vm.brief.briefDocumentId ? "Linked" : "Missing"}</Pill>}
           />
+        </div>
+
+        <div className="mt-3 rounded-xl border border-zinc-200 p-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-700">
+            <span className="font-semibold">Criteria:</span>
+            {criteriaCodes.length ? criteriaCodes.map((code: string) => <Pill key={code} cls={tone("muted")}>{code}</Pill>) : <span>—</span>}
+            {!extracted ? <Pill cls={tone("warn")}>NOT EXTRACTED</Pill> : null}
+            {extracted && criteriaCodes.length === 0 ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
+          </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-zinc-200 p-3">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
+import { uniqSortedCriteriaCodes } from "@/lib/extraction/utils/criteriaCodes";
 
 type SpecDocApi = {
   id: string;
@@ -14,6 +15,7 @@ type SpecDocApi = {
 type BriefDocApi = {
   id: string;
   originalFilename?: string | null;
+  extractedJson?: any | null;
 } | null;
 
 type AssignmentBriefApi = {
@@ -170,13 +172,24 @@ export function useLibraryAdmin() {
     if (!selected) return [];
     const arr = asArray((selected as any).assignmentBriefs).filter(Boolean) as any[];
     return arr
-      .map((b) => ({
-        id: b.id,
-        assignmentCode: b.assignmentCode || null,
-        title: normalizeBriefTitle(b),
-        briefDocumentId: b.briefDocumentId || null,
-        briefDocument: b.briefDocument || null,
-      }))
+      .map((b) => {
+        const extractedJson = b.briefDocument?.extractedJson ?? null;
+        const hasExtractedJson = extractedJson != null;
+        const criteriaCodes = uniqSortedCriteriaCodes([
+          ...(Array.isArray(extractedJson?.criteriaCodes) ? extractedJson.criteriaCodes : []),
+          ...(Array.isArray(extractedJson?.detectedCriterionCodes) ? extractedJson.detectedCriterionCodes : []),
+          ...(Array.isArray(extractedJson?.criteriaRefs) ? extractedJson.criteriaRefs : []),
+        ]);
+        return {
+          id: b.id,
+          assignmentCode: b.assignmentCode || null,
+          title: normalizeBriefTitle(b),
+          briefDocumentId: b.briefDocumentId || null,
+          briefDocument: b.briefDocument || null,
+          criteriaCodes,
+          hasExtractedJson,
+        };
+      })
       .sort((a, b) => String(a.assignmentCode || "").localeCompare(String(b.assignmentCode || "")));
   }, [selected]);
 

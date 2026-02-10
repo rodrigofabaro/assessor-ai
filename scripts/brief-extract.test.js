@@ -65,6 +65,16 @@ async function run() {
   assert.ok(task1 && String(task1.text || "").includes("Design Brief"));
   assert.ok(task3 && String(task3.text || "").toLowerCase().includes("debrief report must answer the following"));
 
+  assert.ok(Array.isArray(brief?.criteriaCodes));
+  const sorted = [...brief.criteriaCodes].sort((a, b) => {
+    const rank = (x) => (x.startsWith("P") ? 0 : x.startsWith("M") ? 1 : 2);
+    const ad = Number((a.match(/\d+/) || ["0"])[0]);
+    const bd = Number((b.match(/\d+/) || ["0"])[0]);
+    return rank(a) - rank(b) || ad - bd;
+  });
+  assert.deepStrictEqual(brief.criteriaCodes, sorted);
+  assert.strictEqual(new Set(brief.criteriaCodes).size, brief.criteriaCodes.length);
+
   console.log("Brief extraction fixture test passed.");
 }
 

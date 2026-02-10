@@ -2,6 +2,11 @@
 
 import { badge, formatDate, useLibraryAdmin } from "./library.logic";
 
+
+function MiniPill({ children, cls }: { children: any; cls: string }) {
+  return <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold " + cls}>{children}</span>;
+}
+
 export default function LibraryAdminPage() {
   const vm = useLibraryAdmin();
 
@@ -281,11 +286,23 @@ export default function LibraryAdminPage() {
                               <li key={b.id} className="rounded-xl border border-zinc-200 p-3">
                                 <div className="text-sm font-semibold text-zinc-900">
                                   {b.assignmentCode || "(no code)"} • {b.title || "(brief)"}
-
                                 </div>
-                                <div className="mt-1 text-xs text-zinc-600">
-                                  Brief doc id: {b.briefDocumentId || "-"}
-
+                                <div className="mt-1 text-xs text-zinc-600">Brief doc id: {b.briefDocumentId || "-"}</div>
+                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-700">
+                                  <span className="font-semibold">Criteria:</span>
+                                  {b.criteriaCodes.length ? (
+                                    b.criteriaCodes.map((code: string) => (
+                                      <MiniPill key={code} cls="bg-zinc-100 text-zinc-800 ring-1 ring-zinc-200">{code}</MiniPill>
+                                    ))
+                                  ) : (
+                                    <span>—</span>
+                                  )}
+                                  {!b.hasExtractedJson ? (
+                                    <MiniPill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">NOT EXTRACTED</MiniPill>
+                                  ) : null}
+                                  {b.hasExtractedJson && b.criteriaCodes.length === 0 ? (
+                                    <MiniPill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">NO CODES</MiniPill>
+                                  ) : null}
                                 </div>
                               </li>
                             ))}

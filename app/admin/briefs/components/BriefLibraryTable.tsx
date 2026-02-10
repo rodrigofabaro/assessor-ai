@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Btn, Pill } from "./ui";
 import { ivTone, statusTone, tone } from "../briefs.logic";
+import { uniqSortedCriteriaCodes } from "@/lib/extraction/utils/criteriaCodes";
 
 export default function BriefLibraryTable({
   vm,
@@ -88,6 +89,12 @@ export default function BriefLibraryTable({
                 const doc = r.linkedDoc;
                 const iv = r.ivForYear;
                 const pdfHref = doc ? `/api/reference-documents/${doc.id}/file` : "";
+                const extracted = doc?.extractedJson ?? null;
+                const criteriaCodes = uniqSortedCriteriaCodes([
+                  ...(Array.isArray(extracted?.criteriaCodes) ? extracted.criteriaCodes : []),
+                  ...(Array.isArray(extracted?.detectedCriterionCodes) ? extracted.detectedCriterionCodes : []),
+                  ...(Array.isArray(extracted?.criteriaRefs) ? extracted.criteriaRefs : []),
+                ]);
                 return (
                   <tr key={r.id} className="border-t border-zinc-100">
                     <td className="px-3 py-3">
@@ -103,6 +110,12 @@ export default function BriefLibraryTable({
                         )}
                         {doc?.lockedAt ? <Pill cls={tone("ok")}>DOC LOCKED</Pill> : <Pill cls={tone("warn")}>DOC NOT LOCKED</Pill>}
                         <span className="truncate">{doc?.originalFilename || "—"}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-700">
+                        <span className="font-semibold">Criteria:</span>
+                        {criteriaCodes.length ? criteriaCodes.map((code: string) => <Pill key={code} cls={tone("muted")}>{code}</Pill>) : <span>—</span>}
+                        {!extracted ? <Pill cls={tone("warn")}>NOT EXTRACTED</Pill> : null}
+                        {extracted && criteriaCodes.length === 0 ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
                       </div>
                     </td>
 

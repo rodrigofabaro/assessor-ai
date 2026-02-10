@@ -1,4 +1,5 @@
 import { firstMatch, normalizeWhitespace } from "./common";
+import { extractCriteriaCodesFromText } from "../extraction/utils/criteriaCodes";
 
 /**
  * BRIEF extractor
@@ -36,18 +37,6 @@ type BriefTask = {
   warnings?: string[];
   confidence?: "CLEAN" | "HEURISTIC";
 };
-
-function uniqSortedCodes(codes: string[]) {
-  const set = new Set(codes.map((c) => c.toUpperCase().trim()).filter(Boolean));
-  const arr = Array.from(set);
-  const bandRank = (x: string) => (x[0] === "P" ? 0 : x[0] === "M" ? 1 : 2);
-  arr.sort(
-    (a, b) =>
-      bandRank(a) - bandRank(b) ||
-      (parseInt(a.slice(1), 10) || 0) - (parseInt(b.slice(1), 10) || 0)
-  );
-  return arr;
-}
 
 function normHeader(s: string) {
   return (s || "")
@@ -937,8 +926,7 @@ function buildBriefTitle(header: BriefHeader, assignmentNumber: number | null, f
 }
 
 function extractCriteriaRefs(pageText: string) {
-  const codes = Array.from(pageText.toUpperCase().matchAll(/\b([PMD])\s*(\d{1,2})\b/g)).map((m) => `${m[1]}${m[2]}`);
-  return uniqSortedCodes(codes);
+  return extractCriteriaCodesFromText(pageText);
 }
 
 function extractLoHeaders(pageText: string) {
@@ -1007,10 +995,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     (t.match(/\bA\d+\b/i)?.[0]?.toUpperCase() ?? null);
 
   // Criteria codes: detect P/M/D numbers
-  const codes = Array.from(t.toUpperCase().matchAll(/\b([PMD])\s*(\d{1,2})\b/g)).map(
-    (m) => `${m[1]}${m[2]}`
-  );
-  const detectedCriterionCodes = uniqSortedCodes(codes);
+  const detectedCriterionCodes = extractCriteriaCodesFromText(t);
 
   const pages = splitPages(t);
   const headerSource = pages[0] || t.slice(0, 4500);
@@ -1023,6 +1008,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
   const aiasLevel = aiasLevelFromDoc ?? aiasLevelFromTasks ?? null;
   const criteriaRegion = findCriteriaRegion(pages);
   const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : detectedCriterionCodes;
+  const criteriaCodes = criteriaRefs.length ? criteriaRefs : detectedCriterionCodes;
   const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
 
   const warnings = [
@@ -1043,6 +1029,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     aiasLevel,
     detectedCriterionCodes,
     criteriaRefs,
+    criteriaCodes,
     loHeaders,
     endMatter: tasksResult.endMatter || null,
     tasks: tasksResult.tasks,
