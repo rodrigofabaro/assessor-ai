@@ -498,17 +498,17 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             {tables.length ? (
               <div className="mt-4 grid gap-4">
                 {tables.map((table: any) => (
-                  <div key={table.id} className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <div key={table.id} className="rounded-xl border border-zinc-300 bg-white p-3">
                     {table.title ? <div className="text-xs font-semibold text-zinc-600">{table.title}</div> : null}
                     <div className="mt-2 overflow-x-auto">
-                      <table className="min-w-full border-collapse text-xs text-zinc-700">
+                      <table className="mx-auto min-w-full border-collapse text-[11px] text-zinc-700">
                         <thead>
                           <tr>
                             {Array.isArray(table.columns)
                               ? table.columns.map((col: string, idx: number) => (
                                   <th
                                     key={`${table.id}-col-${idx}`}
-                                    className="border border-zinc-200 bg-zinc-50 px-2 py-1 text-left font-semibold"
+                                    className={`border border-zinc-700/80 bg-zinc-100/60 px-2 py-1 text-center font-semibold ${idx === 0 ? "text-left" : ""}` }
                                   >
                                     {col}
                                   </th>
@@ -521,7 +521,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                             ? table.rows.map((row: string[], rowIdx: number) => (
                                 <tr key={`${table.id}-row-${rowIdx}`}>
                                   {row.map((cell, cellIdx) => (
-                                    <td key={`${table.id}-cell-${rowIdx}-${cellIdx}`} className="border border-zinc-200 px-2 py-1">
+                                    <td key={`${table.id}-cell-${rowIdx}-${cellIdx}`} className={`border border-zinc-700/80 px-2 py-1 leading-tight ${cellIdx === 0 ? "text-left" : "text-center"}` }>
                                       {cell}
                                     </td>
                                   ))}

@@ -670,6 +670,15 @@ function parseVoltageTableBlock(lines: string[]): { columns: string[]; rows: str
       rows.push([range, match[2], match[3]]);
       continue;
     }
+    const tokenized = cleaned.match(/^(<\s*\d+|>\s*\d+|\d+\s*-\s*\d+|Total)\s+(.*)$/i);
+    if (tokenized) {
+      const numericTokens = (tokenized[2].match(/\d+/g) || []).slice(-2);
+      if (numericTokens.length === 2) {
+        const range = tokenized[1].replace(/\s*-\s*/g, " - ").replace(/\s+/g, " ").trim();
+        rows.push([range, numericTokens[0], numericTokens[1]]);
+      }
+      continue;
+    }
     if (rows.length && /using\s+the\s+data|based\s+on\s+the\s+data|answer\s+the\s+following/i.test(cleaned)) break;
   }
 
@@ -677,6 +686,30 @@ function parseVoltageTableBlock(lines: string[]): { columns: string[]; rows: str
   const columns = ["Output Voltage (V)", "Before QC", "After QC"];
   const confidence = rows.length >= 8 && headerSeen && beforeSeen && afterSeen ? "CLEAN" : "HEURISTIC";
   return { columns, rows, confidence };
+}
+
+function extractTask3TemplateFallback(lines: string[]) {
+  const orderedLabels = [
+    "Units Produced",
+    "Gross Sales",
+    "Units Sold",
+    "Material Cost",
+    "Net Sales",
+    "Wages",
+    "Rent",
+    "Overheads",
+    "Variances",
+    "Net Profit/Loss",
+  ];
+  const normalized = lines.map((line) => normalizeWhitespace(line || "").trim().toLowerCase());
+  const joined = normalized.join(" ");
+  const foundLabels = orderedLabels.filter((label) => joined.includes(label.toLowerCase()));
+  if (foundLabels.length < 8) return null;
+  return {
+    columns: ["Month", "Before QC", "After QC"],
+    rows: orderedLabels.map((label) => [label, "", ""]),
+    confidence: foundLabels.length === orderedLabels.length ? ("CLEAN" as const) : ("HEURISTIC" as const),
+  };
 }
 
 function parseCostingTemplateTableBlock(
@@ -692,40 +725,43 @@ function parseCostingTemplateTableBlock(
   const headerEndIndex = headerLines.length ? headerLines[headerLines.length - 1].idx : 0;
   const columns = [/month/i.test(headerWindow) ? "Month" : "", "Before QC", "After QC"];
 
-  const labelMap = new Map(
-    [
-      "Units Produced",
-      "Gross Sales",
-      "Units Sold",
-      "Material Cost",
-      "Net Sales",
-      "Wages",
-      "Rent",
-      "Overheads",
-      "Variances",
-      "Net Profit/Loss",
-    ].map((label) => [label.toLowerCase(), label])
-  );
+  const orderedLabels = [
+    "Units Produced",
+    "Gross Sales",
+    "Units Sold",
+    "Material Cost",
+    "Net Sales",
+    "Wages",
+    "Rent",
+    "Overheads",
+    "Variances",
+    "Net Profit/Loss",
+  ];
 
   const rows: string[][] = [];
+  const seen = new Set<string>();
   for (let i = headerEndIndex + 1; i < merged.length; i += 1) {
     const cleaned = normalizeWhitespace(merged[i] || "").trim();
     if (!cleaned) {
       if (rows.length) break;
       continue;
     }
-    const label = labelMap.get(cleaned.toLowerCase());
-    if (label) {
-      rows.push([label, "", ""]);
-      continue;
+    const lowered = cleaned.toLowerCase();
+    for (const label of orderedLabels) {
+      if (!seen.has(label) && lowered.includes(label.toLowerCase())) {
+        rows.push([label, "", ""]);
+        seen.add(label);
+      }
     }
     if (rows.length && /task\s*\d+|using\s+the\s+data|answer\s+the\s+following/i.test(cleaned)) break;
-    if (rows.length && /[.]/.test(cleaned)) break;
   }
 
   if (!rows.length) return null;
-  const confidence = rows.length >= 8 ? "CLEAN" : "HEURISTIC";
-  return { columns, rows, confidence };
+  const normalizedBlob = merged.join(" ").toLowerCase();
+  const foundCount = orderedLabels.filter((label) => normalizedBlob.includes(label.toLowerCase())).length;
+  const outputRows = orderedLabels.map((label) => [label, "", ""]);
+  const confidence = foundCount >= 8 ? "CLEAN" : "HEURISTIC";
+  return { columns, rows: outputRows, confidence };
 }
 
 function parseTableBlock(lines: string[]): { columns: string[]; rows: string[][]; confidence: "CLEAN" | "HEURISTIC" } | null {
@@ -795,7 +831,6 @@ function extractTablesFromTaskText(textBody: string) {
           continue;
         }
         blankCount = 0;
-        if (blockLines.length && isHeadingLine(trimmed)) break;
         blockLines.push(next);
       }
       const anchoredParsed =
@@ -804,7 +839,7 @@ function extractTablesFromTaskText(textBody: string) {
           : parseCostingTemplateTableBlock(blockLines);
       const parsed = anchoredParsed || parseTableBlock(blockLines);
       if (parsed) {
-        const id = `table-${idPart || autoIndex}`;
+        const id = /^2\.1$/.test(idPart) ? "table-2.1" : `table-${idPart || autoIndex}`;
         tables.push({ id, title, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
         cleanedLines.push(`[TABLE: ${id}]`);
         i = j;
@@ -829,9 +864,9 @@ function extractTablesFromTaskText(textBody: string) {
         if (/^Task\s*\d+\b/i.test(trimmed)) break;
         blockLines.push(next);
       }
-      const parsed = parseCostingTemplateTableBlock(blockLines);
+      const parsed = parseCostingTemplateTableBlock(blockLines) || extractTask3TemplateFallback(blockLines);
       if (parsed) {
-        const id = `table-auto-${autoIndex++}`;
+        const id = "task3-template";
         tables.push({ id, columns: parsed.columns, rows: parsed.rows, confidence: parsed.confidence });
         cleanedLines.push(`[TABLE: ${id}]`);
         i = j;
@@ -871,6 +906,35 @@ function extractTablesFromTaskText(textBody: string) {
 
     cleanedLines.push(line);
     i += 1;
+  }
+
+  if (!tables.some((table) => table.id === "task3-template")) {
+    const fallback = extractTask3TemplateFallback(lines);
+    if (fallback) {
+      tables.push({
+        id: "task3-template",
+        columns: fallback.columns,
+        rows: fallback.rows,
+        confidence: "HEURISTIC",
+      });
+      const filteredLines = cleanedLines.filter((entry) => {
+        const lowered = normalizeWhitespace(entry || "").toLowerCase();
+        return ![
+          "units produced",
+          "gross sales",
+          "units sold",
+          "material cost",
+          "net sales",
+          "wages",
+          "rent",
+          "overheads",
+          "variances",
+          "net profit/loss",
+        ].includes(lowered);
+      });
+      filteredLines.push("[TABLE: task3-template]");
+      return { tables, cleanedText: filteredLines.join("\n").replace(/\n{3,}/g, "\n\n").trim() };
+    }
   }
 
   const cleanedText = cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
