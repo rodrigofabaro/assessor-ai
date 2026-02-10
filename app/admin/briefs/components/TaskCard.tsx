@@ -175,7 +175,8 @@ function buildTableTsv(table: any) {
 function buildCopyText(task: any) {
   const baseText = normalizeText(task?.text || "");
   const tables = Array.isArray(task?.tables) ? task.tables : [];
-  if (!tables.length) return baseText;
+  const formulas = Array.isArray(task?.formulas) ? task.formulas : [];
+  if (!tables.length && !formulas.length) return baseText;
   const sections = [baseText];
   tables.forEach((table: any) => {
     const title = table?.title || table?.id ? String(table?.title || table?.id) : "Table";
@@ -184,7 +185,48 @@ function buildCopyText(task: any) {
     sections.push("", title, markdown);
     if (tsv) sections.push("", "TSV:", tsv);
   });
+  formulas.forEach((formula: any) => {
+    if (formula?.kind === "matrix" && Array.isArray(formula?.rows)) {
+      const name = formula?.name ? String(formula.name) : "Matrix";
+      sections.push("", `${name}:`, ...(formula.rows as string[][]).map((row) => row.join("\t")));
+      return;
+    }
+    if (formula?.kind === "equation") {
+      sections.push("", String(formula?.text || ""));
+    }
+  });
   return sections.filter((section) => section !== "").join("\n");
+}
+
+function renderFormulaBlock(formula: any, idx: number) {
+  if (formula?.kind === "matrix" && Array.isArray(formula?.rows)) {
+    return (
+      <div key={`formula-matrix-${idx}`} className="rounded-lg border border-zinc-300 bg-zinc-50 p-3">
+        <div className="text-xs font-semibold text-zinc-600">{formula?.name ? `${formula.name} =` : "Matrix"}</div>
+        <div className="mt-2 overflow-x-auto">
+          <table className="border-collapse font-mono text-xs text-zinc-800">
+            <tbody>
+              {formula.rows.map((row: string[], rowIdx: number) => (
+                <tr key={`matrix-${idx}-row-${rowIdx}`}>
+                  {row.map((cell, cellIdx) => (
+                    <td key={`matrix-${idx}-cell-${rowIdx}-${cellIdx}`} className="border border-zinc-400 px-2 py-1 text-center">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <pre key={`formula-eq-${idx}`} className="overflow-x-auto rounded-lg border border-zinc-300 bg-zinc-50 p-3 font-mono text-xs text-zinc-800">
+      {String(formula?.text || "")}
+    </pre>
+  );
 }
 
 function renderInlineText(text: string) {
@@ -316,16 +358,18 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const aias = task?.aias ? String(task.aias) : "";
   const tables = Array.isArray(task?.tables) ? task.tables : [];
+  const formulas = Array.isArray(task?.formulas) ? task.formulas : [];
   const parts = Array.isArray(task?.parts) ? task.parts : [];
   const partKeyCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    parts.forEach((part: any) => {
+    const sourceParts = Array.isArray(task?.parts) ? task.parts : [];
+    sourceParts.forEach((part: any) => {
       const key = String(part?.key || "").trim();
       if (!key) return;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
     return counts;
-  }, [parts]);
+  }, [task?.parts]);
   const hasDuplicatePartKeys = Array.from(partKeyCounts.values()).some((count) => count > 1);
 
   const duplicateInfo = useMemo(() => {
@@ -501,14 +545,14 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                   <div key={table.id} className="rounded-xl border border-zinc-300 bg-white p-3">
                     {table.title ? <div className="text-xs font-semibold text-zinc-600">{table.title}</div> : null}
                     <div className="mt-2 overflow-x-auto">
-                      <table className="mx-auto min-w-full border-collapse text-[11px] text-zinc-700">
+                      <table className="min-w-full table-fixed border-collapse text-[11px] text-zinc-700">
                         <thead>
                           <tr>
                             {Array.isArray(table.columns)
                               ? table.columns.map((col: string, idx: number) => (
                                   <th
                                     key={`${table.id}-col-${idx}`}
-                                    className={`border border-zinc-700/80 bg-zinc-100/60 px-2 py-1 text-center font-semibold ${idx === 0 ? "text-left" : ""}` }
+                                    className={`border border-zinc-700/80 bg-zinc-100/60 px-2 py-1 font-semibold ${idx === 0 ? "w-[45%] text-left" : "w-[27.5%] text-center"}` }
                                   >
                                     {col}
                                   </th>
@@ -535,6 +579,7 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                 ))}
               </div>
             ) : null}
+            {formulas.length ? <div className="mt-4 grid gap-3">{formulas.map((formula: any, idx: number) => renderFormulaBlock(formula, idx))}</div> : null}
           </div>
         </div>
       )}

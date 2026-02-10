@@ -34,6 +34,7 @@ type BriefTask = {
   prompt?: string;
   parts?: Array<{ key: string; text: string }>;
   tables?: ExtractedTable[];
+  formulas?: ExtractedFormulaBlock[];
   warnings?: string[];
   confidence?: "CLEAN" | "HEURISTIC";
 };
@@ -46,6 +47,10 @@ type ExtractedTable = {
   page?: number;
   confidence: "CLEAN" | "HEURISTIC";
 };
+
+type ExtractedFormulaBlock =
+  | { kind: "matrix"; name?: string; rows: string[][] }
+  | { kind: "equation"; text: string };
 
 function uniqSortedCodes(codes: string[]) {
   const set = new Set(codes.map((c) => c.toUpperCase().trim()).filter(Boolean));
@@ -566,7 +571,8 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   let currentKey: string | null = null;
   let currentText: string[] = [];
   let currentLetter: string | null = null;
-  const topLevelLetterRegex = /^([a-z])[.)]\s+(.*)$/i;
+  const topLevelLetterRegex = /^\s*([a-z])[\)\.]\s+(.*)$/i;
+  const romanRegex = /^\s*([ivxlcdm]+)[\)\.]\s+(.*)$/i;
 
   const flush = () => {
     if (currentKey) {
@@ -598,21 +604,21 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
       continue;
     }
 
-    const letterMatch = trimmed.match(topLevelLetterRegex);
-    if (letterMatch) {
-      flush();
-      currentKey = letterMatch[1].toLowerCase();
-      currentLetter = currentKey;
-      currentText.push(letterMatch[2].trim());
-      continue;
-    }
-
-    const romanMatch = trimmed.match(/^([ivxlcdm]+)[\.\)]\s+(.*)$/i);
-    if (romanMatch) {
+    const romanMatch = line.match(romanRegex);
+    if (romanMatch && (currentLetter || romanMatch[1].length > 1)) {
       flush();
       const romanKey = romanMatch[1].toLowerCase();
       currentKey = currentLetter ? `${currentLetter}.${romanKey}` : romanKey;
       currentText.push(romanMatch[2]);
+      continue;
+    }
+
+    const letterMatch = line.match(topLevelLetterRegex);
+    if (letterMatch) {
+      flush();
+      currentKey = letterMatch[1].toLowerCase();
+      currentLetter = /^[a-d]$/.test(currentKey) ? currentKey : null;
+      currentText.push(letterMatch[2].trim());
       continue;
     }
 
@@ -706,7 +712,7 @@ function extractTask3TemplateFallback(lines: string[]) {
   const foundLabels = orderedLabels.filter((label) => joined.includes(label.toLowerCase()));
   if (foundLabels.length < 8) return null;
   return {
-    columns: ["Month", "Before QC", "After QC"],
+    columns: ["Month/Item", "Before QC", "After QC"],
     rows: orderedLabels.map((label) => [label, "", ""]),
     confidence: foundLabels.length === orderedLabels.length ? ("CLEAN" as const) : ("HEURISTIC" as const),
   };
@@ -724,6 +730,7 @@ function parseCostingTemplateTableBlock(
     .filter(({ line }) => /before\s+qc|after\s+qc|month/i.test(line));
   const headerEndIndex = headerLines.length ? headerLines[headerLines.length - 1].idx : 0;
   const columns = [/month/i.test(headerWindow) ? "Month" : "", "Before QC", "After QC"];
+  columns[0] = "Month/Item";
 
   const orderedLabels = [
     "Units Produced",
@@ -762,6 +769,65 @@ function parseCostingTemplateTableBlock(
   const outputRows = orderedLabels.map((label) => [label, "", ""]);
   const confidence = foundCount >= 8 ? "CLEAN" : "HEURISTIC";
   return { columns, rows: outputRows, confidence };
+}
+
+function cleanMathEncodingNoise(line: string) {
+  return (line || "")
+    .replace(/�+/g, "")
+    .replace(/([\u{1D400}-\u{1D7FF}])\1(?=\s*=)/gu, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trimEnd();
+}
+
+function extractFormulaBlocksFromTaskText(textBody: string) {
+  const lines = splitLines(textBody).map((line) => cleanMathEncodingNoise(line));
+  const formulas: ExtractedFormulaBlock[] = [];
+  const cleanedLines: string[] = [];
+
+  const matrixStartRegex = /^\s*([^\s=]+)\s*=\s*(?:[\[\(\{]|)$|^\s*([^\s=]+)\s*=\s*$/u;
+  const numericRowRegex = /^\s*-?\d+(?:\.\d+)?(?:\s+-?\d+(?:\.\d+)?){1,}\s*$/;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const matrixStart = line.match(matrixStartRegex);
+    if (matrixStart) {
+      const matrixRows: string[][] = [];
+      const matrixName = (matrixStart[1] || matrixStart[2] || "").trim();
+      let j = i + 1;
+      for (; j < lines.length; j += 1) {
+        const candidate = lines[j].trim();
+        if (!candidate) break;
+        if (/^[\[\(\{\]\)\}]$/.test(candidate)) continue;
+        if (!numericRowRegex.test(candidate)) break;
+        matrixRows.push(candidate.split(/\s+/).filter(Boolean));
+      }
+      if (matrixRows.length >= 2) {
+        const width = matrixRows[0].length;
+        if (matrixRows.every((row) => row.length === width)) {
+          formulas.push({ kind: "matrix", name: matrixName || undefined, rows: matrixRows });
+          cleanedLines.push(`[FORMULA: matrix ${matrixName || "matrix"}]`);
+          i = j;
+          continue;
+        }
+      }
+    }
+
+    if (/=/.test(line) && /[A-Za-z\u{1D400}-\u{1D7FF}]/u.test(line)) {
+      formulas.push({ kind: "equation", text: line.trim() });
+      cleanedLines.push(`[FORMULA: equation]`);
+      i += 1;
+      continue;
+    }
+
+    cleanedLines.push(line);
+    i += 1;
+  }
+
+  return {
+    formulas,
+    cleanedText: cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim(),
+  };
 }
 
 function parseTableBlock(lines: string[]): { columns: string[]; rows: string[][]; confidence: "CLEAN" | "HEURISTIC" } | null {
@@ -1198,7 +1264,8 @@ function extractBriefTasks(
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const { tables, cleanedText } = extractTablesFromTaskText(textBody);
+    const { tables, cleanedText: tableCleanedText } = extractTablesFromTaskText(textBody);
+    const { formulas, cleanedText } = extractFormulaBlocksFromTaskText(tableCleanedText);
     const reflowedTextBody = reflowProsePreserveLists(cleanedText);
     const parts = extractParts(reflowedTextBody);
     if (parts && parts.length) {
@@ -1221,6 +1288,7 @@ function extractBriefTasks(
       prompt: reflowedTextBody,
       parts: parts || undefined,
       tables: tables.length ? tables : undefined,
+      formulas: formulas.length ? formulas : undefined,
       warnings: taskWarnings.length ? taskWarnings : undefined,
       confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",
     });

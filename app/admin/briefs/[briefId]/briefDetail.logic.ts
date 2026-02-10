@@ -50,6 +50,9 @@ export type BriefTask = {
   title?: string | null;
   heading?: string | null;
   text: string;
+  parts?: Array<{ key: string; text: string }>;
+  tables?: Array<{ id: string; title?: string; columns: string[]; rows: string[][]; page?: number; confidence: "CLEAN" | "HEURISTIC" }>;
+  formulas?: Array<{ kind: "matrix"; name?: string; rows: string[][] } | { kind: "equation"; text: string }>;
   warnings?: string[];
 };
 

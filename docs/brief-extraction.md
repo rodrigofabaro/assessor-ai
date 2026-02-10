@@ -39,12 +39,45 @@ If multiple headings match the same task number, the best candidate is chosen by
 The chosen heading is used to slice the task body until the next chosen heading (or end-matter).
 
 ## 5) Task parts
-Task sub-parts are extracted consistently from:
+Task sub-parts are extracted consistently from top-level labels at the start of a line:
 - `a) ... b) ...`
+- `a. ... b. ...`
 - `i) ... ii) ...`
+- `i. ... ii. ...`
 - `1. ... 2. ...`
 
-## 6) Confidence + warnings
+Rules:
+- Top-level letter labels are only recognized at line start (after optional leading spaces).
+- A part only starts when the parser sees a fresh top-level marker (not nested bullets/continuations).
+- Nested roman numerals are namespaced under their parent where applicable (e.g. `a.i`, `a.ii`, `b.i`).
+- The UI renders the stored key directly (no index-to-letter remapping), preventing duplicate display labels.
+
+## 6) Structured table extraction
+The extractor supports task-local structured table capture:
+
+- `task.tables[]` holds semantic tables with `id`, `title`, `columns`, `rows`, and confidence.
+- Known anchored tables (e.g., `Table 2.1`) use targeted heuristics to reconstruct headers/rows.
+- Costing template tables can be emitted as template rows with blank numeric cells when the PDF border geometry is unreliable.
+
+De-duplication behavior:
+- Once a table is extracted, the source table lines are removed from `task.text` and replaced with placeholders like `[TABLE: table-2.1]`.
+- This ensures the UI does not show both flattened noise and a rendered table.
+
+## 7) Formula + matrix extraction
+For briefs containing formula-heavy content, the extractor emits `task.formulas[]` blocks:
+
+- `kind: "equation"` for equation-like lines.
+- `kind: "matrix"` for matrix blocks detected as a named assignment (e.g. `D =`) followed by aligned numeric rows.
+
+Math cleanup:
+- Common extraction artifacts are normalized to reduce replacement-character (`�`) noise.
+- When a matrix is captured, the raw broken lines are replaced with a placeholder marker in task text.
+
+The UI renders:
+- equations in monospace preformatted blocks,
+- matrices as compact bordered mini-grids.
+
+## 8) Confidence + warnings
 Tasks are `CLEAN` only when:
 - a heading is found
 - the task body is sufficiently long
