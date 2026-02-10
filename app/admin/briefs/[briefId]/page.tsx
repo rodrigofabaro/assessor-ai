@@ -8,6 +8,7 @@ import { VersionsTab } from "./components/VersionsTab";
 import { OverviewTab } from "./components/OverviewTab";
 import { IvTab } from "./components/IvTab";
 import { RubricTab } from "./components/RubricTab";
+import { PagesTab } from "./components/PagesTab";
 import { BriefHeader } from "./components/BriefHeader";
 import { BriefTabs, BriefTabKey } from "./components/BriefTabs";
 
@@ -36,6 +37,8 @@ export default function BriefDetailPage() {
       {vm.brief && tab === "overview" ? <OverviewTab vm={vm} pdfHref={vm.pdfHref} /> : null}
 
       {vm.brief && tab === "tasks" ? <TasksTab vm={vm} onGoToExtract={() => router.push("/admin/briefs#extract")} /> : null}
+
+      {vm.brief && tab === "pages" ? <PagesTab vm={vm} /> : null}
 
       {vm.brief && tab === "versions" ? <VersionsTab vm={vm} /> : null}
 

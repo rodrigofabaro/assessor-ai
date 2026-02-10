@@ -2,6 +2,61 @@
  * PDF -> text using pdf-parse.
  * Kept in a dedicated module so parser logic can't accidentally change this layer.
  */
+
+function normalizeMatrixPlaceholders(text: string) {
+  const lines = text.split("\n");
+  const out: string[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!/[┌┐└┘│]/.test(line)) {
+      out.push(line);
+      continue;
+    }
+
+    const matrixRows: string[] = [];
+    let j = i;
+    while (j < lines.length && /[┌┐└┘│]/.test(lines[j])) {
+      const cleaned = lines[j].replace(/[┌┐└┘│]/g, " ").trim();
+      if (cleaned) {
+        const nums = cleaned.match(/[-+]?\d+(?:\.\d+)?/g);
+        matrixRows.push(nums && nums.length ? nums.join("  ") : cleaned.replace(/\s{2,}/g, " "));
+      }
+      j += 1;
+    }
+
+    if (matrixRows.length >= 2) {
+      out.push(`[ ${matrixRows.join("; ")} ]`);
+      i = j - 1;
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join("\n");
+}
+
+export function sanitizeExtractedPdfText(raw: string) {
+  let text = (raw || "").replace(/\uFFFD/g, "");
+
+  text = text
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+    .replace(/\r\n?/g, "\n");
+
+  text = text.normalize("NFKC");
+
+  text = text
+    .replace(/(\d+(?:\.\d+)?)\s*\n\s*o\b/g, "$1°")
+    .replace(/\(([A-Za-z])\1\)/g, "($1)");
+
+  text = normalizeMatrixPlaceholders(text)
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n");
+
+  return text;
+}
+
 export async function pdfToText(
   buf: Buffer
 ): Promise<{ text: string; pageCount: number }> {
@@ -66,7 +121,7 @@ export async function pdfToText(
   const parsed = await pdfParse(buf, { pagerender });
   const pageCount = Number(parsed?.numpages || 0);
   const rawText = (parsed?.text || "").toString();
-  const text = (pages.length ? pages.join("\f") : rawText).trim();
+  const text = sanitizeExtractedPdfText(pages.length ? pages.join("\f") : rawText).trim();
 
   return { text, pageCount };
 }

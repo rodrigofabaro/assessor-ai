@@ -2,7 +2,7 @@
 
 import { Btn } from "../../components/ui";
 
-export type BriefTabKey = "overview" | "tasks" | "versions" | "iv" | "rubric";
+export type BriefTabKey = "overview" | "tasks" | "pages" | "versions" | "iv" | "rubric";
 
 export function BriefTabs({ tab, onChange }: { tab: BriefTabKey; onChange: (next: BriefTabKey) => void }) {
   return (
@@ -12,6 +12,9 @@ export function BriefTabs({ tab, onChange }: { tab: BriefTabKey; onChange: (next
       </Btn>
       <Btn kind={tab === "tasks" ? "primary" : "ghost"} onClick={() => onChange("tasks")}>
         Tasks
+      </Btn>
+      <Btn kind={tab === "pages" ? "primary" : "ghost"} onClick={() => onChange("pages")}>
+        Pages
       </Btn>
       <Btn kind={tab === "versions" ? "primary" : "ghost"} onClick={() => onChange("versions")}>
         Versions

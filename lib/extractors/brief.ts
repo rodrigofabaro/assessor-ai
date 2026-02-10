@@ -1,5 +1,6 @@
 import { firstMatch, normalizeWhitespace } from "./common";
 import { extractCriteriaCodesFromText } from "../extraction/utils/criteriaCodes";
+import { sanitizeExtractedPdfText } from "../extraction/text/pdfToText";
 
 /**
  * BRIEF extractor
@@ -550,6 +551,20 @@ function hasRomanContinuation(lines: string[], startIndex: number, lookahead = 6
   return false;
 }
 
+function hasUncleanMathLine(text: string) {
+  return /[\u{1D400}-\u{1D7FF}\uD479]/u.test(text || "");
+}
+
+function looksLikeTableContent(text: string) {
+  const lines = splitLines(text || "");
+  let rowLike = 0;
+  for (const line of lines) {
+    const cols = line.trim().split(/\s{2,}|\t+/).filter(Boolean);
+    if (cols.length >= 3 && /\d/.test(line)) rowLike += 1;
+  }
+  return rowLike >= 2;
+}
+
 function extractParts(text: string): Array<{ key: string; text: string }> | null {
   const lines = splitLines(text);
   const parts: Array<{ key: string; text: string }> = [];
@@ -812,6 +827,33 @@ function extractBriefTasks(
   }
   selectedHeadings.sort((a, b) => a.index - b.index);
 
+  const headingNumbers = selectedHeadings.map((h) => h.n);
+  const confidentSlice =
+    headingNumbers.length > 0 &&
+    headingNumbers[0] === 1 &&
+    headingNumbers.every((n, idx) => idx === 0 || n === headingNumbers[idx - 1] + 1);
+
+  if (!confidentSlice) {
+    warnings.push("Task slicing uncertain; falling back to one Unstructured task.");
+    const unstructured = cleanTaskLines(linesWithPages.map((l) => l.raw)).join("\n").trim();
+    return {
+      tasks: [
+        {
+          n: 0,
+          label: "Unstructured",
+          title: "Unstructured",
+          text: unstructured,
+          prompt: unstructured,
+          pages: Array.from(new Set(linesWithPages.map((l) => l.page))),
+          warnings: ["task slicing fallback: UNSTRUCTURED"],
+          confidence: "HEURISTIC",
+        },
+      ],
+      warnings,
+      endMatter,
+    };
+  }
+
   const tasks: BriefTask[] = [];
 
   const firstHeading = selectedHeadings[0];
@@ -884,6 +926,12 @@ function extractBriefTasks(
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
     const parts = extractParts(textBody);
+    if (hasUncleanMathLine(textBody)) {
+      taskWarnings.push("MATH_UNCLEAN");
+    }
+    if (looksLikeTableContent(textBody) && !parts) {
+      taskWarnings.push("TABLE_UNSTRUCTURED");
+    }
     const confidenceWarnings = taskWarnings.filter(
       (warning) => warning !== "duplicate heading candidates merged"
     );
@@ -990,7 +1038,7 @@ function findCriteriaRegion(pages: string[]) {
 }
 
 export function extractBrief(text: string, fallbackTitle: string) {
-  const t = text || "";
+  const t = sanitizeExtractedPdfText(text || "");
 
   // Unit number and title 4015: ...
   const unitCodeGuess =
@@ -1062,10 +1110,11 @@ export function extractBrief(text: string, fallbackTitle: string) {
 }
 
 export function debugBriefExtraction(text: string) {
-  const pages = splitPages(text);
+  const clean = sanitizeExtractedPdfText(text || "");
+  const pages = splitPages(clean);
   const headerSource = pages[0] || text;
   const header = extractBriefHeaderFromPreview(headerSource);
-  const tasks = extractBriefTasks(text, pages);
+  const tasks = extractBriefTasks(clean, pages);
   const criteriaRegion = findCriteriaRegion(pages);
   const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : [];
   const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
