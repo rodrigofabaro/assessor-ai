@@ -421,6 +421,8 @@ export function TaskCard({
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
   const title = deriveTitle(task);
   const criteria = getCriteria(task);
+  const hasExplicitParts = Array.isArray(task?.parts) && task.parts.length > 0;
+  const taskKeyPrefix = `task-${String(task?.n ?? "unknown")}`;
   const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
@@ -453,8 +455,14 @@ export function TaskCard({
   }, [task?.text]);
 
   // Heavy Parsing
-  const blocks = useMemo(() => parseBlocks(textWithoutContext), [textWithoutContext]);
-  const parsedParts = useMemo(() => parseParts(task?.text || "", task?.parts), [task?.parts, task?.text]);
+  const blocks = useMemo(
+    () => (hasExplicitParts ? [] : parseBlocks(textWithoutContext)),
+    [hasExplicitParts, textWithoutContext]
+  );
+  const parsedParts = useMemo(
+    () => (hasExplicitParts ? parseParts(task?.text || "", task?.parts) : []),
+    [hasExplicitParts, task?.parts, task?.text]
+  );
   const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
 
   // Duplicate Detection
@@ -616,20 +624,20 @@ export function TaskCard({
             )}
 
             {/* Render Parsed Parts */}
-            {parsedParts.length > 0 && (
+            {hasExplicitParts && parsedParts.length > 0 && (
               <div className="mb-4">
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   Question parts
                 </div>
                 <ol className="list-[lower-alpha] space-y-2 pl-6">
                   {parsedParts.map((part: any, partIdx: number) => (
-                    <li key={`${part.key}-${partIdx}`}>
-                      <div>{renderInlineText(part.text)}</div>
+                    <li key={`${taskKeyPrefix}-part-${partIdx}-${String(part.key ?? "")}`}>
+                      <div className="whitespace-pre-wrap">{renderInlineText(part.text)}</div>
                       {part.children?.length ? (
                         <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
                           {part.children.map((child: any, childIdx: number) => (
-                            <li key={`${part.key}-${partIdx}-${child.key}-${childIdx}`}>
-                              {renderInlineText(child.text)}
+                            <li key={`${taskKeyPrefix}-part-${partIdx}-child-${childIdx}-${String(child.key ?? "")}`}>
+                              <span className="whitespace-pre-wrap">{renderInlineText(child.text)}</span>
                             </li>
                           ))}
                         </ol>
@@ -680,7 +688,7 @@ export function TaskCard({
             )}
 
             {/* Hidden Blocks Toggle */}
-            {duplicateInfo.hiddenCount > 0 && (
+            {!hasExplicitParts && duplicateInfo.hiddenCount > 0 && (
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-900">
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
                   Repeated blocks hidden
@@ -696,11 +704,13 @@ export function TaskCard({
             )}
 
             {/* Main Text Body */}
-            <TaskBody 
-              blocks={blocks} 
-              duplicateInfo={duplicateInfo} 
-              showRepeated={showRepeated} 
-            />
+            {!hasExplicitParts && (
+              <TaskBody 
+                blocks={blocks} 
+                duplicateInfo={duplicateInfo} 
+                showRepeated={showRepeated} 
+              />
+            )}
           </div>
 
           <TaskSidebar 
