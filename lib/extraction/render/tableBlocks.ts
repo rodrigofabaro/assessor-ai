@@ -24,10 +24,27 @@ function splitColumns(line: string): string[] {
   return clean.split(/\s{2,}|\t+/).map((part) => part.trim()).filter(Boolean);
 }
 
+function isNumericLikeCell(cell: string) {
+  return /^([<>]=?\s*)?[-+]?\d+(\.\d+)?(%|[a-z]+)?$/i.test(cell.replace(/,/g, "").trim());
+}
+
 function hasMostlyNumericCells(cells: string[]) {
   if (!cells.length) return false;
-  const numeric = cells.filter((cell) => /^[-+]?\d+(\.\d+)?(%|[a-z]+)?$/i.test(cell.replace(/,/g, ""))).length;
+  const numeric = cells.filter((cell) => isNumericLikeCell(cell)).length;
   return numeric >= Math.ceil(cells.length / 2);
+}
+
+function hasBeforeAfterHeaders(headers: string[]) {
+  const joined = headers.join(" ").toLowerCase();
+  return joined.includes("before") && joined.includes("after");
+}
+
+function looksLikeDataRow(row: string[], expectedColumns: number) {
+  if (row.length < Math.max(2, expectedColumns - 1)) return false;
+  const tail = row.slice(1);
+  if (!tail.length) return false;
+  if (row[0].toLowerCase() === "total") return tail.every(isNumericLikeCell);
+  return tail.every(isNumericLikeCell);
 }
 
 function fromStructured(task: any): TableBlock[] {
@@ -76,23 +93,27 @@ export function detectTableBlocks(task: any): TableBlock[] {
 
     if (candidateLines.length >= 3) {
       const matrix = candidateLines.map(splitColumns);
-      const columnCount = Math.max(...matrix.map((row) => row.length));
-      const consistentRows = matrix.filter((row) => row.length >= Math.max(2, columnCount - 1));
-      const likelyTable = consistentRows.length >= 3;
-      if (likelyTable) {
-        const headers = matrix[0];
-        const rows = matrix.slice(1);
-        const shouldFallback = headers.length < 2 || !rows.some((row) => hasMostlyNumericCells(row));
-        if (shouldFallback) {
-          blocks.push({
-            type: "unstructured",
-            text: candidateLines.join("\n"),
-            warning: "TABLE UNSTRUCTURED",
-          });
-        } else {
-          blocks.push({ type: "table", headers, rows });
-        }
+      const header = matrix[0];
+      const rows = matrix.slice(1).filter((row) => row.length >= 2);
+      const columnCount = header.length;
+      const numericRows = rows.filter((row) => hasMostlyNumericCells(row.slice(1)) || looksLikeDataRow(row, columnCount));
+      const isBeforeAfterStyle = hasBeforeAfterHeaders(header) && numericRows.length >= 2;
+      const hasConsistentWidth = rows.filter((row) => row.length >= Math.max(2, columnCount - 1)).length >= 2;
+
+      if (isBeforeAfterStyle || (hasConsistentWidth && numericRows.length >= 2)) {
+        blocks.push({
+          type: "table",
+          headers: header,
+          rows,
+        });
+      } else {
+        blocks.push({
+          type: "unstructured",
+          text: candidateLines.join("\n"),
+          warning: "TABLE UNSTRUCTURED",
+        });
       }
+
       i = j;
       continue;
     }

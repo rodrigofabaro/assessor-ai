@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Pill } from "./ui";
 import { detectTableBlocks } from "@/lib/extraction/render/tableBlocks";
-import { parseParts } from "@/lib/extraction/render/parseParts";
+import { extractIntroBeforeParts, parseParts } from "@/lib/extraction/render/parseParts";
 
 // --- Types ---
 
@@ -80,6 +80,56 @@ function cleanEncodingNoise(text: string) {
   );
 }
 
+function startsWithListMarker(line: string) {
+  const trimmed = line.trim();
+  return /^([-•]|\d+[\.)]|[a-z][\.)]|[ivxlcdm]+[\.)])\s+/i.test(trimmed);
+}
+
+function reflowWrappedText(text: string) {
+  const lines = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n");
+  const paragraphs: string[] = [];
+  let chunk: string[] = [];
+
+  const flushChunk = () => {
+    if (!chunk.length) {
+      paragraphs.push("");
+      return;
+    }
+
+    let rebuilt = "";
+    for (let i = 0; i < chunk.length; i += 1) {
+      const current = chunk[i].trim();
+      if (!current) continue;
+      if (!rebuilt) {
+        rebuilt = current;
+        continue;
+      }
+
+      const prev = chunk[i - 1]?.trim() || "";
+      const keepHardBreak = /[.!?:;]$/.test(prev) || startsWithListMarker(current);
+      rebuilt += keepHardBreak ? `\n${current}` : ` ${current}`;
+    }
+
+    paragraphs.push(rebuilt.trim());
+    chunk = [];
+  };
+
+  for (const line of lines) {
+    if (!line.trim()) {
+      flushChunk();
+      continue;
+    }
+    chunk.push(line);
+  }
+
+  if (chunk.length) flushChunk();
+
+  return paragraphs.join("\n\n").trim();
+}
+
 function deriveTitle(task: Task) {
   if (task?.title) return String(task.title).trim();
   if (task?.heading) return String(task.heading).trim();
@@ -135,7 +185,7 @@ function parseBlocks(text: string): TextBlock[] {
   let listStyle: "decimal" | "alpha" | "roman" | "bullet" | null = null;
 
   const flushParagraph = () => {
-    const content = paragraph.join("\n").trim();
+    const content = reflowWrappedText(paragraph.join("\n"));
     if (content) blocks.push({ type: "p", text: content });
     paragraph = [];
   };
@@ -191,7 +241,7 @@ function parseBlocks(text: string): TextBlock[] {
       flushParagraph();
       if (listStyle && listStyle !== orderedMatch.style) flushList();
       listStyle = orderedMatch.style;
-      listItems.push(orderedMatch.match[2]);
+      listItems.push(reflowWrappedText(orderedMatch.match[2]));
       continue;
     }
 
@@ -201,13 +251,13 @@ function parseBlocks(text: string): TextBlock[] {
       flushParagraph();
       if (listStyle && listStyle !== "bullet") flushList();
       listStyle = "bullet";
-      listItems.push(bulletMatch[1]);
+      listItems.push(reflowWrappedText(bulletMatch[1]));
       continue;
     }
 
     // Continuation of list item
     if (listItems.length) {
-      listItems[listItems.length - 1] += ` ${line}`;
+      listItems[listItems.length - 1] = reflowWrappedText(`${listItems[listItems.length - 1]} ${line}`);
       continue;
     }
 
@@ -422,7 +472,6 @@ export function TaskCard({
   const title = deriveTitle(task);
   const criteria = getCriteria(task);
   const hasExplicitParts = Array.isArray(task?.parts) && task.parts.length > 0;
-  const taskKeyPrefix = `task-${String(task?.n ?? "unknown")}`;
   const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
@@ -454,14 +503,20 @@ export function TaskCard({
     return { contextLines: Array.from(context), textWithoutContext: filteredText };
   }, [task?.text]);
 
+  const { introText, bodyText: bodyTextWithoutIntro } = useMemo(
+    () => extractIntroBeforeParts(textWithoutContext),
+    [textWithoutContext]
+  );
+  const introTextReflowed = useMemo(() => reflowWrappedText(introText), [introText]);
+
   // Heavy Parsing
   const blocks = useMemo(
-    () => (hasExplicitParts ? [] : parseBlocks(textWithoutContext)),
-    [hasExplicitParts, textWithoutContext]
+    () => (hasExplicitParts ? [] : parseBlocks(reflowWrappedText(bodyTextWithoutIntro || textWithoutContext))),
+    [bodyTextWithoutIntro, hasExplicitParts, textWithoutContext]
   );
   const parsedParts = useMemo(
-    () => (hasExplicitParts ? parseParts(task?.text || "", task?.parts) : []),
-    [hasExplicitParts, task?.parts, task?.text]
+    () => (hasExplicitParts ? parseParts(bodyTextWithoutIntro || textWithoutContext, task?.parts) : []),
+    [bodyTextWithoutIntro, hasExplicitParts, task?.parts, textWithoutContext]
   );
   const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
 
@@ -623,21 +678,28 @@ export function TaskCard({
               </div>
             )}
 
+            {introTextReflowed && (
+              <div className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
+                <div className="font-semibold text-zinc-700">Vocational scenario / context</div>
+                <div className="mt-1 whitespace-pre-wrap">{renderInlineText(introTextReflowed)}</div>
+              </div>
+            )}
+
             {/* Render Parsed Parts */}
             {hasExplicitParts && parsedParts.length > 0 && (
               <div className="mb-4">
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Question parts
+                  Task questions
                 </div>
                 <ol className="list-[lower-alpha] space-y-2 pl-6">
                   {parsedParts.map((part: any, partIdx: number) => (
-                    <li key={`${taskKeyPrefix}-part-${partIdx}-${String(part.key ?? "")}`}>
-                      <div className="whitespace-pre-wrap">{renderInlineText(part.text)}</div>
+                    <li key={`${String(part.key ?? "part")}-${partIdx}`}>
+                      <div className="whitespace-pre-wrap">{renderInlineText(reflowWrappedText(part.text || ""))}</div>
                       {part.children?.length ? (
                         <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
                           {part.children.map((child: any, childIdx: number) => (
-                            <li key={`${taskKeyPrefix}-part-${partIdx}-child-${childIdx}-${String(child.key ?? "")}`}>
-                              <span className="whitespace-pre-wrap">{renderInlineText(child.text)}</span>
+                            <li key={`${String(part.key ?? "part")}-${partIdx}-${String(child.key ?? "child")}-${childIdx}`}>
+                              <span className="whitespace-pre-wrap">{renderInlineText(reflowWrappedText(child.text || ""))}</span>
                             </li>
                           ))}
                         </ol>

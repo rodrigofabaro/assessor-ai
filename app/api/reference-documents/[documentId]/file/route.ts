@@ -10,7 +10,11 @@ function safeStr(x: unknown) {
   return typeof x === "string" ? x : "";
 }
 
-export async function GET(_req: Request, { params }: { params: { documentId: string } }) {
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ documentId: string }> }
+) {
+  const params = await ctx.params;
   const documentId = safeStr(params?.documentId);
   if (!documentId) return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
 

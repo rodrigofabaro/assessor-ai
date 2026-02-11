@@ -12,7 +12,8 @@ function sortKey(key: string) {
   return key
     .split(".")
     .map((chunk) => {
-      if (/^\d+$/.test(chunk)) return chunk.padStart(3, "0");
+      const n = Number(chunk);
+      if (!Number.isNaN(n)) return String(n).padStart(4, "0");
       return chunk;
     })
     .join(".");
@@ -44,11 +45,29 @@ function normalizeProvidedParts(parts: Array<{ key?: string; text?: string }> | 
   return roots.map((node) => ({ ...node, children: node.children?.length ? node.children : undefined }));
 }
 
+const TOP_LEVEL_PART_REGEX = /^([a-z])[\.)]\s+/i;
+
+export function extractIntroBeforeParts(text: string): { introText: string; bodyText: string } {
+  const normalized = normalizeText(text);
+  if (!normalized) return { introText: "", bodyText: "" };
+
+  const lines = normalized.split("\n");
+  const firstPartIndex = lines.findIndex((line) => TOP_LEVEL_PART_REGEX.test(line.trim()));
+  if (firstPartIndex <= 0) {
+    return { introText: "", bodyText: normalized };
+  }
+
+  const introText = lines.slice(0, firstPartIndex).join("\n").trim();
+  const bodyText = lines.slice(firstPartIndex).join("\n").trim();
+  return { introText, bodyText };
+}
+
 export function parseParts(text: string, providedParts?: Array<{ key?: string; text?: string }>): ParsedPart[] {
   const fromProvided = normalizeProvidedParts(providedParts);
   if (fromProvided.length) return fromProvided;
 
-  const normalized = normalizeText(text);
+  const { bodyText } = extractIntroBeforeParts(text);
+  const normalized = normalizeText(bodyText);
   if (!normalized) return [];
 
   const lines = normalized.split("\n");
