@@ -36,6 +36,13 @@ type BriefTask = {
   parts?: Array<{ key: string; text: string }>;
   warnings?: string[];
   confidence?: "CLEAN" | "HEURISTIC";
+  scenarioText?: string | null;
+};
+
+type BriefScenario = {
+  text: string;
+  pages?: number[];
+  appliesToTask?: number;
 };
 
 function normHeader(s: string) {
@@ -604,7 +611,12 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 function extractBriefTasks(
   text: string,
   pages: string[]
-): { tasks: BriefTask[]; warnings: string[]; endMatter: { sourcesBlock: string | null; criteriaBlock: string | null } | null } {
+): {
+  tasks: BriefTask[];
+  scenarios: BriefScenario[];
+  warnings: string[];
+  endMatter: { sourcesBlock: string | null; criteriaBlock: string | null } | null;
+} {
   const warnings: string[] = [];
   const sourcePages = pages.length ? pages : [text];
   const normalizeLine = (line: string) =>
@@ -789,6 +801,57 @@ function extractBriefTasks(
 
   const tasks: BriefTask[] = [];
 
+  const scenarioHeadingRegex = /(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context)\b/i;
+  const scenarioRanges: Array<{ start: number; end: number; appliesToTask?: number; pages: number[]; text: string }> = [];
+  const scenarios: BriefScenario[] = [];
+
+  for (let i = 0; i < linesWithPages.length; i += 1) {
+    const line = linesWithPages[i]?.line || "";
+    let headingEndIndex = i;
+    let headingMatched = scenarioHeadingRegex.test(line);
+    if (!headingMatched) {
+      const windowText = [line, linesWithPages[i + 1]?.line || "", linesWithPages[i + 2]?.line || ""]
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      headingMatched = scenarioHeadingRegex.test(windowText);
+      if (headingMatched) {
+        headingEndIndex = i + 2;
+      }
+    }
+    if (!headingMatched) continue;
+    const nextTask = selectedHeadings.find((candidate) => candidate.index > i);
+    if (!nextTask) continue;
+    const nextScenarioHeadingIndex = linesWithPages.findIndex(
+      (entry, lineIndex) => lineIndex > i && scenarioHeadingRegex.test(entry.line)
+    );
+    const endIndex =
+      nextScenarioHeadingIndex > i
+        ? Math.min(nextTask.index, nextScenarioHeadingIndex)
+        : nextTask.index;
+    if (endIndex <= headingEndIndex + 1) continue;
+    const scenarioLines = cleanTaskLines(
+      linesWithPages.slice(headingEndIndex + 1, endIndex).map((entry) => entry.line)
+    );
+    const scenarioText = scenarioLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    const cleanedScenarioText = scenarioText.replace(/^context\b\s*[:\-–—]?\s*/i, "").trim();
+    if (!cleanedScenarioText) continue;
+    const scenarioPages = Array.from(new Set(linesWithPages.slice(i, endIndex).map((entry) => entry.page)));
+    scenarioRanges.push({
+      start: i,
+      end: endIndex,
+      appliesToTask: nextTask.n,
+      pages: scenarioPages,
+      text: cleanedScenarioText,
+    });
+    scenarios.push({
+      text: cleanedScenarioText,
+      pages: scenarioPages,
+      appliesToTask: nextTask.n,
+    });
+    i = endIndex - 1;
+  }
+
   const firstHeading = selectedHeadings[0];
   if (firstHeading && firstHeading.index > 0) {
     const preLines = linesWithPages.slice(0, firstHeading.index).map((l) => l.line).join("\n");
@@ -821,6 +884,10 @@ function extractBriefTasks(
     const bodyLines = cleanTaskLines(
       linesWithPages
         .slice(start, end)
+        .filter((_line, lineIndex) => {
+          const absoluteIndex = start + lineIndex;
+          return !scenarioRanges.some((range) => absoluteIndex >= range.start && absoluteIndex < range.end);
+        })
         .filter((_line, lineIndex) => !headingCandidateIndices.has(start + lineIndex))
         .map((l) => l.line)
     );
@@ -872,6 +939,7 @@ function extractBriefTasks(
       text: reflowedTextBody,
       prompt: reflowedTextBody,
       parts: parts || undefined,
+      scenarioText: scenarios.find((scenario) => scenario.appliesToTask === heading.n)?.text || null,
       warnings: taskWarnings.length ? taskWarnings : undefined,
       confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",
     });
@@ -901,7 +969,7 @@ function extractBriefTasks(
     updatedEndMatter = sourcesBlock || criteriaBlock ? { sourcesBlock, criteriaBlock } : null;
   }
 
-  return { tasks, warnings, endMatter: updatedEndMatter };
+  return { tasks, scenarios, warnings, endMatter: updatedEndMatter };
 }
 
 function parseUnitNumberAndTitle(raw: string | null | undefined): { unitNumber?: string; unitTitle?: string } {
@@ -1032,6 +1100,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     criteriaCodes,
     loHeaders,
     endMatter: tasksResult.endMatter || null,
+    scenarios: tasksResult.scenarios,
     tasks: tasksResult.tasks,
     warnings: warnings.length ? warnings : undefined,
   };
@@ -1061,6 +1130,7 @@ export function debugBriefExtraction(text: string) {
       pages: t.pages,
       promptPreview: (t.text || "").slice(0, 300),
     })),
+    scenarios: tasks.scenarios,
     endMatter: tasks.endMatter || null,
     criteriaRefs,
     loHeaders,

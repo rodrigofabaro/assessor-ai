@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Pill } from "./ui";
 import { detectTableBlocks } from "@/lib/extraction/render/tableBlocks";
-import { extractIntroBeforeParts, parseParts } from "@/lib/extraction/render/parseParts";
+import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
 
 // --- Types ---
 
@@ -26,12 +26,6 @@ interface Task {
   [key: string]: any;
 }
 
-type TextBlock =
-  | { type: "heading"; text: string }
-  | { type: "p"; text: string }
-  | { type: "ol"; items: string[]; style: "decimal" | "alpha" | "roman" }
-  | { type: "ul"; items: string[] };
-
 type TaskCardProps = {
   task: Task;
   extractedTask?: Task | null;
@@ -43,15 +37,6 @@ type TaskCardProps = {
 // --- Constants & Regex (Hoisted for Performance) ---
 
 const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
-const HEADING_REGEX_TASK = /^Task\s*\d+\b/i;
-const HEADING_REGEX_CAPS = /^[A-Z0-9][A-Z0-9\s\-–—()]+$/;
-const HEADING_REGEX_COLON = /^[A-Z][A-Za-z0-9\s\-–—()]+:$/;
-const LIST_MATCHERS = [
-  { style: "decimal", regex: /^(\d+)\.\s+(.*)$/ },
-  { style: "alpha", regex: /^([a-z])[\.)]\s+(.*)$/i },
-  { style: "roman", regex: /^([ivxlcdm]+)[\.)]\s+(.*)$/i },
-] as const;
-const BULLET_REGEX = /^[-•]\s+(.*)$/;
 
 // --- Helper Functions ---
 
@@ -173,103 +158,6 @@ function wordCount(text: string) {
   return normalized.split(/\s+/).filter(Boolean).length;
 }
 
-function parseBlocks(text: string): TextBlock[] {
-  const normalized = normalizeText(cleanEncodingNoise(text));
-  if (!normalized) return [];
-
-  const lines = normalized.split("\n");
-  const blocks: TextBlock[] = [];
-  
-  let paragraph: string[] = [];
-  let listItems: string[] = [];
-  let listStyle: "decimal" | "alpha" | "roman" | "bullet" | null = null;
-
-  const flushParagraph = () => {
-    const content = reflowWrappedText(paragraph.join("\n"));
-    if (content) blocks.push({ type: "p", text: content });
-    paragraph = [];
-  };
-
-  const flushList = () => {
-    if (listItems.length) {
-      if (listStyle === "bullet") {
-        blocks.push({ type: "ul", items: [...listItems] });
-      } else {
-        blocks.push({
-          type: "ol",
-          items: [...listItems],
-          style: (listStyle || "decimal") as "decimal" | "alpha" | "roman",
-        });
-      }
-    }
-    listItems = [];
-    listStyle = null;
-  };
-
-  const isHeadingLine = (line: string) => {
-    if (!line) return false;
-    const trimmed = line.trim();
-    if (!trimmed) return false;
-    if (HEADING_REGEX_TASK.test(trimmed)) return true;
-    if (HEADING_REGEX_CAPS.test(trimmed) && trimmed.length <= 80) return true;
-    if (HEADING_REGEX_COLON.test(trimmed) && trimmed.length <= 80) return true;
-    return false;
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-
-    if (!line) {
-      flushList();
-      flushParagraph();
-      continue;
-    }
-
-    if (isHeadingLine(line)) {
-      flushList();
-      flushParagraph();
-      blocks.push({ type: "heading", text: line.replace(/:\s*$/, "") });
-      continue;
-    }
-
-    // Check Ordered Lists
-    const orderedMatch = LIST_MATCHERS
-      .map((m) => ({ match: line.match(m.regex), style: m.style }))
-      .find((m) => m.match);
-
-    if (orderedMatch?.match) {
-      flushParagraph();
-      if (listStyle && listStyle !== orderedMatch.style) flushList();
-      listStyle = orderedMatch.style;
-      listItems.push(reflowWrappedText(orderedMatch.match[2]));
-      continue;
-    }
-
-    // Check Unordered Lists
-    const bulletMatch = line.match(BULLET_REGEX);
-    if (bulletMatch) {
-      flushParagraph();
-      if (listStyle && listStyle !== "bullet") flushList();
-      listStyle = "bullet";
-      listItems.push(reflowWrappedText(bulletMatch[1]));
-      continue;
-    }
-
-    // Continuation of list item
-    if (listItems.length) {
-      listItems[listItems.length - 1] = reflowWrappedText(`${listItems[listItems.length - 1]} ${line}`);
-      continue;
-    }
-
-    paragraph.push(line);
-  }
-
-  flushList();
-  flushParagraph();
-  return blocks;
-}
-
-
   // Reset lastIndex because we are reusing the global regex (if it were global) 
   // or creating a new instance. Since we moved it out, we must be careful.
   // Ideally, re-create regex or use split. 
@@ -381,74 +269,6 @@ function TaskSidebar({
   );
 }
 
-function TaskBody({
-  blocks,
-  duplicateInfo,
-  showRepeated,
-}: {
-  blocks: TextBlock[];
-  duplicateInfo: { duplicates: Set<number> };
-  showRepeated: boolean;
-}) {
-  if (!blocks.length) {
-    return <div className="text-zinc-500">(no body detected)</div>;
-  }
-
-  return (
-    <div className="grid gap-3">
-      {blocks.map((block, idx) => {
-        const isDuplicate = duplicateInfo.duplicates.has(idx);
-        if (isDuplicate && !showRepeated) return null;
-
-        const commonClass = isDuplicate ? "rounded-lg bg-amber-50 p-2" : "";
-
-        if (block.type === "heading") {
-          return (
-            <div key={`h-${idx}`} className={`text-sm font-semibold text-zinc-900 ${commonClass}`}>
-              {renderInlineText(block.text)}
-            </div>
-          );
-        }
-        
-        if (block.type === "p") {
-          return (
-            <p key={`p-${idx}`} className={`whitespace-pre-wrap leading-relaxed ${commonClass}`}>
-              {renderInlineText(block.text)}
-            </p>
-          );
-        }
-
-        if (block.type === "ul") {
-          return (
-            <ul key={`ul-${idx}`} className={`list-disc space-y-1 pl-5 ${commonClass}`}>
-              {block.items.map((item, i) => (
-                <li key={i} className="leading-relaxed">{renderInlineText(item)}</li>
-              ))}
-            </ul>
-          );
-        }
-
-        if (block.type === "ol") {
-          const styleClass =
-            block.style === "alpha" ? "list-[lower-alpha] pl-7" :
-            block.style === "roman" ? "list-[lower-roman] pl-9" : 
-            "list-decimal pl-6";
-          
-          return (
-            <ol key={`ol-${idx}`} className={`space-y-1 ${styleClass} ${commonClass}`}>
-              {block.items.map((item, i) => (
-                <li key={i} className="leading-relaxed">{renderInlineText(item)}</li>
-              ))}
-            </ol>
-          );
-        }
-
-        return null;
-      })}
-    </div>
-  );
-}
-
 // --- Main Component ---
 
 export function TaskCard({
@@ -460,7 +280,6 @@ export function TaskCard({
 }: TaskCardProps) {
   const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
-  const [showRepeated, setShowRepeated] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
 
@@ -471,7 +290,6 @@ export function TaskCard({
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
   const title = deriveTitle(task);
   const criteria = getCriteria(task);
-  const hasExplicitParts = Array.isArray(task?.parts) && task.parts.length > 0;
   const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
@@ -508,43 +326,14 @@ export function TaskCard({
     [textWithoutContext]
   );
   const introTextReflowed = useMemo(() => reflowWrappedText(introText), [introText]);
+  const extractedScenarioText = typeof task?.scenarioText === "string" ? task.scenarioText.trim() : "";
+  const scenarioText = extractedScenarioText || introTextReflowed;
+  const taskQuestionsText = useMemo(
+    () => reflowWrappedText(bodyTextWithoutIntro || textWithoutContext),
+    [bodyTextWithoutIntro, textWithoutContext]
+  );
 
-  // Heavy Parsing
-  const blocks = useMemo(
-    () => (hasExplicitParts ? [] : parseBlocks(reflowWrappedText(bodyTextWithoutIntro || textWithoutContext))),
-    [bodyTextWithoutIntro, hasExplicitParts, textWithoutContext]
-  );
-  const parsedParts = useMemo(
-    () => (hasExplicitParts ? parseParts(bodyTextWithoutIntro || textWithoutContext, task?.parts) : []),
-    [bodyTextWithoutIntro, hasExplicitParts, task?.parts, textWithoutContext]
-  );
   const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
-
-  // Duplicate Detection
-  const duplicateInfo = useMemo(() => {
-    if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
-    
-    const keyFor = (block: TextBlock) => {
-      const raw = block.type === "ol" || block.type === "ul" ? block.items.join(" ") : block.text;
-      const key = normalizeText(raw).toLowerCase();
-      // Only treat long blocks as duplicates to avoid false positives on short generic phrases
-      return key.length >= 80 ? key : "";
-    };
-
-    const counts = new Map<string, number>();
-    blocks.forEach((block) => {
-      const key = keyFor(block);
-      if (key) counts.set(key, (counts.get(key) || 0) + 1);
-    });
-
-    const duplicates = new Set<number>();
-    blocks.forEach((block, idx) => {
-      const key = keyFor(block);
-      if (key && (counts.get(key) || 0) > 1) duplicates.add(idx);
-    });
-
-    return { duplicates, hiddenCount: duplicates.size };
-  }, [blocks]);
 
   // Diff Logic
   const diffData = useMemo(() => {
@@ -587,9 +376,6 @@ export function TaskCard({
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
             {warningItems.length > 0 && (
               <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Warnings</Pill>
-            )}
-            {duplicateInfo.duplicates.size > 0 && (
-              <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Duplicate suspected</Pill>
             )}
           </div>
           
@@ -678,37 +464,17 @@ export function TaskCard({
               </div>
             )}
 
-            {introTextReflowed && (
-              <div className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
-                <div className="font-semibold text-zinc-700">Vocational scenario / context</div>
-                <div className="mt-1 whitespace-pre-wrap">{renderInlineText(introTextReflowed)}</div>
+            {scenarioText && (
+              <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
+                <div className="mt-2 whitespace-pre-wrap leading-relaxed">{renderInlineText(scenarioText)}</div>
               </div>
             )}
 
-            {/* Render Parsed Parts */}
-            {hasExplicitParts && parsedParts.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Task questions
-                </div>
-                <ol className="list-[lower-alpha] space-y-2 pl-6">
-                  {parsedParts.map((part: any, partIdx: number) => (
-                    <li key={`${String(part.key ?? "part")}-${partIdx}`}>
-                      <div className="whitespace-pre-wrap">{renderInlineText(reflowWrappedText(part.text || ""))}</div>
-                      {part.children?.length ? (
-                        <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
-                          {part.children.map((child: any, childIdx: number) => (
-                            <li key={`${String(part.key ?? "part")}-${partIdx}-${String(child.key ?? "child")}-${childIdx}`}>
-                              <span className="whitespace-pre-wrap">{renderInlineText(reflowWrappedText(child.text || ""))}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
+            <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">{label}</div>
+              <div className="mt-2 whitespace-pre-wrap leading-relaxed">{renderInlineText(taskQuestionsText)}</div>
+            </div>
 
             {/* Render Tables */}
             {tableBlocks.length > 0 && (
@@ -749,30 +515,6 @@ export function TaskCard({
               </div>
             )}
 
-            {/* Hidden Blocks Toggle */}
-            {!hasExplicitParts && duplicateInfo.hiddenCount > 0 && (
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-900">
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
-                  Repeated blocks hidden
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowRepeated((prev) => !prev)}
-                  className="rounded-full border border-amber-200 bg-white px-2 py-0.5 font-semibold text-amber-900 hover:bg-amber-50"
-                >
-                  {showRepeated ? "Hide repeated blocks" : `Show repeated blocks (${duplicateInfo.hiddenCount})`}
-                </button>
-              </div>
-            )}
-
-            {/* Main Text Body */}
-            {!hasExplicitParts && (
-              <TaskBody 
-                blocks={blocks} 
-                duplicateInfo={duplicateInfo} 
-                showRepeated={showRepeated} 
-              />
-            )}
           </div>
 
           <TaskSidebar 
@@ -781,7 +523,7 @@ export function TaskCard({
             confidence={confidence}
             warningsCount={warningItems.length}
             tablesCount={tableBlocks.length}
-            partsCount={parsedParts.length}
+            partsCount={Array.isArray(task?.parts) ? task.parts.length : 0}
           />
         </div>
       )}
