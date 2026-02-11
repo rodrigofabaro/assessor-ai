@@ -59,12 +59,6 @@ function normalizeText(text: string) {
     .trim();
 }
 
-function cleanEncodingNoise(text: string) {
-  return (text || "").replace(/[\uFFFD\u0000-\u001F]/g, (match) =>
-    match === "\n" ? "\n" : " "
-  );
-}
-
 function startsWithListMarker(line: string) {
   const trimmed = line.trim();
   return /^([-•]|\d+[\.)]|[a-z][\.)]|[ivxlcdm]+[\.)])\s+/i.test(trimmed);
@@ -115,23 +109,6 @@ function reflowWrappedText(text: string) {
   return paragraphs.join("\n\n").trim();
 }
 
-function deriveTitle(task: Task) {
-  if (task?.title) return String(task.title).trim();
-  if (task?.heading) return String(task.heading).trim();
-  
-  const text = normalizeText(task?.text || "");
-  if (!text) return "Untitled";
-
-  const firstLine = text.split("\n").map((l) => l.trim()).find(Boolean) || "";
-  
-  const cleaned = firstLine
-    .replace(/^Task\s*\d+\s*[:\-–—]?\s*/i, "") // Remove "Task 1: "
-    .replace(/^\d+\.\s*/, "") // Remove "1. "
-    .trim();
-
-  return cleaned || "Untitled";
-}
-
 function getCriteria(task: Task): string[] {
   const candidates = [task?.criteriaCodes, task?.criteriaRefs, task?.criteria];
   for (const c of candidates) {
@@ -140,16 +117,6 @@ function getCriteria(task: Task): string[] {
     }
   }
   return [];
-}
-
-function buildPreview(text: string) {
-  const normalized = normalizeText(cleanEncodingNoise(text));
-  if (!normalized) return "(empty)";
-  
-  const lines = normalized.split("\n").map((l) => l.trim()).filter(Boolean);
-  const compact = lines.slice(0, 2).join(" ").replace(/\s+/g, " ");
-  
-  return compact.length > 180 ? compact.slice(0, 180).trim() + "…" : compact;
 }
 
 function wordCount(text: string) {
@@ -288,9 +255,7 @@ export function TaskCard({
   // -- Memoized Data Derivation --
   
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
-  const title = deriveTitle(task);
   const criteria = getCriteria(task);
-  const preview = useMemo(() => buildPreview(task?.text || ""), [task?.text]);
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   
@@ -379,8 +344,6 @@ export function TaskCard({
             )}
           </div>
           
-          <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
-          
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
             {pages.length > 0 && <span>Pages: {pages.join(", ")}</span>}
             {task?.aias && <span>AIAS: {task.aias}</span>}
@@ -450,9 +413,7 @@ export function TaskCard({
       )}
 
       {/* --- Content Area --- */}
-      {!expanded ? (
-        <div className="mt-3 text-sm text-zinc-700 line-clamp-2">{preview}</div>
-      ) : (
+      {!expanded ? null : (
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
           <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             
@@ -467,13 +428,13 @@ export function TaskCard({
             {scenarioText && (
               <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
-                <div className="mt-2 whitespace-pre-wrap leading-relaxed">{renderInlineText(scenarioText)}</div>
+                <div className="mt-2 whitespace-pre-wrap break-words leading-6">{renderInlineText(scenarioText)}</div>
               </div>
             )}
 
             <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">{label}</div>
-              <div className="mt-2 whitespace-pre-wrap leading-relaxed">{renderInlineText(taskQuestionsText)}</div>
+              <div className="mt-2 whitespace-pre-wrap break-words leading-6">{renderInlineText(taskQuestionsText)}</div>
             </div>
 
             {/* Render Tables */}
