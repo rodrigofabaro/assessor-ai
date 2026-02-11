@@ -16,17 +16,25 @@ type TaskCardProps = {
 };
 
 function confidenceTone(confidence: TaskConfidence) {
-  if (confidence === "OVERRIDDEN") return "bg-rose-50 text-rose-800 ring-1 ring-rose-200";
-  if (confidence === "HEURISTIC") return "bg-amber-50 text-amber-900 ring-1 ring-amber-200";
+  if (confidence === "OVERRIDDEN")
+    return "bg-rose-50 text-rose-800 ring-1 ring-rose-200";
+  if (confidence === "HEURISTIC")
+    return "bg-amber-50 text-amber-900 ring-1 ring-amber-200";
   return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
 }
 
 function normalizeText(text: string) {
-  return (text || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").replace(/\r/g, "\n").trim();
+  return (text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\t/g, " ")
+    .replace(/\r/g, "\n")
+    .trim();
 }
 
 function cleanEncodingNoise(text: string) {
-  return (text || "").replace(/[\uFFFD\u0000-\u001F]/g, (match) => (match === "\n" ? "\n" : "�"));
+  return (text || "").replace(/[\uFFFD\u0000-\u001F]/g, (match) =>
+    match === "\n" ? "\n" : "�",
+  );
 }
 
 function deriveTitle(task: any) {
@@ -34,7 +42,11 @@ function deriveTitle(task: any) {
   if (task?.heading) return String(task.heading).trim();
   const text = normalizeText(task?.text || "");
   if (!text) return "Untitled";
-  const firstLine = text.split("\n").map((line) => line.trim()).find(Boolean) || "";
+  const firstLine =
+    text
+      .split("\n")
+      .map((line) => line.trim())
+      .find(Boolean) || "";
   const cleaned = firstLine
     .replace(/^Task\s*\d+\s*[:\-–—]?\s*/i, "")
     .replace(/^\d+\.\s*/, "")
@@ -45,7 +57,8 @@ function deriveTitle(task: any) {
 function getCriteria(task: any): string[] {
   const candidates = [task?.criteriaCodes, task?.criteriaRefs, task?.criteria];
   for (const c of candidates) {
-    if (Array.isArray(c)) return c.map((v) => String(v).toUpperCase()).filter(Boolean);
+    if (Array.isArray(c))
+      return c.map((v) => String(v).toUpperCase()).filter(Boolean);
   }
   return [];
 }
@@ -53,7 +66,10 @@ function getCriteria(task: any): string[] {
 function buildPreview(text: string) {
   const normalized = normalizeText(cleanEncodingNoise(text));
   if (!normalized) return "(empty)";
-  const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   const previewLines = lines.slice(0, 2).join(" ");
   const compact = previewLines.replace(/\s+/g, " ");
   return compact.length > 180 ? compact.slice(0, 180).trim() + "…" : compact;
@@ -91,7 +107,11 @@ function parseBlocks(text: string): TextBlock[] {
       if (listStyle === "bullet") {
         blocks.push({ type: "ul", items: [...listItems] });
       } else {
-        blocks.push({ type: "ol", items: [...listItems], style: (listStyle || "decimal") as "decimal" | "alpha" | "roman" });
+        blocks.push({
+          type: "ol",
+          items: [...listItems],
+          style: (listStyle || "decimal") as "decimal" | "alpha" | "roman",
+        });
       }
     }
     listItems = [];
@@ -103,12 +123,17 @@ function parseBlocks(text: string): TextBlock[] {
     const trimmed = line.trim();
     if (!trimmed) return false;
     if (/^Task\s*\d+\b/i.test(trimmed)) return true;
-    if (/^[A-Z0-9][A-Z0-9\s\-–—()]+$/.test(trimmed) && trimmed.length <= 80) return true;
-    if (/^[A-Z][A-Za-z0-9\s\-–—()]+:$/.test(trimmed) && trimmed.length <= 80) return true;
+    if (/^[A-Z0-9][A-Z0-9\s\-–—()]+$/.test(trimmed) && trimmed.length <= 80)
+      return true;
+    if (/^[A-Z][A-Za-z0-9\s\-–—()]+:$/.test(trimmed) && trimmed.length <= 80)
+      return true;
     return false;
   };
 
-  const listMatchers: Array<{ style: "decimal" | "alpha" | "roman"; regex: RegExp }> = [
+  const listMatchers: Array<{
+    style: "decimal" | "alpha" | "roman";
+    regex: RegExp;
+  }> = [
     { style: "decimal", regex: /^(\d+)\.\s+(.*)$/ },
     { style: "alpha", regex: /^([a-z])[\.)]\s+(.*)$/i },
     { style: "roman", regex: /^([ivxlcdm]+)[\.)]\s+(.*)$/i },
@@ -130,7 +155,9 @@ function parseBlocks(text: string): TextBlock[] {
       continue;
     }
 
-    const match = listMatchers.map((m) => ({ match: line.match(m.regex), style: m.style })).find((m) => m.match);
+    const match = listMatchers
+      .map((m) => ({ match: line.match(m.regex), style: m.style }))
+      .find((m) => m.match);
     if (match?.match) {
       flushParagraph();
       if (listStyle && listStyle !== match.style) flushList();
@@ -181,7 +208,7 @@ function renderInlineText(text: string) {
         className="underline decoration-dotted decoration-sky-400 underline-offset-2 break-all text-sky-700 hover:text-sky-800"
       >
         {cleaned}
-      </a>
+      </a>,
     );
     if (trailing) nodes.push(trailing);
     lastIndex = start + url.length;
@@ -190,7 +217,15 @@ function renderInlineText(text: string) {
   return nodes;
 }
 
-function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string[]; diffIndices: Set<number> }) {
+function DiffBlock({
+  label,
+  lines,
+  diffIndices,
+}: {
+  label: string;
+  lines: string[];
+  diffIndices: Set<number>;
+}) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3">
       <div className="text-xs font-semibold text-zinc-600">{label}</div>
@@ -199,7 +234,10 @@ function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string
           lines.map((line, idx) => (
             <div
               key={`${label}-${idx}`}
-              className={"whitespace-pre-wrap rounded-md px-2 py-1 " + (diffIndices.has(idx) ? "bg-amber-50" : "")}
+              className={
+                "whitespace-pre-wrap rounded-md px-2 py-1 " +
+                (diffIndices.has(idx) ? "bg-amber-50" : "")
+              }
             >
               {line || " "}
             </div>
@@ -212,15 +250,23 @@ function DiffBlock({ label, lines, diffIndices }: { label: string; lines: string
   );
 }
 
-export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded, forcedExpanded }: TaskCardProps) {
+export function TaskCard({
+  task,
+  extractedTask,
+  overrideApplied,
+  defaultExpanded,
+  forcedExpanded,
+}: TaskCardProps) {
   const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
   const [showRepeated, setShowRepeated] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
 
-
-  const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
+  const expanded =
+    typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
   const label = task?.label || (task?.n ? `Task ${task.n}` : "Task");
   const title = deriveTitle(task);
@@ -245,17 +291,27 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
       .join("\n");
   }, [contextLines, task?.text]);
 
-  const blocks = useMemo(() => parseBlocks(textWithoutContext), [textWithoutContext]);
+  const blocks = useMemo(
+    () => parseBlocks(textWithoutContext),
+    [textWithoutContext],
+  );
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const aias = task?.aias ? String(task.aias) : "";
-  const parsedParts = useMemo(() => parseParts(task?.text || "", task?.parts), [task?.parts, task?.text]);
+  const parsedParts = useMemo(
+    () => parseParts(task?.text || "", task?.parts),
+    [task?.parts, task?.text],
+  );
   const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
 
   const duplicateInfo = useMemo(() => {
-    if (!blocks.length) return { duplicates: new Set<number>(), hiddenCount: 0 };
+    if (!blocks.length)
+      return { duplicates: new Set<number>(), hiddenCount: 0 };
     const keyFor = (block: TextBlock) => {
-      const raw = block.type === "ol" || block.type === "ul" ? block.items.join(" ") : block.text;
+      const raw =
+        block.type === "ol" || block.type === "ul"
+          ? block.items.join(" ")
+          : block.text;
       const key = normalizeText(raw).toLowerCase();
       return key.length >= 80 ? key : "";
     };
@@ -294,20 +350,42 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
     return { leftLines, rightLines, diffIndices };
   }, [extractedTask?.text, overrideApplied, task?.text]);
 
-  const warningItems: string[] = Array.isArray(task?.warnings) ? task.warnings.map((w: unknown) => String(w)) : [];
+  const warningItems: string[] = Array.isArray(task?.warnings)
+    ? task.warnings.map((w: unknown) => String(w))
+    : [];
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{label}</Pill>
-            <Pill cls={confidenceTone(confidence)}>{confidence === "OVERRIDDEN" ? "Overridden" : confidence === "HEURISTIC" ? "Warnings" : "Clean"}</Pill>
-            <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
-            {warningItems.length ? <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Warnings</Pill> : null}
-            {hasDuplicates ? <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Duplicate suspected</Pill> : null}
+            <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">
+              {label}
+            </Pill>
+            <Pill cls={confidenceTone(confidence)}>
+              {confidence === "OVERRIDDEN"
+                ? "Overridden"
+                : confidence === "HEURISTIC"
+                  ? "Warnings"
+                  : "Clean"}
+            </Pill>
+            <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">
+              {totalWords} words
+            </Pill>
+            {warningItems.length ? (
+              <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">
+                Warnings
+              </Pill>
+            ) : null}
+            {hasDuplicates ? (
+              <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">
+                Duplicate suspected
+              </Pill>
+            ) : null}
           </div>
-          <div className="mt-2 text-sm font-semibold text-zinc-900">{title}</div>
+          <div className="mt-2 text-sm font-semibold text-zinc-900">
+            {title}
+          </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
             {pages.length ? <span>Pages: {pages.join(", ")}</span> : null}
             {aias ? <span>AIAS: {aias}</span> : null}
@@ -315,7 +393,10 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
           {criteria.length ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {criteria.map((code) => (
-                <Pill key={code} cls="bg-indigo-50 text-indigo-900 ring-1 ring-indigo-200">
+                <Pill
+                  key={code}
+                  cls="bg-indigo-50 text-indigo-900 ring-1 ring-indigo-200"
+                >
                   {code}
                 </Pill>
               ))}
@@ -352,7 +433,11 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             }}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
           >
-            {copyStatus === "copied" ? "Copied" : copyStatus === "failed" ? "Copy failed" : "Copy text"}
+            {copyStatus === "copied"
+              ? "Copied"
+              : copyStatus === "failed"
+                ? "Copy failed"
+                : "Copy text"}
           </button>
           <button
             type="button"
@@ -371,7 +456,9 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
             onClick={() => setShowWarningDetails((prev) => !prev)}
             className="text-xs font-semibold text-amber-900 underline underline-offset-2"
           >
-            {showWarningDetails ? "Hide warnings" : `Show warnings (${warningItems.length})`}
+            {showWarningDetails
+              ? "Hide warnings"
+              : `Show warnings (${warningItems.length})`}
           </button>
           {showWarningDetails ? (
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-900">
@@ -397,20 +484,22 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
 
             {parsedParts.length ? (
               <div className="mb-4">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Question parts</div>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Question parts
+                </div>
                 <ol className="list-[lower-alpha] space-y-2 pl-6">
-               {parsedParts.map((part, partIdx) => (
-  <li key={`${part.key}-${partIdx}`}>
-
+                  {parsedParts.map((part, partIdx) => (
+                    <li key={`${part.key}-${partIdx}`}>
                       <div>{renderInlineText(part.text)}</div>
                       {part.children?.length ? (
                         <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
-                    {part.children.map((child, childIdx) => (
-  <li key={`${part.key}-${partIdx}-${child.key}-${childIdx}`}>
-    {renderInlineText(child.text)}
-  </li>
-))}
-
+                          {part.children.map((child, childIdx) => (
+                            <li
+                              key={`${part.key}-${partIdx}-${child.key}-${childIdx}`}
+                            >
+                              {renderInlineText(child.text)}
+                            </li>
+                          ))}
                         </ol>
                       ) : null}
                     </li>
@@ -423,12 +512,18 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               <div className="mb-4 space-y-3">
                 {tableBlocks.map((tableBlock, tableIndex) =>
                   tableBlock.type === "table" ? (
-                    <div key={`table-${tableIndex}`} className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
+                    <div
+                      key={`table-${tableIndex}`}
+                      className="overflow-x-auto rounded-lg border border-zinc-300 bg-white"
+                    >
                       <table className="min-w-full text-left text-xs text-zinc-800">
                         <thead className="bg-zinc-100">
                           <tr>
                             {tableBlock.headers.map((header, idx) => (
-                              <th key={`h-${tableIndex}-${idx}`} className="whitespace-nowrap px-3 py-2 font-semibold">
+                              <th
+                                key={`h-${tableIndex}-${idx}`}
+                                className="whitespace-nowrap px-3 py-2 font-semibold"
+                              >
                                 {header}
                               </th>
                             ))}
@@ -436,9 +531,15 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                         </thead>
                         <tbody>
                           {tableBlock.rows.map((row, rowIdx) => (
-                            <tr key={`r-${tableIndex}-${rowIdx}`} className="border-t border-zinc-200">
+                            <tr
+                              key={`r-${tableIndex}-${rowIdx}`}
+                              className="border-t border-zinc-200"
+                            >
                               {row.map((cell, cellIdx) => (
-                                <td key={`c-${tableIndex}-${rowIdx}-${cellIdx}`} className="whitespace-nowrap px-3 py-2 align-top">
+                                <td
+                                  key={`c-${tableIndex}-${rowIdx}-${cellIdx}`}
+                                  className="whitespace-nowrap px-3 py-2 align-top"
+                                >
                                   {cell}
                                 </td>
                               ))}
@@ -448,24 +549,35 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                       </table>
                     </div>
                   ) : (
-                    <div key={`table-fallback-${tableIndex}`} className="rounded-lg border border-amber-300 bg-amber-50 p-3">
-                      <div className="mb-1 text-xs font-semibold text-amber-900">{tableBlock.warning}</div>
-                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-amber-900">{tableBlock.text}</pre>
+                    <div
+                      key={`table-fallback-${tableIndex}`}
+                      className="rounded-lg border border-amber-300 bg-amber-50 p-3"
+                    >
+                      <div className="mb-1 text-xs font-semibold text-amber-900">
+                        {tableBlock.warning}
+                      </div>
+                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-amber-900">
+                        {tableBlock.text}
+                      </pre>
                     </div>
-                  )
+                  ),
                 )}
               </div>
             ) : null}
 
             {hasDuplicates ? (
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-900">
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">Repeated blocks hidden</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold">
+                  Repeated blocks hidden
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowRepeated((prev) => !prev)}
                   className="rounded-full border border-amber-200 bg-white px-2 py-0.5 font-semibold text-amber-900 hover:bg-amber-50"
                 >
-                  {showRepeated ? "Hide repeated blocks" : `Show repeated blocks (${duplicateInfo.hiddenCount})`}
+                  {showRepeated
+                    ? "Hide repeated blocks"
+                    : `Show repeated blocks (${duplicateInfo.hiddenCount})`}
                 </button>
               </div>
             ) : null}
@@ -490,7 +602,10 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                         }
                       >
                         {block.items.map((item, itemIdx) => (
-                          <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
+                          <li
+                            key={`item-${idx}-${itemIdx}`}
+                            className="leading-relaxed"
+                          >
                             {renderInlineText(item)}
                           </li>
                         ))}
@@ -499,9 +614,18 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                   }
                   if (block.type === "ul") {
                     return (
-                      <ul key={`ul-${idx}`} className={"list-disc space-y-1 pl-5 " + (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")}>
+                      <ul
+                        key={`ul-${idx}`}
+                        className={
+                          "list-disc space-y-1 pl-5 " +
+                          (isDuplicate ? " rounded-lg bg-amber-50 p-2" : "")
+                        }
+                      >
                         {block.items.map((item, itemIdx) => (
-                          <li key={`item-${idx}-${itemIdx}`} className="leading-relaxed">
+                          <li
+                            key={`item-${idx}-${itemIdx}`}
+                            className="leading-relaxed"
+                          >
                             {renderInlineText(item)}
                           </li>
                         ))}
@@ -510,13 +634,25 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
                   }
                   if (block.type === "heading") {
                     return (
-                      <div key={`heading-${idx}`} className={"text-sm font-semibold text-zinc-900 " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}>
+                      <div
+                        key={`heading-${idx}`}
+                        className={
+                          "text-sm font-semibold text-zinc-900 " +
+                          (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")
+                        }
+                      >
                         {renderInlineText(block.text)}
                       </div>
                     );
                   }
                   return (
-                    <p key={`p-${idx}`} className={"whitespace-pre-wrap leading-relaxed " + (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")}>
+                    <p
+                      key={`p-${idx}`}
+                      className={
+                        "whitespace-pre-wrap leading-relaxed " +
+                        (isDuplicate ? "rounded-lg bg-amber-50 p-2" : "")
+                      }
+                    >
                       {renderInlineText(block.text)}
                     </p>
                   );
@@ -537,15 +673,25 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               <div>Tables: {tableBlocks.length}</div>
               <div>Parts: {parsedParts.length}</div>
             </div>
-            <div className="mt-3 border-t border-zinc-200 pt-2 text-zinc-500">Use “Copy text” for plain-text export.</div>
+            <div className="mt-3 border-t border-zinc-200 pt-2 text-zinc-500">
+              Use “Copy text” for plain-text export.
+            </div>
           </aside>
         </div>
       )}
 
       {showDiff && diffData ? (
         <div className="mt-4 grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-2">
-          <DiffBlock label="Extracted" lines={diffData.leftLines} diffIndices={diffData.diffIndices} />
-          <DiffBlock label="Current" lines={diffData.rightLines} diffIndices={diffData.diffIndices} />
+          <DiffBlock
+            label="Extracted"
+            lines={diffData.leftLines}
+            diffIndices={diffData.diffIndices}
+          />
+          <DiffBlock
+            label="Current"
+            lines={diffData.rightLines}
+            diffIndices={diffData.diffIndices}
+          />
         </div>
       ) : null}
     </div>
