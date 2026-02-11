@@ -132,9 +132,9 @@ export function TasksTab({
 
       <div className="mt-3 grid gap-3">
         {taskRows && taskRows.length ? (
-          taskRows.map(({ task, extractedTask, overrideApplied }: any) => (
+          taskRows.map(({ task, extractedTask, overrideApplied }: any, idx: number) => (
             <TaskCard
-              key={String(task?.n ?? task?.label ?? Math.random())}
+              key={String(task?.n)}
               task={task}
               extractedTask={extractedTask}
               overrideApplied={overrideApplied}
