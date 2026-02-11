@@ -10,8 +10,8 @@ function safeStr(x: unknown) {
   return typeof x === "string" ? x : "";
 }
 
-export async function GET(_req: Request, ctx: { params: { documentId: string } }) {
-  const documentId = safeStr(ctx?.params?.documentId);
+export async function GET(_req: Request, { params }: { params: { documentId: string } }) {
+  const documentId = safeStr(params?.documentId);
   if (!documentId) return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
 
   const doc = await prisma.referenceDocument.findUnique({
