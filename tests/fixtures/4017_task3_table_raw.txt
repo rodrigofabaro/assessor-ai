@@ -1,0 +1,17 @@
+Month
+Before
+QC
+After
+QC
+Units Produced
+
+Gross Sales £ £
+Units Sold
+
+Material Cost £ £
+Net Sales £ £
+Wages £ £
+Rent £ £
+Overheads £ £
+Variances £ £
+Net Profit/Loss £ £

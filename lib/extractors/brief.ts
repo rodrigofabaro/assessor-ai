@@ -207,6 +207,112 @@ function reflowProsePreserveLists(text: string) {
   return output.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function isNumericOrCurrencyToken(token: string) {
+  const normalized = (token || "").trim();
+  if (!normalized) return false;
+  return /^£$/.test(normalized) || /^(?:[<>]=?\s*)?[-+]?\d[\d,.]*%?$/.test(normalized);
+}
+
+function isTableCaptionLine(line: string) {
+  return /^table\s+\d+(?:\.\d+)?\b/i.test((line || "").trim());
+}
+
+function isCostingHeaderLine(line: string) {
+  return /^month\b/i.test((line || "").trim());
+}
+
+function isTableHeaderLikeLine(line: string) {
+  const normalized = normalizeWhitespace(line || "").toLowerCase();
+  if (!normalized) return false;
+  if (/(output\s+voltage|number\s+of\s+drivers|before\s+qc|after\s+qc|month\s+before\s+qc\s+after\s+qc)/i.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
+function isNumericTailRow(line: string) {
+  const tokens = (line || "").trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 3) return false;
+  const last = tokens[tokens.length - 1];
+  const secondLast = tokens[tokens.length - 2];
+  return isNumericOrCurrencyToken(secondLast) && isNumericOrCurrencyToken(last);
+}
+
+function detectTableLineSpans(lines: string[]) {
+  const spans: Array<{ start: number; end: number }> = [];
+
+  const addSpan = (start: number, end: number) => {
+    if (start >= end) return;
+    const previous = spans[spans.length - 1];
+    if (previous && start <= previous.end) {
+      previous.end = Math.max(previous.end, end);
+      return;
+    }
+    spans.push({ start, end });
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue;
+
+    const costingLookahead = lines
+      .slice(i, Math.min(lines.length, i + 4))
+      .map((line) => normalizeWhitespace(line).toLowerCase())
+      .join(" ");
+    const startsCostingTable = isCostingHeaderLine(trimmed) && /before\s+qc/.test(costingLookahead) && /after\s+qc/.test(costingLookahead);
+
+    const startsTable =
+      isTableCaptionLine(trimmed) ||
+      startsCostingTable ||
+      (isTableHeaderLikeLine(trimmed) && i + 1 < lines.length && isNumericTailRow(lines[i + 1])) ||
+      isNumericTailRow(trimmed);
+
+    if (!startsTable) continue;
+
+    let start = i;
+    if (start > 0) {
+      const prev = lines[start - 1].trim();
+      if (isTableCaptionLine(prev)) start -= 1;
+    }
+
+    let end = i + 1;
+    while (end < lines.length) {
+      const next = lines[end].trim();
+      if (!next) break;
+      end += 1;
+    }
+
+    if (end - start >= 2) {
+      addSpan(start, end);
+      i = end - 1;
+    }
+  }
+
+  return spans;
+}
+
+function reflowPreservingTables(text: string) {
+  const lines = splitLines(text);
+  const spans = detectTableLineSpans(lines);
+  if (!spans.length) return reflowProsePreserveLists(text);
+
+  const output: string[] = [];
+  let cursor = 0;
+
+  for (const span of spans) {
+    const proseChunk = lines.slice(cursor, span.start).join("\n");
+    if (proseChunk.trim()) output.push(reflowProsePreserveLists(proseChunk));
+
+    const tableChunk = lines.slice(span.start, span.end).join("\n").trimEnd();
+    if (tableChunk) output.push(tableChunk);
+    cursor = span.end;
+  }
+
+  const remainder = lines.slice(cursor).join("\n");
+  if (remainder.trim()) output.push(reflowProsePreserveLists(remainder));
+  return output.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function escapeLabel(label: string) {
   return label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -735,7 +841,7 @@ function extractBriefTasks(
         extractAiasValue(textBody);
       const pagesForTask = fallbackPage ? [fallbackPage] : undefined;
 
-      const reflowedTextBody = reflowProsePreserveLists(textBody);
+      const reflowedTextBody = reflowPreservingTables(textBody);
       promoted.push({
         n,
         label: `Task ${n}`,
@@ -925,7 +1031,7 @@ function extractBriefTasks(
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const reflowedTextBody = reflowProsePreserveLists(textBody);
+    const reflowedTextBody = reflowPreservingTables(textBody);
     const parts = extractParts(reflowedTextBody);
     const confidenceWarnings = taskWarnings.filter(
       (warning) => warning !== "duplicate heading candidates merged"

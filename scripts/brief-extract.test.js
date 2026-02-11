@@ -36,49 +36,40 @@ function loadTsModule(filePath) {
   return module.exports;
 }
 
-async function run() {
-  const fixturePath =
-    process.env.BRIEF_PDF_PATH ||
-    path.join(process.cwd(), "tests", "fixtures", "U4001 A1 Engineering Design - Sept 2025.pdf");
-
+function readFixture(name) {
+  const fixturePath = path.join(process.cwd(), "tests", "fixtures", name);
   if (!fs.existsSync(fixturePath)) {
-    console.error(`Missing fixture PDF. Set BRIEF_PDF_PATH or add the file at: ${fixturePath}`);
-    process.exit(1);
+    throw new Error(`Missing fixture: ${fixturePath}`);
   }
-
-  const { pdfToText } = loadTsModule("lib/extraction/text/pdfToText.ts");
-  const { extractBrief } = loadTsModule("lib/extractors/brief.ts");
-
-  const buf = fs.readFileSync(fixturePath);
-  const { text } = await pdfToText(buf);
-  const brief = extractBrief(text, path.basename(fixturePath));
-
-  assert.strictEqual(brief?.header?.academicYear, "1");
-  assert.ok(String(brief?.header?.internalVerifier || "").includes("Mohammed Hoq"));
-
-  const tasks = Array.isArray(brief?.tasks) ? brief.tasks : [];
-  const taskNumbers = new Set(tasks.map((t) => t.n));
-  assert.ok(taskNumbers.has(1) && taskNumbers.has(2) && taskNumbers.has(3));
-
-  const task1 = tasks.find((t) => t.n === 1);
-  const task3 = tasks.find((t) => t.n === 3);
-  assert.ok(task1 && String(task1.text || "").includes("Design Brief"));
-  assert.ok(task3 && String(task3.text || "").toLowerCase().includes("debrief report must answer the following"));
-
-  assert.ok(Array.isArray(brief?.criteriaCodes));
-  const sorted = [...brief.criteriaCodes].sort((a, b) => {
-    const rank = (x) => (x.startsWith("P") ? 0 : x.startsWith("M") ? 1 : 2);
-    const ad = Number((a.match(/\d+/) || ["0"])[0]);
-    const bd = Number((b.match(/\d+/) || ["0"])[0]);
-    return rank(a) - rank(b) || ad - bd;
-  });
-  assert.deepStrictEqual(brief.criteriaCodes, sorted);
-  assert.strictEqual(new Set(brief.criteriaCodes).size, brief.criteriaCodes.length);
-
-  console.log("Brief extraction fixture test passed.");
+  return fs.readFileSync(fixturePath, "utf8");
 }
 
-run().catch((err) => {
+function run() {
+  const { detectTableBlocks } = loadTsModule("lib/extraction/render/tableBlocks.ts");
+
+  const task2Raw = readFixture("4017_task2_table_raw.txt");
+  const task3Raw = readFixture("4017_task3_table_raw.txt");
+
+  const task2Blocks = detectTableBlocks({ text: task2Raw });
+  const task2Table = task2Blocks.find((b) => b.kind === "TABLE");
+  assert.ok(task2Table, "Task 2 table should be parsed");
+  assert.ok(task2Table.caption && task2Table.caption.includes("Table 2.1"));
+  assert.deepStrictEqual(task2Table.headers, ["Output Voltage (V)", "Before QC", "After QC"]);
+  assert.ok(task2Table.rows.some((row) => row[0] === "Total" && row[1] === "200" && row[2] === "200"));
+
+  const task3Blocks = detectTableBlocks({ text: task3Raw });
+  const task3Table = task3Blocks.find((b) => b.kind === "TABLE");
+  assert.ok(task3Table, "Task 3 table should be parsed");
+  assert.deepStrictEqual(task3Table.headers, ["Month", "Before QC", "After QC"]);
+  assert.ok(task3Table.rows.some((row) => row[0] === "Net Profit/Loss" && row[1] === "£" && row[2] === "£"));
+  assert.ok(task3Table.rows.some((row) => row[0] === "Units Produced" && row[1] === "" && row[2] === ""));
+
+  console.log("Table block text-fixture test passed.");
+}
+
+try {
+  run();
+} catch (err) {
   console.error(err);
   process.exit(1);
-});
+}

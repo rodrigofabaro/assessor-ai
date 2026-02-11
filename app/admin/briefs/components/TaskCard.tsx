@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Pill } from "./ui";
-import { detectTableBlocks } from "@/lib/extraction/render/tableBlocks";
+import { detectTableBlocks, type StructuredTableBlock } from "@/lib/extraction/render/tableBlocks";
 import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
 
 // --- Types ---
@@ -34,6 +34,11 @@ type TaskCardProps = {
   forcedExpanded?: boolean;
 };
 
+
+
+type RenderSegment =
+  | { type: "text"; text: string }
+  | { type: "table"; block: StructuredTableBlock };
 // --- Constants & Regex (Hoisted for Performance) ---
 
 const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
@@ -59,56 +64,6 @@ function normalizeText(text: string) {
     .trim();
 }
 
-function startsWithListMarker(line: string) {
-  const trimmed = line.trim();
-  return /^([-•]|\d+[\.)]|[a-z][\.)]|[ivxlcdm]+[\.)])\s+/i.test(trimmed);
-}
-
-function reflowWrappedText(text: string) {
-  const lines = String(text || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .split("\n");
-  const paragraphs: string[] = [];
-  let chunk: string[] = [];
-
-  const flushChunk = () => {
-    if (!chunk.length) {
-      paragraphs.push("");
-      return;
-    }
-
-    let rebuilt = "";
-    for (let i = 0; i < chunk.length; i += 1) {
-      const current = chunk[i].trim();
-      if (!current) continue;
-      if (!rebuilt) {
-        rebuilt = current;
-        continue;
-      }
-
-      const prev = chunk[i - 1]?.trim() || "";
-      const keepHardBreak = /[.!?:;]$/.test(prev) || startsWithListMarker(current);
-      rebuilt += keepHardBreak ? `\n${current}` : ` ${current}`;
-    }
-
-    paragraphs.push(rebuilt.trim());
-    chunk = [];
-  };
-
-  for (const line of lines) {
-    if (!line.trim()) {
-      flushChunk();
-      continue;
-    }
-    chunk.push(line);
-  }
-
-  if (chunk.length) flushChunk();
-
-  return paragraphs.join("\n\n").trim();
-}
-
 function getCriteria(task: Task): string[] {
   const candidates = [task?.criteriaCodes, task?.criteriaRefs, task?.criteria];
   for (const c of candidates) {
@@ -125,10 +80,6 @@ function wordCount(text: string) {
   return normalized.split(/\s+/).filter(Boolean).length;
 }
 
-  // Reset lastIndex because we are reusing the global regex (if it were global) 
-  // or creating a new instance. Since we moved it out, we must be careful.
-  // Ideally, re-create regex or use split. 
-  // For safety with global flags in loops:
 function renderInlineText(text: string) {
   const input = String(text ?? "");
   const nodes: ReactNode[] = [];
@@ -290,15 +241,47 @@ export function TaskCard({
     () => extractIntroBeforeParts(textWithoutContext),
     [textWithoutContext]
   );
-  const introTextReflowed = useMemo(() => reflowWrappedText(introText), [introText]);
   const extractedScenarioText = typeof task?.scenarioText === "string" ? task.scenarioText.trim() : "";
-  const scenarioText = extractedScenarioText || introTextReflowed;
-  const taskQuestionsText = useMemo(
-    () => reflowWrappedText(bodyTextWithoutIntro || textWithoutContext),
+  const scenarioText = extractedScenarioText || introText;
+  const taskBodyText = useMemo(
+    () => normalizeText(bodyTextWithoutIntro || textWithoutContext),
     [bodyTextWithoutIntro, textWithoutContext]
   );
 
-  const tableBlocks = useMemo(() => detectTableBlocks(task), [task]);
+  const tableBlocks = useMemo(() => detectTableBlocks({ ...task, text: taskBodyText }), [task, taskBodyText]);
+
+  const contentSegments = useMemo<RenderSegment[]>(() => {
+    if (!taskBodyText) return [];
+    const lines = taskBodyText.split("\n");
+    const tableSegments = tableBlocks
+      .filter((block): block is StructuredTableBlock => block?.kind === "TABLE" && !!block?.range)
+      .sort((a, b) => (a.range.startLine || 0) - (b.range.startLine || 0));
+
+    if (!tableSegments.length) {
+      return [{ type: "text", text: taskBodyText }];
+    }
+
+    const segments: RenderSegment[] = [];
+    let cursor = 0;
+
+    tableSegments.forEach((tableBlock) => {
+      const startLine = Math.max(0, Number(tableBlock.range?.startLine || 0));
+      const endLine = Math.max(startLine, Number(tableBlock.range?.endLine || startLine));
+      if (startLine > cursor) {
+        const text = lines.slice(cursor, startLine).join("\n").trim();
+        if (text) segments.push({ type: "text", text });
+      }
+      segments.push({ type: "table", block: tableBlock });
+      cursor = Math.max(cursor, endLine);
+    });
+
+    if (cursor < lines.length) {
+      const tail = lines.slice(cursor).join("\n").trim();
+      if (tail) segments.push({ type: "text", text: tail });
+    }
+
+    return segments;
+  }, [taskBodyText, tableBlocks]);
 
   // Diff Logic
   const diffData = useMemo(() => {
@@ -434,47 +417,52 @@ export function TaskCard({
 
             <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">{label}</div>
-              <div className="mt-2 whitespace-pre-wrap break-words leading-6">{renderInlineText(taskQuestionsText)}</div>
-            </div>
-
-            {/* Render Tables */}
-            {tableBlocks.length > 0 && (
-              <div className="mb-4 space-y-3">
-                {tableBlocks.map((tableBlock: any, tableIndex: number) =>
-                  tableBlock.type === "table" ? (
-                    <div key={`table-${tableIndex}`} className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
-                      <table className="min-w-full text-left text-xs text-zinc-800">
-                        <thead className="bg-zinc-100">
-                          <tr>
-                            {tableBlock.headers.map((header: string, idx: number) => (
-                              <th key={`h-${tableIndex}-${idx}`} className="whitespace-nowrap px-3 py-2 font-semibold">
-                                {header}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tableBlock.rows.map((row: string[], rowIdx: number) => (
-                            <tr key={`r-${tableIndex}-${rowIdx}`} className="border-t border-zinc-200">
-                              {row.map((cell, cellIdx) => (
-                                <td key={`c-${tableIndex}-${rowIdx}-${cellIdx}`} className="whitespace-nowrap px-3 py-2 align-top">
-                                  {cell}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              <div className="mt-2 space-y-3">
+                {contentSegments.map((segment, segmentIndex) =>
+                  segment.type === "text" ? (
+                    <div key={`text-${segmentIndex}`} className="whitespace-pre-wrap break-words leading-6">
+                      {renderInlineText(segment.text)}
                     </div>
                   ) : (
-                    <div key={`table-fallback-${tableIndex}`} className="rounded-lg border border-amber-300 bg-amber-50 p-3">
-                      <div className="mb-1 text-xs font-semibold text-amber-900">{tableBlock.warning}</div>
-                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-amber-900">{tableBlock.text}</pre>
+                    <div key={`table-${segmentIndex}`} className="space-y-2">
+                      {segment.block.caption ? (
+                        <div className="text-xs font-semibold text-zinc-700">{segment.block.caption}</div>
+                      ) : null}
+                      <div className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
+                        <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
+                          <thead className="bg-zinc-100">
+                            <tr>
+                              {segment.block.headers.map((header: string, idx: number) => (
+                                <th
+                                  key={`h-${segmentIndex}-${idx}`}
+                                  className="border border-zinc-300 px-3 py-2 font-semibold"
+                                >
+                                  {header}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {segment.block.rows.map((row: string[], rowIdx: number) => (
+                              <tr key={`r-${segmentIndex}-${rowIdx}`}>
+                                {row.map((cell, cellIdx) => (
+                                  <td
+                                    key={`c-${segmentIndex}-${rowIdx}-${cellIdx}`}
+                                    className="border border-zinc-300 px-3 py-2 align-top"
+                                  >
+                                    {cell}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )
                 )}
               </div>
-            )}
+            </div>
 
           </div>
 
