@@ -399,14 +399,18 @@ export function TaskCard({ task, extractedTask, overrideApplied, defaultExpanded
               <div className="mb-4">
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Question parts</div>
                 <ol className="list-[lower-alpha] space-y-2 pl-6">
-                  {parsedParts.map((part) => (
-                    <li key={part.key}>
+               {parsedParts.map((part, partIdx) => (
+  <li key={`${part.key}-${partIdx}`}>
+
                       <div>{renderInlineText(part.text)}</div>
                       {part.children?.length ? (
                         <ol className="mt-1 list-[lower-roman] space-y-1 pl-6">
-                          {part.children.map((child) => (
-                            <li key={child.key}>{renderInlineText(child.text)}</li>
-                          ))}
+                    {part.children.map((child, childIdx) => (
+  <li key={`${part.key}-${partIdx}-${child.key}-${childIdx}`}>
+    {renderInlineText(child.text)}
+  </li>
+))}
+
                         </ol>
                       ) : null}
                     </li>
