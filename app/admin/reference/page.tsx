@@ -1,16 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  badge,
-  formatDate,
-  type Criterion,
-  type ReferenceDocument,
-  type Unit,
-  useReferenceAdmin,
-} from "./reference.logic";
-
-
+import { formatDate, getInboxCounts, type Criterion, type Unit, useReferenceAdmin } from "./reference.logic";
+import { ReferenceList } from "./components/ReferenceList";
+import { ReferenceToolbar } from "./components/ReferenceToolbar";
 
 
 export default function ReferenceAdminPage() {
@@ -120,166 +112,16 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
 function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   const f = vm.filters;
   const setF = vm.setFilters;
-
-  const counts = useMemo(() => {
-    const total = vm.documents.length;
-    const shown = vm.filteredDocuments.length;
-    const byStatus: Record<string, number> = {};
-    for (const d of vm.documents) byStatus[d.status] = (byStatus[d.status] || 0) + 1;
-    return { total, shown, byStatus };
-  }, [vm.documents, vm.filteredDocuments]);
+  const counts = getInboxCounts(vm.documents, vm.filteredDocuments);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold">Inbox</h2>
-          <p className="mt-1 text-xs text-zinc-500">Filter and select a document to review.</p>
-        </div>
-
-        <button
-          onClick={vm.resetFilters}
-          className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
-        >
-          Reset filters
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="mt-3 grid gap-2">
-        <input
-          value={f.q}
-          onChange={(e) => setF({ ...f, q: e.target.value })}
-          placeholder="Search title, filename, unit code…"
-          className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-        />
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          <select
-            value={f.type}
-            onChange={(e) => setF({ ...f, type: e.target.value as any })}
-            className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-          >
-            <option value="">All types</option>
-            <option value="SPEC">SPEC</option>
-            <option value="BRIEF">BRIEF</option>
-            <option value="RUBRIC">RUBRIC</option>
-          </select>
-
-          <select
-            value={f.status}
-            onChange={(e) => setF({ ...f, status: e.target.value as any })}
-            className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="UPLOADED">UPLOADED</option>
-            <option value="EXTRACTED">EXTRACTED</option>
-            <option value="REVIEWED">REVIEWED</option>
-            <option value="LOCKED">LOCKED</option>
-            <option value="FAILED">FAILED</option>
-          </select>
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-            <input
-              type="checkbox"
-              checked={f.onlyLocked}
-              onChange={(e) => setF({ ...f, onlyLocked: e.target.checked, onlyUnlocked: e.target.checked ? false : f.onlyUnlocked })}
-            />
-            Only locked
-          </label>
-
-          <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-            <input
-              type="checkbox"
-              checked={f.onlyUnlocked}
-              onChange={(e) => setF({ ...f, onlyUnlocked: e.target.checked, onlyLocked: e.target.checked ? false : f.onlyLocked })}
-            />
-            Only unlocked
-          </label>
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          <select
-            value={f.sort}
-            onChange={(e) => setF({ ...f, sort: e.target.value as any })}
-            className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-          >
-            <option value="updated">Sort: updated</option>
-            <option value="uploaded">Sort: uploaded</option>
-            <option value="title">Sort: title</option>
-          </select>
-
-          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
-            Showing <span className="font-semibold text-zinc-900">{counts.shown}</span> of{" "}
-            <span className="font-semibold text-zinc-900">{counts.total}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-xs">
-          {(["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setF({ ...f, status: f.status === s ? "" : (s as any) })}
-              className={
-                "rounded-full border px-3 py-1 font-semibold " +
-                (f.status === s ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
-              }
-            >
-              {s} <span className="opacity-70">({counts.byStatus[s] || 0})</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="mt-3 max-h-[520px] overflow-auto rounded-xl border border-zinc-200">
-        <table className="w-full border-collapse text-sm">
-          <thead className="sticky top-0 bg-white">
-            <tr className="text-left text-xs text-zinc-600">
-              <th className="border-b border-zinc-200 px-3 py-2">Status</th>
-              <th className="border-b border-zinc-200 px-3 py-2">Type</th>
-              <th className="border-b border-zinc-200 px-3 py-2">Title</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vm.filteredDocuments.map((d) => {
-              const b = badge(d.status);
-              const active = d.id === vm.selectedDocId;
-              const meta = d.sourceMeta || {};
-              const hint = [meta.unitCode ? `Unit ${meta.unitCode}` : "", meta.assignmentCode ? meta.assignmentCode : ""]
-                .filter(Boolean)
-                .join(" • ");
-
-              return (
-                <tr
-                  key={d.id}
-                  onClick={() => vm.setSelectedDocId(d.id)}
-                  className={
-                    "cursor-pointer border-b border-zinc-100 hover:bg-zinc-50 " + (active ? "bg-zinc-50" : "bg-white")
-                  }
-                >
-                  <td className="px-3 py-2">
-                    <span className={"inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold " + b.cls}>
-                      {b.text}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-zinc-700">{d.type}</td>
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-zinc-900">{d.title}</div>
-                    <div className="mt-0.5 text-xs text-zinc-600">{hint || d.originalFilename}</div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {vm.filteredDocuments.length === 0 ? (
-          <div className="p-3 text-sm text-zinc-600">No documents match your filters.</div>
-        ) : null}
-      </div>
+      <ReferenceToolbar filters={f} setFilters={setF} resetFilters={vm.resetFilters} counts={counts} />
+      <ReferenceList
+        documents={vm.filteredDocuments}
+        selectedDocId={vm.selectedDocId}
+        onSelect={vm.setSelectedDocId}
+      />
     </section>
   );
 }

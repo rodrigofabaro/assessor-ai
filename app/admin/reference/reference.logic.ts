@@ -77,6 +77,8 @@ type InboxFilters = {
   sort: "updated" | "uploaded" | "title";
 };
 
+export type InboxFiltersState = InboxFilters;
+
 type ReferenceAdminOptions = {
   context?: string;
   fixedInboxType?: "" | ReferenceDocument["type"];
@@ -164,6 +166,23 @@ function docSearchHaystack(d: ReferenceDocument) {
     .join(" ");
   return parts.toLowerCase();
 }
+
+export function getDocumentHint(d: ReferenceDocument): string {
+  const meta = d.sourceMeta || {};
+  return [meta.unitCode ? `Unit ${meta.unitCode}` : "", meta.assignmentCode ? meta.assignmentCode : ""]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+export function getInboxCounts(documents: ReferenceDocument[], filteredDocuments: ReferenceDocument[]) {
+  const total = documents.length;
+  const shown = filteredDocuments.length;
+  const byStatus: Record<string, number> = {};
+  for (const d of documents) byStatus[d.status] = (byStatus[d.status] || 0) + 1;
+  return { total, shown, byStatus };
+}
+
+export const STATUS_FILTER_OPTIONS = ["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const;
 
 export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 

@@ -113,7 +113,7 @@ export function useSpecsAdmin() {
     if (!vm.selectedDoc || vm.busy) return;
     try {
       await vm.archiveSelectedDocument();
-    } catch (e: any) {
+    } catch {
       // errors already surfaced via mutation fetch + banner
     }
   };
