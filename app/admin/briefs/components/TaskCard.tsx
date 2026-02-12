@@ -54,6 +54,16 @@ type StructuredPart = {
   text: string;
   children: Array<{ key: string; text: string }>;
 };
+
+function stripInlineSamplePowerTable(text: string) {
+  return String(text || "")
+    .replace(
+      /(?:^|\n)\s*Sample\s+(?:\d+\s+){5,}\d+\s*\n\s*Power\s*\(\+?dBm\)\s+(?:\d+(?:\.\d+)?\s+){5,}\d+(?:\.\d+)?\s*(?=\n|$)/gi,
+      "\n"
+    )
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 // --- Constants & Regex (Hoisted for Performance) ---
 
 const SCENARIO_BULLET_REGEX = /^\s*(o|•|-|\*)\s+(.+)$/;
@@ -370,6 +380,8 @@ function renderStructuredParts(
     openPdfHref?: string;
     canEditLatex?: boolean;
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+    suppressInlineSamplePowerTable?: boolean;
+    samplePowerTableBlock?: StructuredTableBlock | null;
   }
 ) {
   return (
@@ -378,23 +390,69 @@ function renderStructuredParts(
         <div key={`${keyPrefix}-part-${part.key}-${partIndex}`} className="flex items-start gap-2">
           <span className="min-w-[1.5rem] font-medium text-zinc-700">{part.key})</span>
           <div className="min-w-0 flex-1">
-            {part.text ? (
-              <div>{renderPdfTextBlocks(part.text, `${keyPrefix}-parttext-${part.key}-${partIndex}`, options)}</div>
-            ) : null}
+            {part.text ? (() => {
+              const cleanPartText = options?.suppressInlineSamplePowerTable
+                ? stripInlineSamplePowerTable(part.text)
+                : part.text;
+              if (!cleanPartText) return null;
+              return (
+                <div>
+                  {renderPdfTextBlocks(cleanPartText, `${keyPrefix}-parttext-${part.key}-${partIndex}`, options)}
+                </div>
+              );
+            })() : null}
           {part.children.length ? (
             <div className="mt-2 space-y-2 pl-4 leading-7">
               {part.children.map((child, childIndex) => (
                 <div key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`} className="flex items-start gap-2">
                   <span className="min-w-[2rem] font-medium text-zinc-600">{child.key})</span>
                   <div className="min-w-0 flex-1">
-                    {renderPdfTextBlocks(
-                      child.text,
-                      `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
-                      options
-                    )}
+                    {(() => {
+                      const cleanChildText = options?.suppressInlineSamplePowerTable
+                        ? stripInlineSamplePowerTable(child.text)
+                        : child.text;
+                      if (!cleanChildText) return null;
+                      return renderPdfTextBlocks(
+                        cleanChildText,
+                        `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
+                        options
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
+            </div>
+          ) : null}
+          {part.key === "a" && options?.samplePowerTableBlock ? (
+            <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-300 bg-white">
+              <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
+                <thead className="bg-zinc-100">
+                  <tr>
+                    {options.samplePowerTableBlock.headers.map((header: string, idx: number) => (
+                      <th
+                        key={`${keyPrefix}-sample-h-${idx}`}
+                        className="border border-zinc-300 px-3 py-2 font-semibold"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {options.samplePowerTableBlock.rows.map((row: string[], rowIdx: number) => (
+                    <tr key={`${keyPrefix}-sample-r-${rowIdx}`}>
+                      {row.map((cell, cellIdx: number) => (
+                        <td
+                          key={`${keyPrefix}-sample-c-${rowIdx}-${cellIdx}`}
+                          className="border border-zinc-300 px-3 py-2 align-top"
+                        >
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : null}
           </div>
@@ -558,12 +616,28 @@ export function TaskCard({
   );
 
   const tableBlocks = useMemo(() => detectTableBlocks({ ...task, text: taskBodyText }), [task, taskBodyText]);
+  const samplePowerTableBlock = useMemo(
+    () =>
+      tableBlocks.find(
+        (block): block is StructuredTableBlock =>
+          block.kind === "TABLE" &&
+          Array.isArray(block.headers) &&
+          String(block.headers[0] || "").toLowerCase() === "sample"
+      ) || null,
+    [tableBlocks]
+  );
+  const hasSamplePowerTableBlock = useMemo(
+    () => !!samplePowerTableBlock,
+    [samplePowerTableBlock]
+  );
+  const hasTaskParts = Array.isArray(task?.parts) && task.parts.length > 0;
 
   const contentSegments = useMemo<RenderSegment[]>(() => {
     if (!taskBodyText) return [];
     const lines = taskBodyText.split("\n");
     const tableSegments = tableBlocks
       .filter((block): block is StructuredTableBlock => block?.kind === "TABLE" && !!block?.range)
+      .filter((block) => !(hasTaskParts && hasSamplePowerTableBlock && block === samplePowerTableBlock))
       .sort((a, b) => (a.range.startLine || 0) - (b.range.startLine || 0));
 
     if (!tableSegments.length) {
@@ -590,7 +664,7 @@ export function TaskCard({
     }
 
     return segments;
-  }, [taskBodyText, tableBlocks]);
+  }, [taskBodyText, tableBlocks, hasTaskParts, hasSamplePowerTableBlock, samplePowerTableBlock]);
 
   const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
   const hasStructuredParts = structuredParts.length > 0;
@@ -787,6 +861,8 @@ export function TaskCard({
                         openPdfHref,
                         canEditLatex,
                         onSaveEquationLatex,
+                        suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
+                        samplePowerTableBlock,
                       })}
                     </div>
                   </div>
@@ -813,6 +889,8 @@ export function TaskCard({
                                 openPdfHref,
                                 canEditLatex,
                                 onSaveEquationLatex,
+                                suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
+                                samplePowerTableBlock,
                               })}
                             </div>
                           </>
