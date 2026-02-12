@@ -649,7 +649,16 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
 }
 
 function cleanTaskLines(lines: string[]) {
-  const cleaned = lines.map((line) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, ""));
+  const cleaned = lines
+    .map((line) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, ""))
+    .filter((line) => {
+      const t = line.trim();
+      if (!t) return true;
+      // Strip repeated page header artifacts that leak into extracted body text.
+      if (/^task\s+\d+\s*$/i.test(t)) return false;
+      if (/^\(\s*no\s+ai\s*\)\s*$/i.test(t)) return false;
+      return true;
+    });
   while (cleaned.length && cleaned[0].trim() === "") cleaned.shift();
   while (cleaned.length && cleaned[cleaned.length - 1].trim() === "") cleaned.pop();
   return cleaned;

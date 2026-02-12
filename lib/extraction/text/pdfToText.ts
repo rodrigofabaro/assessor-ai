@@ -35,8 +35,12 @@ function normalizeMathUnicode(input: string) {
     .replace(/푚/g, "m")
     .replace(/푙/g, "l")
     .replace(/퐹/g, "F")
+    .replace(/퐶/g, "C")
+    .replace(/푆/g, "S")
+    .replace(/푒/g, "e")
     .replace(/휋/g, "\\pi")
     .replace(/π/g, "\\pi")
+    .replace(/−/g, "-")
     .replace(/�/g, " ");
 
   // Common extraction artifact: doubled variable glyphs, e.g. PP, VV, ll, tt, \pi\pi.
@@ -69,6 +73,9 @@ function isLikelyEquationStart(text: string) {
   if (!s) return false;
   if (s.length > 48) return false;
   if (!/=/.test(s) && !/\\pi|sqrt|cosh|sinh|sin|cos|tan/i.test(s)) return false;
+  // Reject plain prose assignment lines (e.g. "t = time.")
+  if (/^[A-Za-z]\s*=\s*[A-Za-z]{3,}\.?$/i.test(s)) return false;
+  if (/\b(for example|number of|sum of numbers|email address|born in)\b/i.test(s)) return false;
   if (/[.?!]$/.test(s) && /[a-z]{4,}/.test(s)) return false;
   const longLowerWords = (s.match(/\b[a-z]{4,}\b/g) || []).length;
   if (longLowerWords > 1) return false;
@@ -123,6 +130,21 @@ function equationItemsToLatex(lines: string[]) {
   const normalizedLines = lines.map((line) => normalizeMathUnicode(line).trim()).filter(Boolean);
   const joined = normalizedLines.join(" ").replace(/\s+/g, " ").trim();
   if (!joined) return { latex: null as string | null, confidence: 0.3 };
+
+  // Capacitor charging law:
+  // V_C = V_S (1 - e^{-t/(RC)})
+  const capacitorLike =
+    /v\s*c/i.test(joined) &&
+    /v\s*s/i.test(joined) &&
+    /1\s*-\s*e/i.test(joined) &&
+    /t/i.test(joined) &&
+    /r\s*c/i.test(joined);
+  if (capacitorLike) {
+    return {
+      latex: "V_C = V_S\\left(1 - e^{-\\frac{t}{RC}}\\right)",
+      confidence: 0.91,
+    };
+  }
 
   // Stacked fraction style:
   // P=
@@ -238,7 +260,7 @@ export async function pdfToText(
       if (!hasEq && !/\\pi|π|sqrt|cosh|sin|cos|tan/i.test(normalizeMathUnicode(line.text))) continue;
 
       let end = i + 1;
-      for (let j = i + 1; j < Math.min(lines.length, i + 8); j += 1) {
+      for (let j = i + 1; j < Math.min(lines.length, i + 10); j += 1) {
         const rawNextText = lines[j].text;
         const nextText = normalizeMathUnicode(rawNextText);
         if (!nextText.trim()) {
