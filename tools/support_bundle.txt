@@ -1,0 +1,69 @@
+DATE: 2026-02-12T12:36:19
+REPO: C:\Users\rodri\Website\assessor-ai\webapp
+
+================================================================================
+
+## GIT
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   app/admin/briefs/components/TaskCard.tsx
+	modified:   app/layout.tsx
+	modified:   package.json
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	app/api/dev/
+	components/DevBuildBadge.tsx
+	tools/start-dev-day.ps1
+	tools/support-bundle.ps1
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+397df57 Remove binary U4002 fixture PDF from tests fixtures
+
+* main 397df57 [origin/main] Remove binary U4002 fixture PDF from tests fixtures
+
+================================================================================
+
+## VERSIONS
+node: v20.17.0
+pnpm: 10.14.0
+
+================================================================================
+
+## LINT
+
+> assessor-ai-webapp@0.1.0 lint C:\Users\rodri\Website\assessor-ai\webapp
+> next lint
+
+`next lint` is deprecated and will be removed in Next.js 16.
+For new projects, use create-next-app to choose your preferred linter.
+For existing projects, migrate to the ESLint CLI:
+npx @next/codemod@canary next-lint-to-eslint-cli .
+System.Management.Automation.RemoteException
+Ô£ö No ESLint warnings or errors
+
+================================================================================
+
+## TEST
+
+> assessor-ai-webapp@0.1.0 test C:\Users\rodri\Website\assessor-ai\webapp
+> pnpm lint
+
+
+> assessor-ai-webapp@0.1.0 lint C:\Users\rodri\Website\assessor-ai\webapp
+> next lint
+
+`next lint` is deprecated and will be removed in Next.js 16.
+For new projects, use create-next-app to choose your preferred linter.
+For existing projects, migrate to the ESLint CLI:
+npx @next/codemod@canary next-lint-to-eslint-cli .
+System.Management.Automation.RemoteException
+Ô£ö No ESLint warnings or errors
+
+================================================================================
+

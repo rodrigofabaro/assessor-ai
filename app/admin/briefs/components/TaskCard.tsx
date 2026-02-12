@@ -39,9 +39,21 @@ type TaskCardProps = {
 type RenderSegment =
   | { type: "text"; text: string }
   | { type: "table"; block: StructuredTableBlock };
+
+type ScenarioBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "list"; listType: "ul" | "ol"; items: string[] };
+
+type StructuredPart = {
+  key: string;
+  text: string;
+  children: Array<{ key: string; text: string }>;
+};
 // --- Constants & Regex (Hoisted for Performance) ---
 
 const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
+const SCENARIO_BULLET_REGEX = /^\s*(o|•|-|\*)\s+(.+)$/;
+const SCENARIO_NUMBERED_REGEX = /^\s*(\d+)\.\s+(.+)$/;
 
 // --- Helper Functions ---
 
@@ -116,6 +128,201 @@ function renderInlineText(text: string) {
 
   if (lastIndex < input.length) nodes.push(input.slice(lastIndex));
   return nodes;
+}
+
+function formatPdfTextToBlocks(text: string): ScenarioBlock[] {
+  const normalized = String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n");
+  const blocks: ScenarioBlock[] = [];
+  let paragraphLines: string[] = [];
+  let listItems: string[] = [];
+  let listType: "ul" | "ol" | null = null;
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    const text = paragraphLines
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    if (text) blocks.push({ type: "paragraph", text });
+    paragraphLines = [];
+  };
+
+  const flushList = () => {
+    if (!listItems.length || !listType) return;
+    const items = listItems.map((item) => item.trim()).filter(Boolean);
+    if (items.length) blocks.push({ type: "list", listType, items });
+    listItems = [];
+    listType = null;
+  };
+
+  for (const line of lines) {
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const numberedMatch = line.match(SCENARIO_NUMBERED_REGEX);
+    if (numberedMatch) {
+      flushParagraph();
+      if (listType && listType !== "ol") flushList();
+      listType = "ol";
+      listItems.push(numberedMatch[2].trim());
+      continue;
+    }
+
+    const bulletMatch = line.match(SCENARIO_BULLET_REGEX);
+    if (bulletMatch) {
+      flushParagraph();
+      if (listType && listType !== "ul") flushList();
+      listType = "ul";
+      listItems.push(bulletMatch[2].trim());
+      continue;
+    }
+
+    const isNewListMarker = SCENARIO_BULLET_REGEX.test(line) || SCENARIO_NUMBERED_REGEX.test(line);
+    if (!isNewListMarker && listItems.length > 0 && listType) {
+      const idx = listItems.length - 1;
+      listItems[idx] = `${listItems[idx]} ${line.trim()}`.replace(/\s{2,}/g, " ").trim();
+      continue;
+    }
+
+    if (listItems.length > 0) flushList();
+    paragraphLines.push(line.trim());
+  }
+
+  flushParagraph();
+  flushList();
+
+  return blocks;
+}
+
+function splitScenarioProposalText(text: string): { scenarioOnly: string; proposalText: string } {
+  const source = String(text ?? "");
+  if (!source.trim()) return { scenarioOnly: "", proposalText: "" };
+
+  const proposalMarkerRegex = /(initial\s+idea|proposal|\(aias\s*2\))/i;
+  const markerMatch = proposalMarkerRegex.exec(source);
+  if (!markerMatch || markerMatch.index < 0) {
+    return { scenarioOnly: source.trim(), proposalText: "" };
+  }
+
+  const taskOneRegex = /(?:^|\n)\s*task\s*1\b/i;
+  const taskOneGlobalMatch = taskOneRegex.exec(source);
+  if (taskOneGlobalMatch && taskOneGlobalMatch.index < markerMatch.index) {
+    return { scenarioOnly: source.trim(), proposalText: "" };
+  }
+  const afterMarker = source.slice(markerMatch.index);
+  const taskOneAfterMarker = taskOneRegex.exec(afterMarker);
+  const taskOneIndex = taskOneAfterMarker ? markerMatch.index + taskOneAfterMarker.index : -1;
+
+  if (taskOneIndex >= 0 && markerMatch.index > taskOneIndex) {
+    return { scenarioOnly: source.trim(), proposalText: "" };
+  }
+
+  const scenarioOnly = source.slice(0, markerMatch.index).trim();
+  const proposalText = (taskOneIndex >= 0 ? source.slice(markerMatch.index, taskOneIndex) : source.slice(markerMatch.index)).trim();
+  return { scenarioOnly, proposalText };
+}
+
+function renderPdfTextBlocks(text: string, keyPrefix: string) {
+  const blocks = formatPdfTextToBlocks(text);
+  return blocks.map((block, index) =>
+    block.type === "paragraph" ? (
+      <p key={`${keyPrefix}-p-${index}`} className="mt-2 leading-7">
+        {renderInlineText(block.text)}
+      </p>
+    ) : block.listType === "ol" ? (
+      <ol key={`${keyPrefix}-ol-${index}`} className="mt-2 list-decimal space-y-2 pl-6">
+        {block.items.map((item, itemIndex) => (
+          <li key={`${keyPrefix}-li-${index}-${itemIndex}`} className="leading-7">
+            {renderInlineText(item)}
+          </li>
+        ))}
+      </ol>
+    ) : (
+      <ul key={`${keyPrefix}-ul-${index}`} className="mt-2 space-y-2 pl-6">
+        {block.items.map((item, itemIndex) => (
+          <li key={`${keyPrefix}-li-${index}-${itemIndex}`} className="leading-7">
+            {renderInlineText(item)}
+          </li>
+        ))}
+      </ul>
+    )
+  );
+}
+
+function extractIntroBeforeFirstPartMarker(text: string, firstPartKey: string | null): string {
+  const source = normalizeText(text || "");
+  if (!source || !firstPartKey) return "";
+  const marker = new RegExp(`(?:^|\\n)\\s*${firstPartKey}[\\)\\.]\\s+`, "i");
+  const match = marker.exec(source);
+  if (!match || typeof match.index !== "number") return "";
+  return source.slice(0, match.index).trim();
+}
+
+function buildStructuredParts(partsInput: unknown): StructuredPart[] {
+  if (!Array.isArray(partsInput)) return [];
+
+  const topLevel: StructuredPart[] = [];
+  const byKey = new Map<string, StructuredPart>();
+
+  const ensurePart = (letterKey: string) => {
+    let existing = byKey.get(letterKey);
+    if (!existing) {
+      existing = { key: letterKey, text: "", children: [] };
+      byKey.set(letterKey, existing);
+      topLevel.push(existing);
+    }
+    return existing;
+  };
+
+  for (const rawPart of partsInput) {
+    const key = String((rawPart as any)?.key || "").trim().toLowerCase();
+    const text = normalizeText(String((rawPart as any)?.text || ""));
+    if (!key) continue;
+
+    const letterMatch = key.match(/^([a-z])$/);
+    if (letterMatch) {
+      const parent = ensurePart(letterMatch[1]);
+      if (text) parent.text = text;
+      continue;
+    }
+
+    const nestedMatch = key.match(/^([a-z])\.([ivxlcdm]+)$/i);
+    if (nestedMatch) {
+      const parentKey = nestedMatch[1].toLowerCase();
+      const romanKey = nestedMatch[2].toLowerCase();
+      const parent = ensurePart(parentKey);
+      if (text) parent.children.push({ key: romanKey, text });
+    }
+  }
+
+  return topLevel.filter((part) => part.text || part.children.length > 0);
+}
+
+function renderStructuredParts(parts: StructuredPart[], keyPrefix: string) {
+  return (
+    <ol className="list-[lower-alpha] pl-6 space-y-2 leading-7">
+      {parts.map((part, partIndex) => (
+        <li key={`${keyPrefix}-part-${part.key}-${partIndex}`}>
+          {part.text ? <div>{renderInlineText(part.text)}</div> : null}
+          {part.children.length ? (
+            <ol className="mt-2 list-[lower-roman] pl-6 space-y-2 leading-7">
+              {part.children.map((child, childIndex) => (
+                <li key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`}>
+                  {renderInlineText(child.text)}
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 
@@ -243,6 +450,8 @@ export function TaskCard({
   );
   const extractedScenarioText = typeof task?.scenarioText === "string" ? task.scenarioText.trim() : "";
   const scenarioText = extractedScenarioText || introText;
+  const { scenarioOnly, proposalText } = useMemo(() => splitScenarioProposalText(scenarioText), [scenarioText]);
+  const scenarioDisplayText = proposalText ? scenarioOnly : scenarioText;
   const taskBodyText = useMemo(
     () => normalizeText(bodyTextWithoutIntro || textWithoutContext),
     [bodyTextWithoutIntro, textWithoutContext]
@@ -282,6 +491,23 @@ export function TaskCard({
 
     return segments;
   }, [taskBodyText, tableBlocks]);
+
+  const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
+  const hasStructuredParts = structuredParts.length > 0;
+  const firstTextSegmentIndex = useMemo(
+    () => contentSegments.findIndex((segment) => segment.type === "text"),
+    [contentSegments]
+  );
+  const structuredPartsIntroText = useMemo(() => {
+    const explicitIntro = [task?.title, task?.prompt]
+      .map((value) => normalizeText(String(value || "")))
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+    if (explicitIntro) return explicitIntro;
+    const firstKey = structuredParts[0]?.key || null;
+    return extractIntroBeforeFirstPartMarker(taskBodyText, firstKey);
+  }, [structuredParts, task?.title, task?.prompt, taskBodyText]);
 
   // Diff Logic
   const diffData = useMemo(() => {
@@ -397,31 +623,61 @@ export function TaskCard({
 
       {/* --- Content Area --- */}
       {!expanded ? null : (
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+          {scenarioDisplayText && (
+            <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
+              <div className="break-words">{renderPdfTextBlocks(scenarioDisplayText, "scenario")}</div>
+            </div>
+          )}
+
+          {proposalText && (
+            <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Proposal Activity (AIAS 2)</div>
+              <div className="break-words">{renderPdfTextBlocks(proposalText, "proposal")}</div>
+            </div>
+          )}
+
           <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             
             {/* Context Lines */}
             {contextLines.length > 0 && (
               <div className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-500">
                 <div className="font-semibold text-zinc-600">Context line</div>
-                <div className="mt-1">{contextLines[0]}</div>
-              </div>
-            )}
-
-            {scenarioText && (
-              <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
-                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
-                <div className="mt-2 whitespace-pre-wrap break-words leading-6">{renderInlineText(scenarioText)}</div>
+                <div className="mt-1 text-sm text-zinc-700 break-words">{renderPdfTextBlocks(contextLines[0], "context-line")}</div>
               </div>
             )}
 
             <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">{label}</div>
               <div className="mt-2 space-y-3">
+                {hasStructuredParts && firstTextSegmentIndex < 0 ? (
+                  <div className="break-words">
+                    {structuredPartsIntroText ? (
+                      <div>{renderPdfTextBlocks(structuredPartsIntroText, "task-intro-no-segment")}</div>
+                    ) : null}
+                    <div className={structuredPartsIntroText ? "mt-2" : ""}>
+                      {renderStructuredParts(structuredParts, "task-parts-no-segment")}
+                    </div>
+                  </div>
+                ) : null}
                 {contentSegments.map((segment, segmentIndex) =>
                   segment.type === "text" ? (
-                    <div key={`text-${segmentIndex}`} className="whitespace-pre-wrap break-words leading-6">
-                      {renderInlineText(segment.text)}
+                    <div key={`text-${segmentIndex}`} className="break-words">
+                      {hasStructuredParts ? (
+                        segmentIndex === firstTextSegmentIndex ? (
+                          <>
+                            {structuredPartsIntroText ? (
+                              <div>{renderPdfTextBlocks(structuredPartsIntroText, `task-intro-${segmentIndex}`)}</div>
+                            ) : null}
+                            <div className={structuredPartsIntroText ? "mt-2" : ""}>
+                              {renderStructuredParts(structuredParts, `task-parts-${segmentIndex}`)}
+                            </div>
+                          </>
+                        ) : null
+                      ) : (
+                        renderPdfTextBlocks(segment.text, `task-text-${segmentIndex}`)
+                      )}
                     </div>
                   ) : (
                     <div key={`table-${segmentIndex}`} className="space-y-2">

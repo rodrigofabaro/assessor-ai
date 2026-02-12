@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "pnpm lint",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"

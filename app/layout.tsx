@@ -2,6 +2,7 @@ import "./globals.css";
 import TopNav from "@/components/TopNav";
 import PageContainer, { LANE } from "@/components/PageContainer";
 import ToastHost from "@/components/ui/ToastHost";
+import DevBuildBadge from "@/components/DevBuildBadge";
 
 export const metadata = {
   title: "Assessor AI",
@@ -9,11 +10,14 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const isDev = process.env.NODE_ENV === "development";
+
   return (
     <html lang="en">
       <body className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col">
         <TopNav />
         <ToastHost />
+        {isDev ? <DevBuildBadge /> : null}
 
         <main className="flex-1">
           <PageContainer>{children}</PageContainer>
