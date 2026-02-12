@@ -127,10 +127,9 @@ function formatPdfTextToBlocks(text: string): ScenarioBlock[] {
   const flushParagraph = () => {
     if (!paragraphLines.length) return;
     const text = paragraphLines
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\s{2,}/g, " ")
+      .map((line) => line.replace(/[ \t]+$/g, ""))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
     if (text) blocks.push({ type: "paragraph", text });
     paragraphLines = [];
@@ -225,11 +224,65 @@ function renderPdfTextBlocks(
   }
 ) {
   const blocks = formatPdfTextToBlocks(text);
+
+  const renderLineWithTypography = (line: string, lineKey: string) => {
+    const raw = String(line || "");
+    const trimmed = raw.trim();
+    if (!trimmed) return <div key={lineKey} className="h-3" />;
+
+    const alphaPart = trimmed.match(/^([a-z])\)\s+([\s\S]+)$/i);
+    if (alphaPart) {
+      return (
+        <div key={lineKey} className="leading-7">
+          <span className="font-semibold underline decoration-zinc-300 underline-offset-2">{alphaPart[1]})</span>{" "}
+          {renderInlineText(alphaPart[2], options)}
+        </div>
+      );
+    }
+
+    const romanPart = trimmed.match(/^([ivxlcdm]+)\)\s+([\s\S]+)$/i);
+    if (romanPart) {
+      return (
+        <div key={lineKey} className="leading-7">
+          <span className="font-semibold underline decoration-zinc-300 underline-offset-2">{romanPart[1]})</span>{" "}
+          {renderInlineText(romanPart[2], options)}
+        </div>
+      );
+    }
+
+    const note = trimmed.match(/^(Note:)\s*([\s\S]*)$/i);
+    if (note) {
+      return (
+        <div key={lineKey} className="leading-7">
+          <span className="font-semibold">{note[1]}</span>{" "}
+          {renderInlineText(note[2], options)}
+        </div>
+      );
+    }
+
+    const headingLike = /^(Task\s+\d+|Vocational Scenario|Use the z-table|Sources of information)/i.test(trimmed);
+    if (headingLike) {
+      return (
+        <div key={lineKey} className="leading-7 font-semibold">
+          {renderInlineText(trimmed, options)}
+        </div>
+      );
+    }
+
+    return (
+      <div key={lineKey} className="leading-7">
+        {renderInlineText(raw, options)}
+      </div>
+    );
+  };
+
   return blocks.map((block, index) =>
     block.type === "paragraph" ? (
-      <p key={`${keyPrefix}-p-${index}`} className="mt-2 leading-7">
-        {renderInlineText(block.text, options)}
-      </p>
+      <div key={`${keyPrefix}-p-${index}`} className="mt-2">
+        {String(block.text || "")
+          .split("\n")
+          .map((line, lineIdx) => renderLineWithTypography(line, `${keyPrefix}-p-${index}-line-${lineIdx}`))}
+      </div>
     ) : block.listType === "ol" ? (
       <ol key={`${keyPrefix}-ol-${index}`} className="mt-2 list-decimal space-y-2 pl-6">
         {block.items.map((item, itemIndex) => (
@@ -310,22 +363,26 @@ function renderStructuredParts(
   }
 ) {
   return (
-    <ol className="list-[lower-alpha] pl-6 space-y-2 leading-7">
+    <div className="space-y-2 leading-7">
       {parts.map((part, partIndex) => (
-        <li key={`${keyPrefix}-part-${part.key}-${partIndex}`}>
-          {part.text ? <div>{renderInlineText(part.text, options)}</div> : null}
+        <div key={`${keyPrefix}-part-${part.key}-${partIndex}`} className="flex items-start gap-2">
+          <span className="min-w-[1.5rem] font-medium text-zinc-700">{part.key})</span>
+          <div className="min-w-0 flex-1">
+            {part.text ? <div>{renderInlineText(part.text, options)}</div> : null}
           {part.children.length ? (
-            <ol className="mt-2 list-[lower-roman] pl-6 space-y-2 leading-7">
+            <div className="mt-2 space-y-2 pl-4 leading-7">
               {part.children.map((child, childIndex) => (
-                <li key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`}>
-                  {renderInlineText(child.text, options)}
-                </li>
+                <div key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`} className="flex items-start gap-2">
+                  <span className="min-w-[2rem] font-medium text-zinc-600">{child.key})</span>
+                  <div className="min-w-0 flex-1">{renderInlineText(child.text, options)}</div>
+                </div>
               ))}
-            </ol>
+            </div>
           ) : null}
-        </li>
+          </div>
+        </div>
       ))}
-    </ol>
+    </div>
   );
 }
 
