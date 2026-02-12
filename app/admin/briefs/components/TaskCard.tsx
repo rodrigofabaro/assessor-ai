@@ -80,6 +80,10 @@ function normalizeText(text: string) {
     .trim();
 }
 
+function normalizeComparable(text: string) {
+  return String(text || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 function getCriteria(task: Task): string[] {
   const candidates = [task?.criteriaCodes, task?.criteriaRefs, task?.criteria];
   for (const c of candidates) {
@@ -116,8 +120,12 @@ function renderInlineText(
   );
 }
 
-function formatPdfTextToBlocks(text: string): ScenarioBlock[] {
-  const normalized = String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+function formatPdfTextToBlocks(text: string, options?: { reflowWrappedLines?: boolean }): ScenarioBlock[] {
+  const normalized = String(text ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    // Bullet glyphs are sometimes extracted inline after a colon; promote them to their own lines.
+    .replace(/\s+•\s+/g, "\n• ");
   const lines = normalized.split("\n");
   const blocks: ScenarioBlock[] = [];
   let paragraphLines: string[] = [];
@@ -128,7 +136,8 @@ function formatPdfTextToBlocks(text: string): ScenarioBlock[] {
     if (!paragraphLines.length) return;
     const text = paragraphLines
       .map((line) => line.replace(/[ \t]+$/g, ""))
-      .join("\n")
+      .join(options?.reflowWrappedLines ? " " : "\n")
+      .replace(/\s{2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
     if (text) blocks.push({ type: "paragraph", text });
@@ -221,9 +230,10 @@ function renderPdfTextBlocks(
     openPdfHref?: string;
     canEditLatex?: boolean;
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+    reflowWrappedLines?: boolean;
   }
 ) {
-  const blocks = formatPdfTextToBlocks(text);
+  const blocks = formatPdfTextToBlocks(text, { reflowWrappedLines: options?.reflowWrappedLines });
 
   const renderLineWithTypography = (line: string, lineKey: string) => {
     const raw = String(line || "");
@@ -292,7 +302,7 @@ function renderPdfTextBlocks(
         ))}
       </ol>
     ) : (
-      <ul key={`${keyPrefix}-ul-${index}`} className="mt-2 space-y-2 pl-6">
+      <ul key={`${keyPrefix}-ul-${index}`} className="mt-2 list-disc space-y-2 pl-6">
         {block.items.map((item, itemIndex) => (
           <li key={`${keyPrefix}-li-${index}-${itemIndex}`} className="leading-7">
             {renderInlineText(item, options)}
@@ -368,13 +378,21 @@ function renderStructuredParts(
         <div key={`${keyPrefix}-part-${part.key}-${partIndex}`} className="flex items-start gap-2">
           <span className="min-w-[1.5rem] font-medium text-zinc-700">{part.key})</span>
           <div className="min-w-0 flex-1">
-            {part.text ? <div>{renderInlineText(part.text, options)}</div> : null}
+            {part.text ? (
+              <div>{renderPdfTextBlocks(part.text, `${keyPrefix}-parttext-${part.key}-${partIndex}`, options)}</div>
+            ) : null}
           {part.children.length ? (
             <div className="mt-2 space-y-2 pl-4 leading-7">
               {part.children.map((child, childIndex) => (
                 <div key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`} className="flex items-start gap-2">
                   <span className="min-w-[2rem] font-medium text-zinc-600">{child.key})</span>
-                  <div className="min-w-0 flex-1">{renderInlineText(child.text, options)}</div>
+                  <div className="min-w-0 flex-1">
+                    {renderPdfTextBlocks(
+                      child.text,
+                      `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
+                      options
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -517,6 +535,23 @@ export function TaskCard({
   const scenarioText = extractedScenarioText || introText;
   const { scenarioOnly, proposalText } = useMemo(() => splitScenarioProposalText(scenarioText), [scenarioText]);
   const scenarioDisplayText = proposalText ? scenarioOnly : scenarioText;
+  const contextualIntroLine = useMemo(() => {
+    if (!introText || !extractedScenarioText) return "";
+    const introNorm = normalizeComparable(introText);
+    const scenarioNorm = normalizeComparable(extractedScenarioText);
+    if (!introNorm || !scenarioNorm) return "";
+    if (scenarioNorm.includes(introNorm)) return "";
+    return introText;
+  }, [introText, extractedScenarioText]);
+  const displayContextLines = useMemo(() => {
+    const lines = [...contextLines];
+    if (contextualIntroLine) {
+      const introNorm = normalizeComparable(contextualIntroLine);
+      const exists = lines.some((line) => normalizeComparable(line) === introNorm);
+      if (!exists) lines.unshift(contextualIntroLine);
+    }
+    return lines;
+  }, [contextLines, contextualIntroLine]);
   const taskBodyText = useMemo(
     () => normalizeText(bodyTextWithoutIntro || textWithoutContext),
     [bodyTextWithoutIntro, textWithoutContext]
@@ -694,6 +729,7 @@ export function TaskCard({
                   openPdfHref,
                   canEditLatex,
                   onSaveEquationLatex,
+                  reflowWrappedLines: true,
                 })}
               </div>
             </div>
@@ -716,11 +752,11 @@ export function TaskCard({
           <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             
             {/* Context Lines */}
-            {contextLines.length > 0 && (
+            {displayContextLines.length > 0 && (
               <div className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-500">
                 <div className="font-semibold text-zinc-600">Context line</div>
                 <div className="mt-1 text-sm text-zinc-700 break-words">
-                  {renderPdfTextBlocks(contextLines[0], "context-line", {
+                  {renderPdfTextBlocks(displayContextLines[0], "context-line", {
                     equationsById,
                     openPdfHref,
                     canEditLatex,

@@ -174,6 +174,17 @@ function parseSamplePowerTwoLineTable(lines: string[], i: number): StructuredTab
   };
 }
 
+function isNarrativeLine(line: string) {
+  const clean = (line || "").trim();
+  if (!clean) return false;
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length < 8) return false;
+  // Narrative/prose lines usually contain punctuation or many lowercase words.
+  if (/[.?!:]$/.test(clean)) return true;
+  const lowerWords = words.filter((w) => /[a-z]{4,}/.test(w)).length;
+  return lowerWords >= 4;
+}
+
 export function detectTableBlocks(task: any): TableBlock[] {
   const text = normalizeText(getTaskText(task));
   if (!text.trim()) return [];
@@ -243,6 +254,11 @@ export function detectTableBlocks(task: any): TableBlock[] {
     }
 
     const rows: string[][] = [];
+    const isCostingTemplate =
+      headers.length >= 3 &&
+      /^month$/i.test(String(headers[0] || "").trim()) &&
+      /before\s+qc/i.test(String(headers[1] || "")) &&
+      /after\s+qc/i.test(String(headers[2] || ""));
     let end = cursor;
     while (end < lines.length) {
       const line = (lines[end] || "").trim();
@@ -251,8 +267,13 @@ export function detectTableBlocks(task: any): TableBlock[] {
         continue;
       }
       if (isTableCaption(line)) break;
+      if (isCostingTemplate && isNarrativeLine(line)) break;
 
-      const row = parseRow(line);
+      let row = parseRow(line);
+      if (!row && isCostingTemplate) {
+        // Keep template label rows such as "Units Sold" in 3-column costing tables.
+        row = [line, "", ""];
+      }
       if (!row) break;
       rows.push(row);
       end += 1;
