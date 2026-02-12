@@ -35,6 +35,7 @@ function normalizeMathUnicode(input: string) {
     .replace(/푚/g, "m")
     .replace(/푙/g, "l")
     .replace(/푦/g, "y")
+    .replace(/퐷/g, "D")
     .replace(/퐹/g, "F")
     .replace(/푥/g, "x")
     .replace(/퐶/g, "C")
@@ -240,7 +241,23 @@ function isMatrixLikeBlock(lines: string[]) {
   const head = normalized[0] || "";
   const matrixHead = /^[A-Za-z]\s*=$/.test(head);
   const numericRows = normalized.slice(1).filter((line) => /^[-+]?\d+(?:\.\d+)?(?:\s+[-+]?\d+(?:\.\d+)?){1,4}$/.test(line));
-  return matrixHead && numericRows.length >= 1;
+  return matrixHead && numericRows.length >= 2;
+}
+
+function matrixLatexFromLines(lines: string[]) {
+  const normalized = lines.map((line) => normalizeMathUnicode(line).trim()).filter(Boolean);
+  if (normalized.length < 3) return null;
+  const headMatch = normalized[0].match(/^([A-Za-z])\s*=$/);
+  if (!headMatch) return null;
+  const rows = normalized
+    .slice(1)
+    .map((line) => line.split(/\s+/).filter(Boolean))
+    .filter((cells) => cells.length >= 2 && cells.length <= 4 && cells.every((c) => /^[-+]?\d+(?:\.\d+)?$/.test(c)));
+  if (rows.length < 2) return null;
+  const colCount = rows[0].length;
+  if (!rows.every((r) => r.length === colCount)) return null;
+  const body = rows.map((r) => r.join(" & ")).join(" \\\\ ");
+  return `${headMatch[1]} = \\begin{bmatrix}${body}\\end{bmatrix}`;
 }
 
 function isNonFormulaMathBlock(joined: string) {
@@ -360,8 +377,25 @@ export async function pdfToText(
       const blockLines = lines.slice(block.start, block.end);
       const blockLineTexts = blockLines.map((line) => line.text);
       if (isMatrixLikeBlock(blockLineTexts)) {
-        // Keep matrix declarations in text flow; they're not target equations for KaTeX formula rendering.
-        linesOut.push(...blockLineTexts);
+        const matrixLatex = matrixLatexFromLines(blockLineTexts);
+        if (!matrixLatex) {
+          linesOut.push(...blockLineTexts);
+          cursor = block.end;
+          continue;
+        }
+        const blockItems = blockLines.flatMap((line) => line.items);
+        const bbox = unionBbox(blockItems);
+        const id = `p${pageNumber}-eq${pageEqCounter++}`;
+        equations.push({
+          id,
+          pageNumber,
+          bbox,
+          latex: matrixLatex,
+          latexSource: "heuristic",
+          confidence: 0.9,
+          needsReview: false,
+        });
+        linesOut.push(`[[EQ:${id}]]`);
         cursor = block.end;
         continue;
       }
