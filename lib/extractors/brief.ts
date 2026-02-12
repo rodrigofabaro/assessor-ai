@@ -726,7 +726,8 @@ function extractBriefTasks(
   const warnings: string[] = [];
   const sourcePages = pages.length ? pages : [text];
   const normalizeLine = (line: string) =>
-    normalizeWhitespace(line.replace(/\t/g, " ").replace(/[ \u00a0]+/g, " ")).trim();
+    line.replace(/\t/g, "  ").replace(/\u00a0/g, " ").replace(/[ ]+$/g, "").trim();
+  const compactLine = (line: string) => normalizeWhitespace(line).trim();
   const cleanedPages = sourcePages.map((pageText) => {
     const lines = stripFooterLines(splitLines(pageText));
     return lines.map((line) => normalizeLine(line)).join("\n");
@@ -743,14 +744,15 @@ function extractBriefTasks(
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
       let normalizedLine = normalizeLine(lines[lineIdx]);
+      const compact = compactLine(normalizedLine);
       const primaryKey = getPrimaryEndMatterKeyFromWindow(lines, lineIdx);
       if (primaryKey) {
         stop = true;
         break;
       }
-      const secondaryKey = getSecondaryEndMatterKey(normalizedLine);
+      const secondaryKey = getSecondaryEndMatterKey(compact);
       if (secondaryKey) {
-        const headingLike = isHeadingLike(normalizedLine);
+        const headingLike = isHeadingLike(compact);
         if (headingLike) {
           stop = true;
           break;
@@ -758,7 +760,7 @@ function extractBriefTasks(
       }
 
       const nextLine = lines[lineIdx + 1] ? normalizeLine(lines[lineIdx + 1]) : "";
-      const taskWordCandidate = normalizedLine.replace(/^[^A-Za-z0-9]+/, "").trim();
+      const taskWordCandidate = compact.replace(/^[^A-Za-z0-9]+/, "").trim();
       const isTaskWordOnly =
         /^task$/i.test(taskWordCandidate) ||
         (/\bt\s*a\s*s\s*k\b/i.test(taskWordCandidate) && !/\bt\s*a\s*s\s*k\s*\d/i.test(taskWordCandidate));
@@ -782,13 +784,26 @@ function extractBriefTasks(
     return score;
   };
 
-  const parseHeading = (raw: string) => {
+  const parseHeading = (raw: string, allowNumericOnly = false) => {
     if (!raw) return null;
-    const match = raw.match(/^\s*[^A-Za-z0-9]{0,6}Task\s*(\d{1,2})\b(.*)$/i);
-    if (!match) return null;
-    const n = Number(match[1]);
+
+    let n: number | null = null;
+    let remainder = "";
+
+    const explicitTask = raw.match(/^\s*[^A-Za-z0-9]{0,6}task\s*(\d{1,2})\b(.*)$/i);
+    if (explicitTask) {
+      n = Number(explicitTask[1]);
+      remainder = explicitTask[2] || "";
+    } else if (allowNumericOnly) {
+      const numericOnly = raw.match(/^\s*[^A-Za-z0-9]{0,4}(\d{1,2})\s*[\.:\)-]\s+(.+)$/);
+      if (numericOnly) {
+        n = Number(numericOnly[1]);
+        remainder = numericOnly[2] || "";
+      }
+    }
+
     if (!n || Number.isNaN(n)) return null;
-    const remainder = match[2] || "";
+
     const cleanedRemainder = remainder
       .replace(/^\s*\(.*?\)\s*/i, "")
       .replace(/^\s*[:\-–—]\s*/i, "")
@@ -860,9 +875,11 @@ function extractBriefTasks(
     return { remainingText, tasks: promoted };
   };
 
+  const hasExplicitTaskHeadings = linesWithPages.some((entry) => /^\s*[^A-Za-z0-9]{0,6}task\s*\d{1,2}\b/i.test(entry.line));
+
   let startIndex = 0;
   for (let i = 0; i < linesWithPages.length; i += 1) {
-    const h = parseHeading(linesWithPages[i].line);
+    const h = parseHeading(linesWithPages[i].line, !hasExplicitTaskHeadings);
     if (h?.n === 1) {
       startIndex = Math.max(0, i - 10);
       break;
@@ -873,7 +890,7 @@ function extractBriefTasks(
   const headingCandidateIndices = new Set<number>();
   for (let i = startIndex; i < linesWithPages.length; i += 1) {
     const raw = linesWithPages[i].line;
-    const heading = parseHeading(raw);
+    const heading = parseHeading(raw, !hasExplicitTaskHeadings);
     if (!heading) continue;
     headingCandidateIndices.add(i);
     candidates.push({
@@ -984,6 +1001,42 @@ function extractBriefTasks(
     /\brecommended\s+resources\b/i,
   ];
 
+  const dedupeConsecutiveLines = (lines: string[]) => {
+    const out: string[] = [];
+    for (const line of lines) {
+      if (!line.trim()) {
+        if (out.length && out[out.length - 1] === "") continue;
+        out.push("");
+        continue;
+      }
+      if (
+        out.length &&
+        out[out.length - 1] &&
+        normalizeWhitespace(out[out.length - 1]).toLowerCase() === normalizeWhitespace(line).toLowerCase()
+      ) {
+        continue;
+      }
+      out.push(line);
+    }
+    return out;
+  };
+
+  const trimAtEndMatter = (lines: string[]) => {
+    let cut = lines.length;
+    for (let i = 0; i < lines.length; i += 1) {
+      const compact = normalizeWhitespace(lines[i]).toLowerCase();
+      if (!compact) continue;
+      if (
+        contaminationAnchors.some((cue) => cue.test(compact)) ||
+        /\b(textbooks?|websites?|further\s+reading|additional\s+resources?)\b/i.test(compact)
+      ) {
+        cut = i;
+        break;
+      }
+    }
+    return lines.slice(0, cut);
+  };
+
   selectedHeadings.forEach((heading, idx) => {
     const start = heading.index + 1;
     const end = idx + 1 < selectedHeadings.length ? selectedHeadings[idx + 1].index : linesWithPages.length;
@@ -997,7 +1050,8 @@ function extractBriefTasks(
         .filter((_line, lineIndex) => !headingCandidateIndices.has(start + lineIndex))
         .map((l) => l.line)
     );
-    let textBody = bodyLines.join("\n");
+    const decontaminatedBodyLines = dedupeConsecutiveLines(trimAtEndMatter(bodyLines));
+    let textBody = decontaminatedBodyLines.join("\n");
     textBody = textBody.replace(/\n{3,}/g, "\n\n").replace(/\s+$/g, "");
 
     const taskWarnings: string[] = [];

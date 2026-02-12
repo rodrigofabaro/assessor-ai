@@ -1,0 +1,207 @@
+{
+  "kind": "BRIEF",
+  "title": "Unit 4017 - Quality and Process Improvement - Assignment 1",
+  "pageCount": 7,
+  "header": {
+    "qualification": "Pearson BTEC Higher Nationals for England (2024)",
+    "unitNumberAndTitle": "4017. Quality and Process Improvement",
+    "assignmentTitle": "Quality Control Tools and Costing",
+    "assignment": "1 of 2",
+    "assessor": "Engineering Team",
+    "unitCode": "H/615/1491",
+    "internalVerifier": "Dr Michael Shaw",
+    "verificationDate": "1st September 2025",
+    "verificationDateIso": "2025-09-01",
+    "issueDate": "1st September 2025",
+    "issueDateIso": "2025-09-01",
+    "finalSubmissionDate": "31st August 2026",
+    "finalSubmissionDateIso": "2026-08-31",
+    "academicYear": "1"
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "label": "Task 1",
+      "title": null,
+      "pages": [
+        3,
+        4
+      ],
+      "text": "In a bid to convince the CEO that proactive quality management is essential, you are tasked with completing a comprehensive report on the topic of statistical process control (SPC) and its tangible impact on both quality and cost-effectiveness.\n\na)  Your report will include a detailed discussion on the following:\n\n•   Core Principles of Statistical Process Control: Explain the fundamental concepts of SPC\nand how it differs from traditional \"inspection-based\" quality control. Provide concrete examples of how these principles could be applied on the manufacturing floor to monitor key process variables like solder temperature or component placement accuracy.\n\n•   Control Charts: Describe the function and application of at least two different types of\ncontrol charts (e.g., X-bar and R charts, or P charts) and explain how they are used to distinguish between common cause and special cause variation. Justify why this distinction is critical for process stability and improvement.\n\n•   Benefits of SPC: Argue for the implementation of SPC within the engineering\nenvironment. Focus your justification on how it can lead to improved product quality, reduced waste, and enhanced customer satisfaction.\n\nb)  To provide a practical, industry-specific context, your report will also include a discussion\non:\n\n•   The \"Seven Basic Tools of Quality\": Select and explain how at least three of these\ntools (e.g., Pareto chart, Fishbone diagram, Histogram) can be used to analyze and solve quality-related problems in the electronics manufacturing process. For each tool, provide a specific example of its application.\n\n•   Cost of Quality (COQ) Model: Analyze the four main components of the COQ model\n(prevention, appraisal, internal failure, and external failure costs). Using a real-world example from the electronics industry, demonstrate how an investment in prevention and appraisal costs can lead to a significant reduction in failure costs and a positive return on investment.",
+      "parts": [
+        {
+          "key": "a",
+          "text": "Your report will include a detailed discussion on the following:\n\n•   Core Principles of Statistical Process Control: Explain the fundamental concepts of SPC\nand how it differs from traditional \"inspection-based\" quality control. Provide concrete examples of how these principles could be applied on the manufacturing floor to monitor key process variables like solder temperature or component placement accuracy.\n\n•   Control Charts: Describe the function and application of at least two different types of\ncontrol charts (e.g., X-bar and R charts, or P charts) and explain how they are used to distinguish between common cause and special cause variation. Justify why this distinction is critical for process stability and improvement.\n\n•   Benefits of SPC: Argue for the implementation of SPC within the engineering\nenvironment. Focus your justification on how it can lead to improved product quality, reduced waste, and enhanced customer satisfaction."
+        },
+        {
+          "key": "b",
+          "text": "To provide a practical, industry-specific context, your report will also include a discussion\non:\n\n•   The \"Seven Basic Tools of Quality\": Select and explain how at least three of these\ntools (e.g., Pareto chart, Fishbone diagram, Histogram) can be used to analyze and solve quality-related problems in the electronics manufacturing process. For each tool, provide a specific example of its application.\n\n•   Cost of Quality (COQ) Model: Analyze the four main components of the COQ model\n(prevention, appraisal, internal failure, and external failure costs). Using a real-world example from the electronics industry, demonstrate how an investment in prevention and appraisal costs can lead to a significant reduction in failure costs and a positive return on investment."
+        }
+      ],
+      "tableBlocks": [],
+      "warnings": []
+    },
+    {
+      "n": 2,
+      "label": "Task 2",
+      "title": null,
+      "pages": [
+        4,
+        5
+      ],
+      "text": "Further to your discussion in Task 1, you will complete the below practical to highlight the effects of implementing a quality control tool.\nA company manufactures LED drivers in batches of 200. Each driver is tested by quality control for the output voltage when connected to a constant load. The acceptable limits for the output voltage are between 11V and 15V. Any drivers that fall outside these limits are non-conforming and must be reworked or scrapped. The typical test results pre and post the introduction of quality control are shown in Table 2.1.\n\nTable 2.1: Number of Drivers vs. Output Voltage\nOutput Voltage\n(V)\nBefore\nQC\nAfter\nQC\n< 5               5         1\n5 - 7              8         2\n7 - 9              15        5\n9 - 11             25        10\n11 - 13            60        85\n13 - 15            50        80\n15 - 17            25        15\n> 17              12        2\nTotal             200       200\n\nUsing the data from Table 2.1, create a comparative histogram or a dual-axis bar chart to visually represent the impact of implementing a quality control process. You should then write a brief analysis of the key findings from your graph, highlighting the improvement in product conformity and the reduction of non-conforming units.",
+      "parts": [],
+      "tableBlocks": [
+        {
+          "kind": "TABLE",
+          "caption": "Table 2.1: Number of Drivers vs. Output Voltage",
+          "headers": [
+            "Output Voltage (V)",
+            "Before QC",
+            "After QC"
+          ],
+          "rows": [
+            [
+              "< 5",
+              "5",
+              "1"
+            ],
+            [
+              "5 - 7",
+              "8",
+              "2"
+            ],
+            [
+              "7 - 9",
+              "15",
+              "5"
+            ],
+            [
+              "9 - 11",
+              "25",
+              "10"
+            ],
+            [
+              "11 - 13",
+              "60",
+              "85"
+            ],
+            [
+              "13 - 15",
+              "50",
+              "80"
+            ],
+            [
+              "15 - 17",
+              "25",
+              "15"
+            ],
+            [
+              "> 17",
+              "12",
+              "2"
+            ],
+            [
+              "Total",
+              "200",
+              "200"
+            ],
+            [
+              "Using the data from Table 2.1, create a comparative histogram or a dual-axis bar chart to visually represent the impact of implementing a quality control process. You should then write a brief analysis of the key findings from your graph, highlighting the improvement in product conformity and the reduction of non-conforming units.",
+              "",
+              ""
+            ]
+          ],
+          "range": {
+            "startLine": 3,
+            "endLine": 21
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "n": 3,
+      "label": "Task 3",
+      "title": null,
+      "pages": [
+        5,
+        6
+      ],
+      "text": "Further to your discussion in Task 1, you will complete the below practical to highlight the effects of implementing a quality control tool.\n\nA company manufactures electronic control modules. You are tasked with producing a basic account sheet using the standard costing method and the template shown below, to calculate the net profit/loss for a month both pre and post the introduction of quality control. Assume that the values before QC are the standard, and you have also been given the following information:\n\nThe company produces 50 batches of modules each day.\nThere are 20 production days in a month.\nRaw materials for each module cost £0.25.\nEach module is sold for £1.50.\nAll modules that pass quality control are sold.\nThe monthly wage bill is £20,000 before the new manager is hired, and £22,000 afterwards.\nThe company pays £4,000 a month in rent.\nOverheads were £400 in the month before QC, and £350 in the month after QC.\nVariances were £5,000 in the month before QC, and £7,500 in the month after QC.\n\nMonth\nBefore\nQC\nAfter\nQC\nUnits Produced\n\nGross Sales          £        £\nUnits Sold\n\nMaterial Cost        £        £\nNet Sales            £        £\nWages               £        £\nRent                £        £\nOverheads           £        £\nVariances            £        £\nNet Profit/Loss       £        £",
+      "parts": [],
+      "tableBlocks": [
+        {
+          "kind": "TABLE",
+          "headers": [
+            "Month",
+            "Before QC",
+            "After QC"
+          ],
+          "rows": [
+            [
+              "Units Produced",
+              "",
+              ""
+            ],
+            [
+              "Gross Sales",
+              "£",
+              "£"
+            ],
+            [
+              "Units Sold",
+              "",
+              ""
+            ],
+            [
+              "Material Cost",
+              "£",
+              "£"
+            ],
+            [
+              "Net Sales",
+              "£",
+              "£"
+            ],
+            [
+              "Wages",
+              "£",
+              "£"
+            ],
+            [
+              "Rent",
+              "£",
+              "£"
+            ],
+            [
+              "Overheads",
+              "£",
+              "£"
+            ],
+            [
+              "Variances",
+              "£",
+              "£"
+            ],
+            [
+              "Net Profit/Loss",
+              "£",
+              "£"
+            ]
+          ],
+          "range": {
+            "startLine": 14,
+            "endLine": 31
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "warnings": [],
+  "endMatter": {
+    "sourcesBlock": "Sources of\ninformation to\nsupport you\nwith this\nAssignment\nRecommended Resources\nNote: See HN Global for guidance on additional resources.\n\nPrint Resources\n•  Amsden R.T. (2019). SPC simplified: Practical steps to quality. Routledge.\n\n•   Begum S., Rajendran C., Prakash Sai L., Ganesh K. and Mohapatra S. (2021)\nTotal Quality Management in Higher Education: Study of Engineering\nInstitutions. 1st Edition. Routledge India.\n\n•  Cachon G. and Terwiesch C. (2023) Operations Management. 3rd Edition.\nMcGraw-Hill Cottmon R.J. (2020) Total Engineering Quality Management. 1st\nEdition. CRC Press.\n\n•   Goetsch D.L. and Davis S. (2021) Quality Management for Organizational\nExcellence: Introduction to Total Quality. 9th edition. Pearson.\n\n•   Lim J.S. (2020) Quality Management in Engineering: A Scientific and Systematic\nApproach. 1st Edition. CRC Press.\n\n•   Mathur S. (2021) Book Review of Total Quality Management in\nEducation. Management Dynamics.\n\n•   Montgomery D.C. (2019) Introduction to statistical quality control. John Wiley &\nsons. Stevenson W.J (2021) Operations Management. 14th Edition. McGraw-Hill.\n\n•   Slack, N., Chambers, S. and Johnston, R. (2016) Operations\nManagement. 8th Ed. Essex: Pearson Education Limited.\n\nJournals\nNote: Example journals listed below provide a broad range of articles related to unit content and\nthose relevant for the qualification. Staff and students are encouraged to explore these journals\nand any other suitable journals to support the development of academic study skills, and subject\nspecific knowledge and skills as part of unit level delivery.\nJournal  of  Quality  in  Maintenance  Engineering\nThe TQM Journal\nQuality Management Journal\n\nLinks\nThis unit links to the following related units:\nUnit 5016: Lean Manufacturing",
+    "criteriaBlock": "Relevant Learning Outcomes and Assessment Criteria\n\nPass\n\nMerit\n\nDistinction\nLO1\nExamine the applications of statistical process control when applied\nin an industrial environment to improve efficiency\nLO1\n\n\nP1\n\n\n\nP2\nReview the tools and\ntechniques used to support\nquality control.\nExamine the processes and\napplications of statistical\nprocess control in a production\nenvironment.\n\n\n\nM1\n\nExplain the role and\neffectiveness of the quality\ntools and techniques used\nwithin an industrial\nenvironment.\n\n\n\nD1\n\nSuggest justified\nrecommendations for the\napplication of statistical\nprocess control in an\nindustrial environment to\nimprove efficiency.\nLO2    Analyse cost effective quality control tools                         LO2\n\nAnalyse the effective use of\nP3     quality control tools and\ntechniques.\nCompare costing techniques used\nP4\nwithin industrial environments.\n\n\nM2\nDetermine with justification\nthe quality control tools and\ntechniques that could be\nused to improve business\nperformance.\n\n\nD2\nDevelop a process for the\napplication of an extensive\nrange of quality control tools\nand techniques with\nemphasis on costing."
+  }
+}

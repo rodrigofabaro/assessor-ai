@@ -47,6 +47,14 @@ function normalizeProvidedParts(parts: Array<{ key?: string; text?: string }> | 
 
 const TOP_LEVEL_PART_REGEX = /^([a-z])[\.)]\s+/i;
 
+function isPreformattedLine(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/\|/.test(trimmed)) return true;
+  return /\S\s{2,}\S/.test(line);
+}
+
+
 export function extractIntroBeforeParts(text: string): { introText: string; bodyText: string } {
   const normalized = normalizeText(text);
   if (!normalized) return { introText: "", bodyText: "" };
@@ -112,9 +120,9 @@ export function parseParts(text: string, providedParts?: Array<{ key?: string; t
     }
 
     if (currentChild) {
-      currentChild.text += ` ${line}`;
+      currentChild.text += isPreformattedLine(line) ? `\n${line}` : ` ${line}`;
     } else if (current) {
-      current.text += ` ${line}`;
+      current.text += isPreformattedLine(line) ? `\n${line}` : ` ${line}`;
     }
   }
 

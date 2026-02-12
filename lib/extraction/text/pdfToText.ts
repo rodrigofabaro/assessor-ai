@@ -15,16 +15,33 @@ export async function pdfToText(
       normalizeWhitespace: false,
       disableCombineTextItems: false,
     });
+
     let lastY: number | null = null;
+    let lastXEnd: number | null = null;
     let text = "";
+
     for (const item of textContent.items || []) {
-      if (lastY === null || lastY === item.transform[5]) {
-        text += item.str;
+      const str = String(item?.str || "");
+      const y = Number(item?.transform?.[5] ?? 0);
+      const x = Number(item?.transform?.[4] ?? 0);
+      const width = Number(item?.width ?? 0);
+      const charWidth = str.length > 0 && width > 0 ? width / str.length : 3;
+
+      const sameLine = lastY !== null && Math.abs(lastY - y) < 0.5;
+      if (!sameLine) {
+        if (text) text += "\n";
+        text += str;
       } else {
-        text += `\n${item.str}`;
+        const gap = lastXEnd === null ? 0 : x - lastXEnd;
+        const spaces = gap > charWidth * 0.8 ? Math.max(1, Math.round(gap / Math.max(charWidth, 2.5))) : 0;
+        if (spaces > 0) text += " ".repeat(spaces);
+        text += str;
       }
-      lastY = item.transform[5];
+
+      lastY = y;
+      lastXEnd = x + width;
     }
+
     pages.push(text);
     return text;
   };

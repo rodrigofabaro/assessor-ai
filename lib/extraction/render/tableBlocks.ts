@@ -104,6 +104,34 @@ function startsCostingTable(lines: string[], i: number) {
   return /before/.test(lookahead) && /after/.test(lookahead) && /qc/.test(lookahead);
 }
 
+
+function hasAlignedColumns(line: string) {
+  const clean = (line || "").trim();
+  if (!clean) return false;
+  if (/\|/.test(clean)) return true;
+  const segments = clean.split(/\s{2,}/).map((part) => part.trim()).filter(Boolean);
+  return segments.length >= 2;
+}
+
+function readAlignedRegion(lines: string[], start: number) {
+  if (!hasAlignedColumns(lines[start] || "")) return null;
+  const collected: string[] = [];
+  let i = start;
+  while (i < lines.length) {
+    const line = lines[i] || "";
+    if (!line.trim()) {
+      if (collected.length >= 3) break;
+      i += 1;
+      continue;
+    }
+    if (!hasAlignedColumns(line)) break;
+    collected.push(line);
+    i += 1;
+  }
+  if (collected.length < 3) return null;
+  return { lines: collected, end: i };
+}
+
 function startsTable(lines: string[], i: number) {
   const line = (lines[i] || "").trim();
   return isTableCaption(line) || startsCostingTable(lines, i);
@@ -119,6 +147,17 @@ export function detectTableBlocks(task: any): TableBlock[] {
   let i = 0;
   while (i < lines.length) {
     if (!startsTable(lines, i)) {
+      const aligned = readAlignedRegion(lines, i);
+      if (aligned) {
+        blocks.push({
+          kind: "UNSTRUCTURED",
+          warning: "TABLE UNSTRUCTURED",
+          text: aligned.lines.join("\n"),
+          range: { startLine: i, endLine: Math.max(i + 1, aligned.end) },
+        });
+        i = Math.max(i + 1, aligned.end);
+        continue;
+      }
       i += 1;
       continue;
     }
