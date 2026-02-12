@@ -397,32 +397,14 @@ function renderStructuredParts(
               if (!cleanPartText) return null;
               return (
                 <div>
-                  {renderPdfTextBlocks(cleanPartText, `${keyPrefix}-parttext-${part.key}-${partIndex}`, options)}
+                  {renderPdfTextBlocks(
+                    cleanPartText,
+                    `${keyPrefix}-parttext-${part.key}-${partIndex}`,
+                    { ...options, reflowWrappedLines: true }
+                  )}
                 </div>
               );
             })() : null}
-          {part.children.length ? (
-            <div className="mt-2 space-y-2 pl-4 leading-7">
-              {part.children.map((child, childIndex) => (
-                <div key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`} className="flex items-start gap-2">
-                  <span className="min-w-[2rem] font-medium text-zinc-600">{child.key})</span>
-                  <div className="min-w-0 flex-1">
-                    {(() => {
-                      const cleanChildText = options?.suppressInlineSamplePowerTable
-                        ? stripInlineSamplePowerTable(child.text)
-                        : child.text;
-                      if (!cleanChildText) return null;
-                      return renderPdfTextBlocks(
-                        cleanChildText,
-                        `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
-                        options
-                      );
-                    })()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
           {part.key === "a" && options?.samplePowerTableBlock ? (
             <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-300 bg-white">
               <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
@@ -453,6 +435,28 @@ function renderStructuredParts(
                   ))}
                 </tbody>
               </table>
+            </div>
+          ) : null}
+          {part.children.length ? (
+            <div className="mt-2 space-y-2 pl-4 leading-7">
+              {part.children.map((child, childIndex) => (
+                <div key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`} className="flex items-start gap-2">
+                  <span className="min-w-[2rem] font-medium text-zinc-600">{child.key})</span>
+                  <div className="min-w-0 flex-1">
+                    {(() => {
+                      const cleanChildText = options?.suppressInlineSamplePowerTable
+                        ? stripInlineSamplePowerTable(child.text)
+                        : child.text;
+                      if (!cleanChildText) return null;
+                      return renderPdfTextBlocks(
+                        cleanChildText,
+                        `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
+                        { ...options, reflowWrappedLines: true }
+                      );
+                    })()}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
           </div>
