@@ -142,6 +142,7 @@ async function extractSnapshot(pdfPath) {
     pages: task.pages || [],
     text: task.text,
     parts: task.parts || [],
+    scenarioText: task.scenarioText || null,
     tableBlocks: detectTableBlocks(task),
     warnings: task.warnings || [],
   }));
@@ -217,6 +218,76 @@ async function main() {
     });
     if (!hasSampleTableBlock) {
       console.error("WARNING: U4002 expected Sample/Power table block not detected.");
+      process.exit(1);
+    }
+  }
+
+  if (fixtureName.includes("4017") && fixtureName.includes("a1")) {
+    const task1 = snapshot.tasks.find((t) => t.n === 1);
+    if (!task1) {
+      console.error("WARNING: 4017 A1 expected Task 1 but none found.");
+      process.exit(1);
+    }
+    const task1Text = String(task1.text || "");
+    const task1Scenario = String(task1.scenarioText || "");
+    if (!/in a bid to convince the ceo/i.test(task1Text)) {
+      console.error("WARNING: 4017 A1 expected Task 1 intro line in task text.");
+      process.exit(1);
+    }
+    if (!/you'?ve recently joined/i.test(task1Scenario)) {
+      console.error("WARNING: 4017 A1 expected vocational scenario text for Task 1.");
+      process.exit(1);
+    }
+
+    const task2 = snapshot.tasks.find((t) => t.n === 2);
+    if (!task2) {
+      console.error("WARNING: 4017 A1 expected Task 2 but none found.");
+      process.exit(1);
+    }
+    const task2PartMap = new Map((task2.parts || []).map((p) => [String(p.key || "").toLowerCase(), String(p.text || "")]));
+    const t2a = task2PartMap.get("a") || "";
+    const t2bii = task2PartMap.get("b.ii") || "";
+    const t2c = task2PartMap.get("c") || "";
+    if (!/sample\s+1\s+2\s+3/i.test(t2a) || !/power\s*\(\+?dbm\)/i.test(t2a)) {
+      console.error("WARNING: 4017 A1 expected Sample/Power lines in Task 2 part a.");
+      process.exit(1);
+    }
+    if (/sample\s+1\s+2\s+3/i.test(t2bii)) {
+      console.error("WARNING: 4017 A1 Sample/Power lines leaked into Task 2 part b.ii.");
+      process.exit(1);
+    }
+    if (!/standard deviation of\s+12\s*[μu]f/i.test(t2c.replace(/\n+/g, " "))) {
+      console.error("WARNING: 4017 A1 expected Task 2 part c to keep 'standard deviation of 12μF' contiguous.");
+      process.exit(1);
+    }
+    const t2SampleTable = (task2.tableBlocks || []).find(
+      (b) => b.kind === "TABLE" && Array.isArray(b.headers) && String(b.headers[0] || "").toLowerCase() === "sample"
+    );
+    if (!t2SampleTable) {
+      console.error("WARNING: 4017 A1 expected Sample table block for Task 2.");
+      process.exit(1);
+    }
+
+    const task3 = snapshot.tasks.find((t) => t.n === 3);
+    if (!task3) {
+      console.error("WARNING: 4017 A1 expected Task 3 but none found.");
+      process.exit(1);
+    }
+    const t3Table = (task3.tableBlocks || []).find(
+      (b) =>
+        b.kind === "TABLE" &&
+        Array.isArray(b.headers) &&
+        /^month$/i.test(String(b.headers[0] || "")) &&
+        /before\s+qc/i.test(String(b.headers[1] || "")) &&
+        /after\s+qc/i.test(String(b.headers[2] || ""))
+    );
+    if (!t3Table) {
+      console.error("WARNING: 4017 A1 expected Task 3 costing template table block.");
+      process.exit(1);
+    }
+    const t3Rows = Array.isArray(t3Table.rows) ? t3Table.rows.map((r) => String((r || [])[0] || "").toLowerCase()) : [];
+    if (!t3Rows.includes("units sold") || !t3Rows.includes("net profit/loss")) {
+      console.error("WARNING: 4017 A1 expected Task 3 table rows 'Units Sold' and 'Net Profit/Loss'.");
       process.exit(1);
     }
   }
