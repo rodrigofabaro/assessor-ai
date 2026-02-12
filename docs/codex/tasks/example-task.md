@@ -1,24 +1,29 @@
-# Task: Add brief archive banner
+# Example Codex Task: Add brief archive banner
 
 ## Governing rules
-- [NON_NEGOTIABLES](../NON_NEGOTIABLES.md)
+- Read and follow: [NON_NEGOTIABLES](../NON_NEGOTIABLES.md)
 
-## Context
-Briefs that are archived should be obvious in the admin UI.
+## TASK
+Add a clear “Archived” banner/badge to archived briefs in the admin UI.
 
-## Goal
-Show an “Archived” badge when a brief is archived.
+## CONTEXT
+Archived briefs should remain queryable, but must be visually obvious.
+Current issue: archived records appear identical to active records in `/admin/briefs`.
 
-## Required behaviour
-- Archived briefs remain queryable.
-- Locked briefs are still immutable.
+## SCOPE LIMITS
+- Touch ONLY:
+  - `app/admin/briefs/**` (UI rendering only)
+- Do not change extraction, locking, or grading semantics.
+- No new dependencies.
 
-## Acceptance tests
-- Load /admin/briefs and verify archived badge appears.
+## ACCEPTANCE TESTS
+- Load `/admin/briefs` and confirm archived briefs render an “Archived” badge.
+- Verify active briefs do not show the badge.
+- Verify archived briefs remain clickable/viewable.
 
-## Files to touch
-- app/admin/briefs/BriefsTable.tsx
+## FAILURE MODES
+- If the brief record does not contain an archive flag, show no badge and do not guess.
 
-## Definition of done
-- Badge renders for archived briefs.
-- No changes to grading/extraction logic.
+## EVIDENCE REQUIRED IN PR
+- Screenshot of `/admin/briefs` showing the badge.
+- File path(s) changed.
