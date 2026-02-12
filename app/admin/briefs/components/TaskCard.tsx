@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { Pill } from "./ui";
 import { detectTableBlocks, type StructuredTableBlock } from "@/lib/extraction/render/tableBlocks";
 import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
+import InlineEquationText from "./InlineEquationText";
 
 // --- Types ---
 
@@ -51,7 +52,6 @@ type StructuredPart = {
 };
 // --- Constants & Regex (Hoisted for Performance) ---
 
-const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
 const SCENARIO_BULLET_REGEX = /^\s*(o|•|-|\*)\s+(.+)$/;
 const SCENARIO_NUMBERED_REGEX = /^\s*(\d+)\.\s+(.+)$/;
 
@@ -93,41 +93,7 @@ function wordCount(text: string) {
 }
 
 function renderInlineText(text: string) {
-  const input = String(text ?? "");
-  const nodes: ReactNode[] = [];
-  let lastIndex = 0;
-
-  const regex = new RegExp(URL_REGEX.source, "g");
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(input))) {
-    const start = match.index;
-    const url = match[0];
-
-    if (start > lastIndex) nodes.push(input.slice(lastIndex, start));
-
-    const cleaned = url.replace(/[),.;]+$/g, "");
-    const trailing = url.slice(cleaned.length);
-
-    nodes.push(
-      <a
-        key={`url-${start}`}
-        href={cleaned}
-        target="_blank"
-        rel="noreferrer"
-        className="underline decoration-dotted decoration-sky-400 underline-offset-2 break-all text-sky-700 hover:text-sky-800"
-      >
-        {cleaned}
-      </a>
-    );
-
-    if (trailing) nodes.push(trailing);
-
-    lastIndex = start + url.length;
-  }
-
-  if (lastIndex < input.length) nodes.push(input.slice(lastIndex));
-  return nodes;
+  return <InlineEquationText text={String(text ?? "")} />;
 }
 
 function formatPdfTextToBlocks(text: string): ScenarioBlock[] {
@@ -403,6 +369,7 @@ export function TaskCard({
   defaultExpanded,
   forcedExpanded,
 }: TaskCardProps) {
+  const showDevMathFixture = process.env.NODE_ENV === "development";
   const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
@@ -637,6 +604,20 @@ export function TaskCard({
               <div className="break-words">{renderPdfTextBlocks(proposalText, "proposal")}</div>
             </div>
           )}
+
+          {showDevMathFixture ? (
+            <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-zinc-700">
+              <div className="text-xs font-semibold uppercase tracking-wide text-sky-800">Dev Math Fixture</div>
+              <div className="mt-1 leading-7 break-words">
+                <InlineEquationText
+                  text={
+                    "P = V 2 R | Impedance sample: 20M\\\\Omega | Capacitance sample: 200\\\\muF | Frequency sample: t = 2\\\\pi"
+                  }
+                  keyPrefix="dev-math-fixture"
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             
