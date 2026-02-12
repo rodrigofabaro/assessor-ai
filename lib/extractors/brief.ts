@@ -913,11 +913,18 @@ function extractBriefTasks(
     candidatesByNumber.get(candidate.n)!.push(candidate);
   }
 
-  const duplicateHeadingNumbers = new Set<number>();
+  const ambiguousDuplicateHeadingNumbers = new Set<number>();
   const selectedHeadings: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
   for (const [n, group] of candidatesByNumber.entries()) {
-    if (group.length > 1) duplicateHeadingNumbers.add(n);
     const best = [...group].sort((a, b) => b.score - a.score || b.index - a.index)[0];
+    if (group.length > 1) {
+      const bestScore = best?.score || 0;
+      const hasCloseAlternative = group.some((candidate) => candidate.index !== best.index && candidate.score >= bestScore - 2);
+      const hasZeroSignalTie = bestScore === 0 && group.length > 1;
+      if (hasCloseAlternative || hasZeroSignalTie) {
+        ambiguousDuplicateHeadingNumbers.add(n);
+      }
+    }
     selectedHeadings.push(best);
   }
   selectedHeadings.sort((a, b) => a.index - b.index);
@@ -1061,7 +1068,7 @@ function extractBriefTasks(
       taskWarnings.push("task body: empty");
     }
 
-    if (duplicateHeadingNumbers.has(heading.n)) {
+    if (ambiguousDuplicateHeadingNumbers.has(heading.n)) {
       taskWarnings.push("duplicate heading candidates merged");
     }
 

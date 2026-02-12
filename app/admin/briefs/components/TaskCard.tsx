@@ -64,6 +64,33 @@ function normalizeText(text: string) {
     .trim();
 }
 
+function unwrapHardLineBreaks(text: string) {
+  const normalized = normalizeText(text);
+  if (!normalized) return "";
+
+  const lines = normalized.split("\n");
+  const paragraphs: string[] = [];
+  let paragraphLines: string[] = [];
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    paragraphs.push(paragraphLines.join(" ").replace(/\s+/g, " ").trim());
+    paragraphLines = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      continue;
+    }
+    paragraphLines.push(trimmed);
+  }
+  flushParagraph();
+
+  return paragraphs.join("\n\n").trim();
+}
+
 function getCriteria(task: Task): string[] {
   const candidates = [task?.criteriaCodes, task?.criteriaRefs, task?.criteria];
   for (const c of candidates) {
@@ -242,9 +269,9 @@ export function TaskCard({
     [textWithoutContext]
   );
   const extractedScenarioText = typeof task?.scenarioText === "string" ? task.scenarioText.trim() : "";
-  const scenarioText = extractedScenarioText || introText;
+  const scenarioText = useMemo(() => unwrapHardLineBreaks(extractedScenarioText || introText), [extractedScenarioText, introText]);
   const taskBodyText = useMemo(
-    () => normalizeText(bodyTextWithoutIntro || textWithoutContext),
+    () => unwrapHardLineBreaks(bodyTextWithoutIntro || textWithoutContext),
     [bodyTextWithoutIntro, textWithoutContext]
   );
 
@@ -398,7 +425,7 @@ export function TaskCard({
       {/* --- Content Area --- */}
       {!expanded ? null : (
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
-          <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
+          <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-relaxed text-zinc-900">
             
             {/* Context Lines */}
             {contextLines.length > 0 && (
@@ -409,18 +436,18 @@ export function TaskCard({
             )}
 
             {scenarioText && (
-              <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+              <div className="mb-3 w-full rounded-lg border border-zinc-300 bg-white px-4 py-4 text-sm text-zinc-900">
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
-                <div className="mt-2 whitespace-pre-wrap break-words leading-6">{renderInlineText(scenarioText)}</div>
+                <div className="mt-2 whitespace-normal break-words leading-relaxed">{renderInlineText(scenarioText)}</div>
               </div>
             )}
 
-            <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+            <div className="mb-3 rounded-lg border border-zinc-300 bg-white px-4 py-4 text-sm text-zinc-900">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">{label}</div>
               <div className="mt-2 space-y-3">
                 {contentSegments.map((segment, segmentIndex) =>
                   segment.type === "text" ? (
-                    <div key={`text-${segmentIndex}`} className="whitespace-pre-wrap break-words leading-6">
+                    <div key={`text-${segmentIndex}`} className="whitespace-normal break-words leading-relaxed">
                       {renderInlineText(segment.text)}
                     </div>
                   ) : (

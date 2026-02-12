@@ -191,6 +191,17 @@ async function main() {
     process.exit(1);
   }
 
+  const fixtureName = path.basename(args.pdfPath).toLowerCase();
+  if (fixtureName.includes("u4001")) {
+    const hasDuplicateHeadingWarning = snapshot.tasks.some((t) =>
+      (t.warnings || []).includes("duplicate heading candidates merged")
+    );
+    if (hasDuplicateHeadingWarning) {
+      console.error("WARNING: unexpected duplicate heading warning for U4001.");
+      process.exit(1);
+    }
+  }
+
   console.log(`Snapshot assert passed: ${args.targetPath}`);
 }
 
