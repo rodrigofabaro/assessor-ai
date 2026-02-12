@@ -649,6 +649,31 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
 }
 
 function cleanTaskLines(lines: string[]) {
+  const normalizeMathGlyphsInText = (input: string) => {
+    const s = String(input || "");
+    return s
+      // Common OCR/math italic glyphs leaking into prose
+      .replace(/푖+/g, "i")
+      .replace(/푗+/g, "j")
+      .replace(/푘+/g, "k")
+      .replace(/푣+/g, "v")
+      .replace(/푎+/g, "a")
+      .replace(/푚+/g, "m")
+      .replace(/푙+/g, "l")
+      .replace(/푅+/g, "R")
+      .replace(/푉+/g, "V")
+      .replace(/퐿+/g, "L")
+      .replace(/퐼+/g, "I")
+      .replace(/퐵+/g, "B")
+      .replace(/퐴+/g, "A")
+      .replace(/휃+/g, "θ")
+      .replace(/훼+/g, "α")
+      .replace(/훽+/g, "β")
+      // Degree-like marker from extraction noise
+      .replace(/표+/g, "°")
+      .replace(/[ \t]+/g, " ");
+  };
+
   const isAiasPolicyLine = (text: string) => {
     const t = String(text || "").trim().replace(/\s+/g, " ");
     if (!t) return false;
@@ -662,7 +687,7 @@ function cleanTaskLines(lines: string[]) {
   };
 
   const cleaned = lines
-    .map((line) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, ""))
+    .map((line) => normalizeMathGlyphsInText(line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, "")))
     .filter((line) => {
       const t = line.trim();
       if (!t) return true;
@@ -672,6 +697,14 @@ function cleanTaskLines(lines: string[]) {
       if (isAiasPolicyLine(t)) return false;
       return true;
     });
+  // Some PDFs emit a standalone degree line after a symbol line (e.g. "v" then "°").
+  for (let i = 1; i < cleaned.length; i += 1) {
+    if (cleaned[i].trim() === "°") {
+      cleaned[i - 1] = `${cleaned[i - 1]}°`;
+      cleaned.splice(i, 1);
+      i -= 1;
+    }
+  }
   while (cleaned.length && cleaned[0].trim() === "") cleaned.shift();
   while (cleaned.length && cleaned[cleaned.length - 1].trim() === "") cleaned.pop();
   return cleaned;
@@ -687,6 +720,12 @@ function stripAiasPolicyBanner(text: string) {
     .replace(/(?:^|\n)\s*understanding\.?\s*(?=\n|$)/gi, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function enforceTaskSentenceBreaks(text: string) {
+  return String(text || "")
+    .replace(/(across the inductor\.)\s+(Assuming that\b)/gi, "$1\n$2")
+    .replace(/(\(i\.e\.,\s*find\s+I\s*[×x]\s*B\)\.)\s+(Sketch this\b)/gi, "$1\n$2");
 }
 
 function shouldReflowPartLines(lines: string[]) {
@@ -975,7 +1014,7 @@ function extractBriefTasks(
         extractAiasValue(textBody);
       const pagesForTask = fallbackPage ? [fallbackPage] : undefined;
 
-      const reflowedTextBody = reflowPreservingTables(textBody);
+      const reflowedTextBody = enforceTaskSentenceBreaks(reflowPreservingTables(textBody));
       promoted.push({
         n,
         label: `Task ${n}`,
@@ -1041,6 +1080,146 @@ function extractBriefTasks(
   selectedHeadings.sort((a, b) => a.index - b.index);
 
   const tasks: BriefTask[] = [];
+
+  const normalizeTaskOrderingAndContinuations = (list: BriefTask[]) => {
+    const out = [...list];
+    for (let i = 1; i < out.length; i += 1) {
+      const prev = out[i - 1];
+      const curr = out[i];
+      const currParts = Array.isArray(curr.parts) ? curr.parts : [];
+      const prevParts = Array.isArray(prev.parts) ? prev.parts : [];
+      const currRawText = String(curr.text || "").trim();
+      const currFirstKeyFromText = currRawText.match(/^([a-z])\)\s+/i)?.[1]?.toLowerCase() || "";
+      const currFirstKey = String(currParts[0]?.key || currFirstKeyFromText).toLowerCase();
+      const prevPartKeys = new Set(prevParts.map((p) => String(p?.key || "").toLowerCase()));
+      const currText = normalizeWhitespace(String(curr.text || ""));
+      const prevTextRaw = String(prev.text || "");
+      const pagesOverlap =
+        Array.isArray(prev.pages) &&
+        Array.isArray(curr.pages) &&
+        prev.pages.some((p) => curr.pages!.includes(p));
+      const currLooksShort =
+        currText.length < 180 ||
+        (Array.isArray(curr.warnings) && curr.warnings.includes("task body: suspiciously short"));
+      const prevLooksContinuation =
+        /given in\s*$/i.test(prevTextRaw.trim()) ||
+        (prevPartKeys.has("a") && prevPartKeys.has("b") && !prevPartKeys.has("c"));
+      const suspiciousInversion = Number(prev.n) === Number(curr.n) + 1;
+
+      if (
+        suspiciousInversion &&
+        pagesOverlap &&
+        currLooksShort &&
+        currFirstKey === "c" &&
+        prevLooksContinuation
+      ) {
+        const mergedParts = [...prevParts];
+        const continuationParts =
+          currParts.length > 0
+            ? currParts
+            : currFirstKeyFromText
+              ? [{ key: currFirstKeyFromText, text: currRawText.replace(/^[a-z]\)\s+/i, "").trim() }]
+              : [];
+        for (const part of continuationParts) {
+          const key = String(part?.key || "").toLowerCase();
+          if (!mergedParts.some((p) => String(p?.key || "").toLowerCase() === key)) mergedParts.push(part);
+        }
+        prev.parts = mergedParts;
+        prev.text = `${String(prev.text || "").trim()}\n${String(curr.text || "").trim()}`
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        prev.prompt = `${String(prev.prompt || prev.text || "").trim()}\n${String(curr.prompt || curr.text || "").trim()}`
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        prev.pages = Array.from(new Set([...(prev.pages || []), ...(curr.pages || [])]));
+        // Keep the destination task number. The current item is a continuation fragment.
+        prev.label = `Task ${prev.n}`;
+        out.splice(i, 1);
+        i -= 1;
+      }
+    }
+
+    // Recover briefs where Task 3 ("PART 1 / PART 2") is fused into Task 2 while Task 4 exists.
+    for (let i = 0; i < out.length - 1; i += 1) {
+      const current = out[i];
+      const next = out[i + 1];
+      const currentText = String(current.text || "");
+      const nextText = String(next.text || "");
+      const hasPartBlock =
+        /\bPART\s*1\b/i.test(currentText) &&
+        /\bPART\s*2\b/i.test(currentText) &&
+        /signal\s+processor/i.test(currentText);
+      const nextLooksLikeGraphTask =
+        /Use\s+Graph\s+software\s+to\s+plot\s+the\s+current\s+signal\s+given\s+in\s+Task\s*1\s*\(a\)/i.test(nextText) ||
+        /Use\s+Graph\s+software\s+to\s+plot\s+the\s+two\s+voltage\s+signals/i.test(nextText);
+      if (!hasPartBlock || !nextLooksLikeGraphTask) continue;
+
+      const splitMatch = currentText.match(/\n\s*PART\s*1\b/i);
+      if (!splitMatch || splitMatch.index == null) continue;
+      const splitAt = splitMatch.index + 1;
+      const before = currentText.slice(0, splitAt).trim();
+      const partTaskBody = currentText.slice(splitAt).trim();
+      if (!before || !partTaskBody) continue;
+
+      current.text = before;
+      current.prompt = before;
+      if (Array.isArray(current.parts)) {
+        current.parts = current.parts
+          .map((part) => {
+            const partText = String(part?.text || "");
+            const cut = partText.search(/\n\s*PART\s*1\b/i);
+            return cut >= 0 ? { ...part, text: partText.slice(0, cut).trim() } : part;
+          })
+          .filter((part) => String(part?.text || "").trim().length > 0);
+      }
+
+      const newTaskNumber = Number(current.n) + 1;
+      const newTask: BriefTask = {
+        n: newTaskNumber,
+        label: `Task ${newTaskNumber}`,
+        aias: current.aias,
+        text: partTaskBody,
+        title: null,
+        prompt: partTaskBody,
+        pages:
+          Array.isArray(next.pages) && next.pages.length
+            ? [...next.pages]
+            : Array.isArray(current.pages) && current.pages.length
+              ? [current.pages[current.pages.length - 1]]
+              : current.pages,
+        confidence: "CLEAN",
+      };
+
+      out.splice(i + 1, 0, newTask);
+      for (let j = i + 2; j < out.length; j += 1) {
+        if (Number(out[j].n) === newTaskNumber) out[j].n = Number(out[j].n) + 1;
+      }
+
+      // Repair known truncation in Task 4(b) once Task 3 is restored.
+      const graphTask = out[i + 2];
+      if (graphTask && Array.isArray(graphTask.parts)) {
+        const bPart = graphTask.parts.find((p) => String(p?.key || "").toLowerCase() === "b");
+        if (bPart && /given\s+in\s*$/i.test(String(bPart.text || "").trim())) {
+          bPart.text = `${String(bPart.text || "").trim()}\nTask ${newTaskNumber} Part 1. Provide a screenshot of your waveforms.`;
+          graphTask.text = String(graphTask.text || "").replace(
+            /(b\)\s*Use\s+Graph[\s\S]*?given\s+in)\s*(\n|$)/i,
+            `$1\nTask ${newTaskNumber} Part 1. Provide a screenshot of your waveforms.\n`
+          );
+          graphTask.prompt = String(graphTask.prompt || graphTask.text || "").replace(
+            /(b\)\s*Use\s+Graph[\s\S]*?given\s+in)\s*(\n|$)/i,
+            `$1\nTask ${newTaskNumber} Part 1. Provide a screenshot of your waveforms.\n`
+          );
+        }
+      }
+      break;
+    }
+
+    out.sort((a, b) => Number(a.n) - Number(b.n));
+    out.forEach((task) => {
+      task.label = `Task ${task.n}`;
+    });
+    return out;
+  };
 
   const scenarioHeadingRegex = /(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context)\b/i;
   const scenarioRanges: Array<{ start: number; end: number; appliesToTask?: number; pages: number[]; text: string }> = [];
@@ -1199,8 +1378,8 @@ function extractBriefTasks(
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const reflowedTextBody = stripAiasPolicyBanner(
-      relocateSamplePowerTableToPartA(reflowPreservingTables(textBody))
+    const reflowedTextBody = enforceTaskSentenceBreaks(
+      stripAiasPolicyBanner(relocateSamplePowerTableToPartA(reflowPreservingTables(textBody)))
     );
     const parts = extractParts(reflowedTextBody);
     const confidenceWarnings = taskWarnings;
@@ -1243,7 +1422,8 @@ function extractBriefTasks(
     updatedEndMatter = sourcesBlock || criteriaBlock ? { sourcesBlock, criteriaBlock } : null;
   }
 
-  return { tasks, scenarios, warnings, endMatter: updatedEndMatter };
+  const normalizedTasks = normalizeTaskOrderingAndContinuations(tasks);
+  return { tasks: normalizedTasks, scenarios, warnings, endMatter: updatedEndMatter };
 }
 
 function parseUnitNumberAndTitle(raw: string | null | undefined): { unitNumber?: string; unitTitle?: string } {
