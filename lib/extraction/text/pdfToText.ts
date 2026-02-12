@@ -34,6 +34,7 @@ function normalizeMathUnicode(input: string) {
     .replace(/푡/g, "t")
     .replace(/푚/g, "m")
     .replace(/푙/g, "l")
+    .replace(/푦/g, "y")
     .replace(/퐹/g, "F")
     .replace(/푥/g, "x")
     .replace(/퐶/g, "C")
@@ -142,6 +143,7 @@ function unionBbox(items: PositionedItem[]) {
 function equationItemsToLatex(lines: string[]) {
   const normalizedLines = lines.map((line) => normalizeMathUnicode(line).trim()).filter(Boolean);
   const joined = normalizedLines.join(" ").replace(/\s+/g, " ").trim();
+  const joinedCompact = joined.replace(/\s+/g, "");
   if (!joined) return { latex: null as string | null, confidence: 0.3 };
 
   // Capacitor charging law:
@@ -174,10 +176,10 @@ function equationItemsToLatex(lines: string[]) {
 
   // Catenary-style cable curve: y = 80 cosh(x/80)
   const coshLike =
-    /\by\s*=/.test(joined.toLowerCase()) &&
-    /cosh/i.test(joined) &&
-    /\bx\b/i.test(joined) &&
-    /80/.test(joined);
+    /(y=|y\s*=)/i.test(joinedCompact) &&
+    /cosh/i.test(joinedCompact) &&
+    /x/.test(joinedCompact) &&
+    /(80|8\s*0)/.test(joined);
   if (coshLike) {
     return {
       latex: "y = 80\\cosh\\left(\\frac{x}{80}\\right)",
