@@ -36,6 +36,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const lockConflict = rx.lockConflict;
   const [expandAll, setExpandAll] = useState(false);
   const [expandSignal, setExpandSignal] = useState(0);
+  const [copyJsonStatus, setCopyJsonStatus] = useState<"idle" | "copied" | "failed">("idle");
   const readiness = (doc as any)?.readiness as string | undefined;
   const usage = rx.selectedDocUsage;
   const usageLoading = rx.usageLoading;
@@ -73,6 +74,17 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const toggleExpandAll = (next: boolean) => {
     setExpandAll(next);
     setExpandSignal((prev) => prev + 1);
+  };
+
+  const handleCopyExtractionJson = async () => {
+    try {
+      const payload = JSON.stringify(draft ?? {}, null, 2);
+      await navigator.clipboard.writeText(payload);
+      setCopyJsonStatus("copied");
+    } catch {
+      setCopyJsonStatus("failed");
+    }
+    setTimeout(() => setCopyJsonStatus("idle"), 2000);
   };
 
   return (
@@ -317,6 +329,19 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                   <span className="break-words">Enable manual override editing</span>
                 </label>
                 <p className="text-xs text-zinc-600">Use only when extraction misses structure. Overrides are logged at lock time.</p>
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleCopyExtractionJson}
+                    className={ui.btnSecondary + " text-xs"}
+                  >
+                    {copyJsonStatus === "copied"
+                      ? "Copied extraction JSON"
+                      : copyJsonStatus === "failed"
+                        ? "Copy failed"
+                        : "Copy extraction JSON"}
+                  </button>
+                </div>
                 {rx.showRawJson ? (
                   <div className="overflow-x-auto max-w-full">
                     <textarea
