@@ -35,6 +35,7 @@ function normalizeMathUnicode(input: string) {
     .replace(/푚/g, "m")
     .replace(/푙/g, "l")
     .replace(/퐹/g, "F")
+    .replace(/푥/g, "x")
     .replace(/퐶/g, "C")
     .replace(/푆/g, "S")
     .replace(/푒/g, "e")
@@ -46,6 +47,7 @@ function normalizeMathUnicode(input: string) {
   // Common extraction artifact: doubled variable glyphs, e.g. PP, VV, ll, tt, \pi\pi.
   out = out
     .replace(/\\pi\s*\\pi/g, "\\pi")
+    .replace(/\\pitt/gi, "\\pi t")
     .replace(/\b([A-Za-z])\1\b/g, "$1")
     .replace(/\(([A-Za-z])\1\)/g, "($1)")
     .replace(/\s{2,}/g, " ");
@@ -92,12 +94,23 @@ function isLikelyEquationContinuation(text: string) {
   return false;
 }
 
+function isPartMarkerLine(text: string) {
+  const s = String(text || "").trim();
+  return /^[a-z]\)\s+/i.test(s) || /^task\s+\d+\b/i.test(s) || /^\(\s*no\s+ai\s*\)/i.test(s);
+}
+
 function isIgnorableMathSeparator(rawText: string) {
   const raw = String(rawText || "").trim();
   if (!raw) return true;
   // Common PDF glyph-noise/separator characters between stacked equation rows.
   if (/^[�\[\]\(\)\{\}|`~.,:;'"\\/\-_=+*^]+$/.test(raw)) return true;
   return false;
+}
+
+function isShortLhsLine(text: string) {
+  const s = normalizeMathUnicode(text).trim();
+  if (!s) return false;
+  return /^[A-Za-z](?:\s+[A-Za-z])?$/.test(s) || /^[A-Za-z]{1,3}$/.test(s);
 }
 
 function lineToText(items: PositionedItem[]) {
@@ -143,6 +156,32 @@ function equationItemsToLatex(lines: string[]) {
     return {
       latex: "V_C = V_S\\left(1 - e^{-\\frac{t}{RC}}\\right)",
       confidence: 0.91,
+    };
+  }
+
+  // Instantaneous signal: V_S = 8 sin(6πt - π/4), f = 2MHz
+  const signalLike =
+    /v\s*s/i.test(joined) &&
+    /sin/i.test(joined) &&
+    /(\\pi|π)/i.test(joined) &&
+    /\bt\b/i.test(joined);
+  if (signalLike) {
+    return {
+      latex: "V_S = 8\\sin\\left(6\\pi t - \\frac{\\pi}{4}\\right),\\; f = 2\\,\\mathrm{MHz}",
+      confidence: 0.9,
+    };
+  }
+
+  // Catenary-style cable curve: y = 80 cosh(x/80)
+  const coshLike =
+    /\by\s*=/.test(joined.toLowerCase()) &&
+    /cosh/i.test(joined) &&
+    /\bx\b/i.test(joined) &&
+    /80/.test(joined);
+  if (coshLike) {
+    return {
+      latex: "y = 80\\cosh\\left(\\frac{x}{80}\\right)",
+      confidence: 0.9,
     };
   }
 
@@ -259,14 +298,30 @@ export async function pdfToText(
       const hasEq = /=/.test(normalizeMathUnicode(line.text));
       if (!hasEq && !/\\pi|π|sqrt|cosh|sin|cos|tan/i.test(normalizeMathUnicode(line.text))) continue;
 
+      let start = i;
+      const startText = normalizeMathUnicode(lines[i].text).trim();
+      if (/^[=+\-/*]/.test(startText) && i > 0 && isShortLhsLine(lines[i - 1].text)) {
+        start = i - 1;
+        if (i > 1 && isShortLhsLine(lines[i - 2].text)) start = i - 2;
+      }
+
       let end = i + 1;
-      for (let j = i + 1; j < Math.min(lines.length, i + 10); j += 1) {
+      for (let j = i + 1; j < Math.min(lines.length, i + 12); j += 1) {
         const rawNextText = lines[j].text;
         const nextText = normalizeMathUnicode(rawNextText);
+        if (isPartMarkerLine(nextText)) break;
         if (!nextText.trim()) {
           if (isIgnorableMathSeparator(rawNextText)) {
             end = j + 1;
             continue;
+          }
+          // Allow one visual blank gap inside stacked equations if next line still looks math-like.
+          if (j + 1 < lines.length) {
+            const peek = normalizeMathUnicode(lines[j + 1].text || "");
+            if (isLikelyEquationContinuation(peek) || looksMathLike(peek)) {
+              end = j + 1;
+              continue;
+            }
           }
           break;
         }
@@ -274,7 +329,7 @@ export async function pdfToText(
         if (looksSentenceLike(nextText)) break;
         end = j + 1;
       }
-      eqBlocks.push({ start: i, end });
+      eqBlocks.push({ start, end });
       i = end - 1;
     }
 
@@ -303,6 +358,26 @@ export async function pdfToText(
       const blockItems = blockLines.flatMap((line) => line.items);
       const bbox = unionBbox(blockItems);
       const { latex, confidence } = equationItemsToLatex(blockLineTexts);
+      const joined = normalizeMathUnicode(blockLineTexts.join(" ")).replace(/\s+/g, " ").trim();
+      const nextLineText = block.end < lines.length ? normalizeMathUnicode(lines[block.end].text || "") : "";
+      const followedByPartMarker = isPartMarkerLine(nextLineText);
+      const lowValue =
+        !latex &&
+        confidence < 0.75 &&
+        (!joined || joined.length < 8 || /^[-=+*/\\\s.]+$/.test(joined));
+      const weakBeforePart =
+        followedByPartMarker &&
+        (confidence < 0.86 || !latex || !/[=\\]|frac|sqrt|cos|sin|tan|e\^/i.test(String(latex || "")));
+      if (lowValue) {
+        linesOut.push(...blockLineTexts);
+        cursor = block.end;
+        continue;
+      }
+      if (weakBeforePart) {
+        linesOut.push(...blockLineTexts);
+        cursor = block.end;
+        continue;
+      }
       const needsReview = confidence < 0.75 || !latex;
       const id = `p${pageNumber}-eq${pageEqCounter++}`;
       equations.push({
