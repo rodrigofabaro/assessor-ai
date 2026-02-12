@@ -192,6 +192,35 @@ async function main() {
     process.exit(1);
   }
 
+  const fixtureName = path.basename(args.pdfPath).toLowerCase();
+  if (fixtureName.includes("u4002")) {
+    const task2 = snapshot.tasks.find((t) => t.n === 2);
+    if (!task2) {
+      console.error("WARNING: U4002 expected Task 2 but none found.");
+      process.exit(1);
+    }
+    const partMap = new Map((task2.parts || []).map((p) => [String(p.key || "").toLowerCase(), String(p.text || "")]));
+    const aText = partMap.get("a") || "";
+    const bIiText = partMap.get("b.ii") || "";
+    if (!/sample\s+1\s+2\s+3/i.test(aText) || !/power\s*\(\+?dbm\)/i.test(aText)) {
+      console.error("WARNING: U4002 table not anchored in Task 2 part a.");
+      process.exit(1);
+    }
+    if (/sample\s+1\s+2\s+3/i.test(bIiText)) {
+      console.error("WARNING: U4002 table still appended to Task 2 part b.ii.");
+      process.exit(1);
+    }
+    const hasSampleTableBlock = (task2.tableBlocks || []).some((b) => {
+      if (b.kind !== "TABLE") return false;
+      const headers = Array.isArray(b.headers) ? b.headers.map((h) => String(h).toLowerCase()) : [];
+      return headers.includes("sample") || /sample/i.test(String(b.caption || ""));
+    });
+    if (!hasSampleTableBlock) {
+      console.error("WARNING: U4002 expected Sample/Power table block not detected.");
+      process.exit(1);
+    }
+  }
+
   console.log(`Snapshot assert passed: ${args.targetPath}`);
 }
 

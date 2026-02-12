@@ -3,7 +3,7 @@ export type TableRange = { startLine: number; endLine: number };
 export type StructuredTableBlock = {
   kind: "TABLE";
   caption?: string;
-  headers: [string, string, string];
+  headers: string[];
   rows: string[][];
   range: TableRange;
 };
@@ -36,7 +36,7 @@ function isNumericOrCurrencyToken(token: string) {
   return /^£$/.test(value) || /^\d+$/.test(value);
 }
 
-function parseRow(line: string): [string, string, string] | null {
+function parseRow(line: string): string[] | null {
   const clean = (line || "").trim();
   if (!clean) return null;
 
@@ -47,7 +47,7 @@ function parseRow(line: string): [string, string, string] | null {
     .map((part) => part.trim())
     .filter(Boolean);
   if (pipeParts.length >= 3) {
-    return [pipeParts[0] || "", pipeParts[1] || "", pipeParts[2] || ""];
+    return pipeParts;
   }
 
   const tokens = clean.split(/\s+/).filter(Boolean);
@@ -60,10 +60,10 @@ function parseRow(line: string): [string, string, string] | null {
     }
   }
 
-  return [clean, "", ""];
+  return null;
 }
 
-function collapseHeaders(headerLines: string[]): [string, string, string] | null {
+function collapseHeaders(headerLines: string[]): string[] | null {
   const joined = headerLines
     .map((line) => line.trim())
     .filter(Boolean)
@@ -108,6 +108,7 @@ function startsCostingTable(lines: string[], i: number) {
 function hasAlignedColumns(line: string) {
   const clean = (line || "").trim();
   if (!clean) return false;
+  if (/^(?:\d+|[a-z]|[ivxlcdm]+)[\.\)]\s+/i.test(clean)) return false;
   if (/\|/.test(clean)) return true;
   const segments = clean.split(/\s{2,}/).map((part) => part.trim()).filter(Boolean);
   return segments.length >= 2;
@@ -137,6 +138,42 @@ function startsTable(lines: string[], i: number) {
   return isTableCaption(line) || startsCostingTable(lines, i);
 }
 
+function parseSamplePowerTwoLineTable(lines: string[], i: number): StructuredTableBlock | null {
+  if (i + 1 >= lines.length) return null;
+  const line1 = (lines[i] || "").trim();
+  const line2 = (lines[i + 1] || "").trim();
+  if (!line1 || !line2) return null;
+
+  const compact1 = line1.replace(/\s+/g, " ");
+  const compact2 = line2.replace(/\s+/g, " ");
+  if (!/^Sample\b/i.test(compact1)) return null;
+  if (!/^Power\s*\(\+?dBm\)/i.test(compact2)) return null;
+
+  const headTokens = compact1.split(" ").filter(Boolean);
+  const rowTokens = compact2.split(" ").filter(Boolean);
+  if (headTokens.length < 6 || rowTokens.length < 6) return null;
+
+  const headerNumbers = headTokens.slice(1).filter((t) => /^\d+$/.test(t));
+  if (headerNumbers.length < 6) return null;
+
+  const rowLabelTokens: string[] = [];
+  const rowNums: string[] = [];
+  for (const token of rowTokens) {
+    if (/^-?\d+(?:\.\d+)?$/.test(token)) rowNums.push(token);
+    else if (rowNums.length === 0) rowLabelTokens.push(token);
+  }
+  if (!rowLabelTokens.length || rowNums.length < headerNumbers.length) return null;
+
+  const headers = ["Sample", ...headerNumbers];
+  const row = [rowLabelTokens.join(" "), ...rowNums.slice(0, headerNumbers.length)];
+  return {
+    kind: "TABLE",
+    headers,
+    rows: [row],
+    range: { startLine: i, endLine: i + 2 },
+  };
+}
+
 export function detectTableBlocks(task: any): TableBlock[] {
   const text = normalizeText(getTaskText(task));
   if (!text.trim()) return [];
@@ -147,6 +184,13 @@ export function detectTableBlocks(task: any): TableBlock[] {
   let i = 0;
   while (i < lines.length) {
     if (!startsTable(lines, i)) {
+      const twoLineSample = parseSamplePowerTwoLineTable(lines, i);
+      if (twoLineSample) {
+        blocks.push(twoLineSample);
+        i = twoLineSample.range.endLine;
+        continue;
+      }
+
       const aligned = readAlignedRegion(lines, i);
       if (aligned) {
         blocks.push({
@@ -173,7 +217,7 @@ export function detectTableBlocks(task: any): TableBlock[] {
       if (isTableCaption(line)) break;
 
       const parsed = parseRow(line);
-      if (parsed && (parsed[1] || parsed[2])) break;
+      if (parsed && ((parsed[1] || parsed[2]) || parsed.length >= 3)) break;
 
       const built = headerLines.join(" ").toLowerCase();
       const hasBeforeAfter = /\bbefore\s+qc\b/.test(built) && /\bafter\s+qc\b/.test(built);

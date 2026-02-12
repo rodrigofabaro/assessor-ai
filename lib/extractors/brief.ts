@@ -671,19 +671,55 @@ function shouldReflowPartLines(lines: string[]) {
   return listLines === 0;
 }
 
+function relocateSamplePowerTableToPartA(text: string) {
+  const source = String(text || "");
+  if (!source.trim()) return source;
+
+  const anchor = /results?\s+are\s+as\s+follows:\s*/i.exec(source);
+  if (!anchor || typeof anchor.index !== "number") return source;
+
+  const tableMatch = /(?:^|\n)\s*Sample\s+(?:\d+\s+){5,}\d+\s*\n\s*Power\s*\(\+?dBm\)\s+(?:\d+(?:\.\d+)?\s+){5,}\d+(?:\.\d+)?/im.exec(source);
+  if (!tableMatch || typeof tableMatch.index !== "number") return source;
+  if (tableMatch.index < anchor.index) return source;
+
+  const tableChunk = tableMatch[0].trim();
+  const withoutTable = `${source.slice(0, tableMatch.index)}${source.slice(tableMatch.index + tableMatch[0].length)}`
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const anchorInClean = /results?\s+are\s+as\s+follows:\s*/i.exec(withoutTable);
+  if (!anchorInClean || typeof anchorInClean.index !== "number") return source;
+
+  const insertAt = anchorInClean.index + anchorInClean[0].length;
+  const rebuilt = `${withoutTable.slice(0, insertAt)}\n\n${tableChunk}\n${withoutTable.slice(insertAt)}`
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return rebuilt;
+}
+
 function extractParts(text: string): Array<{ key: string; text: string }> | null {
   const lines = splitLines(text);
   const parts: Array<{ key: string; text: string }> = [];
   let currentKey: string | null = null;
   let currentText: string[] = [];
   let currentLetter: string | null = null;
+  const romanLikeSingle = new Set(["i", "v", "x", "l", "c", "d", "m"]);
+
+  const isNextAlphabetic = (prev: string | null, next: string) => {
+    if (!prev || prev.length !== 1 || next.length !== 1) return false;
+    const a = prev.charCodeAt(0);
+    const b = next.charCodeAt(0);
+    return b === a + 1;
+  };
 
   const flush = () => {
     if (currentKey) {
       const cleanedLines = cleanTaskLines(currentText);
       if (cleanedLines.length) {
         const rawBlob = cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-        const blob = shouldReflowPartLines(cleanedLines)
+        const containsInlineSampleTable =
+          /(?:^|\n)\s*Sample\s+(?:\d+\s+){5,}\d+/i.test(rawBlob) &&
+          /\bPower\s*\(\+?dBm\)\b/i.test(rawBlob);
+        const blob = !containsInlineSampleTable && shouldReflowPartLines(cleanedLines)
           ? reflowProsePreserveLists(rawBlob)
           : rawBlob;
         if (blob) parts.push({ key: currentKey, text: blob });
@@ -710,8 +746,21 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 
     const letterMatch = trimmed.match(/^([a-z])\)\s+(.*)$/i);
     if (letterMatch) {
+      const candidate = letterMatch[1].toLowerCase();
+      const shouldTreatAsRoman =
+        romanLikeSingle.has(candidate) &&
+        currentLetter !== null &&
+        !isNextAlphabetic(currentLetter, candidate);
+      if (shouldTreatAsRoman) {
+        flush();
+        const romanKey = candidate;
+        currentKey = currentLetter ? `${currentLetter}.${romanKey}` : romanKey;
+        currentText.push(letterMatch[2]);
+        continue;
+      }
+
       flush();
-      currentKey = letterMatch[1].toLowerCase();
+      currentKey = candidate;
       currentLetter = currentKey;
       currentText.push(letterMatch[2]);
       continue;
@@ -730,6 +779,32 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   }
 
   flush();
+  if (parts.length >= 2) {
+    const sampleLinePattern = /Sample\s+(?:\d+\s+){5,}\d+/i;
+    const powerLinePattern = /Power\s*\(\+?dBm\)\s+(?:\d+(?:\.\d+)?\s+){5,}\d+(?:\.\d+)?/i;
+    const tableChunkPattern = new RegExp(
+      `(${sampleLinePattern.source}[\\s\\S]*?${powerLinePattern.source})`,
+      "i"
+    );
+
+    const partA = parts.find((p) => p.key === "a");
+    const partAHasAnchor = partA ? /results?\s+are\s+as\s+follows/i.test(partA.text) : false;
+    const donor = parts.find((p) => /^b\.ii$/i.test(p.key) && tableChunkPattern.test(p.text));
+    if (partA && partAHasAnchor && donor) {
+      const match = donor.text.match(tableChunkPattern);
+      const tableChunkRaw = match?.[1]?.trim();
+      const tableChunk = tableChunkRaw
+        ? tableChunkRaw
+            .replace(/\s+(Power\s*\(\+?dBm\)\b)/i, "\n$1")
+            .replace(/\s{2,}/g, " ")
+            .trim()
+        : null;
+      if (tableChunk) {
+        donor.text = donor.text.replace(tableChunkPattern, "").replace(/\n{3,}/g, "\n\n").trim();
+        partA.text = `${partA.text}\n\n${tableChunk}`.replace(/\n{3,}/g, "\n\n").trim();
+      }
+    }
+  }
   return parts.length >= 2 ? parts : null;
 }
 
@@ -1105,7 +1180,7 @@ function extractBriefTasks(
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const reflowedTextBody = reflowPreservingTables(textBody);
+    const reflowedTextBody = relocateSamplePowerTableToPartA(reflowPreservingTables(textBody));
     const parts = extractParts(reflowedTextBody);
     const confidenceWarnings = taskWarnings.filter(
       (warning) => warning !== "duplicate heading candidates merged"

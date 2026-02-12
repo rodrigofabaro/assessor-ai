@@ -26,6 +26,8 @@ type LineInfo = {
   bbox: { x: number; y: number; w: number; h: number };
 };
 
+const LINE_Y_TOLERANCE = 1.6;
+
 function normalizeMathUnicode(input: string) {
   let out = String(input || "")
     .replace(/푃/g, "P")
@@ -131,6 +133,44 @@ function lineToText(items: PositionedItem[]) {
     lastXEnd = item.x + item.w;
   }
   return text.trimEnd();
+}
+
+function buildLinesFromItems(items: PositionedItem[]) {
+  const lines: LineInfo[] = [];
+  if (!items.length) return lines;
+
+  let current: PositionedItem[] = [];
+  let currentY: number | null = null;
+  const flush = () => {
+    if (!current.length) return;
+    const xSorted = [...current].sort((a, b) => a.x - b.x);
+    const text = lineToText(xSorted);
+    const bbox = unionBbox(xSorted);
+    lines.push({ text, items: xSorted, bbox });
+    current = [];
+    currentY = null;
+  };
+
+  // Preserve the original PDF text stream ordering to avoid cross-block reordering
+  // on complex layouts while still grouping glyphs into line buckets by Y position.
+  for (const item of items) {
+    if (currentY === null) {
+      current.push(item);
+      currentY = item.y;
+      continue;
+    }
+    if (Math.abs(currentY - item.y) <= LINE_Y_TOLERANCE) {
+      current.push(item);
+      currentY = (currentY + item.y) / 2;
+      continue;
+    }
+    flush();
+    current.push(item);
+    currentY = item.y;
+  }
+  flush();
+
+  return lines;
 }
 
 function unionBbox(items: PositionedItem[]) {
@@ -300,27 +340,7 @@ export async function pdfToText(
       })
       .filter((item) => item.str);
 
-    const lines: LineInfo[] = [];
-    let current: PositionedItem[] = [];
-    let currentY: number | null = null;
-
-    const flushLine = () => {
-      if (!current.length) return;
-      const sorted = [...current].sort((a, b) => a.x - b.x);
-      const text = lineToText(sorted);
-      const bbox = unionBbox(sorted);
-      lines.push({ text, items: sorted, bbox });
-      current = [];
-      currentY = null;
-    };
-
-    for (const item of rawItems) {
-      const sameLine = currentY !== null && Math.abs(currentY - item.y) < 1.2;
-      if (!sameLine) flushLine();
-      current.push(item);
-      currentY = item.y;
-    }
-    flushLine();
+    const lines = buildLinesFromItems(rawItems);
 
     const eqBlocks: Array<{ start: number; end: number }> = [];
     for (let i = 0; i < lines.length; i += 1) {
