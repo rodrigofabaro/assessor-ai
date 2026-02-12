@@ -141,88 +141,92 @@ function unionBbox(items: PositionedItem[]) {
   return { x: x1, y: y1, w: Math.max(0, x2 - x1), h: Math.max(0, y2 - y1) };
 }
 
-function equationItemsToLatex(lines: string[]) {
+type EquationRuleContext = {
+  normalizedLines: string[];
+  joined: string;
+  joinedCompact: string;
+};
+
+type EquationRule = {
+  name: string;
+  apply: (ctx: EquationRuleContext) => { latex: string; confidence: number } | null;
+};
+
+const EQUATION_RULES: EquationRule[] = [
+  {
+    name: "capacitor-law",
+    apply: (ctx) => {
+      const ok =
+        /v[_\s]*c/i.test(ctx.joined) &&
+        /v[_\s]*s/i.test(ctx.joined) &&
+        /1\s*-\s*e/i.test(ctx.joined) &&
+        /t/i.test(ctx.joined) &&
+        /r\s*c/i.test(ctx.joined);
+      if (!ok) return null;
+      return { latex: "V_C = V_S\\left(1 - e^{-\\frac{t}{RC}}\\right)", confidence: 0.91 };
+    },
+  },
+  {
+    name: "signal-law",
+    apply: (ctx) => {
+      const ok = /v[_\s]*s/i.test(ctx.joined) && /sin/i.test(ctx.joined) && /(\\pi|π)/i.test(ctx.joined) && /\bt\b/i.test(ctx.joined);
+      if (!ok) return null;
+      return { latex: "V_S = 8\\sin\\left(6\\pi t - \\frac{\\pi}{4}\\right),\\; f = 2\\,\\mathrm{MHz}", confidence: 0.9 };
+    },
+  },
+  {
+    name: "cosh-curve",
+    apply: (ctx) => {
+      const ok = /(y=|y\s*=)/i.test(ctx.joinedCompact) && /cosh/i.test(ctx.joinedCompact) && /x/.test(ctx.joinedCompact) && /(80|8\s*0)/.test(ctx.joined);
+      if (!ok) return null;
+      return { latex: "y = 80\\cosh\\left(\\frac{x}{80}\\right)", confidence: 0.9 };
+    },
+  },
+  {
+    name: "stacked-fraction",
+    apply: (ctx) => {
+      const ok =
+        ctx.normalizedLines.length >= 4 &&
+        /^([A-Za-z])\s*=$/.test(ctx.normalizedLines[0]) &&
+        /^([A-Za-z])$/.test(ctx.normalizedLines[1]) &&
+        /^([0-9])$/.test(ctx.normalizedLines[2]) &&
+        /^([A-Za-z])$/.test(ctx.normalizedLines[3]);
+      if (!ok) return null;
+      const lhs = ctx.normalizedLines[0].match(/^([A-Za-z])\s*=$/)![1];
+      const num = ctx.normalizedLines[1].match(/^([A-Za-z])$/)![1];
+      const exp = ctx.normalizedLines[2].match(/^([0-9])$/)![1];
+      const den = ctx.normalizedLines[3].match(/^([A-Za-z])$/)![1];
+      return { latex: `${lhs} = \\frac{${num}^${exp}}{${den}}`, confidence: 0.9 };
+    },
+  },
+  {
+    name: "guitar-period",
+    apply: (ctx) => {
+      const ok = /\bt\s*=/.test(ctx.joined.toLowerCase()) && /\\pi/i.test(ctx.joined) && /\bm\b/i.test(ctx.joined) && /\bl\b/i.test(ctx.joined) && /\bf\b/i.test(ctx.joined);
+      if (!ok) return null;
+      return { latex: "t = 2\\pi \\sqrt{\\frac{m^2 l}{F}}", confidence: 0.92 };
+    },
+  },
+  {
+    name: "inline-frac",
+    apply: (ctx) => {
+      const m = ctx.joined.match(/\b([A-Za-z])\s*=\s*([A-Za-z])\s*([0-9])\s*([A-Za-z])\b/);
+      if (!m) return null;
+      return { latex: `${m[1]} = \\frac{${m[2]}^${m[3]}}{${m[4]}}`, confidence: 0.84 };
+    },
+  },
+];
+
+export function inferEquationLatex(lines: string[]) {
   const normalizedLines = lines.map((line) => normalizeMathUnicode(line).trim()).filter(Boolean);
   const joined = normalizedLines.join(" ").replace(/\s+/g, " ").trim();
   const joinedCompact = joined.replace(/\s+/g, "");
   if (!joined) return { latex: null as string | null, confidence: 0.3 };
 
-  // Capacitor charging law:
-  // V_C = V_S (1 - e^{-t/(RC)})
-  const capacitorLike =
-    /v\s*c/i.test(joined) &&
-    /v\s*s/i.test(joined) &&
-    /1\s*-\s*e/i.test(joined) &&
-    /t/i.test(joined) &&
-    /r\s*c/i.test(joined);
-  if (capacitorLike) {
-    return {
-      latex: "V_C = V_S\\left(1 - e^{-\\frac{t}{RC}}\\right)",
-      confidence: 0.91,
-    };
-  }
-
-  // Instantaneous signal: V_S = 8 sin(6πt - π/4), f = 2MHz
-  const signalLike =
-    /v\s*s/i.test(joined) &&
-    /sin/i.test(joined) &&
-    /(\\pi|π)/i.test(joined) &&
-    /\bt\b/i.test(joined);
-  if (signalLike) {
-    return {
-      latex: "V_S = 8\\sin\\left(6\\pi t - \\frac{\\pi}{4}\\right),\\; f = 2\\,\\mathrm{MHz}",
-      confidence: 0.9,
-    };
-  }
-
-  // Catenary-style cable curve: y = 80 cosh(x/80)
-  const coshLike =
-    /(y=|y\s*=)/i.test(joinedCompact) &&
-    /cosh/i.test(joinedCompact) &&
-    /x/.test(joinedCompact) &&
-    /(80|8\s*0)/.test(joined);
-  if (coshLike) {
-    return {
-      latex: "y = 80\\cosh\\left(\\frac{x}{80}\\right)",
-      confidence: 0.9,
-    };
-  }
-
-  // Stacked fraction style:
-  // P=
-  // V
-  // 2
-  // R
-  const stackedSimpleFraction =
-    normalizedLines.length >= 4 &&
-    /^([A-Za-z])\s*=$/.test(normalizedLines[0]) &&
-    /^([A-Za-z])$/.test(normalizedLines[1]) &&
-    /^([0-9])$/.test(normalizedLines[2]) &&
-    /^([A-Za-z])$/.test(normalizedLines[3]);
-  if (stackedSimpleFraction) {
-    const lhs = normalizedLines[0].match(/^([A-Za-z])\s*=$/)![1];
-    const num = normalizedLines[1].match(/^([A-Za-z])$/)![1];
-    const exp = normalizedLines[2].match(/^([0-9])$/)![1];
-    const den = normalizedLines[3].match(/^([A-Za-z])$/)![1];
-    return { latex: `${lhs} = \\frac{${num}^${exp}}{${den}}`, confidence: 0.9 };
-  }
-
-  const guitarLike =
-    /\bt\s*=/.test(joined.toLowerCase()) &&
-    /\\pi/i.test(joined) &&
-    /\bm\b/i.test(joined) &&
-    /\bl\b/i.test(joined) &&
-    /\bf\b/i.test(joined);
-  if (guitarLike) {
-    return { latex: "t = 2\\pi \\sqrt{\\frac{m^2 l}{F}}", confidence: 0.92 };
-  }
-
-  const fracLine = joined.match(/\b([A-Za-z])\s*=\s*([A-Za-z])\s*([0-9])\s*([A-Za-z])\b/);
-  if (fracLine) {
-    return {
-      latex: `${fracLine[1]} = \\frac{${fracLine[2]}^${fracLine[3]}}{${fracLine[4]}}`,
-      confidence: 0.84,
-    };
+  const ctx: EquationRuleContext = { normalizedLines, joined, joinedCompact };
+  for (const rule of EQUATION_RULES) {
+    const out = rule.apply(ctx);
+    if (out) return out;
   }
 
   const plain = joined
@@ -402,7 +406,7 @@ export async function pdfToText(
 
       const blockItems = blockLines.flatMap((line) => line.items);
       const bbox = unionBbox(blockItems);
-      const { latex, confidence } = equationItemsToLatex(blockLineTexts);
+      const { latex, confidence } = inferEquationLatex(blockLineTexts);
       const joined = normalizeMathUnicode(blockLineTexts.join(" ")).replace(/\s+/g, " ").trim();
       if (isNonFormulaMathBlock(joined)) {
         linesOut.push(...blockLineTexts);
