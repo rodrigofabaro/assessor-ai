@@ -936,7 +936,8 @@ function extractBriefTasks(
   const selectedHeadings: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
   for (const [n, group] of candidatesByNumber.entries()) {
     if (group.length > 1) duplicateHeadingNumbers.add(n);
-    const best = [...group].sort((a, b) => b.score - a.score || b.index - a.index)[0];
+    // Prefer the earliest heading when scores tie; later repeats are usually page-header duplicates.
+    const best = [...group].sort((a, b) => b.score - a.score || a.index - b.index)[0];
     selectedHeadings.push(best);
   }
   selectedHeadings.sort((a, b) => a.index - b.index);
@@ -1269,6 +1270,28 @@ export function extractBrief(
   const titleFromBody = assignmentTitle ? normalizeWhitespace(assignmentTitle) : null;
   const titleFromHeader = buildBriefTitle(header, assignmentNumber, titleFromBody || fallbackTitle);
 
+  const tokenRegex = /\[\[EQ:([^\]]+)\]\]/g;
+  const collectEqIds = (value: string | null | undefined, target: Set<string>) => {
+    const textValue = String(value || "");
+    let m: RegExpExecArray | null;
+    while ((m = tokenRegex.exec(textValue))) {
+      if (m[1]) target.add(m[1]);
+    }
+  };
+  const usedEqIds = new Set<string>();
+  for (const scenario of tasksResult.scenarios || []) {
+    collectEqIds(scenario?.text, usedEqIds);
+  }
+  for (const task of tasksResult.tasks || []) {
+    collectEqIds(task?.text, usedEqIds);
+    collectEqIds(task?.prompt, usedEqIds);
+    collectEqIds(task?.scenarioText, usedEqIds);
+    for (const part of task?.parts || []) collectEqIds(part?.text, usedEqIds);
+  }
+  const filteredEquations = Array.isArray(options?.equations)
+    ? options!.equations.filter((eq) => usedEqIds.has(eq.id))
+    : [];
+
   return {
     kind: "BRIEF" as const,
     title: titleFromHeader || titleFromBody || null,
@@ -1283,7 +1306,7 @@ export function extractBrief(
     criteriaCodes,
     loHeaders,
     endMatter: tasksResult.endMatter || null,
-    equations: Array.isArray(options?.equations) ? options?.equations : [],
+    equations: filteredEquations,
     scenarios: tasksResult.scenarios,
     tasks: tasksResult.tasks,
     warnings: warnings.length ? warnings : undefined,

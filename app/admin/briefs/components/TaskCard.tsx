@@ -507,15 +507,11 @@ export function TaskCard({
     [contentSegments]
   );
   const structuredPartsIntroText = useMemo(() => {
-    const explicitIntro = [task?.title, task?.prompt]
-      .map((value) => normalizeText(String(value || "")))
-      .filter(Boolean)
-      .join("\n\n")
-      .trim();
-    if (explicitIntro) return explicitIntro;
+    const titleOnly = normalizeText(String(task?.title || ""));
+    if (titleOnly) return titleOnly;
     const firstKey = structuredParts[0]?.key || null;
     return extractIntroBeforeFirstPartMarker(taskBodyText, firstKey);
-  }, [structuredParts, task?.title, task?.prompt, taskBodyText]);
+  }, [structuredParts, task?.title, taskBodyText]);
 
   // Diff Logic
   const diffData = useMemo(() => {

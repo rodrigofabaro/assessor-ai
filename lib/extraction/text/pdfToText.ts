@@ -243,6 +243,15 @@ function isMatrixLikeBlock(lines: string[]) {
   return matrixHead && numericRows.length >= 1;
 }
 
+function isNonFormulaMathBlock(joined: string) {
+  const s = normalizeMathUnicode(joined).replace(/\s+/g, " ").trim();
+  if (!s) return true;
+  if (/^[A-Za-z]\s*=\s*time\.?$/i.test(s)) return true;
+  if (/^(R|VS?)\s*=\s*the\b/i.test(s)) return true;
+  if (/^[A-Za-z]\s*=\s*\d+(?:\s+\d+){2,}$/i.test(s)) return true; // flattened matrix rows
+  return false;
+}
+
 export async function pdfToText(
   buf: Buffer
 ): Promise<{ text: string; pageCount: number; equations: Equation[] }> {
@@ -361,6 +370,11 @@ export async function pdfToText(
       const bbox = unionBbox(blockItems);
       const { latex, confidence } = equationItemsToLatex(blockLineTexts);
       const joined = normalizeMathUnicode(blockLineTexts.join(" ")).replace(/\s+/g, " ").trim();
+      if (isNonFormulaMathBlock(joined)) {
+        linesOut.push(...blockLineTexts);
+        cursor = block.end;
+        continue;
+      }
       const nextLineText = block.end < lines.length ? normalizeMathUnicode(lines[block.end].text || "") : "";
       const followedByPartMarker = isPartMarkerLine(nextLineText);
       const lowValue =
