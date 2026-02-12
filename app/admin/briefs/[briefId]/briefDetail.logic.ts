@@ -481,6 +481,25 @@ export function useBriefDetail(briefId: string) {
     }
   };
 
+  const saveEquationLatex = async (equationId: string, latex: string) => {
+    if (!linkedDoc?.id || !equationId || !latex.trim()) return;
+    const prev = linkedDoc?.sourceMeta?.equationLatexOverrides || {};
+    const merged = { ...prev, [equationId]: latex.trim() };
+    try {
+      const res = await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ equationLatexOverrides: merged }),
+      });
+      const nextMeta = res?.sourceMeta || {};
+      setDocs((docs) => docs.map((d) => (d.id === linkedDoc.id ? { ...d, sourceMeta: nextMeta } : d)));
+      notifyToast("success", "Equation LaTeX saved.");
+    } catch (e: any) {
+      notifyToast("error", e?.message || "Failed to save equation LaTeX.");
+      throw e;
+    }
+  };
+
   const unlockLinkedDoc = async () => {
     if (!linkedDoc?.id) return;
     setError(null);
@@ -582,6 +601,7 @@ export function useBriefDetail(briefId: string) {
     tasksBusy,
     tasksError,
     saveTasksOverride,
+    saveEquationLatex,
     docUsage,
     usageLoading,
     unlockLinkedDoc,

@@ -1,134 +1,269 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import katex from "katex";
-import "katex/dist/katex.min.css";
-import { type ReactNode } from "react";
 
-const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
-
-const UNICODE_MATH_MAP: Record<string, string> = {
-  "푃": "P",
-  "푉": "V",
-  "푅": "R",
-  "푡": "t",
-  "푦": "y",
-  "퐷": "D",
-  "푙": "l",
-  "휋": "\\pi",
+type Equation = {
+  id: string;
+  pageNumber: number;
+  bbox: { x: number; y: number; w: number; h: number };
+  latex: string | null;
+  confidence: number;
+  needsReview: boolean;
+  latexSource: "heuristic" | "manual" | null;
 };
 
-function normalizeMathUnicode(input: string) {
-  let out = String(input || "");
-  for (const [from, to] of Object.entries(UNICODE_MATH_MAP)) out = out.split(from).join(to);
+type Props = {
+  text: string;
+  equationsById?: Record<string, Equation>;
+  openPdfHref?: string;
+  canEditLatex?: boolean;
+  onSaveLatex?: (equationId: string, latex: string) => Promise<void> | void;
+};
+
+const TOKEN_RE = /(\[\[EQ:[^\]]+\]\])/g;
+const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
+const URL_RE = /(https?:\/\/[^\s)]+)/g;
+
+function renderKatex(latex: string) {
+  return katex.renderToString(latex, {
+    throwOnError: false,
+    displayMode: true,
+    output: "html",
+    strict: "ignore",
+  });
+}
+
+function normalizeDisplayText(input: string) {
+  let out = String(input || "")
+    .replace(/푃/g, "P")
+    .replace(/푉/g, "V")
+    .replace(/푅/g, "R")
+    .replace(/푡/g, "t")
+    .replace(/푚/g, "m")
+    .replace(/푙/g, "l")
+    .replace(/퐹/g, "F")
+    .replace(/휋/g, "π")
+    .replace(/�/g, " ")
+    .replace(/\b([A-Za-z])\1\b/g, "$1")
+    .replace(/\(([A-Za-z])\1\)/g, "($1)");
+
+  out = injectHeuristicMathTokens(out);
+
   return out;
 }
 
-function normalizeMathEscapes(input: string) {
-  return String(input || "")
-    .replace(/\\\\([A-Za-z]+)/g, "\\$1")
-    .replace(/\\mu([A-Za-z])/g, "\\mu \\\\mathrm{$1}")
-    .replace(/\b(cosh|sinh|tanh|sin|cos|tan)\b/g, "\\$1");
+function injectHeuristicMathTokens(input: string) {
+  const blocks = String(input || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split(/\n{2,}/);
+  const mapped = blocks.map((block) => {
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!lines.length) return block;
+
+    // Strict stacked fraction: exactly 4 short lines (or one compressed line sequence)
+    if (lines.length === 4) {
+      const m0 = lines[0].match(/^([A-Za-z])\s*=\s*$/);
+      const m1 = lines[1].match(/^([A-Za-z])$/);
+      const m2 = lines[2].match(/^([0-9])$/);
+      const m3 = lines[3].match(/^([A-Za-z])$/);
+      if (m0 && m1 && m2 && m3) {
+        return `[[MATH:${m0[1]}=\\frac{${m1[1]}^${m2[1]}}{${m3[1]}}]]`;
+      }
+    }
+
+    const compact = lines.join(" ").replace(/\s+/g, " ");
+
+    // Inline snippet replacements inside paragraph text.
+    let replaced = compact.replace(
+      /\bt\s*=\s*2\s*(?:\\pi|π)\s*m\s*2\s*l\s*F\b/gi,
+      "[[MATH:t=2\\pi\\sqrt{\\frac{m^2 l}{F}}]]"
+    );
+
+    replaced = replaced.replace(
+      /\b([A-Za-z])\s*=\s*([A-Za-z])\s+([0-9])\s+([A-Za-z])\b/g,
+      (_m, lhs, numBase, exp, den) => `[[MATH:${lhs}=\\frac{${numBase}^${exp}}{${den}}]]`
+    );
+
+    return replaced;
+  });
+  return mapped.join("\n\n");
 }
 
-function normalizeStackedEquationPatterns(input: string) {
-  let out = String(input || "");
-
-  // P = V 2 R -> P = \frac{V^2}{R}
-  out = out.replace(/\b([A-Za-z])\s*=\s*([A-Za-z])\s+([0-9])\s+([A-Za-z])\b/g, "$1 = \\\\frac{$2^{$3}}{$4}");
-
-  // Handle explicit newline stacked extraction: X =\nY\n2\nZ
-  out = out.replace(
-    /\b([A-Za-z])\s*=\s*\n\s*([A-Za-z])\s*\n\s*([0-9])\s*\n\s*([A-Za-z])\b/g,
-    "$1 = \\\\frac{$2^{$3}}{$4}"
-  );
-
-  return out;
-}
-
-function preprocess(input: string) {
-  return normalizeMathEscapes(normalizeStackedEquationPatterns(normalizeMathUnicode(input)));
-}
-
-function splitMathSegments(input: string) {
-  const text = preprocess(input);
-  const re =
-    /(\\frac\{[^{}]+\}\{[^{}]+\}|[A-Za-z]\s*=\s*[A-Za-z0-9\\{}_^().+\-/*\s]{1,80}|[0-9A-Za-z]+\s*\\(?:pi|Omega|omega|mu|alpha|beta|gamma|delta|theta|lambda)\b)/g;
-  const segments: Array<{ type: "text" | "math"; value: string }> = [];
+function linkify(text: string, keyPrefix: string) {
+  text = normalizeDisplayText(text);
+  const nodes: React.ReactNode[] = [];
   let last = 0;
-  let m: RegExpExecArray | null;
-
-  while ((m = re.exec(text))) {
-    const start = m.index;
-    const value = String(m[0] || "").trim();
-    if (start > last) segments.push({ type: "text", value: text.slice(last, start) });
-
-    const mathLike = /\\[A-Za-z]+|=|\^|\/|\\frac\{/.test(value);
-    segments.push({ type: mathLike ? "math" : "text", value });
-    last = start + m[0].length;
-  }
-  if (last < text.length) segments.push({ type: "text", value: text.slice(last) });
-  return segments.length ? segments : [{ type: "text", value: text }];
-}
-
-function linkifyText(input: string, keyPrefix: string): ReactNode[] {
-  const text = String(input || "");
-  const nodes: ReactNode[] = [];
-  let lastIndex = 0;
-  const regex = new RegExp(URL_REGEX.source, "g");
   let match: RegExpExecArray | null;
+  const re = new RegExp(URL_RE.source, "g");
 
-  while ((match = regex.exec(text))) {
+  while ((match = re.exec(text))) {
     const start = match.index;
-    const url = match[0];
-    if (start > lastIndex) nodes.push(text.slice(lastIndex, start));
-    const cleaned = url.replace(/[),.;]+$/g, "");
-    const trailing = url.slice(cleaned.length);
+    const raw = match[0];
+    if (start > last) nodes.push(text.slice(last, start));
+    const clean = raw.replace(/[),.;]+$/g, "");
+    const trailing = raw.slice(clean.length);
     nodes.push(
       <a
-        key={`${keyPrefix}-url-${start}`}
-        href={cleaned}
+        key={`${keyPrefix}-u-${start}`}
+        href={clean}
         target="_blank"
         rel="noreferrer"
         className="underline decoration-dotted decoration-sky-400 underline-offset-2 break-all text-sky-700 hover:text-sky-800"
       >
-        {cleaned}
+        {clean}
       </a>
     );
     if (trailing) nodes.push(trailing);
-    lastIndex = start + url.length;
+    last = start + raw.length;
   }
-
-  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  if (last < text.length) nodes.push(text.slice(last));
   return nodes;
 }
 
-function renderMath(expr: string, key: string) {
-  const input = expr.replace(/\s+/g, " ").trim();
-  try {
-    const html = katex.renderToString(input, { throwOnError: true, displayMode: false });
-    return <span key={key} className="inline-block align-middle" dangerouslySetInnerHTML={{ __html: html }} />;
-  } catch {
-    return (
-      <span key={key} className="inline align-middle">
-        <span>{input}</span>
-        <span className="ml-1 rounded border border-amber-300 bg-amber-50 px-1 text-[10px] text-amber-900">math?</span>
+function EquationFallback({
+  eq,
+  openPdfHref,
+  canEditLatex,
+  onSaveLatex,
+}: {
+  eq: Equation;
+  openPdfHref?: string;
+  canEditLatex?: boolean;
+  onSaveLatex?: (equationId: string, latex: string) => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(eq.latex || "");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <span className="relative inline-flex items-center gap-1 align-middle">
+      <span className="rounded border border-amber-300 bg-amber-50 px-1 py-0.5 text-[10px] text-amber-900">
+        equation needs review
       </span>
+      {canEditLatex ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[10px] font-semibold text-amber-900 underline underline-offset-2"
+        >
+          Edit LaTeX
+        </button>
+      ) : null}
+      {open ? (
+        <span className="absolute left-0 top-[110%] z-20 min-w-[320px] max-w-[460px] rounded-md border border-zinc-300 bg-white p-2 text-xs text-zinc-700 shadow-lg">
+          <span className="block text-[11px] text-zinc-500">Page {eq.pageNumber}</span>
+          {openPdfHref ? (
+            <a href={openPdfHref} target="_blank" rel="noreferrer" className="text-[11px] text-sky-700 underline">
+              open source PDF
+            </a>
+          ) : null}
+          <input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Paste LaTeX"
+            className="mt-2 block w-full rounded border border-zinc-300 px-2 py-1 text-xs"
+          />
+          <span className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              disabled={saving || !value.trim()}
+              onClick={async () => {
+                if (!onSaveLatex || !value.trim()) return;
+                setSaving(true);
+                try {
+                  await onSaveLatex(eq.id, value.trim());
+                  setOpen(false);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              className="rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-[11px] font-semibold text-zinc-800 disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+            >
+              Close
+            </button>
+          </span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+export default function InlineEquationText({
+  text,
+  equationsById = {},
+  openPdfHref,
+  canEditLatex,
+  onSaveLatex,
+}: Props) {
+  const parts = useMemo(() => normalizeDisplayText(String(text || "")).split(TOKEN_RE), [text]);
+  const out: React.ReactNode[] = [];
+
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i] || "";
+    const tokenId = part.match(/^\[\[EQ:([^\]]+)\]\]$/)?.[1];
+    if (!tokenId) {
+      const chunks = part.split(HEURISTIC_MATH_TOKEN_RE);
+      for (let c = 0; c < chunks.length; c += 1) {
+        const chunk = chunks[c] || "";
+        const math = chunk.match(/^\[\[MATH:([\s\S]*?)\]\]$/)?.[1];
+        if (math) {
+          out.push(
+            <span
+              key={`hm-${i}-${c}`}
+              className="block align-middle py-1"
+              dangerouslySetInnerHTML={{ __html: renderKatex(math) }}
+            />
+          );
+        } else {
+          out.push(...linkify(chunk, `txt-${i}-${c}`));
+        }
+      }
+      continue;
+    }
+
+    const eq = equationsById[tokenId];
+    if (!eq) {
+      out.push(
+        <span key={`missing-${tokenId}`} className="rounded border border-amber-300 bg-amber-50 px-1 text-[10px] text-amber-900">
+          equation missing
+        </span>
+      );
+      continue;
+    }
+
+    if (eq.latex && !eq.needsReview) {
+      out.push(
+        <span
+          key={`eq-${eq.id}`}
+          className="block align-middle py-1"
+          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex) }}
+        />
+      );
+      continue;
+    }
+
+    out.push(
+      <EquationFallback
+        key={`fallback-${eq.id}`}
+        eq={eq}
+        openPdfHref={openPdfHref}
+        canEditLatex={canEditLatex}
+        onSaveLatex={onSaveLatex}
+      />
     );
   }
+
+  return <span>{out}</span>;
 }
-
-export default function InlineEquationText({ text, keyPrefix = "inline-eq" }: { text: string; keyPrefix?: string }) {
-  const segments = splitMathSegments(String(text || ""));
-  const nodes: ReactNode[] = [];
-
-  segments.forEach((seg, idx) => {
-    if (seg.type === "math") {
-      nodes.push(renderMath(seg.value, `${keyPrefix}-math-${idx}`));
-    } else {
-      nodes.push(...linkifyText(seg.value, `${keyPrefix}-txt-${idx}`));
-    }
-  });
-
-  return <span>{nodes}</span>;
-}
-

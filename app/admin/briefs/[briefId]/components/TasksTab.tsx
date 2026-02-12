@@ -19,6 +19,27 @@ export function TasksTab({
   const linkedDoc = vm.linkedDoc;
   const tasksOverride = vm.tasksOverride;
   const linkedId: string | null = linkedDoc?.id ?? null;
+  const extractedEquations = Array.isArray(linkedDoc?.extractedJson?.equations) ? linkedDoc.extractedJson.equations : [];
+  const equationLatexOverrides = linkedDoc?.sourceMeta?.equationLatexOverrides || {};
+  const equationsById = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const eq of extractedEquations) {
+      if (!eq?.id) continue;
+      const override = equationLatexOverrides?.[eq.id];
+      if (typeof override === "string" && override.trim()) {
+        map[eq.id] = {
+          ...eq,
+          latex: override.trim(),
+          latexSource: "manual",
+          needsReview: false,
+          confidence: Math.max(Number(eq.confidence || 0), 0.99),
+        };
+      } else {
+        map[eq.id] = eq;
+      }
+    }
+    return map;
+  }, [equationLatexOverrides, extractedEquations]);
 
   const extracted = useMemo(() => getExtractedTasks(linkedDoc), [linkedDoc]);
   const warnings = useMemo(() => getWarnings(linkedDoc), [linkedDoc]);
@@ -55,6 +76,10 @@ export function TasksTab({
               extractedTask={row.extractedTask}
               overrideApplied={row.overrideApplied}
               forcedExpanded={forceExpanded}
+              equationsById={equationsById}
+              openPdfHref={linkedId ? `/api/reference-documents/${linkedId}/file` : undefined}
+              canEditLatex={true}
+              onSaveEquationLatex={vm.saveEquationLatex}
             />
           ))
         ) : (

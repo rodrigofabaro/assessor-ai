@@ -33,6 +33,10 @@ type TaskCardProps = {
   overrideApplied?: boolean;
   defaultExpanded?: boolean;
   forcedExpanded?: boolean;
+  equationsById?: Record<string, any>;
+  openPdfHref?: string;
+  canEditLatex?: boolean;
+  onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
 };
 
 
@@ -92,8 +96,24 @@ function wordCount(text: string) {
   return normalized.split(/\s+/).filter(Boolean).length;
 }
 
-function renderInlineText(text: string) {
-  return <InlineEquationText text={String(text ?? "")} />;
+function renderInlineText(
+  text: string,
+  options?: {
+    equationsById?: Record<string, any>;
+    openPdfHref?: string;
+    canEditLatex?: boolean;
+    onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+  }
+) {
+  return (
+    <InlineEquationText
+      text={String(text ?? "")}
+      equationsById={options?.equationsById}
+      openPdfHref={options?.openPdfHref}
+      canEditLatex={options?.canEditLatex}
+      onSaveLatex={options?.onSaveEquationLatex}
+    />
+  );
 }
 
 function formatPdfTextToBlocks(text: string): ScenarioBlock[] {
@@ -194,18 +214,27 @@ function splitScenarioProposalText(text: string): { scenarioOnly: string; propos
   return { scenarioOnly, proposalText };
 }
 
-function renderPdfTextBlocks(text: string, keyPrefix: string) {
+function renderPdfTextBlocks(
+  text: string,
+  keyPrefix: string,
+  options?: {
+    equationsById?: Record<string, any>;
+    openPdfHref?: string;
+    canEditLatex?: boolean;
+    onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+  }
+) {
   const blocks = formatPdfTextToBlocks(text);
   return blocks.map((block, index) =>
     block.type === "paragraph" ? (
       <p key={`${keyPrefix}-p-${index}`} className="mt-2 leading-7">
-        {renderInlineText(block.text)}
+        {renderInlineText(block.text, options)}
       </p>
     ) : block.listType === "ol" ? (
       <ol key={`${keyPrefix}-ol-${index}`} className="mt-2 list-decimal space-y-2 pl-6">
         {block.items.map((item, itemIndex) => (
           <li key={`${keyPrefix}-li-${index}-${itemIndex}`} className="leading-7">
-            {renderInlineText(item)}
+            {renderInlineText(item, options)}
           </li>
         ))}
       </ol>
@@ -213,7 +242,7 @@ function renderPdfTextBlocks(text: string, keyPrefix: string) {
       <ul key={`${keyPrefix}-ul-${index}`} className="mt-2 space-y-2 pl-6">
         {block.items.map((item, itemIndex) => (
           <li key={`${keyPrefix}-li-${index}-${itemIndex}`} className="leading-7">
-            {renderInlineText(item)}
+            {renderInlineText(item, options)}
           </li>
         ))}
       </ul>
@@ -270,17 +299,26 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
   return topLevel.filter((part) => part.text || part.children.length > 0);
 }
 
-function renderStructuredParts(parts: StructuredPart[], keyPrefix: string) {
+function renderStructuredParts(
+  parts: StructuredPart[],
+  keyPrefix: string,
+  options?: {
+    equationsById?: Record<string, any>;
+    openPdfHref?: string;
+    canEditLatex?: boolean;
+    onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+  }
+) {
   return (
     <ol className="list-[lower-alpha] pl-6 space-y-2 leading-7">
       {parts.map((part, partIndex) => (
         <li key={`${keyPrefix}-part-${part.key}-${partIndex}`}>
-          {part.text ? <div>{renderInlineText(part.text)}</div> : null}
+          {part.text ? <div>{renderInlineText(part.text, options)}</div> : null}
           {part.children.length ? (
             <ol className="mt-2 list-[lower-roman] pl-6 space-y-2 leading-7">
               {part.children.map((child, childIndex) => (
                 <li key={`${keyPrefix}-subpart-${part.key}-${child.key}-${childIndex}`}>
-                  {renderInlineText(child.text)}
+                  {renderInlineText(child.text, options)}
                 </li>
               ))}
             </ol>
@@ -368,8 +406,11 @@ export function TaskCard({
   overrideApplied,
   defaultExpanded,
   forcedExpanded,
+  equationsById,
+  openPdfHref,
+  canEditLatex,
+  onSaveEquationLatex,
 }: TaskCardProps) {
-  const showDevMathFixture = process.env.NODE_ENV === "development";
   const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
@@ -594,30 +635,30 @@ export function TaskCard({
           {scenarioDisplayText && (
             <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
-              <div className="break-words">{renderPdfTextBlocks(scenarioDisplayText, "scenario")}</div>
+              <div className="break-words">
+                {renderPdfTextBlocks(scenarioDisplayText, "scenario", {
+                  equationsById,
+                  openPdfHref,
+                  canEditLatex,
+                  onSaveEquationLatex,
+                })}
+              </div>
             </div>
           )}
 
           {proposalText && (
             <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Proposal Activity (AIAS 2)</div>
-              <div className="break-words">{renderPdfTextBlocks(proposalText, "proposal")}</div>
-            </div>
-          )}
-
-          {showDevMathFixture ? (
-            <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-zinc-700">
-              <div className="text-xs font-semibold uppercase tracking-wide text-sky-800">Dev Math Fixture</div>
-              <div className="mt-1 leading-7 break-words">
-                <InlineEquationText
-                  text={
-                    "P = V 2 R | Impedance sample: 20M\\\\Omega | Capacitance sample: 200\\\\muF | Frequency sample: t = 2\\\\pi"
-                  }
-                  keyPrefix="dev-math-fixture"
-                />
+              <div className="break-words">
+                {renderPdfTextBlocks(proposalText, "proposal", {
+                  equationsById,
+                  openPdfHref,
+                  canEditLatex,
+                  onSaveEquationLatex,
+                })}
               </div>
             </div>
-          ) : null}
+          )}
 
           <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             
@@ -625,7 +666,14 @@ export function TaskCard({
             {contextLines.length > 0 && (
               <div className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-500">
                 <div className="font-semibold text-zinc-600">Context line</div>
-                <div className="mt-1 text-sm text-zinc-700 break-words">{renderPdfTextBlocks(contextLines[0], "context-line")}</div>
+                <div className="mt-1 text-sm text-zinc-700 break-words">
+                  {renderPdfTextBlocks(contextLines[0], "context-line", {
+                    equationsById,
+                    openPdfHref,
+                    canEditLatex,
+                    onSaveEquationLatex,
+                  })}
+                </div>
               </div>
             )}
 
@@ -635,10 +683,22 @@ export function TaskCard({
                 {hasStructuredParts && firstTextSegmentIndex < 0 ? (
                   <div className="break-words">
                     {structuredPartsIntroText ? (
-                      <div>{renderPdfTextBlocks(structuredPartsIntroText, "task-intro-no-segment")}</div>
+                      <div>
+                        {renderPdfTextBlocks(structuredPartsIntroText, "task-intro-no-segment", {
+                          equationsById,
+                          openPdfHref,
+                          canEditLatex,
+                          onSaveEquationLatex,
+                        })}
+                      </div>
                     ) : null}
                     <div className={structuredPartsIntroText ? "mt-2" : ""}>
-                      {renderStructuredParts(structuredParts, "task-parts-no-segment")}
+                      {renderStructuredParts(structuredParts, "task-parts-no-segment", {
+                        equationsById,
+                        openPdfHref,
+                        canEditLatex,
+                        onSaveEquationLatex,
+                      })}
                     </div>
                   </div>
                 ) : null}
@@ -649,15 +709,32 @@ export function TaskCard({
                         segmentIndex === firstTextSegmentIndex ? (
                           <>
                             {structuredPartsIntroText ? (
-                              <div>{renderPdfTextBlocks(structuredPartsIntroText, `task-intro-${segmentIndex}`)}</div>
+                              <div>
+                                {renderPdfTextBlocks(structuredPartsIntroText, `task-intro-${segmentIndex}`, {
+                                  equationsById,
+                                  openPdfHref,
+                                  canEditLatex,
+                                  onSaveEquationLatex,
+                                })}
+                              </div>
                             ) : null}
                             <div className={structuredPartsIntroText ? "mt-2" : ""}>
-                              {renderStructuredParts(structuredParts, `task-parts-${segmentIndex}`)}
+                              {renderStructuredParts(structuredParts, `task-parts-${segmentIndex}`, {
+                                equationsById,
+                                openPdfHref,
+                                canEditLatex,
+                                onSaveEquationLatex,
+                              })}
                             </div>
                           </>
                         ) : null
                       ) : (
-                        renderPdfTextBlocks(segment.text, `task-text-${segmentIndex}`)
+                        renderPdfTextBlocks(segment.text, `task-text-${segmentIndex}`, {
+                          equationsById,
+                          openPdfHref,
+                          canEditLatex,
+                          onSaveEquationLatex,
+                        })
                       )}
                     </div>
                   ) : (

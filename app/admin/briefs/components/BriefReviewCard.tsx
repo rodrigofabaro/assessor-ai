@@ -45,6 +45,23 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const canDelete = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt && !!usage && !usage.inUse;
 
   const rawTasks = Array.isArray(draft?.tasks) ? draft.tasks : [];
+  const extractedEquations = Array.isArray(draft?.equations) ? draft.equations : [];
+  const equationLatexOverrides = doc?.sourceMeta?.equationLatexOverrides || {};
+  const equationsById = extractedEquations.reduce((acc: Record<string, any>, eq: any) => {
+    if (!eq?.id) return acc;
+    const override = equationLatexOverrides?.[eq.id];
+    acc[eq.id] =
+      typeof override === "string" && override.trim()
+        ? {
+            ...eq,
+            latex: override.trim(),
+            latexSource: "manual",
+            needsReview: false,
+            confidence: Math.max(Number(eq.confidence || 0), 0.99),
+          }
+        : eq;
+    return acc;
+  }, {});
   const tasks = rawTasks.filter((task: any) => {
     const text = typeof task?.text === "string" ? task.text : "";
     return text.trim().length > 0;
@@ -212,6 +229,10 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                       key={`task-${t?.id ?? ""}-${t?.n ?? ""}-${i}-${expandSignal}`}
                       task={t}
                       defaultExpanded={expandAll}
+                      equationsById={equationsById}
+                      openPdfHref={doc ? `/api/reference-documents/${doc.id}/file` : undefined}
+                      canEditLatex={true}
+                      onSaveEquationLatex={rx.saveSelectedDocEquationLatex}
                     />
                   ))}
                 </div>

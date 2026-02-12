@@ -860,6 +860,25 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     }
   }
 
+  async function saveSelectedDocEquationLatex(equationId: string, latex: string) {
+    if (!selectedDoc?.id || !equationId || !latex.trim()) return;
+    const prev = selectedDoc?.sourceMeta?.equationLatexOverrides || {};
+    const merged = { ...prev, [equationId]: latex.trim() };
+    await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ equationLatexOverrides: merged }),
+    });
+    setDocuments((docs) =>
+      docs.map((d) =>
+        d.id === selectedDoc.id
+          ? { ...d, sourceMeta: { ...(d.sourceMeta || {}), equationLatexOverrides: merged } }
+          : d
+      )
+    );
+    notifyToast("success", "Equation LaTeX saved.");
+  }
+
   async function toggleUnitArchive() {
     setUnitNotice(null);
     if (!selectedUnit) return;
@@ -985,6 +1004,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     deleteSelectedDocument,
     unlockSelectedDocument,
     saveSelectedUnit,
+    saveSelectedDocEquationLatex,
     toggleUnitArchive,
     deleteSelectedUnit,
 

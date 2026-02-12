@@ -132,8 +132,8 @@ async function extractSnapshot(pdfPath) {
   const { detectTableBlocks } = loadTsModule("lib/extraction/render/tableBlocks.ts");
 
   const buf = fs.readFileSync(pdfPath);
-  const { text, pageCount } = await pdfToText(buf);
-  const brief = extractBrief(text, path.basename(pdfPath));
+  const { text, pageCount, equations } = await pdfToText(buf);
+  const brief = extractBrief(text, path.basename(pdfPath), { equations });
 
   const tasks = (brief.tasks || []).map((task) => ({
     n: task.n,
@@ -151,6 +151,7 @@ async function extractSnapshot(pdfPath) {
     title: brief.title,
     pageCount,
     header: brief.header || null,
+    equations: brief.equations || [],
     tasks,
     warnings: brief.warnings || [],
     endMatter: brief.endMatter || null,

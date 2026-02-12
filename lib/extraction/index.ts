@@ -15,6 +15,7 @@ export async function extractReferenceDocument(args: {
 
   let text = "";
   let pageCount = 0;
+  let equations: any[] = [];
   if (args.type === "SPEC") {
     // Today we only need PDFs for specs; DOCX spec support can be added as a separate extractor.
     const parsed = await pdfToText(buf);
@@ -25,6 +26,7 @@ export async function extractReferenceDocument(args: {
     const parsed = await pdfToText(buf);
     text = parsed.text;
     pageCount = parsed.pageCount;
+    equations = parsed.equations || [];
   }
 
   const hasFormFeedBreaks = /\f|\u000c/.test(text);
@@ -54,7 +56,7 @@ export async function extractReferenceDocument(args: {
   } else if (args.type === "BRIEF") {
     // Briefs need structured header fields for binding and lock.
     // Keep this path isolated so SPEC extraction remains untouched.
-    const brief = extractBrief(text, args.docTitleFallback);
+    const brief = extractBrief(text, args.docTitleFallback, { equations });
     extractedJson = {
       ...brief,
       pageCount,

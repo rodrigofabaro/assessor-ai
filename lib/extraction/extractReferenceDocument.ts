@@ -14,7 +14,10 @@ export async function extractReferenceDocument(args: {
   const buf = await fs.readFile(args.filePath);
 
   // Today: always PDF->text.
-  const { text, pageCount } = await pdfToText(buf);
+  const parsed = await pdfToText(buf);
+  const text = parsed.text;
+  const pageCount = parsed.pageCount;
+  const equations = parsed.equations || [];
   const hasFormFeedBreaks = /\f|\u000c/.test(text);
 
   const warnings: string[] = [];
@@ -42,7 +45,7 @@ export async function extractReferenceDocument(args: {
       extractionWarnings: extractionWarnings.length ? extractionWarnings : undefined,
     };
   } else if (args.type === "BRIEF") {
-    const brief = extractBrief(text, args.docTitleFallback);
+    const brief = extractBrief(text, args.docTitleFallback, { equations });
     extractedJson = {
       ...brief,
       pageCount,

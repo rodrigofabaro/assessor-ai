@@ -45,6 +45,16 @@ type BriefScenario = {
   appliesToTask?: number;
 };
 
+export type BriefEquation = {
+  id: string;
+  pageNumber: number;
+  bbox: { x: number; y: number; w: number; h: number };
+  latex: string | null;
+  confidence: number;
+  needsReview: boolean;
+  latexSource: "heuristic" | "manual" | null;
+};
+
 function normHeader(s: string) {
   return (s || "")
     .replace(/\r/g, "")
@@ -904,7 +914,7 @@ function extractBriefTasks(
 
   if (!candidates.length) {
     warnings.push("Task headings not found (expected “Task 1”, “Task 2”, …).");
-    return { tasks: [], warnings, endMatter };
+    return { tasks: [], scenarios: [], warnings, endMatter };
   }
 
   const candidatesByNumber = new Map<number, Array<{ index: number; n: number; title?: string | null; page: number; score: number }>>();
@@ -1193,7 +1203,11 @@ function findCriteriaRegion(pages: string[]) {
   return { text: "", pages: [] as number[] };
 }
 
-export function extractBrief(text: string, fallbackTitle: string) {
+export function extractBrief(
+  text: string,
+  fallbackTitle: string,
+  options?: { equations?: BriefEquation[] }
+) {
   const t = text || "";
 
   // Unit number and title 4015: ...
@@ -1260,6 +1274,7 @@ export function extractBrief(text: string, fallbackTitle: string) {
     criteriaCodes,
     loHeaders,
     endMatter: tasksResult.endMatter || null,
+    equations: Array.isArray(options?.equations) ? options?.equations : [],
     scenarios: tasksResult.scenarios,
     tasks: tasksResult.tasks,
     warnings: warnings.length ? warnings : undefined,
