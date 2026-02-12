@@ -649,6 +649,18 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
 }
 
 function cleanTaskLines(lines: string[]) {
+  const isAiasPolicyLine = (text: string) => {
+    const t = String(text || "").trim().replace(/\s+/g, " ");
+    if (!t) return false;
+    if (/^\(\s*aias\b.*level\s*\d+\s*\)\s*$/i.test(t)) return true;
+    if (/^final$/i.test(t)) return true;
+    if (/^submission\s+must\s+be\s+written\b/i.test(t)) return true;
+    if (/^in\s+the\s+student.?s\s+own\s+words\b/i.test(t)) return true;
+    if (/^and\s+demonstrate\s+personal\b/i.test(t)) return true;
+    if (/^understanding\.?$/i.test(t)) return true;
+    return false;
+  };
+
   const cleaned = lines
     .map((line) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, ""))
     .filter((line) => {
@@ -657,11 +669,24 @@ function cleanTaskLines(lines: string[]) {
       // Strip repeated page header artifacts that leak into extracted body text.
       if (/^task\s+\d+\s*$/i.test(t)) return false;
       if (/^\(\s*no\s+ai\s*\)\s*$/i.test(t)) return false;
+      if (isAiasPolicyLine(t)) return false;
       return true;
     });
   while (cleaned.length && cleaned[0].trim() === "") cleaned.shift();
   while (cleaned.length && cleaned[cleaned.length - 1].trim() === "") cleaned.pop();
   return cleaned;
+}
+
+function stripAiasPolicyBanner(text: string) {
+  return String(text || "")
+    .replace(/(?:^|\n)\s*\(\s*aias\b[^\n]*\)\s*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*final\s*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*submission\s+must\s+be\s+written[^\n]*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*in\s+the\s+student.?s\s+own\s+words[^\n]*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*and\s+demonstrate\s+personal[^\n]*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*understanding\.?\s*(?=\n|$)/gi, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function shouldReflowPartLines(lines: string[]) {
@@ -1007,10 +1032,8 @@ function extractBriefTasks(
     candidatesByNumber.get(candidate.n)!.push(candidate);
   }
 
-  const duplicateHeadingNumbers = new Set<number>();
   const selectedHeadings: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
   for (const [n, group] of candidatesByNumber.entries()) {
-    if (group.length > 1) duplicateHeadingNumbers.add(n);
     // Prefer the earliest heading when scores tie; later repeats are usually page-header duplicates.
     const best = [...group].sort((a, b) => b.score - a.score || a.index - b.index)[0];
     selectedHeadings.push(best);
@@ -1156,10 +1179,6 @@ function extractBriefTasks(
       taskWarnings.push("task body: empty");
     }
 
-    if (duplicateHeadingNumbers.has(heading.n)) {
-      taskWarnings.push("duplicate heading candidates merged");
-    }
-
     const normalizedBody = normalizeWhitespace(textBody);
     const contaminated = contaminationAnchors.some((cue) => cue.test(normalizedBody));
     if (contaminated) taskWarnings.push("possible end-matter contamination");
@@ -1180,11 +1199,11 @@ function extractBriefTasks(
       extractAiasValue(textBody);
     const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
 
-    const reflowedTextBody = relocateSamplePowerTableToPartA(reflowPreservingTables(textBody));
-    const parts = extractParts(reflowedTextBody);
-    const confidenceWarnings = taskWarnings.filter(
-      (warning) => warning !== "duplicate heading candidates merged"
+    const reflowedTextBody = stripAiasPolicyBanner(
+      relocateSamplePowerTableToPartA(reflowPreservingTables(textBody))
     );
+    const parts = extractParts(reflowedTextBody);
+    const confidenceWarnings = taskWarnings;
     tasks.push({
       n: heading.n,
       label: `Task ${heading.n}`,

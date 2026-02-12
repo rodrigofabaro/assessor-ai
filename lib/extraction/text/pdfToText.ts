@@ -36,22 +36,37 @@ function normalizeMathUnicode(input: string) {
     .replace(/푡/g, "t")
     .replace(/푚/g, "m")
     .replace(/푙/g, "l")
+    .replace(/푣/g, "v")
+    .replace(/푖/g, "i")
+    .replace(/푗/g, "j")
+    .replace(/푘/g, "k")
     .replace(/푦/g, "y")
     .replace(/퐷/g, "D")
+    .replace(/퐼/g, "I")
+    .replace(/퐵/g, "B")
+    .replace(/퐴/g, "A")
     .replace(/퐹/g, "F")
     .replace(/푥/g, "x")
     .replace(/퐶/g, "C")
     .replace(/푆/g, "S")
     .replace(/푒/g, "e")
+    .replace(/휃/g, "\\theta")
+    .replace(/훽/g, "\\beta")
+    .replace(/훼/g, "\\alpha")
     .replace(/휋/g, "\\pi")
     .replace(/π/g, "\\pi")
     .replace(/−/g, "-")
+    .replace(/표/g, "")
     .replace(/�/g, " ");
 
   // Common extraction artifact: doubled variable glyphs, e.g. PP, VV, ll, tt, \pi\pi.
   out = out
     .replace(/\\pi\s*\\pi/g, "\\pi")
+    .replace(/\\alpha\s*\\alpha/gi, "\\alpha")
+    .replace(/\\beta\s*\\beta/gi, "\\beta")
+    .replace(/\\theta\s*\\theta/gi, "\\theta")
     .replace(/\\pitt/gi, "\\pi t")
+    .replace(/([A-Za-z])\1(?=\d|\b)/g, "$1")
     .replace(/\b([A-Za-z])\1\b/g, "$1")
     .replace(/\(([A-Za-z])\1\)/g, "($1)")
     .replace(/\s{2,}/g, " ");
@@ -101,6 +116,26 @@ function isLikelyEquationContinuation(text: string) {
 function isPartMarkerLine(text: string) {
   const s = String(text || "").trim();
   return /^[a-z]\)\s+/i.test(s) || /^task\s+\d+\b/i.test(s) || /^\(\s*no\s+ai\s*\)/i.test(s);
+}
+
+function isAiasPolicyLine(text: string) {
+  const s = normalizeMathUnicode(String(text || "")).replace(/\s+/g, " ").trim();
+  if (!s) return false;
+  if (/^\(\s*aias\b.*level\s*\d+\s*\)\s*$/i.test(s)) return true;
+  if (/^final$/i.test(s)) return true;
+  if (/^submission must be written\b/i.test(s)) return true;
+  if (/^in the student.?s own words\b/i.test(s)) return true;
+  if (/^and demonstrate personal\b/i.test(s)) return true;
+  if (/^understanding\.?$/i.test(s)) return true;
+  return false;
+}
+
+function isSectionHeaderLine(text: string) {
+  const s = normalizeMathUnicode(String(text || "")).replace(/\s+/g, " ").trim();
+  if (!s) return false;
+  if (/^part\s*\d+\b/i.test(s)) return true;
+  if (/^note:/i.test(s)) return true;
+  return false;
 }
 
 function isIgnorableMathSeparator(rawText: string) {
@@ -310,6 +345,8 @@ function isNonFormulaMathBlock(joined: string) {
   if (/^[A-Za-z]\s*=\s*time\.?$/i.test(s)) return true;
   if (/^(R|VS?)\s*=\s*the\b/i.test(s)) return true;
   if (/^[A-Za-z]\s*=\s*\d+(?:\s+\d+){2,}$/i.test(s)) return true; // flattened matrix rows
+  if (isAiasPolicyLine(s) || isSectionHeaderLine(s)) return true;
+  if (/\bthe two signals below are sensed by a signal processor\b/i.test(s)) return true;
   return false;
 }
 
@@ -345,6 +382,7 @@ export async function pdfToText(
     const eqBlocks: Array<{ start: number; end: number }> = [];
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
+      if (isAiasPolicyLine(line.text) || isSectionHeaderLine(line.text)) continue;
       if (!isLikelyEquationStart(line.text) && !looksMathLike(line.text)) continue;
       if (looksSentenceLike(line.text)) continue;
       const hasEq = /=/.test(normalizeMathUnicode(line.text));
@@ -361,6 +399,7 @@ export async function pdfToText(
       for (let j = i + 1; j < Math.min(lines.length, i + 12); j += 1) {
         const rawNextText = lines[j].text;
         const nextText = normalizeMathUnicode(rawNextText);
+        if (isAiasPolicyLine(nextText) || isSectionHeaderLine(nextText)) break;
         if (isPartMarkerLine(nextText)) break;
         if (!nextText.trim()) {
           if (isIgnorableMathSeparator(rawNextText)) {
@@ -388,7 +427,7 @@ export async function pdfToText(
     const mergedBlocks: Array<{ start: number; end: number }> = [];
     for (const block of eqBlocks) {
       const prev = mergedBlocks[mergedBlocks.length - 1];
-      if (prev && block.start <= prev.end + 1) prev.end = Math.max(prev.end, block.end);
+      if (prev && block.start <= prev.end) prev.end = Math.max(prev.end, block.end);
       else mergedBlocks.push(block);
     }
 
