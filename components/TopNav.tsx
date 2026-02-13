@@ -10,7 +10,6 @@ type AdminItem = { label: string; href: string };
 const MAIN_ITEMS: MainItem[] = [
   { label: "Upload", href: "/upload" },
   { label: "Submissions", href: "/submissions" },
-  { label: "Admin", href: "/admin" },
 ];
 
 const ADMIN_ITEMS: AdminItem[] = [
@@ -32,7 +31,7 @@ export default function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/85 backdrop-blur">
-      <div className={LANE + " flex items-center justify-between gap-4 py-2.5"}>
+      <div className={LANE + " grid grid-cols-[auto_1fr_auto] items-center gap-4 py-2.5"}>
         <Link href="/" className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-300 bg-zinc-100 text-sm font-bold text-zinc-900">
             AI
@@ -40,7 +39,7 @@ export default function TopNav() {
           <span className="text-base font-semibold tracking-tight">Assessor AI</span>
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center justify-center gap-5">
           {MAIN_ITEMS.map((it) => {
             const active = isActive(pathname, it.href);
             return (
@@ -59,11 +58,45 @@ export default function TopNav() {
             );
           })}
         </nav>
+
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href="/admin"
+            className={
+              "inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition " +
+              (isActive(pathname, "/admin")
+                ? "border-zinc-300 bg-zinc-100 text-zinc-900"
+                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900")
+            }
+          >
+            Admin
+          </Link>
+
+          {isAdminRoute ? (
+            <nav className="hidden items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
+              {ADMIN_ITEMS.map((it) => {
+                const active = isActive(pathname, it.href);
+                return (
+                  <Link
+                    key={it.href}
+                    href={it.href}
+                    className={
+                      "inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
+                      (active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
+                    }
+                  >
+                    {it.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : null}
+        </div>
       </div>
 
       {isAdminRoute ? (
-        <div className="border-t border-zinc-200 bg-white/70">
-          <div className={LANE + " flex flex-wrap items-center gap-3 py-1.5"}>
+        <div className="border-t border-zinc-200 bg-zinc-50/80 md:hidden">
+          <div className={LANE + " flex items-center gap-2 overflow-x-auto py-1.5"}>
             {ADMIN_ITEMS.map((it) => {
               const active = isActive(pathname, it.href);
               return (
@@ -71,10 +104,10 @@ export default function TopNav() {
                   key={it.href}
                   href={it.href}
                   className={
-                    "inline-flex items-center justify-center rounded-lg px-2.5 py-1 text-xs font-semibold transition " +
+                    "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
                     (active
-                      ? "bg-zinc-100 text-zinc-900"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900")
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-600 hover:bg-white hover:text-zinc-900")
                   }
                 >
                   {it.label}
