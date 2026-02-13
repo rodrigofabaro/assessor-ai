@@ -9,9 +9,9 @@ export const metadata = {
   title: "Assessor AI",
   description: "Upload submissions, assess against criteria, generate marked PDFs.",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/favicon.ico?v=2",
+    shortcut: "/favicon.ico?v=2",
+    apple: "/icon.svg?v=2",
   },
 };
 
