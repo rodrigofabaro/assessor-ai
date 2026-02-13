@@ -70,3 +70,6 @@ reference_uploads/
 !reference_uploads/briefs/**
 
 .openai-usage-log.jsonl
+.openai-model.json
+.tmp-screens/
+.tmp-*.json
