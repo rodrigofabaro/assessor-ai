@@ -116,6 +116,10 @@ export function IvTab({ vm }: { vm: any }) {
                 const commentsDisplay = displayGeneralComments(
                   String(r.notes || "").trim() || String(r.attachment?.summary?.generalComments || "").trim()
                 );
+                const docxAttachment = /\.docx$/i.test(String(r.attachment?.originalFilename || ""));
+                const summaryMissingKeyFields =
+                  !String(r.attachment?.summary?.verificationDate || "").trim() ||
+                  !String(r.attachment?.summary?.generalComments || "").trim();
                 return (
                   <>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -183,14 +187,14 @@ export function IvTab({ vm }: { vm: any }) {
                         {r.attachment.summary.learningOutcomes ? <div className="md:col-span-2">Learning outcomes: {r.attachment.summary.learningOutcomes}</div> : null}
                       </div>
                     ) : null}
-                    {!r.attachment?.summary && /\.docx$/i.test(String(r.attachment?.originalFilename || "")) ? (
+                    {(docxAttachment && (!r.attachment?.summary || summaryMissingKeyFields)) ? (
                       <button
                         type="button"
                         onClick={() => vm.backfillIvSummary?.(r.id)}
                         disabled={vm.ivBusy}
                         className="inline-flex items-center justify-center rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-50"
                       >
-                        Backfill summary
+                        Refresh extracted fields
                       </button>
                     ) : null}
                   </div>

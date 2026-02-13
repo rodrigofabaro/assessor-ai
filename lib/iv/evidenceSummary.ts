@@ -54,7 +54,8 @@ function extractGeneralCommentsBlock(source: string): string | null {
   if (!m || m.index < 0) return null;
   const after = text.slice(m.index + m[0].length);
   if (!after.trim()) return null;
-  const stopRe = /\n\s*(?:Assessor|Internal\s*Verifier|Outcome|Date|Signature|Signed|Verification|Action\s*Required)\b/i;
+  const stopRe =
+    /\n\s*(?:Assignment\s*Brief\s*Authorised\s*for\s*Use|Assessor|Internal\s*Verifier|Outcome|Date|Signature|Signed|Verification|Action\s*Required)\b/i;
   const stop = stopRe.exec(after);
   const block = (stop && stop.index >= 0 ? after.slice(0, stop.index) : after).trim();
   return block ? block.replace(/\s*\n\s*/g, "\n").trim() : null;
@@ -77,10 +78,14 @@ export async function extractIvSummaryFromDocxBuffer(buffer: Buffer) {
     const lineParsed = parseVerifierAndDateFromLine(lastVerifierLine);
 
     const assessorName = firstMatch(text, [/Assessor\s*Name\s*:\s*([^\n]+)/i]);
+    const signatureRow = firstMatch(tail, [
+      /Internal\s*Verifier\s*signature[\s:]*([^\n]{2,180})/i,
+      /Assignment\s*Brief\s*Authorised\s*for\s*Use[\s\S]{0,250}?Internal\s*Verifier\s*signature[\s:]*([^\n]{2,180})/i,
+    ]);
     const internalVerifierName = firstMatch(text, [
       /Internal\s*Verifier(?:\s*Name)?\s*:\s*([^\n:]{2,140}?)(?:\s+Date\s*:?\s*[^\n]+)?$/im,
       /Internal\s*Verifier\s*Name\s*:\s*([^\n]+)/i,
-    ]) || lineParsed.verifierName || null;
+    ]) || lineParsed.verifierName || (signatureRow ? signatureRow.replace(/\s+Date\s*:?\s*.*$/i, "").trim() : null);
     const unitTitle = firstMatch(text, [/Unit\s*Title\s*:\s*([^\n]+)/i]);
     const assignmentTitle = firstMatch(text, [/Assignment\s*title\s*:\s*([^\n]+)/i]);
     const learningOutcomes = firstMatch(text, [/Learning\s*outcomes[\s\S]{0,80}?:\s*([^\n]+)/i]);
@@ -90,6 +95,7 @@ export async function extractIvSummaryFromDocxBuffer(buffer: Buffer) {
     ]);
     const verificationDate = normalizeDateCandidate(
       lastMatch(tail, [
+        /Internal\s*Verifier\s*signature[\s\S]{0,200}?\bDate\s*[:\-]?\s*([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i,
         /Internal\s*Verifier(?:\s*Name)?\s*:\s*[^\n]{0,180}?\bDate\s*:?\s*([^\n]+)/i,
         /(?:Verification\s*Date|Date\s*Verified|Verified\s*Date)\s*[:\-]\s*([^\n]+)/i,
         /Internal\s*Verifier[\s\S]{0,120}?\nDate\s*[:\-]?\s*([^\n]+)/i,
