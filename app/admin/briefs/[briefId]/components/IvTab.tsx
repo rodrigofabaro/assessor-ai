@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { Pill } from "../../components/ui";
 import { tone } from "./briefStyles";
-import { IvForm } from "./IvForm";
+
+function formatAuditDate(value: string | null | undefined): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} (${raw.slice(0, 10)})`;
+}
 
 export function IvTab({ vm }: { vm: any }) {
   const [evidenceYear, setEvidenceYear] = useState<string>(vm.ivDefaultAcademicYear || "");
@@ -77,15 +84,6 @@ export function IvTab({ vm }: { vm: any }) {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-        <div className="text-sm font-semibold text-zinc-900">Add IV record</div>
-        <p className="mt-1 text-sm text-zinc-700">
-          Keep dates and names exactly as stated on your IV paperwork. This is an audit snapshot, not a “pretty” calendar.
-        </p>
-
-        <IvForm onAdd={vm.addIvRecord} busy={vm.ivBusy} />
-      </div>
-
       <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200">
         <table className="min-w-full text-sm">
           <thead className="bg-zinc-50 text-xs text-zinc-700">
@@ -93,9 +91,9 @@ export function IvTab({ vm }: { vm: any }) {
               <th className="px-3 py-2 text-left font-semibold">Academic year</th>
               <th className="px-3 py-2 text-left font-semibold">Outcome</th>
               <th className="px-3 py-2 text-left font-semibold">Verifier</th>
-              <th className="px-3 py-2 text-left font-semibold">Date</th>
+              <th className="px-3 py-2 text-left font-semibold">Dates</th>
               <th className="px-3 py-2 text-left font-semibold">Notes</th>
-              <th className="px-3 py-2 text-left font-semibold">IV form</th>
+              <th className="px-3 py-2 text-left font-semibold">IV evidence</th>
               <th className="px-3 py-2 text-right font-semibold">Actions</th>
             </tr>
           </thead>
@@ -116,7 +114,10 @@ export function IvTab({ vm }: { vm: any }) {
                     </Pill>
                   </td>
                   <td className="px-3 py-3 text-zinc-700">{r.verifierName || "—"}</td>
-                  <td className="px-3 py-3 text-zinc-700">{r.verificationDate || "—"}</td>
+                  <td className="px-3 py-3 text-zinc-700">
+                    <div>Verified: {formatAuditDate(r.verificationDate)}</div>
+                    <div className="text-xs text-zinc-500">Recorded: {formatAuditDate(r.createdAt)}</div>
+                  </td>
                   <td className="px-3 py-3 text-zinc-700">{r.notes || "—"}</td>
                   <td className="px-3 py-3 text-zinc-700">
                     {r.attachment?.documentId ? (
@@ -130,26 +131,16 @@ export function IvTab({ vm }: { vm: any }) {
                           Open IV form
                         </a>
                         <div className="text-xs text-zinc-500">{r.attachment.originalFilename}</div>
+                        <div className="text-xs text-zinc-500">Uploaded: {formatAuditDate(r.attachment.uploadedAt)}</div>
                         {r.attachment?.summary ? (
                           <div className="mt-1 rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
-                            {r.attachment.summary.internalVerifierName ? (
-                              <div>Verifier: {r.attachment.summary.internalVerifierName}</div>
-                            ) : null}
-                            {r.attachment.summary.assessorName ? (
-                              <div>Assessor: {r.attachment.summary.assessorName}</div>
-                            ) : null}
-                            {r.attachment.summary.unitTitle ? (
-                              <div>Unit: {r.attachment.summary.unitTitle}</div>
-                            ) : null}
-                            {r.attachment.summary.assignmentTitle ? (
-                              <div>Assignment: {r.attachment.summary.assignmentTitle}</div>
-                            ) : null}
-                            {r.attachment.summary.learningOutcomes ? (
-                              <div>LOs: {r.attachment.summary.learningOutcomes}</div>
-                            ) : null}
-                            {r.attachment.summary.acsSubmitted ? (
-                              <div>ACS: {r.attachment.summary.acsSubmitted}</div>
-                            ) : null}
+                            <div className="font-semibold text-zinc-800">Extracted from IV document</div>
+                            {r.attachment.summary.internalVerifierName ? <div>Internal verifier: {r.attachment.summary.internalVerifierName}</div> : null}
+                            {r.attachment.summary.assessorName ? <div>Assessor: {r.attachment.summary.assessorName}</div> : null}
+                            {r.attachment.summary.unitTitle ? <div>Unit: {r.attachment.summary.unitTitle}</div> : null}
+                            {r.attachment.summary.assignmentTitle ? <div>Assignment: {r.attachment.summary.assignmentTitle}</div> : null}
+                            {r.attachment.summary.learningOutcomes ? <div>Learning outcomes: {r.attachment.summary.learningOutcomes}</div> : null}
+                            {r.attachment.summary.acsSubmitted ? <div>Assessment criteria: {r.attachment.summary.acsSubmitted}</div> : null}
                           </div>
                         ) : null}
                         {!r.attachment?.summary && /\.docx$/i.test(String(r.attachment?.originalFilename || "")) ? (
@@ -208,7 +199,7 @@ export function IvTab({ vm }: { vm: any }) {
       </div>
 
       <div className="mt-3 text-xs text-zinc-600">
-        Uploading IV forms is audit-safe: prior attachments are retained by creating a new IV record for the revised year.
+        IV evidence is audit-safe: each upload is preserved against its record and year.
       </div>
     </section>
   );
