@@ -1,5 +1,6 @@
 import { firstMatch, normalizeWhitespace } from "./common";
 import { extractCriteriaCodesFromText } from "../extraction/utils/criteriaCodes";
+import { buildRangesFromStarts, nextIndexAfter, uniquePagesForRange, type LineWithPage } from "../extraction/brief/sections";
 
 /**
  * BRIEF extractor
@@ -912,7 +913,7 @@ function extractBriefTasks(
     const lines = stripFooterLines(splitLines(pageText));
     return lines.map((line) => normalizeLine(line)).join("\n");
   });
-  const linesWithPages: Array<{ line: string; page: number }> = [];
+  const linesWithPages: LineWithPage[] = [];
   const endMatter = extractEndMatterBlocks(cleanedPages);
   const pageBreaksMissing = pages.length <= 1;
   if (pageBreaksMissing) warnings.push("page breaks missing; page numbers unreliable.");
@@ -1246,6 +1247,10 @@ function extractBriefTasks(
   const scenarioHeadingRegex = /(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context)\b/i;
   const scenarioRanges: Array<{ start: number; end: number; appliesToTask?: number; pages: number[]; text: string }> = [];
   const scenarios: BriefScenario[] = [];
+  const scenarioHeadingIndices = linesWithPages
+    .map((entry, idx) => ({ idx, isHeading: scenarioHeadingRegex.test(entry.line || "") }))
+    .filter((x) => x.isHeading)
+    .map((x) => x.idx);
 
   for (let i = 0; i < linesWithPages.length; i += 1) {
     const line = linesWithPages[i]?.line || "";
@@ -1264,9 +1269,7 @@ function extractBriefTasks(
     if (!headingMatched) continue;
     const nextTask = selectedHeadings.find((candidate) => candidate.index > i);
     if (!nextTask) continue;
-    const nextScenarioHeadingIndex = linesWithPages.findIndex(
-      (entry, lineIndex) => lineIndex > i && scenarioHeadingRegex.test(entry.line)
-    );
+    const nextScenarioHeadingIndex = nextIndexAfter(scenarioHeadingIndices, i);
     const endIndex =
       nextScenarioHeadingIndex > i
         ? Math.min(nextTask.index, nextScenarioHeadingIndex)
@@ -1278,7 +1281,7 @@ function extractBriefTasks(
     const scenarioText = scenarioLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
     const cleanedScenarioText = scenarioText.replace(/^context\b\s*[:\-–—]?\s*/i, "").trim();
     if (!cleanedScenarioText) continue;
-    const scenarioPages = Array.from(new Set(linesWithPages.slice(i, endIndex).map((entry) => entry.page)));
+    const scenarioPages = uniquePagesForRange(linesWithPages, i, endIndex);
     scenarioRanges.push({
       start: i,
       end: endIndex,
@@ -1364,9 +1367,20 @@ function extractBriefTasks(
     return lines.slice(0, cut);
   };
 
+  const headingRanges = buildRangesFromStarts(
+    selectedHeadings.map((h) => h.index),
+    linesWithPages.length
+  );
+  const scenarioByTask = new Map<number, BriefScenario>();
+  for (const scenario of scenarios) {
+    const key = Number(scenario.appliesToTask || 0);
+    if (key > 0 && !scenarioByTask.has(key)) scenarioByTask.set(key, scenario);
+  }
+
   selectedHeadings.forEach((heading, idx) => {
-    const start = heading.index + 1;
-    const end = idx + 1 < selectedHeadings.length ? selectedHeadings[idx + 1].index : linesWithPages.length;
+    const range = headingRanges[idx];
+    const start = (range?.start ?? heading.index) + 1;
+    const end = range?.end ?? linesWithPages.length;
     const bodyLines = cleanTaskLines(
       linesWithPages
         .slice(start, end)
@@ -1406,7 +1420,7 @@ function extractBriefTasks(
     const aias =
       extractAiasValue(normalizeWhitespace(previewLines.join(" "))) ||
       extractAiasValue(textBody);
-    const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
+    const pagesForTask = uniquePagesForRange(linesWithPages, heading.index, end);
 
     const reflowedTextBody = enforceTaskSentenceBreaks(
       stripAiasPolicyBanner(relocateSamplePowerTableToPartA(reflowPreservingTables(textBody)))
@@ -1422,7 +1436,7 @@ function extractBriefTasks(
       text: reflowedTextBody,
       prompt: reflowedTextBody,
       parts: parts || undefined,
-      scenarioText: scenarios.find((scenario) => scenario.appliesToTask === heading.n)?.text || null,
+      scenarioText: scenarioByTask.get(heading.n)?.text || null,
       warnings: taskWarnings.length ? taskWarnings : undefined,
       confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",
     });

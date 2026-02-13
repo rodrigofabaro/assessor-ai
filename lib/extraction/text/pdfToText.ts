@@ -4,6 +4,7 @@
  */
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { defaultEquationFallbackPolicy, pickEquationFallbackCandidates } from "@/lib/extraction/brief/aiFallback";
 
 export type Equation = {
   id: string;
@@ -494,6 +495,10 @@ async function openAiEquationFromPageImage(input: {
 }
 
 async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equation[]): Promise<Equation[]> {
+  const cfg = readOpenAiModel();
+  const policy = defaultEquationFallbackPolicy(!!cfg.autoCleanupApproved);
+  if (!policy.enabled) return equations;
+
   const apiKey = String(
     process.env.OPENAI_API_KEY ||
       process.env.OPENAI_ADMIN_KEY ||
@@ -504,16 +509,8 @@ async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equ
     .trim()
     .replace(/^['"]|['"]$/g, "");
   if (!apiKey) return equations;
-  const looksSuspicious = (latex: string | null | undefined) => {
-    const t = String(latex || "").trim();
-    if (!t) return true;
-    if (t.length < 6) return true;
-    if (/sources?\s+of\s+information|routledge|pearson|wiley|bloomsbury/i.test(t)) return true;
-    if (/^i\s*=?$/i.test(t) || /^=\s*1$/i.test(t)) return true;
-    return false;
-  };
-  const unresolved = equations.filter((eq) => (!eq.latex && eq.needsReview) || Number(eq.confidence || 0) < 0.86 || looksSuspicious(eq.latex));
-  if (!unresolved.length) return equations;
+  const candidateIds = pickEquationFallbackCandidates(equations, policy);
+  if (!candidateIds.size) return equations;
   const matchesAnchorSemantics = (latex: string, anchor: string | null | undefined) => {
     const a = String(anchor || "").toLowerCase();
     if (!a) return true;
@@ -530,7 +527,8 @@ async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equ
   const out = [...equations];
   for (let i = 0; i < out.length; i += 1) {
     const eq = out[i];
-    if (!eq || eq.latex || !eq.needsReview) continue;
+    if (!eq || !candidateIds.has(String(eq.id || ""))) continue;
+    if (eq.latex && !eq.needsReview) continue;
     const pageNo = Number(eq.pageNumber || 0);
     if (!pageNo) continue;
     if (!pageImageCache.has(pageNo)) {

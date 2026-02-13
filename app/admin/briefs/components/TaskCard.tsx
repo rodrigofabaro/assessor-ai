@@ -5,6 +5,7 @@ import { Pill } from "./ui";
 import { detectTableBlocks, type StructuredTableBlock } from "@/lib/extraction/render/tableBlocks";
 import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
 import InlineEquationText from "./InlineEquationText";
+import { convertWordLinearToLatex } from "@/lib/math/wordLinearToLatex";
 
 // --- Types ---
 
@@ -706,6 +707,7 @@ export function TaskCard({
   const [debugCopyStatus, setDebugCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [showTaskLatexEditor, setShowTaskLatexEditor] = useState(false);
   const [savingTaskLatex, setSavingTaskLatex] = useState(false);
+  const [taskLatexInputMode, setTaskLatexInputMode] = useState<"latex" | "word">("latex");
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
@@ -965,7 +967,8 @@ export function TaskCard({
     if (!onSaveTaskLatexOverrides || !taskNumber) return;
     const next: Record<string, string> = {};
     for (const key of editablePartKeys) {
-      const val = String(taskLatexDraft[key] || "").trim();
+      const rawVal = String(taskLatexDraft[key] || "").trim();
+      const val = taskLatexInputMode === "word" ? convertWordLinearToLatex(rawVal) : rawVal;
       if (val) next[key] = val;
     }
     setSavingTaskLatex(true);
@@ -1307,7 +1310,35 @@ export function TaskCard({
               </button>
             </div>
             <div className="mt-3 max-h-[60vh] overflow-auto space-y-3">
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTaskLatexInputMode("word")}
+                    disabled={savingTaskLatex}
+                    className={
+                      "rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 " +
+                      (taskLatexInputMode === "word"
+                        ? "border-sky-300 bg-sky-50 text-sky-800"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50")
+                    }
+                  >
+                    Word input
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTaskLatexInputMode("latex")}
+                    disabled={savingTaskLatex}
+                    className={
+                      "rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 " +
+                      (taskLatexInputMode === "latex"
+                        ? "border-sky-300 bg-sky-50 text-sky-800"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50")
+                    }
+                  >
+                    LaTeX input
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={autoFillTaskLatexEditor}
@@ -1323,9 +1354,14 @@ export function TaskCard({
                   <textarea
                     value={taskLatexDraft[k] || ""}
                     onChange={(e) => setTaskLatexDraft((d) => ({ ...d, [k]: e.target.value }))}
-                    placeholder="Example: v=5e^{-0.2t}"
+                    placeholder={taskLatexInputMode === "word" ? "Example: v=5e^-0.2t" : "Example: v=5e^{-0.2t}"}
                     className="mt-2 min-h-[70px] w-full rounded-lg border border-zinc-300 bg-white p-2 font-mono text-xs text-zinc-900"
                   />
+                  {taskLatexInputMode === "word" ? (
+                    <div className="mt-2 rounded border border-zinc-200 bg-white p-2 text-[11px] text-zinc-700">
+                      Converted: <code>{convertWordLinearToLatex(taskLatexDraft[k] || "") || "—"}</code>
+                    </div>
+                  ) : null}
                 </div>
               )) : (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">

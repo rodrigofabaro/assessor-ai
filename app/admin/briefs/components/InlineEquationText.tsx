@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import katex from "katex";
+import { convertWordLinearToLatex } from "@/lib/math/wordLinearToLatex";
 
 type Equation = {
   id: string;
@@ -181,6 +182,8 @@ function EquationFallback({
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(eq.latex || "");
   const [saving, setSaving] = useState(false);
+  const [inputMode, setInputMode] = useState<"latex" | "word">("latex");
+  const previewLatex = inputMode === "word" ? convertWordLinearToLatex(value) : value;
 
   return (
     <span className="relative inline-flex items-center gap-1 align-middle">
@@ -207,9 +210,42 @@ function EquationFallback({
           <input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Paste LaTeX"
+            placeholder={inputMode === "word" ? "Example: v=5e^-0.2t" : "Paste LaTeX"}
             className="mt-2 block w-full rounded border border-zinc-300 px-2 py-1 text-xs"
           />
+          <span className="mt-2 flex items-center gap-1">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setInputMode("word")}
+              className={
+                "rounded border px-2 py-1 text-[11px] font-semibold disabled:opacity-60 " +
+                (inputMode === "word"
+                  ? "border-sky-300 bg-sky-50 text-sky-800"
+                  : "border-zinc-300 bg-white text-zinc-700")
+              }
+            >
+              Word input
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setInputMode("latex")}
+              className={
+                "rounded border px-2 py-1 text-[11px] font-semibold disabled:opacity-60 " +
+                (inputMode === "latex"
+                  ? "border-sky-300 bg-sky-50 text-sky-800"
+                  : "border-zinc-300 bg-white text-zinc-700")
+              }
+            >
+              LaTeX input
+            </button>
+          </span>
+          {inputMode === "word" ? (
+            <span className="mt-2 block rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
+              Converted LaTeX: <code>{previewLatex || "—"}</code>
+            </span>
+          ) : null}
           {suggestedLatex ? (
             <span className="mt-2 block rounded border border-sky-200 bg-sky-50 p-2 text-[11px] text-sky-900">
               Suggested: <code>{suggestedLatex}</code>
@@ -247,12 +283,13 @@ function EquationFallback({
             ) : null}
             <button
               type="button"
-              disabled={saving || !value.trim()}
+              disabled={saving || !previewLatex.trim()}
               onClick={async () => {
-                if (!onSaveLatex || !value.trim()) return;
+                if (!onSaveLatex || !previewLatex.trim()) return;
                 setSaving(true);
                 try {
-                  await onSaveLatex(eq.id, value.trim());
+                  await onSaveLatex(eq.id, previewLatex.trim());
+                  setValue(previewLatex.trim());
                   setOpen(false);
                 } finally {
                   setSaving(false);
