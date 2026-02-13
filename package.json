@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "pnpm lint",
+    "test:tasks-tab": "node scripts/tasks-tab.logic.test.js",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"

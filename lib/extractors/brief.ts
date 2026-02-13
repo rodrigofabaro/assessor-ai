@@ -1841,16 +1841,30 @@ export function extractBrief(
     }
     return null;
   };
-  const usedEqIdsMutable = new Set<string>(usedEqIds);
-  for (const task of tasksResult.tasks || []) {
-    task.text = normalizeSimpleMathText(sanitizeEquationContext(task.text || ""));
+  const transformTaskTexts = (task: any, transform: (value: string) => string) => {
+    task.text = transform(String(task?.text || ""));
     task.prompt = task.text;
     if (Array.isArray(task.parts) && task.parts.length) {
-      task.parts = task.parts.map((part) => ({
+      task.parts = task.parts.map((part: any) => ({
         ...part,
-        text: normalizeSimpleMathText(sanitizeEquationContext(part?.text || "")),
+        text: transform(String(part?.text || "")),
       }));
     }
+  };
+  const rebuildTaskTextFromParts = (task: any) => {
+    if (!Array.isArray(task.parts) || !task.parts.length) return;
+    const rebuilt = task.parts
+      .map((p: any, idx: number) => `PART ${idx + 1}\n${String(p?.text || "").trim()}`)
+      .join("\n")
+      .trim();
+    if (rebuilt) {
+      task.text = rebuilt;
+      task.prompt = rebuilt;
+    }
+  };
+  const usedEqIdsMutable = new Set<string>(usedEqIds);
+  for (const task of tasksResult.tasks || []) {
+    transformTaskTexts(task, (value) => normalizeSimpleMathText(sanitizeEquationContext(value)));
     const taskWarnings = new Set((task.warnings || []).map((w) => String(w)));
     const ids = new Set<string>();
     collectEqIds(task?.text, ids);
@@ -1867,11 +1881,7 @@ export function extractBrief(
         usedEqIdsMutable.add(pick);
         return { ...part, text: `${raw}\n[[EQ:${pick}]]` };
       });
-      task.text = task.parts
-        .map((p, idx) => `PART ${idx + 1}\n${String(p?.text || "").trim()}`)
-        .join("\n")
-        .trim() || task.text;
-      task.prompt = task.text;
+      rebuildTaskTextFromParts(task);
       ids.clear();
       collectEqIds(task?.text, ids);
       collectEqIds(task?.prompt, ids);
@@ -1910,7 +1920,6 @@ export function extractBrief(
       const leadPage = Array.isArray(task.pages) && task.pages.length ? Number(task.pages[0]) : 0;
       const imgToken = `[[IMG:p${leadPage || 0}-t${task.n}-img1]]`;
       task.text = injectImageToken(task.text || "", imgToken);
-      task.prompt = task.text;
       if (Array.isArray(task.parts) && task.parts.length) {
         let injected = false;
         task.parts = task.parts.map((part) => {
@@ -1921,53 +1930,19 @@ export function extractBrief(
           return part;
         });
       }
+      task.prompt = task.text;
     }
     if (idsArr.length) {
-      task.text = stripEquationNeighborNoise(task.text || "", idsArr);
-      task.prompt = task.text;
-      if (Array.isArray(task.parts) && task.parts.length) {
-        task.parts = task.parts.map((part) => ({
-          ...part,
-          text: stripEquationNeighborNoise(part?.text || "", idsArr),
-        }));
-      }
-      task.text = stripEqDuplicateFollowupLine(task.text || "", eqById);
-      task.prompt = task.text;
-      if (Array.isArray(task.parts) && task.parts.length) {
-        task.parts = task.parts.map((part) => ({
-          ...part,
-          text: stripEqDuplicateFollowupLine(part?.text || "", eqById),
-        }));
-      }
-      task.text = pruneRedundantEqTokens(task.text || "", eqById);
-      task.prompt = task.text;
-      if (Array.isArray(task.parts) && task.parts.length) {
-        task.parts = task.parts.map((part) => ({
-          ...part,
-          text: pruneRedundantEqTokens(part?.text || "", eqById),
-        }));
-      }
+      transformTaskTexts(task, (value) => stripEquationNeighborNoise(value, idsArr));
+      transformTaskTexts(task, (value) => stripEqDuplicateFollowupLine(value, eqById));
+      transformTaskTexts(task, (value) => pruneRedundantEqTokens(value, eqById));
     }
-    task.text = normalizeTokenPunctuation(task.text || "");
-    task.prompt = task.text;
-    if (Array.isArray(task.parts) && task.parts.length) {
-      task.parts = task.parts.map((part) => ({
-        ...part,
-        text: normalizeTokenPunctuation(part?.text || ""),
-      }));
-    }
+    transformTaskTexts(task, normalizeTokenPunctuation);
     if (
       hasStackedMathLayout(task.text || "") ||
       (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")))
     ) {
-      task.text = normalizeSimpleMathText(repairStackedMathLayout(task.text || ""));
-      task.prompt = task.text;
-      if (Array.isArray(task.parts)) {
-        task.parts = task.parts.map((part) => ({
-          ...part,
-          text: normalizeSimpleMathText(repairStackedMathLayout(part?.text || "")),
-        }));
-      }
+      transformTaskTexts(task, (value) => normalizeSimpleMathText(repairStackedMathLayout(value)));
       const stillBroken =
         hasStackedMathLayout(task.text || "") ||
         (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")));

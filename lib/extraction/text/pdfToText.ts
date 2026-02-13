@@ -759,7 +759,7 @@ export async function pdfToText(
         id,
         pageNumber,
         bbox,
-        latex: needsReview ? latex : latex,
+        latex,
         latexSource: latex ? "heuristic" : null,
         confidence,
         needsReview,

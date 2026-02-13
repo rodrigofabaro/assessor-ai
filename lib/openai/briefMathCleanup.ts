@@ -273,13 +273,48 @@ export async function cleanupBriefTasksMathWithOpenAi(
   const eqById = new Map(eqs.map((e: any) => [String(e?.id || ""), e]));
   let changed = 0;
   let failed = 0;
+  const applyTaskTextTransform = (task: BriefTask, transform: (value: string) => string) => {
+    task.text = transform(String(task.text || ""));
+    task.prompt = task.text;
+    if (Array.isArray(task.parts) && task.parts.length) {
+      task.parts = task.parts.map((part) => ({ ...part, text: transform(String(part?.text || "")) }));
+    }
+  };
+  const setTaskWarningState = (
+    task: BriefTask,
+    nextWarnings: Set<string>,
+    options?: { aiCorrected?: boolean; forceHeuristic?: boolean }
+  ) => {
+    const warnings = Array.from(nextWarnings);
+    task.warnings = warnings;
+    task.confidence = options?.forceHeuristic ? "HEURISTIC" : warnings.length ? "HEURISTIC" : "CLEAN";
+    if (typeof options?.aiCorrected === "boolean") task.aiCorrected = options.aiCorrected;
+  };
+  const setCleanupSkipped = (task: BriefTask, baseWarnings: string[], reason: string) => {
+    const nextWarnings = new Set(baseWarnings);
+    nextWarnings.add(reason);
+    setTaskWarningState(task, nextWarnings, { aiCorrected: false, forceHeuristic: true });
+  };
+  const localRepairTaskMath = (task: BriefTask) => {
+    applyTaskTextTransform(task, (value) => localMathRepair(value));
+    const stillBroken =
+      hasBrokenMathLayout(task.text || "") ||
+      (Array.isArray(task.parts) && task.parts.some((part) => hasBrokenMathLayout(part?.text || "")));
+    const nextWarnings = new Set(
+      (Array.isArray(task.warnings) ? task.warnings : [])
+        .map((w) => String(w))
+        .filter((w) => !/math layout: broken line wraps/i.test(w))
+        .filter((w) => !/openai math cleanup applied/i.test(w))
+    );
+    if (stillBroken) nextWarnings.add("math layout: broken line wraps");
+    setTaskWarningState(task, nextWarnings, { aiCorrected: false });
+  };
 
   for (const task of tasks) {
     const warnings = Array.isArray(task.warnings) ? task.warnings.map((w) => String(w)) : [];
     const normalizedWarnings = warnings.filter((w) => !/openai math cleanup applied/i.test(w));
     if (!normalizedWarnings.length) {
-      task.warnings = [];
-      task.confidence = "CLEAN";
+      setTaskWarningState(task, new Set<string>());
       continue;
     }
 
@@ -291,21 +326,7 @@ export async function cleanupBriefTasksMathWithOpenAi(
     const tokenIds = collectEquationTokenIds(task);
     // Fast deterministic fix for simple line-wrap math issues (no equation tokens required).
     if (tokenIds.size === 0) {
-      task.text = localMathRepair(task.text || "");
-      task.prompt = task.text;
-      if (Array.isArray(task.parts) && task.parts.length) {
-        task.parts = task.parts.map((part) => ({ ...part, text: localMathRepair(part?.text || "") }));
-      }
-      const stillBroken =
-        hasBrokenMathLayout(task.text || "") ||
-        (Array.isArray(task.parts) && task.parts.some((part) => hasBrokenMathLayout(part?.text || "")));
-      const nextWarnings = new Set(
-        normalizedWarnings.filter((w) => !/math layout: broken line wraps/i.test(w))
-      );
-      if (stillBroken) nextWarnings.add("math layout: broken line wraps");
-      task.warnings = Array.from(nextWarnings);
-      task.confidence = task.warnings.length ? "HEURISTIC" : "CLEAN";
-      task.aiCorrected = false;
+      localRepairTaskMath(task);
       changed += 1;
       continue;
     }
@@ -318,12 +339,11 @@ export async function cleanupBriefTasksMathWithOpenAi(
     const cleaned = await cleanupTaskWithOpenAi(task, relatedEqs);
     if (!cleaned.ok) {
       failed += 1;
-      const nextWarnings = new Set(normalizedWarnings);
       if (!/OpenAI 429/i.test(String(cleaned.reason || ""))) {
-        nextWarnings.add(`openai cleanup skipped: ${cleaned.reason}`);
+        setCleanupSkipped(task, normalizedWarnings, `openai cleanup skipped: ${cleaned.reason}`);
+      } else {
+        setTaskWarningState(task, new Set(normalizedWarnings), { forceHeuristic: true });
       }
-      task.warnings = Array.from(nextWarnings);
-      task.confidence = "HEURISTIC";
       continue;
     }
 
@@ -337,11 +357,7 @@ export async function cleanupBriefTasksMathWithOpenAi(
     const removedToken = Array.from(originalProtectedTokens).some((id) => !cleanedProtectedTokens.has(id));
     if (removedToken) {
       failed += 1;
-      const nextWarnings = new Set(normalizedWarnings);
-      nextWarnings.add("openai cleanup skipped: removed protected tokens");
-      task.warnings = Array.from(nextWarnings);
-      task.confidence = "HEURISTIC";
-      task.aiCorrected = false;
+      setCleanupSkipped(task, normalizedWarnings, "openai cleanup skipped: removed protected tokens");
       continue;
     }
     const originalTokens = collectEquationTokenIds(task);
@@ -355,19 +371,13 @@ export async function cleanupBriefTasksMathWithOpenAi(
       );
       if (rawLatexOutsideTokens) {
         failed += 1;
-        const nextWarnings = new Set(normalizedWarnings);
-        nextWarnings.add("openai cleanup skipped: introduced raw latex");
-        task.warnings = Array.from(nextWarnings);
-        task.confidence = "HEURISTIC";
-        task.aiCorrected = false;
+        setCleanupSkipped(task, normalizedWarnings, "openai cleanup skipped: introduced raw latex");
         continue;
       }
     }
 
-    task.text = cleaned.text;
-    task.prompt = cleaned.text;
-    task.text = normalizeExponentParens(task.text || "");
-    task.prompt = normalizeExponentParens(task.prompt || "");
+    task.text = normalizeExponentParens(String(cleaned.text || ""));
+    task.prompt = task.text;
     if (cleaned.parts && cleaned.parts.length) {
       const originalByKey = new Map(
         (Array.isArray(task.parts) ? task.parts : []).map((p: any) => [String(p?.key || "").toLowerCase(), String(p?.text || "")])
@@ -400,20 +410,22 @@ export async function cleanupBriefTasksMathWithOpenAi(
     }
     if (hasBrokenMathLayout(task.text || "")) {
       nextWarnings.add("math layout: broken line wraps");
-      task.confidence = "HEURISTIC";
-      task.aiCorrected = true;
+      setTaskWarningState(task, nextWarnings, { aiCorrected: true, forceHeuristic: true });
     } else {
-      task.aiCorrected = true;
-      task.confidence = nextWarnings.size ? "HEURISTIC" : "CLEAN";
+      setTaskWarningState(task, nextWarnings, { aiCorrected: true });
     }
-    task.warnings = Array.from(nextWarnings);
     changed += 1;
   }
 
   const briefWarnings = Array.isArray(brief?.warnings) ? brief.warnings.map((w: any) => String(w)) : [];
-  if (changed > 0) briefWarnings.push(`openai task cleanup applied: ${changed}`);
-  if (failed > 0) briefWarnings.push(`openai task cleanup skipped: ${failed}`);
-  if (briefWarnings.length) brief.warnings = Array.from(new Set(briefWarnings));
+  const nextBriefWarnings = briefWarnings.filter(
+    (w) =>
+      !/^openai task cleanup applied:\s*\d+/i.test(w) &&
+      !/^openai task cleanup skipped:\s*\d+/i.test(w)
+  );
+  if (changed > 0) nextBriefWarnings.push(`openai task cleanup applied: ${changed}`);
+  if (failed > 0) nextBriefWarnings.push(`openai task cleanup skipped: ${failed}`);
+  brief.warnings = nextBriefWarnings.length ? Array.from(new Set(nextBriefWarnings)) : undefined;
 
   return brief;
 }
