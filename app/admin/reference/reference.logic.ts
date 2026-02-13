@@ -104,10 +104,13 @@ function stripExtension(name: string) {
   return name.replace(/\.[^/.]+$/, "");
 }
 
-function summarizeCleanupCandidates(extractedJson: any) {
+function summarizeCleanupCandidates(extractedJson: any, taskNumbers?: number[] | null) {
   const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+  const filter = Array.isArray(taskNumbers) && taskNumbers.length ? new Set(taskNumbers) : null;
   const rows: string[] = [];
   for (const task of tasks) {
+    const n = Number(task?.n);
+    if (filter && Number.isInteger(n) && !filter.has(n)) continue;
     const label = String(task?.label || (task?.n ? `Task ${task.n}` : "Task")).trim();
     const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).trim()) : [];
     const reasons = ws.filter(
@@ -123,11 +126,37 @@ function summarizeCleanupCandidates(extractedJson: any) {
 }
 
 function parseTaskNumbersInput(raw: string): number[] {
-  const values = String(raw || "")
+  const out = new Set<number>();
+  const pieces = String(raw || "")
     .split(/[,\s]+/)
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isInteger(n) && n > 0);
-  return Array.from(new Set(values)).sort((a, b) => a - b);
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const piece of pieces) {
+    if (/^\d+$/.test(piece)) {
+      const n = Number(piece);
+      if (Number.isInteger(n) && n > 0) out.add(n);
+      continue;
+    }
+    // Support "1d" style input by targeting task 1 only.
+    const partScoped = piece.match(/^(\d+)[a-z]$/i);
+    if (partScoped) {
+      const n = Number(partScoped[1]);
+      if (Number.isInteger(n) && n > 0) out.add(n);
+      continue;
+    }
+  }
+  return Array.from(out).sort((a, b) => a - b);
+}
+
+function shouldOfferCleanup(extractedJson: any, selectedTasks?: number[]) {
+  const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+  const filter = Array.isArray(selectedTasks) && selectedTasks.length ? new Set(selectedTasks) : null;
+  return tasks.some((task: any) => {
+    const n = Number(task?.n);
+    if (filter && Number.isInteger(n) && !filter.has(n)) return false;
+    const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).toLowerCase()) : [];
+    return ws.some((w: string) => w.includes("math layout: broken line wraps") || w.includes("equation quality: low-confidence"));
+  });
 }
 
 export function formatDate(iso?: string | null): string {
@@ -250,6 +279,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [mapSelected, setMapSelected] = useState<Record<string, boolean>>({});
   const [showRawJson, setShowRawJson] = useState(false);
   const [rawJson, setRawJson] = useState("");
+  const [rawJsonDirty, setRawJsonDirty] = useState(false);
+  const [rawJsonDocId, setRawJsonDocId] = useState<string | null>(null);
   const [assignmentCodeInput, setAssignmentCodeInput] = useState("");
 
   // Persist filters
@@ -391,6 +422,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   useEffect(() => {
     if (!selectedDoc) {
       setRawJson("");
+      setRawJsonDirty(false);
+      setRawJsonDocId(null);
       setBriefUnitId("");
       setMapSelected({});
       setAssignmentCodeInput("");
@@ -398,8 +431,17 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       return;
     }
 
-    const draft = selectedDoc.extractedJson;
-    setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
+    const manualDraft = (() => {
+      const v = (selectedDoc.sourceMeta as any)?.manualDraft;
+      return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+    })();
+    const draft = manualDraft || selectedDoc.extractedJson;
+    const switchedDoc = rawJsonDocId !== selectedDoc.id;
+    if (switchedDoc || !rawJsonDirty) {
+      setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
+      setRawJsonDirty(false);
+      setRawJsonDocId(selectedDoc.id);
+    }
 
     // Brief: preselect mapping (best-effort)
     if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
@@ -418,7 +460,73 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       }
       setMapSelected(sel);
     }
-  }, [selectedDoc, units, allCriteria]);
+  }, [selectedDoc, units, allCriteria, rawJsonDirty, rawJsonDocId]);
+
+  function updateRawJson(next: string) {
+    setRawJson(next);
+    setRawJsonDirty(true);
+    if (selectedDoc?.id) setRawJsonDocId(selectedDoc.id);
+  }
+
+  async function saveRawJsonDraft() {
+    if (!selectedDoc) return;
+    setError(null);
+    const text = String(rawJson || "").trim();
+    if (!text) {
+      setError("Manual override JSON is empty.");
+      return;
+    }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e: any) {
+      setError(`Manual override JSON is invalid: ${e?.message || "parse error"}`);
+      return;
+    }
+
+    setBusy("Saving override draft...");
+    try {
+      const prevMeta = ((selectedDoc.sourceMeta as any) || {}) as Record<string, unknown>;
+      const sourceMeta = { ...prevMeta, manualDraft: parsed };
+      await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ manualDraft: parsed }),
+      });
+      applyUpdatedDocument({ ...selectedDoc, sourceMeta } as ReferenceDocument);
+      setRawJson(JSON.stringify(parsed, null, 2));
+      setRawJsonDirty(false);
+      notifyToast("success", "Manual override draft saved.");
+    } catch (e: any) {
+      setError(e?.message || "Failed to save manual override draft.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function clearRawJsonDraft() {
+    if (!selectedDoc) return;
+    setError(null);
+    setBusy("Clearing override draft...");
+    try {
+      const prevMeta = ((selectedDoc.sourceMeta as any) || {}) as Record<string, unknown>;
+      const sourceMeta = { ...prevMeta, manualDraft: null };
+      await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ manualDraft: null }),
+      });
+      applyUpdatedDocument({ ...selectedDoc, sourceMeta } as ReferenceDocument);
+      const fallback = selectedDoc.extractedJson;
+      setRawJson(fallback ? JSON.stringify(fallback, null, 2) : "");
+      setRawJsonDirty(false);
+      notifyToast("success", "Manual override draft cleared.");
+    } catch (e: any) {
+      setError(e?.message || "Failed to clear manual override draft.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function refreshSelectedUsage(docId: string) {
     setUsageLoading(true);
@@ -580,13 +688,6 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   async function extractSelected() {
     setError(null);
     if (!selectedDoc) return;
-    const shouldOfferCleanup = (extractedJson: any) => {
-      const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
-      return tasks.some((task: any) => {
-        const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).toLowerCase()) : [];
-        return ws.some((w: string) => w.includes("math layout: broken line wraps") || w.includes("equation quality: low-confidence"));
-      });
-    };
 
     setBusy("Extracting...");
     try {
@@ -638,19 +739,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     let taskNumbers: number[] = [];
     if (selectedDoc.type === "BRIEF") {
       const rawTasks = window.prompt(
-        "Optional: task numbers to re-extract only (example: 3,4). Leave blank for full re-extract.",
+        "Optional: task numbers to re-extract only (example: 1 or 3,4). You can type 1d to target Task 1 context. Leave blank for full re-extract.",
         ""
       );
       if (rawTasks === null) return;
       taskNumbers = parseTaskNumbersInput(rawTasks);
     }
-    const shouldOfferCleanup = (extractedJson: any) => {
-      const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
-      return tasks.some((task: any) => {
-        const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).toLowerCase()) : [];
-        return ws.some((w: string) => w.includes("math layout: broken line wraps") || w.includes("equation quality: low-confidence"));
-      });
-    };
 
     setBusy(taskNumbers.length ? `Re-extracting tasks ${taskNumbers.join(", ")}...` : "Re-extracting...");
     try {
@@ -667,8 +761,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       });
       if (res?.document) applyUpdatedDocument(res.document);
 
-      if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson)) {
-        const lines = summarizeCleanupCandidates(res?.extractedJson);
+      if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson, taskNumbers)) {
+        const lines = summarizeCleanupCandidates(res?.extractedJson, taskNumbers);
         const details = lines.length ? `\n\nDetected issues:\n- ${lines.join("\n- ")}` : "";
         const ok = window.confirm(
           `Re-extraction found warning patterns and can run OpenAI cleanup.${details}\n\nProceed with AI cleanup now?`
@@ -720,6 +814,11 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       let draft: any = undefined;
       if (showRawJson && rawJson.trim()) {
         draft = JSON.parse(rawJson);
+      } else {
+        const savedDraft = (selectedDoc.sourceMeta as any)?.manualDraft;
+        if (savedDraft && typeof savedDraft === "object" && !Array.isArray(savedDraft)) {
+          draft = savedDraft;
+        }
       }
 
       const body: any = { documentId: selectedDoc.id };
@@ -988,6 +1087,35 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     notifyToast("success", "Equation LaTeX saved.");
   }
 
+  async function saveSelectedDocTaskLatex(taskNumber: number, overridesByPart: Record<string, string>) {
+    if (!selectedDoc?.id || !Number.isFinite(taskNumber) || taskNumber < 1) return;
+    const prev = (selectedDoc?.sourceMeta?.taskLatexOverrides || {}) as Record<string, string>;
+    const next: Record<string, string> = { ...prev };
+    const prefix = `${taskNumber}.`;
+    for (const k of Object.keys(next)) {
+      if (k.startsWith(prefix)) delete next[k];
+    }
+    for (const [partKey, latex] of Object.entries(overridesByPart || {})) {
+      const key = `${taskNumber}.${String(partKey || "").trim().toLowerCase()}`;
+      const value = String(latex || "").trim();
+      if (!key || !value) continue;
+      next[key] = value;
+    }
+    await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ taskLatexOverrides: next }),
+    });
+    setDocuments((docs) =>
+      docs.map((d) =>
+        d.id === selectedDoc.id
+          ? { ...d, sourceMeta: { ...(d.sourceMeta || {}), taskLatexOverrides: next } }
+          : d
+      )
+    );
+    notifyToast("success", "Task LaTeX overrides saved.");
+  }
+
   async function toggleUnitArchive() {
     setUnitNotice(null);
     if (!selectedUnit) return;
@@ -1095,7 +1223,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setBriefUnitId,
     setMapSelected,
     setShowRawJson,
-    setRawJson,
+    setRawJson: updateRawJson,
     setAssignmentCodeInput,
     setEditUnitCode,
     setEditUnitTitle,
@@ -1114,6 +1242,9 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     unlockSelectedDocument,
     saveSelectedUnit,
     saveSelectedDocEquationLatex,
+    saveSelectedDocTaskLatex,
+    saveRawJsonDraft,
+    clearRawJsonDraft,
     toggleUnitArchive,
     deleteSelectedUnit,
 

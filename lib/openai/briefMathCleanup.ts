@@ -12,10 +12,22 @@ type BriefTask = {
 };
 
 function normalizeExponentParens(text: string) {
+  const normalizeEquationLine = (line: string) => {
+    const src = String(line || "");
+    if (!/\b[a-z]\s*=/i.test(src)) return src;
+    return src.replace(/([A-Za-z\)])\s+(\d{1,2})(?=\s*[\)+\-*/]|$)/g, "$1^$2");
+  };
+
   return String(text || "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replace(/\be\^\(\s*([^)]+)\s*\)/gi, (_m, exp) => `e^{${String(exp).trim()}}`)
-    .replace(/\be\s*-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
-    .replace(/\be-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}");
+    .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be\^\{\s*-\s*([0-9.]+)\s*t\s*\}/gi, (_m, exp) => `e^{-${String(exp).trim()}t}`)
+    .split("\n")
+    .map(normalizeEquationLine)
+    .join("\n");
 }
 
 function maybeRestoreLogEFromOriginal(original: string, cleaned: string) {
@@ -45,13 +57,14 @@ function hasBrokenMathLayout(text: string) {
 }
 
 function localMathRepair(text: string) {
-  let out = String(text || "").replace(/−/g, "-");
+  let out = String(text || "").replace(/−/g, "-").replace(/[\u200B-\u200D\uFEFF]/g, "");
   out = out.replace(/([A-Za-z\)])\s*\n\s*(\d{1,2})\b/g, "$1^$2");
   out = out.replace(/([A-Za-z0-9)\]}])\s*\n\s*([+\-][A-Za-z0-9(])/g, "$1 $2");
   out = out
     .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^{-${1}t}")
-    .replace(/\be\s*-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
-    .replace(/\be-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
+    .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
     .replace(/\be\^\(\s*([^)]+)\s*\)/gi, "e^{$1}")
     .replace(/\bl\s+e\s*\n\s*\(/gi, "log_e(")
     .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")

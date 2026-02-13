@@ -500,6 +500,34 @@ export function useBriefDetail(briefId: string) {
     }
   };
 
+  const saveTaskLatex = async (taskNumber: number, overridesByPart: Record<string, string>) => {
+    if (!linkedDoc?.id || !Number.isFinite(taskNumber) || taskNumber < 1) return;
+    const prev = (linkedDoc?.sourceMeta?.taskLatexOverrides || {}) as Record<string, string>;
+    const next: Record<string, string> = { ...prev };
+    const prefix = `${taskNumber}.`;
+    for (const key of Object.keys(next)) {
+      if (key.startsWith(prefix)) delete next[key];
+    }
+    for (const [partKey, latex] of Object.entries(overridesByPart || {})) {
+      const k = `${taskNumber}.${String(partKey || "").trim().toLowerCase()}`;
+      const v = String(latex || "").trim();
+      if (k && v) next[k] = v;
+    }
+    try {
+      const res = await jsonFetch<any>(`/api/reference-documents/${linkedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ taskLatexOverrides: next }),
+      });
+      const nextMeta = res?.sourceMeta || {};
+      setDocs((docs) => docs.map((d) => (d.id === linkedDoc.id ? { ...d, sourceMeta: nextMeta } : d)));
+      notifyToast("success", "Task LaTeX saved.");
+    } catch (e: any) {
+      notifyToast("error", e?.message || "Failed to save task LaTeX.");
+      throw e;
+    }
+  };
+
   const unlockLinkedDoc = async () => {
     if (!linkedDoc?.id) return;
     setError(null);
@@ -602,6 +630,7 @@ export function useBriefDetail(briefId: string) {
     tasksError,
     saveTasksOverride,
     saveEquationLatex,
+    saveTaskLatex,
     docUsage,
     usageLoading,
     unlockLinkedDoc,

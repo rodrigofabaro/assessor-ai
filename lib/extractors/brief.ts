@@ -1655,7 +1655,7 @@ export function extractBrief(
     out = out.replace(/\(\s*([^\n()]{1,80})\s*\n\s*([+\-][^\n()]{1,80})\s*\)/g, "($1 $2)");
     // Normalize obvious OCR splits for e^(...)
     out = out
-      .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^(-$1t)")
+      .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^{-$1t}")
       .replace(/\bl\s+e\s*\n\s*\(/gi, "log_e(")
       .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")
       .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, "log_e($1)");
@@ -1670,16 +1670,32 @@ export function extractBrief(
     );
   };
   const hasMathGlyphLeak = (textValue: string) => /[푡푒푖푗푘푙푚푅푉]/.test(String(textValue || ""));
-  const normalizeSimpleMathText = (textValue: string) =>
-    String(textValue || "")
+  const normalizeSimpleMathText = (textValue: string) => {
+    const normalizeEquationLine = (line: string) => {
+      const src = String(line || "");
+      // Apply aggressive fixes only to equation-like lines.
+      if (!/\b[a-z]\s*=/i.test(src)) return src;
+      return src
+        .replace(/([A-Za-z\)])\s+(\d{1,2})(?=\s*[\)+\-*/]|$)/g, "$1^$2")
+        .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be\^\{\s*-\s*([0-9.]+)\s*t\s*\}/gi, (_m, exp) => `e^{-${String(exp).trim()}t}`);
+    };
+
+    return String(textValue || "")
       .replace(/−/g, "-")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
       .replace(/\bl\s+e\s*\(/gi, "log_e(")
       .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")
       .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, "log_e($1)")
-      .replace(/\be\s+(-\d+(?:\.\d+)?t)\b/gi, "e^{$1}")
+      .split("\n")
+      .map(normalizeEquationLine)
+      .join("\n")
       .replace(/\b(capacitor)\s*\^\s*(\d+(?:\.\d+)?)/gi, "$1 $2")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+  };
   const hasImageToken = (textValue: string) => /\[\[IMG:[^\]]+\]\]/.test(String(textValue || ""));
   const imageCueRegex =
     /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b/i;
@@ -1894,14 +1910,21 @@ export function extractBrief(
       hasStackedMathLayout(task.text || "") ||
       (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")))
     ) {
-      taskWarnings.add("math layout: broken line wraps");
-      task.text = repairStackedMathLayout(task.text || "");
+      task.text = normalizeSimpleMathText(repairStackedMathLayout(task.text || ""));
       task.prompt = task.text;
       if (Array.isArray(task.parts)) {
         task.parts = task.parts.map((part) => ({
           ...part,
-          text: repairStackedMathLayout(part?.text || ""),
+          text: normalizeSimpleMathText(repairStackedMathLayout(part?.text || "")),
         }));
+      }
+      const stillBroken =
+        hasStackedMathLayout(task.text || "") ||
+        (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")));
+      if (stillBroken) {
+        taskWarnings.add("math layout: broken line wraps");
+      } else {
+        taskWarnings.delete("math layout: broken line wraps");
       }
     }
 

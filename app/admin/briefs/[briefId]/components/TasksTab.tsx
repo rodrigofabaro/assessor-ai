@@ -21,6 +21,7 @@ export function TasksTab({
   const linkedId: string | null = linkedDoc?.id ?? null;
   const extractedEquations = Array.isArray(linkedDoc?.extractedJson?.equations) ? linkedDoc.extractedJson.equations : [];
   const equationLatexOverrides = linkedDoc?.sourceMeta?.equationLatexOverrides || {};
+  const taskLatexOverrides = linkedDoc?.sourceMeta?.taskLatexOverrides || {};
   const equationsById = useMemo(() => {
     const map: Record<string, any> = {};
     for (const eq of extractedEquations) {
@@ -76,10 +77,12 @@ export function TasksTab({
               extractedTask={row.extractedTask}
               overrideApplied={row.overrideApplied}
               forcedExpanded={forceExpanded}
+              taskLatexOverrides={taskLatexOverrides}
               equationsById={equationsById}
               openPdfHref={linkedId ? `/api/reference-documents/${linkedId}/file` : undefined}
               canEditLatex={true}
               onSaveEquationLatex={vm.saveEquationLatex}
+              onSaveTaskLatexOverrides={vm.saveTaskLatex}
             />
           ))
         ) : (

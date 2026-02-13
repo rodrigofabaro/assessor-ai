@@ -26,6 +26,12 @@ export function mergeOverrideTasks(extracted: any[], overrides: any[]) {
     if ("heading" in override) merged.heading = override.heading;
     if ("title" in override) merged.title = override.title;
     if ("text" in override) merged.text = override.text;
+    if ("parts" in override) {
+      merged.parts = Array.isArray(override.parts) ? override.parts : [];
+    } else if ("text" in override) {
+      // When text is overridden but parts are not, avoid rendering stale extracted parts.
+      merged.parts = [];
+    }
     if ("warnings" in override) merged.warnings = override.warnings;
 
     return { task: merged, extractedTask: task, overrideApplied: true };

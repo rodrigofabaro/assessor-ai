@@ -34,10 +34,13 @@ type TaskCardProps = {
   overrideApplied?: boolean;
   defaultExpanded?: boolean;
   forcedExpanded?: boolean;
+  anchorId?: string;
+  taskLatexOverrides?: Record<string, string>;
   equationsById?: Record<string, any>;
   openPdfHref?: string;
   canEditLatex?: boolean;
   onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+  onSaveTaskLatexOverrides?: (taskNumber: number, overridesByPart: Record<string, string>) => Promise<void> | void;
 };
 
 
@@ -244,6 +247,63 @@ function renderPdfTextBlocks(
     reflowWrappedLines?: boolean;
   }
 ) {
+  const normalizeEquationLatex = (raw: string) => {
+    return String(raw || "")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/−/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\blog_e\s*\(/gi, "\\log_{e}(")
+      .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+      .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+      .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+      .replace(/\b(sin|cos|tan)\s*\(/gi, (_m, fn) => `\\${String(fn).toLowerCase()}(`);
+  };
+
+  const maybeRenderEquationLine = (content: string, lineKey: string) => {
+    const t = String(content || "").trim();
+    const isEqLike =
+      /^[A-Za-z][A-Za-z0-9_]*\s*=/.test(t) &&
+      /[0-9^()+\-*/]|log_e|sin|cos|tan|e\^?/i.test(t);
+    if (!isEqLike) return null;
+    const latex = normalizeEquationLatex(t);
+    return (
+      <div key={lineKey} className="leading-7">
+        {renderInlineText(`[[MATH:${latex}]]`, options)}
+      </div>
+    );
+  };
+
+  const collapseWrappedPartLines = (rawText: string) => {
+    const lines = String(rawText || "").split("\n");
+    const out: string[] = [];
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = String(lines[i] || "").trim();
+      if (!line) {
+        out.push("");
+        continue;
+      }
+      const partOnly = line.match(/^([a-z]|[ivxlcdm]+)\)\s*$/i);
+      if (!partOnly) {
+        out.push(lines[i]);
+        continue;
+      }
+      let merged = `${partOnly[1]})`;
+      let j = i + 1;
+      while (j < lines.length) {
+        const next = String(lines[j] || "").trim();
+        if (!next) break;
+        if (/^([a-z]|[ivxlcdm]+)\)\s*$/i.test(next)) break;
+        if (/^(Task\s+\d+|Vocational Scenario|Use the z-table|Sources of information)/i.test(next)) break;
+        merged += ` ${next}`;
+        j += 1;
+      }
+      out.push(merged);
+      i = j - 1;
+    }
+    return out.join("\n");
+  };
+
   const blocks = formatPdfTextToBlocks(text, { reflowWrappedLines: options?.reflowWrappedLines });
 
   const renderLineWithTypography = (line: string, lineKey: string) => {
@@ -253,20 +313,22 @@ function renderPdfTextBlocks(
 
     const alphaPart = trimmed.match(/^([a-z])\)\s+([\s\S]+)$/i);
     if (alphaPart) {
+      const maybeEq = maybeRenderEquationLine(alphaPart[2], `${lineKey}-eq`);
       return (
         <div key={lineKey} className="leading-7">
           <span className="font-semibold underline decoration-zinc-300 underline-offset-2">{alphaPart[1]})</span>{" "}
-          {renderInlineText(alphaPart[2], options)}
+          {maybeEq ?? renderInlineText(alphaPart[2], options)}
         </div>
       );
     }
 
     const romanPart = trimmed.match(/^([ivxlcdm]+)\)\s+([\s\S]+)$/i);
     if (romanPart) {
+      const maybeEq = maybeRenderEquationLine(romanPart[2], `${lineKey}-eq`);
       return (
         <div key={lineKey} className="leading-7">
           <span className="font-semibold underline decoration-zinc-300 underline-offset-2">{romanPart[1]})</span>{" "}
-          {renderInlineText(romanPart[2], options)}
+          {maybeEq ?? renderInlineText(romanPart[2], options)}
         </div>
       );
     }
@@ -280,6 +342,9 @@ function renderPdfTextBlocks(
         </div>
       );
     }
+
+    const maybeEq = maybeRenderEquationLine(trimmed, `${lineKey}-eq`);
+    if (maybeEq) return maybeEq;
 
     const headingLike = /^(Task\s+\d+|Vocational Scenario|Use the z-table|Sources of information)/i.test(trimmed);
     if (headingLike) {
@@ -300,7 +365,7 @@ function renderPdfTextBlocks(
   return blocks.map((block, index) =>
     block.type === "paragraph" ? (
       <div key={`${keyPrefix}-p-${index}`} className="mt-2">
-        {String(block.text || "")
+        {collapseWrappedPartLines(String(block.text || ""))
           .split("\n")
           .map((line, lineIdx) => renderLineWithTypography(line, `${keyPrefix}-p-${index}-line-${lineIdx}`))}
       </div>
@@ -373,6 +438,17 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
   return topLevel.filter((part) => part.text || part.children.length > 0);
 }
 
+function normalizeManualLatex(raw: string) {
+  return String(raw || "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/−/g, "-")
+    .replace(/\blog_e\s*\(/gi, "\\log_{e}(")
+    .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+    .trim();
+}
+
 function renderStructuredParts(
   parts: StructuredPart[],
   keyPrefix: string,
@@ -381,6 +457,7 @@ function renderStructuredParts(
     openPdfHref?: string;
     canEditLatex?: boolean;
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
+    partLatexOverrides?: Record<string, string>;
     suppressInlineSamplePowerTable?: boolean;
     samplePowerTableBlock?: StructuredTableBlock | null;
     reflowWrappedLines?: boolean;
@@ -393,6 +470,15 @@ function renderStructuredParts(
           <span className="min-w-[1.5rem] font-medium text-zinc-700">{part.key})</span>
           <div className="min-w-0 flex-1">
             {part.text ? (() => {
+              const manualLatex = String(options?.partLatexOverrides?.[part.key] || "").trim();
+              if (manualLatex) {
+                return (
+                  <div>
+                    {renderInlineText(`[[MATH:${normalizeManualLatex(manualLatex)}]]`, options)}
+                    <div className="mt-1 text-[11px] text-sky-700">Manual LaTeX override</div>
+                  </div>
+                );
+              }
               const cleanPartText = options?.suppressInlineSamplePowerTable
                 ? stripInlineSamplePowerTable(part.text)
                 : part.text;
@@ -446,6 +532,16 @@ function renderStructuredParts(
                   <span className="min-w-[2rem] font-medium text-zinc-600">{child.key})</span>
                   <div className="min-w-0 flex-1">
                     {(() => {
+                      const childKey = `${part.key}.${child.key}`;
+                      const manualLatex = String(options?.partLatexOverrides?.[childKey] || "").trim();
+                      if (manualLatex) {
+                        return (
+                          <div>
+                            {renderInlineText(`[[MATH:${normalizeManualLatex(manualLatex)}]]`, options)}
+                            <div className="mt-1 text-[11px] text-sky-700">Manual LaTeX override</div>
+                          </div>
+                        );
+                      }
                       const cleanChildText = options?.suppressInlineSamplePowerTable
                         ? stripInlineSamplePowerTable(child.text)
                         : child.text;
@@ -545,16 +641,21 @@ export function TaskCard({
   overrideApplied,
   defaultExpanded,
   forcedExpanded,
+  anchorId,
+  taskLatexOverrides,
   equationsById,
   openPdfHref,
   canEditLatex,
   onSaveEquationLatex,
+  onSaveTaskLatexOverrides,
 }: TaskCardProps) {
   const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [debugCopyStatus, setDebugCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [showTaskLatexEditor, setShowTaskLatexEditor] = useState(false);
+  const [savingTaskLatex, setSavingTaskLatex] = useState(false);
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
@@ -572,8 +673,17 @@ export function TaskCard({
   const rawWarningItems: string[] = Array.isArray(task?.warnings)
     ? task.warnings.map((w: unknown) => String(w))
     : [];
+  const hasResolvedManualEquations = Array.isArray(task?.equations)
+    ? task.equations.length > 0 &&
+      task.equations.every((eq: any) => {
+        const latex = String(eq?.latex || "").trim();
+        return !!latex && !eq?.needsReview && Number(eq?.confidence || 0) >= 0.9;
+      })
+    : false;
   const aiCorrected = !!task?.aiCorrected || rawWarningItems.some((w) => /openai math cleanup applied/i.test(w));
-  const warningItems = rawWarningItems.filter((w) => !/openai math cleanup applied/i.test(w));
+  const warningItems = rawWarningItems
+    .filter((w) => !/openai math cleanup applied/i.test(w))
+    .filter((w) => !(hasResolvedManualEquations && /equation quality: low-confidence/i.test(w)));
   const effectiveConfidence: TaskConfidence =
     confidence === "HEURISTIC" && warningItems.length === 0 ? "CLEAN" : confidence;
   const hasMathLayoutWarning = warningItems.some((w) => /math layout: broken line wraps/i.test(w));
@@ -679,6 +789,35 @@ export function TaskCard({
   }, [taskBodyText, tableBlocks, hasTaskParts, hasSamplePowerTableBlock, samplePowerTableBlock]);
 
   const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
+  const taskNumber = useMemo(() => {
+    const n = Number(task?.n);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }, [task?.n]);
+  const partLatexOverrides = useMemo(() => {
+    const out: Record<string, string> = {};
+    const src = taskLatexOverrides || {};
+    for (const [k, v] of Object.entries(src)) {
+      const mk = String(k || "");
+      const mv = String(v || "").trim();
+      if (!mk || !mv) continue;
+      const m = mk.match(/^(\d+)\.(.+)$/);
+      if (!m) continue;
+      if (Number(m[1]) !== taskNumber) continue;
+      out[String(m[2]).toLowerCase()] = mv;
+    }
+    return out;
+  }, [taskLatexOverrides, taskNumber]);
+  const [taskLatexDraft, setTaskLatexDraft] = useState<Record<string, string>>({});
+  const editablePartKeys = useMemo(() => {
+    const keys: string[] = [];
+    for (const p of structuredParts) {
+      if (p?.key) keys.push(String(p.key).toLowerCase());
+      for (const c of p?.children || []) {
+        if (c?.key) keys.push(`${String(p.key).toLowerCase()}.${String(c.key).toLowerCase()}`);
+      }
+    }
+    return keys;
+  }, [structuredParts]);
   const hasStructuredParts = structuredParts.length > 0;
   const firstTextSegmentIndex = useMemo(
     () => contentSegments.findIndex((segment) => segment.type === "text"),
@@ -755,8 +894,29 @@ export function TaskCard({
     setTimeout(() => setDebugCopyStatus("idle"), 2200);
   };
 
+  const openTaskLatexEditor = () => {
+    setTaskLatexDraft(partLatexOverrides);
+    setShowTaskLatexEditor(true);
+  };
+
+  const saveTaskLatexEditor = async () => {
+    if (!onSaveTaskLatexOverrides || !taskNumber) return;
+    const next: Record<string, string> = {};
+    for (const key of editablePartKeys) {
+      const val = String(taskLatexDraft[key] || "").trim();
+      if (val) next[key] = val;
+    }
+    setSavingTaskLatex(true);
+    try {
+      await onSaveTaskLatexOverrides(taskNumber, next);
+      setShowTaskLatexEditor(false);
+    } finally {
+      setSavingTaskLatex(false);
+    }
+  };
+
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-all">
+    <div id={anchorId} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-all">
       {/* --- Header Section --- */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -819,6 +979,13 @@ export function TaskCard({
             }`}
           >
             {debugCopyStatus === "copied" ? "Debug copied" : debugCopyStatus === "failed" ? "Debug failed" : "Copy debug"}
+          </button>
+          <button
+            type="button"
+            onClick={openTaskLatexEditor}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+          >
+            Edit task LaTeX
           </button>
           <button
             type="button"
@@ -923,6 +1090,7 @@ export function TaskCard({
                         openPdfHref,
                         canEditLatex,
                         onSaveEquationLatex,
+                        partLatexOverrides,
                         suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                         samplePowerTableBlock,
                         reflowWrappedLines: hasMathLayoutWarning,
@@ -953,6 +1121,7 @@ export function TaskCard({
                                 openPdfHref,
                                 canEditLatex,
                                 onSaveEquationLatex,
+                                partLatexOverrides,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1031,6 +1200,55 @@ export function TaskCard({
           <DiffView label="Current" lines={diffData.rightLines} diffIndices={diffData.diffIndices} />
         </div>
       )}
+
+      {showTaskLatexEditor ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" onClick={() => !savingTaskLatex && setShowTaskLatexEditor(false)} />
+          <div className="relative mx-4 w-full max-w-3xl rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-zinc-900">Task {taskNumber || "?"} manual LaTeX</div>
+                <div className="text-xs text-zinc-600">Set per-part LaTeX overrides used by display and saved in metadata.</div>
+              </div>
+              <button
+                type="button"
+                disabled={savingTaskLatex}
+                onClick={() => setShowTaskLatexEditor(false)}
+                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 max-h-[60vh] overflow-auto space-y-3">
+              {editablePartKeys.length ? editablePartKeys.map((k) => (
+                <div key={`latex-${k}`} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                  <div className="text-xs font-semibold text-zinc-700">Part {k}</div>
+                  <textarea
+                    value={taskLatexDraft[k] || ""}
+                    onChange={(e) => setTaskLatexDraft((d) => ({ ...d, [k]: e.target.value }))}
+                    placeholder="Example: v=5e^{-0.2t}"
+                    className="mt-2 min-h-[70px] w-full rounded-lg border border-zinc-300 bg-white p-2 font-mono text-xs text-zinc-900"
+                  />
+                </div>
+              )) : (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                  No structured parts were detected for this task.
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={saveTaskLatexEditor}
+                disabled={savingTaskLatex || !onSaveTaskLatexOverrides || !taskNumber}
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+              >
+                {savingTaskLatex ? "Saving..." : "Save task LaTeX"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

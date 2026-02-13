@@ -5,6 +5,19 @@ const ts = require("typescript");
 
 const cache = new Map();
 
+function resolveTsLike(basePath) {
+  const candidates = [
+    basePath,
+    `${basePath}.ts`,
+    `${basePath}.tsx`,
+    `${basePath}.js`,
+    path.join(basePath, "index.ts"),
+    path.join(basePath, "index.tsx"),
+    path.join(basePath, "index.js"),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
 function loadTsModule(filePath) {
   const absPath = path.resolve(filePath);
   if (cache.has(absPath)) return cache.get(absPath);
@@ -20,8 +33,21 @@ function loadTsModule(filePath) {
   }).outputText;
 
   const mod = { exports: {} };
+  const dirname = path.dirname(absPath);
+  const localRequire = (request) => {
+    if (request.startsWith(".")) {
+      const resolved = resolveTsLike(path.resolve(dirname, request));
+      if (resolved) return loadTsModule(resolved);
+    }
+    if (request.startsWith("@/")) {
+      const resolved = resolveTsLike(path.resolve(process.cwd(), request.slice(2)));
+      if (resolved) return loadTsModule(resolved);
+    }
+    return require(request);
+  };
+
   const wrapped = new Function("require", "module", "exports", compiled);
-  wrapped(require, mod, mod.exports);
+  wrapped(localRequire, mod, mod.exports);
   cache.set(absPath, mod.exports);
   return mod.exports;
 }
@@ -77,4 +103,3 @@ function run() {
 }
 
 run();
-

@@ -25,10 +25,10 @@ const TOKEN_RE = /(\[\[(?:EQ|IMG):[^\]]+\]\])/g;
 const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 
-function renderKatex(latex: string) {
+function renderKatex(latex: string, displayMode = true) {
   return katex.renderToString(latex, {
     throwOnError: false,
-    displayMode: true,
+    displayMode,
     output: "html",
     strict: "ignore",
   });
@@ -36,6 +36,7 @@ function renderKatex(latex: string) {
 
 function normalizeDisplayText(input: string) {
   let out = String(input || "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replace(/푃/g, "P")
     .replace(/푉/g, "V")
     .replace(/푅/g, "R")
@@ -85,15 +86,20 @@ function injectHeuristicMathTokens(input: string) {
       .replace(/\s*\*\s*/g, "")
       .replace(/\s+/g, " ");
 
-    const inlineEq = compactMath.match(/\b([vyiIlL])\s*=\s*([A-Za-z0-9+\-^().\\{}_, ]{3,160})/);
+    const inlineEq = compactMath.match(/\b([vVyYiIlL])\s*=\s*([A-Za-z0-9+\-^().\\{}_, ]{3,160})/);
     if (inlineEq) {
       const lhs = inlineEq[1];
       const rhs = inlineEq[2]
+        // Recover common OCR-stacked exponents once newlines are flattened into spaces.
+        // e.g. "t 3" -> "t^3", "(... ) 2" -> "(...)^2"
+        .replace(/([A-Za-z])\s+(\d{1,2})\b/g, "$1^$2")
+        .replace(/(\))\s+(\d{1,2})\b/g, "$1^$2")
         .replace(/\ble\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
         .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
         .replace(/\blog_e\s*\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
-        .replace(/\be\s*-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
-        .replace(/\be-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
+        .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
         .replace(/\bln\s*\(\s*e\s*\(/gi, "\\ln(e(")
         .replace(/\bsin\s*\(/gi, "\\sin(")
         .replace(/\bcos\s*\(/gi, "\\cos(")
@@ -249,8 +255,8 @@ export default function InlineEquationText({
           out.push(
             <span
               key={`hm-${i}-${c}`}
-              className="block align-middle py-1"
-              dangerouslySetInnerHTML={{ __html: renderKatex(math) }}
+              className="inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle py-0.5"
+              dangerouslySetInnerHTML={{ __html: renderKatex(math, false) }}
             />
           );
         } else {
@@ -291,8 +297,8 @@ export default function InlineEquationText({
       out.push(
         <span
           key={`eq-${eq.id}`}
-          className="block align-middle py-1"
-          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex) }}
+          className="block max-w-full overflow-x-auto whitespace-nowrap align-middle py-1"
+          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex, true) }}
         />
       );
       continue;
