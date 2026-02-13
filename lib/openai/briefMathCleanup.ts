@@ -29,7 +29,7 @@ function maybeRestoreLogEFromOriginal(original: string, cleaned: string) {
 }
 
 function hasBrokenMathLayout(text: string) {
-  const s = String(text || "");
+  const s = String(text || "").replace(/−/g, "-");
   if (!s) return false;
   if (/[A-Za-z\)]\s*\n\s*\d{1,2}\b/.test(s)) return true;
   if (/[=+\-*/]\s*\n\s*[A-Za-z0-9(]/.test(s)) return true;
@@ -39,6 +39,20 @@ function hasBrokenMathLayout(text: string) {
     .filter(Boolean)
     .filter((line) => /^[+\-*/=()0-9A-Za-z^]{1,3}$/.test(line)).length;
   return tiny >= 3;
+}
+
+function localMathRepair(text: string) {
+  let out = String(text || "").replace(/−/g, "-");
+  out = out.replace(/([A-Za-z\)])\s*\n\s*(\d{1,2})\b/g, "$1^$2");
+  out = out.replace(/([A-Za-z0-9)\]}])\s*\n\s*([+\-][A-Za-z0-9(])/g, "$1 $2");
+  out = out
+    .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^{-${1}t}")
+    .replace(/\be\^\(\s*([^)]+)\s*\)/gi, "e^{$1}")
+    .replace(/\bl\s+e\s*\n\s*\(/gi, "log_e(")
+    .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")
+    .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, "log_e($1)")
+    .replace(/\n{3,}/g, "\n\n");
+  return out;
 }
 
 function pickApiKey() {
@@ -257,6 +271,26 @@ export async function cleanupBriefTasksMathWithOpenAi(
     if (!needsCleanup) continue;
 
     const tokenIds = collectEquationTokenIds(task);
+    // Fast deterministic fix for simple line-wrap math issues (no equation tokens required).
+    if (tokenIds.size === 0) {
+      task.text = localMathRepair(task.text || "");
+      task.prompt = task.text;
+      if (Array.isArray(task.parts) && task.parts.length) {
+        task.parts = task.parts.map((part) => ({ ...part, text: localMathRepair(part?.text || "") }));
+      }
+      const stillBroken =
+        hasBrokenMathLayout(task.text || "") ||
+        (Array.isArray(task.parts) && task.parts.some((part) => hasBrokenMathLayout(part?.text || "")));
+      const nextWarnings = new Set(
+        normalizedWarnings.filter((w) => !/math layout: broken line wraps/i.test(w))
+      );
+      if (stillBroken) nextWarnings.add("math layout: broken line wraps");
+      task.warnings = Array.from(nextWarnings);
+      task.confidence = task.warnings.length ? "HEURISTIC" : "CLEAN";
+      task.aiCorrected = false;
+      changed += 1;
+      continue;
+    }
 
     const relatedEqs = Array.from(tokenIds)
       .map((id) => eqById.get(id))
@@ -267,7 +301,9 @@ export async function cleanupBriefTasksMathWithOpenAi(
     if (!cleaned.ok) {
       failed += 1;
       const nextWarnings = new Set(normalizedWarnings);
-      nextWarnings.add(`openai cleanup skipped: ${cleaned.reason}`);
+      if (!/OpenAI 429/i.test(String(cleaned.reason || ""))) {
+        nextWarnings.add(`openai cleanup skipped: ${cleaned.reason}`);
+      }
       task.warnings = Array.from(nextWarnings);
       task.confidence = "HEURISTIC";
       continue;

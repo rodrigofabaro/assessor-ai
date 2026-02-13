@@ -90,6 +90,8 @@ function injectHeuristicMathTokens(input: string) {
       const lhs = inlineEq[1];
       const rhs = inlineEq[2]
         .replace(/\ble\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
+        .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
+        .replace(/\blog_e\s*\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
         .replace(/\bln\s*\(\s*e\s*\(/gi, "\\ln(e(")
         .replace(/\bsin\s*\(/gi, "\\sin(")
         .replace(/\bcos\s*\(/gi, "\\cos(")
@@ -283,7 +285,7 @@ export default function InlineEquationText({
       continue;
     }
 
-    if (eq.latex) {
+    if (eq.latex && !eq.needsReview) {
       out.push(
         <span
           key={`eq-${eq.id}`}

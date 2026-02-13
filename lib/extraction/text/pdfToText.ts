@@ -419,7 +419,15 @@ async function openAiEquationFromPageImage(input: {
   pageImageDataUrl: string;
   anchorText?: string | null;
 }): Promise<{ latex: string | null; confidence: number }> {
-  const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
+  const apiKey = String(
+    process.env.OPENAI_API_KEY ||
+      process.env.OPENAI_ADMIN_KEY ||
+      process.env.OPENAI_ADMIN_API_KEY ||
+      process.env.OPENAI_ADMIN ||
+      ""
+  )
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
   if (!apiKey) return { latex: null, confidence: 0 };
   const model = readOpenAiModel().model;
   const anchor = (input.anchorText || "").trim();
@@ -486,7 +494,15 @@ async function openAiEquationFromPageImage(input: {
 }
 
 async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equation[]): Promise<Equation[]> {
-  const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
+  const apiKey = String(
+    process.env.OPENAI_API_KEY ||
+      process.env.OPENAI_ADMIN_KEY ||
+      process.env.OPENAI_ADMIN_API_KEY ||
+      process.env.OPENAI_ADMIN ||
+      ""
+  )
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
   if (!apiKey) return equations;
   const looksSuspicious = (latex: string | null | undefined) => {
     const t = String(latex || "").trim();
