@@ -1,16 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { Pill } from "../../components/ui";
-import { tone, statusTone } from "./briefStyles";
 import { uniqSortedCriteriaCodes } from "@/lib/extraction/utils/criteriaCodes";
 import { BriefCriteriaPanel } from "./BriefCriteriaPanel";
 
-function keyDate(label: string, value: any) {
+function dateEvidence(label: string, displayValue: any, isoValue?: any) {
   return (
-    <div className="inline-flex items-center gap-1">
-      <span className="text-zinc-500">{label}:</span>
-      <span className="font-semibold text-zinc-900">{value || "—"}</span>
+    <div className="rounded-xl border border-zinc-200 p-3">
+      <span className="text-zinc-500">{label}:</span>{" "}
+      <span className="font-semibold text-zinc-900">{displayValue || "—"}</span>
+      <div className="mt-1 text-[11px] text-zinc-500">Evidence (ISO): {isoValue || "—"}</div>
     </div>
   );
 }
@@ -29,6 +28,24 @@ function flattenSpecCriteria(specDoc: any): Array<{ acCode: string; description?
   return out;
 }
 
+function detectBriefIssue(extracted: any): string | null {
+  const headerIssue = String(extracted?.header?.issue || extracted?.header?.issueLabel || "").trim();
+  if (headerIssue) return headerIssue;
+
+  const sources = [
+    String(extracted?.preview || ""),
+    String(extracted?.text || ""),
+  ];
+  for (const src of sources) {
+    if (!src.trim()) continue;
+    const full = src.match(/\bIssue\s*\d+\s*-\s*\d{4}\s*\/\s*\d{2}\b/i);
+    if (full?.[0]) return full[0].replace(/\s+/g, " ").trim();
+    const simple = src.match(/\bIssue\s*\d+\b/i);
+    if (simple?.[0]) return simple[0].replace(/\s+/g, " ").trim();
+  }
+  return null;
+}
+
 export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
   const extracted = vm.linkedDoc?.extractedJson ?? null;
   const header = extracted?.header || null;
@@ -42,32 +59,26 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
   ]);
 
   const safeHeader = safeExtracted?.header || null;
+  const issueLabel = detectBriefIssue(safeExtracted);
   const specCriteria = useMemo(() => flattenSpecCriteria(vm.mappedSpecDoc), [vm.mappedSpecDoc]);
-  const ivStatus = vm.ivRecords?.[0]?.outcome || "MISSING";
-  const readiness = vm.linkedDoc?.readiness || "ATTN";
 
   return (
     <div className="grid gap-4">
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Brief overview</h2>
-        <div className="mt-1 text-sm font-semibold text-zinc-900 truncate">{vm.title}</div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Pill cls={statusTone(vm.brief.status)}>{(vm.brief.status || "").toUpperCase()}</Pill>
-          <Pill cls={safeExtracted ? tone("ok") : tone("warn")}>{safeExtracted ? "EXTRACTED" : "NOT EXTRACTED"}</Pill>
-          <Pill cls={vm.linkedDoc?.lockedAt ? tone("ok") : tone("warn")}>{vm.linkedDoc?.lockedAt ? "DOC LOCKED" : "DOC UNLOCKED"}</Pill>
-          <Pill cls={vm.brief.briefDocumentId ? tone("ok") : tone("warn")}>{vm.brief.briefDocumentId ? "PDF LINKED" : "PDF MISSING"}</Pill>
-          <Pill cls={ivStatus === "MISSING" ? tone("warn") : tone("ok")}>IV: {ivStatus === "MISSING" ? "MISSING" : "OK"}</Pill>
-          <Pill cls={readiness === "READY" ? tone("ok") : tone("warn")}>READINESS: {readiness === "READY" ? "READY" : "ATTN"}</Pill>
-          {!safeExtracted ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
-          {safeExtracted && criteriaCodes.length === 0 ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
-        </div>
-
-        <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs sm:text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
-          {keyDate("Academic year", safeHeader?.academicYear || header?.academicYear)}
-          {keyDate("Issue date", safeHeader?.issueDate || header?.issueDate)}
-          {keyDate("Verification date", safeHeader?.verificationDate || header?.verificationDate)}
-          {keyDate("Final submission", safeHeader?.finalSubmissionDate || header?.finalSubmissionDate)}
+        <div className="mt-3 grid gap-3 md:grid-cols-3 text-sm">
+          {dateEvidence("Verification date", safeHeader?.verificationDate || header?.verificationDate, safeHeader?.verificationDateIso)}
+          {dateEvidence("Issue date", safeHeader?.issueDate || header?.issueDate, safeHeader?.issueDateIso)}
+          {dateEvidence("Final submission date", safeHeader?.finalSubmissionDate || header?.finalSubmissionDate, safeHeader?.finalSubmissionDateIso)}
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Qualification:</span> <span className="font-semibold text-zinc-900">{safeHeader?.qualification || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Unit number and title:</span> <span className="font-semibold text-zinc-900">{safeHeader?.unitNumberAndTitle || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment title:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignmentTitle || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assessor:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assessor || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Academic year:</span> <span className="font-semibold text-zinc-900">{safeHeader?.academicYear || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Unit code (Pearson):</span> <span className="font-semibold text-zinc-900">{safeHeader?.unitCode || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignment || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Internal verifier:</span> <span className="font-semibold text-zinc-900">{safeHeader?.internalVerifier || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Issue:</span> <span className="font-semibold text-zinc-900">{issueLabel || "—"}</span></div>
         </div>
       </section>
 
@@ -93,14 +104,6 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
                 href={pdfHref}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"
-              >
-                Preview
-              </a>
-              <a
-                href={pdfHref}
-                target="_blank"
-                rel="noreferrer"
                 className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-200 bg-zinc-900 text-white hover:bg-zinc-800"
               >
                 Open
@@ -112,20 +115,6 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Audit details (from PDF header)</summary>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
-            <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Qualification:</span> <span className="font-semibold text-zinc-900">{safeHeader?.qualification || "—"}</span></div>
-            <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignment || "—"}</span></div>
-            <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment title:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignmentTitle || "—"}</span></div>
-            <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assessor:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assessor || "—"}</span></div>
-            <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Internal verifier:</span> <span className="font-semibold text-zinc-900">{safeHeader?.internalVerifier || "—"}</span></div>
-            <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Unit code (Pearson):</span> <span className="font-semibold text-zinc-900">{safeHeader?.unitCode || "—"}</span></div>
-          </div>
-        </details>
-      </section>
     </div>
   );
 }

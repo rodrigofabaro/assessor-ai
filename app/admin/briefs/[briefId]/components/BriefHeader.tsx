@@ -1,25 +1,55 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Btn } from "../../components/ui";
+import { Btn, Pill } from "../../components/ui";
+import { statusTone, tone } from "./briefStyles";
 
 export function BriefHeader({ vm, onBack, children }: { vm: any; onBack: () => void; children?: ReactNode }) {
   const usage = vm.docUsage;
   const usageLoading = vm.usageLoading;
+  const extracted = vm.linkedDoc?.extractedJson || null;
+  const header = extracted?.header || null;
+  const simpleTitle = (() => {
+    const unit = String(header?.unitNumberAndTitle || vm.brief?.unit?.unitTitle || vm.brief?.unit?.unitCode || "").trim();
+    const assignmentNo = Number(vm.brief?.assignmentNumber || 0);
+    if (unit && Number.isFinite(assignmentNo) && assignmentNo > 0) return `${unit} - Assignment ${assignmentNo}`;
+    const assignment = String(header?.assignment || vm.brief?.assignmentCode || "Assignment").trim();
+    if (unit && assignment) return `${unit} - ${assignment}`;
+    return vm.title;
+  })();
+  const hasExtracted = !!(extracted && typeof extracted === "object");
+  const criteriaCount = Array.isArray(extracted?.detectedCriterionCodes) ? extracted.detectedCriterionCodes.length : 0;
+  const ivStatus = vm.ivRecords?.[0]?.outcome || "MISSING";
 
   return (
     <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight truncate">{vm.title}</h1>
-          <p className="mt-1 text-sm text-zinc-700">
-            Inspector for a single brief. Versions, PDF link, and QA fields live here — not on the library page.
-          </p>
+          <h1 className="text-lg font-semibold tracking-tight truncate">{simpleTitle}</h1>
+          <p className="mt-1 text-sm text-zinc-700">Single-brief workspace for review, evidence, versions, and QA.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <Pill cls={statusTone(vm.brief?.status || "")}>{String(vm.brief?.status || "—").toUpperCase()}</Pill>
+            <Pill cls={hasExtracted ? tone("ok") : tone("warn")}>{hasExtracted ? "EXTRACTED" : "NOT EXTRACTED"}</Pill>
+            <Pill cls={vm.linkedDoc?.lockedAt ? tone("ok") : tone("warn")}>{vm.linkedDoc?.lockedAt ? "DOC LOCKED" : "DOC UNLOCKED"}</Pill>
+            <Pill cls={vm.brief?.briefDocumentId ? tone("ok") : tone("warn")}>{vm.brief?.briefDocumentId ? "PDF LINKED" : "PDF MISSING"}</Pill>
+            <Pill cls={ivStatus === "MISSING" ? tone("warn") : tone("ok")}>IV: {ivStatus === "MISSING" ? "MISSING" : "OK"}</Pill>
+            <Pill cls={vm.readiness === "READY" ? tone("ok") : vm.readiness === "BLOCKED" ? tone("bad") : tone("warn")}>
+              <span title={vm.readinessReason || ""}>READINESS: {vm.readiness || "ATTN"}</span>
+            </Pill>
+            {hasExtracted && criteriaCount === 0 ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
+          </div>
+          <div className="mt-2 text-xs text-zinc-600">
+            <span className="font-semibold text-zinc-700">Reason:</span> {vm.readinessReason || "—"}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Btn kind="ghost" onClick={onBack}>
             Back to briefs
+          </Btn>
+
+          <Btn kind="primary" onClick={vm.refresh} disabled={vm.busy}>
+            Refresh
           </Btn>
 
           <a
@@ -69,10 +99,6 @@ export function BriefHeader({ vm, onBack, children }: { vm: any; onBack: () => v
           >
             Delete
           </button>
-
-          <Btn kind="primary" onClick={vm.refresh} disabled={vm.busy}>
-            Refresh
-          </Btn>
 
           <div className="ml-2 inline-flex items-center gap-2 text-xs text-zinc-600">
             <span className={"h-2 w-2 rounded-full " + (vm.error ? "bg-rose-500" : "bg-emerald-500")} />

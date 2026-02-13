@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { v4 as uuid } from "uuid";
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { extractIvSummaryFromDocxBuffer } from "@/lib/iv/evidenceSummary";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
   return {};
-}
-
-function safeName(name: string) {
-  return (name || "upload")
-    .replace(/\s+/g, " ")
-    .replace(/[^\w.\- ()]/g, "")
-    .trim()
-    .slice(0, 120);
 }
 
 function safeIvRecords(x: any) {
@@ -50,7 +41,6 @@ function isBlankOrPlaceholderNotes(value: unknown) {
   return !n || /^evidence\s+upload$/i.test(n) || /^no\s+general\s+comments\.?$/i.test(n);
 }
 
-
 async function loadBriefDoc(briefId: string) {
   const brief = await prisma.assignmentBrief.findUnique({
     where: { id: briefId },
@@ -63,79 +53,46 @@ async function loadBriefDoc(briefId: string) {
   return { brief, doc: brief.briefDocument };
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ briefId: string; ivId: string }> }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ briefId: string; ivId: string }> }) {
   const { briefId, ivId } = await params;
-  const { brief, doc, error } = await loadBriefDoc(briefId);
+  const { doc, error } = await loadBriefDoc(briefId);
   if (error) return error;
-
-  const formData = await req.formData().catch(() => null);
-  const file = formData?.get("file");
-  if (!file || !(file instanceof File)) {
-    return NextResponse.json({ error: "Missing file" }, { status: 400 });
-  }
-
-  const filename = file.name || "iv-form";
-  const ext = path.extname(filename).toLowerCase();
-  const isPdf = file.type === "application/pdf" || ext === ".pdf";
-  const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === ".docx";
-  const isDoc = file.type === "application/msword" || ext === ".doc";
-  if (!isPdf && !isDocx && !isDoc) {
-    return NextResponse.json({ error: "Only PDF, DOCX, or DOC files are supported." }, { status: 400 });
-  }
-
-  const MAX_BYTES = 50 * 1024 * 1024;
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "File too large (max 50MB)." }, { status: 413 });
-  }
 
   const prev = asObject(doc.sourceMeta);
   const existing = safeIvRecords(prev.ivRecords);
   const idx = existing.findIndex((r) => r.id === ivId);
-  if (idx === -1) {
-    return NextResponse.json({ error: "IV record not found" }, { status: 404 });
-  }
-  if (existing[idx].attachment?.documentId) {
-    return NextResponse.json(
-      { error: "IV record already has an attachment. Create a new IV record to add a revised form." },
-      { status: 409 }
-    );
+  if (idx === -1) return NextResponse.json({ error: "IV record not found" }, { status: 404 });
+  const attachment = existing[idx].attachment;
+  if (!attachment?.documentId) {
+    return NextResponse.json({ error: "IV record has no attachment." }, { status: 400 });
   }
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const checksumSha256 = crypto.createHash("sha256").update(buffer).digest("hex");
-
-  const uploadDirRel = "reference_uploads";
-  const uploadDirAbs = path.join(process.cwd(), uploadDirRel);
-  if (!fs.existsSync(uploadDirAbs)) fs.mkdirSync(uploadDirAbs, { recursive: true });
-
-  const storedFilename = `${uuid()}-${safeName(filename)}`;
-  const storagePathRel = path.join(uploadDirRel, storedFilename);
-  const storagePathAbs = path.join(process.cwd(), storagePathRel);
-  fs.writeFileSync(storagePathAbs, buffer);
-
-  const ivDoc = await prisma.referenceDocument.create({
-    data: {
-      type: "IV_FORM",
-      status: "UPLOADED",
-      title: `IV Form ${existing[idx].academicYear} - ${brief.title || brief.assignmentCode || "Brief"}`,
-      version: 1,
-      originalFilename: filename,
-      storedFilename,
-      storagePath: storagePathRel,
-      checksumSha256,
-    },
+  const attachedDoc = await prisma.referenceDocument.findUnique({
+    where: { id: attachment.documentId },
+    select: { id: true, originalFilename: true, storedFilename: true, storagePath: true },
   });
+  if (!attachedDoc) {
+    return NextResponse.json({ error: "Attached evidence document not found." }, { status: 404 });
+  }
 
-  const summary = isDocx ? await extractIvSummaryFromDocxBuffer(buffer) : null;
-  const attachment = {
-    documentId: ivDoc.id,
-    originalFilename: ivDoc.originalFilename,
-    uploadedAt: ivDoc.uploadedAt.toISOString(),
-    size: file.size,
-    storagePath: ivDoc.storagePath,
-    summary,
-  };
+  const ext = path.extname(String(attachedDoc.originalFilename || attachedDoc.storedFilename || "")).toLowerCase();
+  if (ext !== ".docx") {
+    return NextResponse.json({ error: "Backfill summary currently supports DOCX evidence only." }, { status: 400 });
+  }
+
+  const resolved = await resolveStoredFile({
+    storagePath: attachedDoc.storagePath,
+    storedFilename: attachedDoc.storedFilename,
+  });
+  if (!resolved.ok || !resolved.path) {
+    return NextResponse.json({ error: "Attached evidence file not found on disk." }, { status: 404 });
+  }
+
+  const buffer = fs.readFileSync(resolved.path);
+  const summary = await extractIvSummaryFromDocxBuffer(buffer);
+  if (!summary) {
+    return NextResponse.json({ error: "Could not extract summary from DOCX." }, { status: 422 });
+  }
 
   const nextRecords = [...existing];
   const current = nextRecords[idx];
@@ -147,10 +104,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
     verifierName: current.verifierName || summaryVerifier,
     verificationDate: current.verificationDate || summaryDate,
     notes: isBlankOrPlaceholderNotes(current.notes) ? summaryComments || current.notes : current.notes,
-    attachment,
+    attachment: {
+      ...current.attachment,
+      summary,
+    },
   };
   const nextMeta = { ...prev, ivRecords: nextRecords };
-
   await prisma.referenceDocument.update({
     where: { id: doc.id },
     data: { sourceMeta: nextMeta as any },

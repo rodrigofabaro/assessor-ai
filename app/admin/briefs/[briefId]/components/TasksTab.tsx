@@ -83,6 +83,7 @@ export function TasksTab({
               canEditLatex={true}
               onSaveEquationLatex={vm.saveEquationLatex}
               onSaveTaskLatexOverrides={vm.saveTaskLatex}
+              showSidebar={false}
             />
           ))
         ) : (

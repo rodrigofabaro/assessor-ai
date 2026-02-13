@@ -12,6 +12,7 @@
     "test:tasks-tab": "node scripts/tasks-tab.logic.test.js",
     "test:ai-fallback": "node scripts/ai-fallback-policy.test.js",
     "test:word-math": "node scripts/word-linear-math.test.js",
+    "test:brief-readiness": "node scripts/brief-readiness.test.js",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"

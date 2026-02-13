@@ -184,7 +184,6 @@ export default function BriefExtractWorkbench({
                     </div>
 
                     <div className="mt-2 text-sm font-semibold leading-5">{d.title}</div>
-                    <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-600")}>{d.originalFilename}</div>
                   </button>
                 );
               })}
@@ -332,7 +331,6 @@ export default function BriefExtractWorkbench({
                   label: "File",
                   value: doc?.originalFilename ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate">{doc.originalFilename}</span>
                       <a
                         href={`/api/reference-documents/${doc.id}/file`}
                         target="_blank"

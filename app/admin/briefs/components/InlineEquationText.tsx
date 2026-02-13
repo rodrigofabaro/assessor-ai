@@ -43,19 +43,6 @@ function normalizeLatexForRender(latex: string, displayMode: boolean) {
     .replace(/\b(sin|cos|tan|log|ln)\s*\(/gi, (_m, fn) => `\\${String(fn).toLowerCase()}(`)
     .trim();
 
-  // Split merged equations like "v1 = ... v2 = ..." onto separate display lines.
-  if (displayMode && /=/.test(out)) {
-    const pieces = out
-      .replace(/\s+/g, " ")
-      .split(/\s+(?=[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=)/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const assignmentPieces = pieces.filter((p) => /^[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=/.test(p));
-    if (assignmentPieces.length >= 2) {
-      out = assignmentPieces.join(" \\\\ ");
-    }
-  }
-
   return out;
 }
 
@@ -69,6 +56,10 @@ function renderKatex(latex: string, displayMode = true) {
 }
 
 function isMultiAssignmentLatex(latex: string) {
+  return splitMultiAssignmentLatex(latex).length >= 2;
+}
+
+function splitMultiAssignmentLatex(latex: string) {
   const normalized = String(latex || "")
     .replace(/([A-Za-z])₀/g, "$1_0")
     .replace(/([A-Za-z])₁/g, "$1_1")
@@ -79,9 +70,13 @@ function isMultiAssignmentLatex(latex: string) {
     .replace(/([A-Za-z])₆/g, "$1_6")
     .replace(/([A-Za-z])₇/g, "$1_7")
     .replace(/([A-Za-z])₈/g, "$1_8")
-    .replace(/([A-Za-z])₉/g, "$1_9");
-  const matches = normalized.match(/\b[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=/g) || [];
-  return matches.length >= 2;
+    .replace(/([A-Za-z])₉/g, "$1_9")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized
+    .split(/\s+(?=[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=)/)
+    .map((s) => s.trim())
+    .filter((p) => /^[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=/.test(p));
 }
 
 function normalizeDisplayText(input: string) {
@@ -505,6 +500,21 @@ export default function InlineEquationText({
 
     if (eq.latex && !eq.needsReview) {
       const forceDisplay = isMultiAssignmentLatex(eq.latex);
+      if (forceDisplay) {
+        const pieces = splitMultiAssignmentLatex(eq.latex);
+        out.push(
+          <span key={`eq-${eq.id}`} className="my-1 block max-w-full">
+            {pieces.map((piece, idx) => (
+              <span
+                key={`eq-${eq.id}-${idx}`}
+                className="block max-w-full overflow-x-auto whitespace-nowrap align-middle py-1"
+                dangerouslySetInnerHTML={{ __html: renderKatex(piece, true) }}
+              />
+            ))}
+          </span>
+        );
+        continue;
+      }
       const displayMode = forceDisplay || !inlineContext;
       out.push(
         <span

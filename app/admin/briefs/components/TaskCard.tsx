@@ -6,6 +6,7 @@ import { detectTableBlocks, type StructuredTableBlock } from "@/lib/extraction/r
 import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
 import InlineEquationText from "./InlineEquationText";
 import { convertWordLinearToLatex } from "@/lib/math/wordLinearToLatex";
+import { computeEffectiveTaskConfidence, computeEffectiveTaskWarnings, isTaskAiCorrected } from "@/lib/briefs/warnings";
 
 // --- Types ---
 
@@ -42,6 +43,7 @@ type TaskCardProps = {
   canEditLatex?: boolean;
   onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
   onSaveTaskLatexOverrides?: (taskNumber: number, overridesByPart: Record<string, string>) => Promise<void> | void;
+  showSidebar?: boolean;
 };
 
 
@@ -155,15 +157,13 @@ function formatPdfTextToBlocks(text: string, options?: { reflowWrappedLines?: bo
     const isHardBreakLine = (line: string) =>
       /^(\[\[(?:EQ|IMG):[^\]]+\]\]|[a-z]\)|[ivxlcdm]+\)|PART\s+\d+|Task\s+\d+)/i.test(line);
     const endsSentence = (line: string) => /[.!?;:)]\s*$/.test(line);
-    const startsNewSentence = (line: string) => /^[A-Z]/.test(line);
     for (let i = 1; i < lines.length; i += 1) {
       const cur = lines[i];
       const prev = out[out.length - 1] || "";
       const keepBreak =
         isHardBreakLine(cur) ||
         isHardBreakLine(prev) ||
-        endsSentence(prev) ||
-        startsNewSentence(cur);
+        endsSentence(prev);
       if (keepBreak) {
         out.push(cur);
       } else {
@@ -733,6 +733,7 @@ export function TaskCard({
   canEditLatex,
   onSaveEquationLatex,
   onSaveTaskLatexOverrides,
+  showSidebar = true,
 }: TaskCardProps) {
   const [expandedLocal, setExpandedLocal] = useState(!!defaultExpanded);
   const [showDiff, setShowDiff] = useState(false);
@@ -755,57 +756,15 @@ export function TaskCard({
   const confidence: TaskConfidence = overrideApplied
     ? "OVERRIDDEN"
     : task?.confidence === "HEURISTIC" ? "HEURISTIC" : "CLEAN";
-
-  const rawWarningItems: string[] = Array.isArray(task?.warnings)
-    ? task.warnings.map((w: unknown) => String(w))
-    : [];
-  const referencedEquationIds = useMemo(() => {
-    const ids = new Set<string>();
-    const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
-    const collect = (value: unknown) => {
-      const txt = String(value || "");
-      let m: RegExpExecArray | null;
-      while ((m = tokenRe.exec(txt))) {
-        if (m[1]) ids.add(String(m[1]));
-      }
-    };
-    collect(task?.text);
-    collect(task?.prompt);
-    if (Array.isArray(task?.parts)) {
-      for (const p of task.parts) collect(p?.text);
-    }
-    return Array.from(ids);
-  }, [task?.text, task?.prompt, task?.parts]);
-  const hasManualTaskLatexOverride = (() => {
-    const n = Number(task?.n);
-    if (!Number.isFinite(n) || n <= 0) return false;
-    const prefix = `${n}.`;
-    const src = taskLatexOverrides || {};
-    return Object.keys(src).some((k) => {
-      if (!String(k || "").startsWith(prefix)) return false;
-      return String((src as Record<string, string>)[k] || "").trim().length > 0;
-    });
-  })();
-  const hasResolvedManualEquations = Array.isArray(task?.equations)
-    ? task.equations.length > 0 &&
-      task.equations.every((eq: any) => {
-        const latex = String(eq?.latex || "").trim();
-        return !!latex && !eq?.needsReview;
-      })
-    : false;
-  const hasResolvedReferencedEquations = referencedEquationIds.length > 0
-    ? referencedEquationIds.every((id) => {
-        const eq: any = equationsById?.[id];
-        const latex = String(eq?.latex || "").trim();
-        return !!latex && !eq?.needsReview;
-      })
-    : false;
-  const aiCorrected = !!task?.aiCorrected || rawWarningItems.some((w) => /openai math cleanup applied/i.test(w));
-  const warningItems = rawWarningItems
-    .filter((w) => !/openai math cleanup applied/i.test(w))
-    .filter((w) => !((hasResolvedManualEquations || hasResolvedReferencedEquations || hasManualTaskLatexOverride) && /equation quality: low-confidence/i.test(w)));
-  const effectiveConfidence: TaskConfidence =
-    confidence === "HEURISTIC" && warningItems.length === 0 ? "CLEAN" : confidence;
+  const warningItems = useMemo(
+    () => computeEffectiveTaskWarnings(task, { equationsById, taskLatexOverrides }),
+    [task, equationsById, taskLatexOverrides]
+  );
+  const aiCorrected = useMemo(() => isTaskAiCorrected(task), [task]);
+  const effectiveConfidence: TaskConfidence = useMemo(
+    () => computeEffectiveTaskConfidence(task, warningItems, overrideApplied) as TaskConfidence,
+    [task, warningItems, overrideApplied]
+  );
   const hasMathLayoutWarning = warningItems.some((w) => /math layout: broken line wraps/i.test(w));
 
   // Logic: Isolate context lines (metadata often found at start of task)
@@ -1177,7 +1136,7 @@ export function TaskCard({
 
       {/* --- Content Area --- */}
       {!expanded ? null : (
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+        <div className={"mt-4 grid grid-cols-1 gap-4 " + (showSidebar ? "lg:grid-cols-[minmax(0,1fr)_240px]" : "")}>
           {scenarioDisplayText && (
             <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
@@ -1202,7 +1161,7 @@ export function TaskCard({
                   openPdfHref,
                   canEditLatex,
                   onSaveEquationLatex,
-                  reflowWrappedLines: hasMathLayoutWarning,
+                  reflowWrappedLines: true,
                 })}
               </div>
             </div>
@@ -1340,14 +1299,16 @@ export function TaskCard({
 
           </div>
 
-          <TaskSidebar 
-            totalWords={totalWords}
-            pages={pages}
-            confidence={effectiveConfidence}
-            warningsCount={warningItems.length}
-            tablesCount={tableBlocks.length}
-            partsCount={Array.isArray(task?.parts) ? task.parts.length : 0}
-          />
+          {showSidebar ? (
+            <TaskSidebar 
+              totalWords={totalWords}
+              pages={pages}
+              confidence={effectiveConfidence}
+              warningsCount={warningItems.length}
+              tablesCount={tableBlocks.length}
+              partsCount={Array.isArray(task?.parts) ? task.parts.length : 0}
+            />
+          ) : null}
         </div>
       )}
 

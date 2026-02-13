@@ -28,6 +28,7 @@ function safeIvRecords(x: unknown) {
             uploadedAt: String(r.attachment.uploadedAt || ""),
             size: Number(r.attachment.size || 0),
             storagePath: r.attachment.storagePath ? String(r.attachment.storagePath) : null,
+            summary: r.attachment.summary && typeof r.attachment.summary === "object" ? r.attachment.summary : null,
           }
         : null,
     }))
