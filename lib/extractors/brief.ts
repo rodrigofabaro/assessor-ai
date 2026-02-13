@@ -204,8 +204,10 @@ function reflowProsePreserveLists(text: string) {
 
     const endsWithTerminal = /[.?!:]$/.test(currentLine);
     const endsWithComma = /,$/.test(currentLine);
+    const isTaskReferenceWrap =
+      /Task\s+\d+\s*$/i.test(currentLine) && /^\([a-z]\)\./i.test(trimmed);
     const shouldJoin = !endsWithTerminal && (endsWithComma || startsWithLowerish(trimmed));
-    if (shouldJoin) {
+    if (shouldJoin && !isTaskReferenceWrap) {
       currentLine = `${currentLine} ${trimmed}`;
     } else {
       output.push(currentLine);
@@ -725,7 +727,9 @@ function stripAiasPolicyBanner(text: string) {
 function enforceTaskSentenceBreaks(text: string) {
   return String(text || "")
     .replace(/(across the inductor\.)\s+(Assuming that\b)/gi, "$1\n$2")
-    .replace(/(\(i\.e\.,\s*find\s+I\s*[×x]\s*B\)\.)\s+(Sketch this\b)/gi, "$1\n$2");
+    .replace(/(\(i\.e\.,\s*find\s+I\s*[×x]\s*B\)\.)\s+(Sketch this\b)/gi, "$1\n$2")
+    .replace(/(given in Task\s+\d+)\s*\n\s*\(([a-z])\)\.\s*(Provide a screenshot\b)/gi, "$1 ($2).\n$3")
+    .replace(/(given in Task\s+\d+)\s+\(([a-z])\)\.\s+(Provide a screenshot\b)/gi, "$1 ($2).\n$3");
 }
 
 function shouldReflowPartLines(lines: string[]) {
