@@ -382,6 +382,7 @@ function renderStructuredParts(
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
     suppressInlineSamplePowerTable?: boolean;
     samplePowerTableBlock?: StructuredTableBlock | null;
+    reflowWrappedLines?: boolean;
   }
 ) {
   return (
@@ -400,7 +401,7 @@ function renderStructuredParts(
                   {renderPdfTextBlocks(
                     cleanPartText,
                     `${keyPrefix}-parttext-${part.key}-${partIndex}`,
-                    { ...options, reflowWrappedLines: false }
+                    { ...options, reflowWrappedLines: options?.reflowWrappedLines }
                   )}
                 </div>
               );
@@ -451,7 +452,7 @@ function renderStructuredParts(
                       return renderPdfTextBlocks(
                         cleanChildText,
                         `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
-                        { ...options, reflowWrappedLines: false }
+                        { ...options, reflowWrappedLines: options?.reflowWrappedLines }
                       );
                     })()}
                   </div>
@@ -552,6 +553,7 @@ export function TaskCard({
   const [showDiff, setShowDiff] = useState(false);
   const [showWarningDetails, setShowWarningDetails] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [debugCopyStatus, setDebugCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
@@ -569,6 +571,7 @@ export function TaskCard({
   const warningItems: string[] = Array.isArray(task?.warnings)
     ? task.warnings.map((w: unknown) => String(w))
     : [];
+  const hasMathLayoutWarning = warningItems.some((w) => /math layout: broken line wraps/i.test(w));
 
   // Logic: Isolate context lines (metadata often found at start of task)
   const { contextLines, textWithoutContext } = useMemo(() => {
@@ -711,6 +714,41 @@ export function TaskCard({
     setTimeout(() => setCopyStatus("idle"), 2000);
   };
 
+  const handleCopyDebugPayload = async () => {
+    const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
+    const ids = new Set<string>();
+    const collectIds = (value: unknown) => {
+      const txt = String(value || "");
+      let m: RegExpExecArray | null;
+      while ((m = tokenRe.exec(txt))) {
+        if (m[1]) ids.add(m[1]);
+      }
+    };
+    collectIds(task?.text);
+    collectIds(task?.prompt);
+    if (Array.isArray(task?.parts)) {
+      for (const p of task.parts) collectIds(p?.text);
+    }
+    const payload = {
+      n: task?.n ?? null,
+      label,
+      confidence,
+      warnings: warningItems,
+      pages,
+      text: String(task?.text || ""),
+      prompt: String(task?.prompt || ""),
+      parts: Array.isArray(task?.parts) ? task.parts : [],
+      equations: Array.from(ids).map((id) => ({ id, ...(equationsById?.[id] || null) })),
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setDebugCopyStatus("copied");
+    } catch {
+      setDebugCopyStatus("failed");
+    }
+    setTimeout(() => setDebugCopyStatus("idle"), 2200);
+  };
+
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-all">
       {/* --- Header Section --- */}
@@ -764,6 +802,17 @@ export function TaskCard({
             }`}
           >
             {copyStatus === "copied" ? "Copied!" : copyStatus === "failed" ? "Failed" : "Copy text"}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyDebugPayload}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+              debugCopyStatus === "copied"
+                ? "border-sky-200 bg-sky-50 text-sky-700"
+                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+            }`}
+          >
+            {debugCopyStatus === "copied" ? "Debug copied" : debugCopyStatus === "failed" ? "Debug failed" : "Copy debug"}
           </button>
           <button
             type="button"
@@ -822,6 +871,7 @@ export function TaskCard({
                   openPdfHref,
                   canEditLatex,
                   onSaveEquationLatex,
+                  reflowWrappedLines: hasMathLayoutWarning,
                 })}
               </div>
             </div>
@@ -839,6 +889,7 @@ export function TaskCard({
                     openPdfHref,
                     canEditLatex,
                     onSaveEquationLatex,
+                    reflowWrappedLines: hasMathLayoutWarning,
                   })}
                 </div>
               </div>
@@ -856,6 +907,7 @@ export function TaskCard({
                           openPdfHref,
                           canEditLatex,
                           onSaveEquationLatex,
+                          reflowWrappedLines: hasMathLayoutWarning,
                         })}
                       </div>
                     ) : null}
@@ -867,6 +919,7 @@ export function TaskCard({
                         onSaveEquationLatex,
                         suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                         samplePowerTableBlock,
+                        reflowWrappedLines: hasMathLayoutWarning,
                       })}
                     </div>
                   </div>
@@ -884,6 +937,7 @@ export function TaskCard({
                                   openPdfHref,
                                   canEditLatex,
                                   onSaveEquationLatex,
+                                  reflowWrappedLines: hasMathLayoutWarning,
                                 })}
                               </div>
                             ) : null}
@@ -895,6 +949,7 @@ export function TaskCard({
                                 onSaveEquationLatex,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
+                                reflowWrappedLines: hasMathLayoutWarning,
                               })}
                             </div>
                           </>
@@ -905,6 +960,7 @@ export function TaskCard({
                           openPdfHref,
                           canEditLatex,
                           onSaveEquationLatex,
+                          reflowWrappedLines: hasMathLayoutWarning,
                         })
                       )}
                     </div>

@@ -488,7 +488,15 @@ async function openAiEquationFromPageImage(input: {
 async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equation[]): Promise<Equation[]> {
   const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
   if (!apiKey) return equations;
-  const unresolved = equations.filter((eq) => !eq.latex && eq.needsReview);
+  const looksSuspicious = (latex: string | null | undefined) => {
+    const t = String(latex || "").trim();
+    if (!t) return true;
+    if (t.length < 6) return true;
+    if (/sources?\s+of\s+information|routledge|pearson|wiley|bloomsbury/i.test(t)) return true;
+    if (/^i\s*=?$/i.test(t) || /^=\s*1$/i.test(t)) return true;
+    return false;
+  };
+  const unresolved = equations.filter((eq) => (!eq.latex && eq.needsReview) || Number(eq.confidence || 0) < 0.86 || looksSuspicious(eq.latex));
   if (!unresolved.length) return equations;
 
   const pageImageCache = new Map<number, string | null>();

@@ -44,6 +44,7 @@ function normalizeDisplayText(input: string) {
     .replace(/푙/g, "l")
     .replace(/퐹/g, "F")
     .replace(/휋/g, "π")
+    .replace(/−/g, "-")
     .replace(/�/g, " ")
     .replace(/\b([A-Za-z])\1\b/g, "$1")
     .replace(/\(([A-Za-z])\1\)/g, "($1)");
@@ -77,6 +78,26 @@ function injectHeuristicMathTokens(input: string) {
     }
 
     const compact = lines.join(" ").replace(/\s+/g, " ");
+    const compactMath = compact
+      .replace(/\s*=\s*/g, "=")
+      .replace(/\s*\+\s*/g, "+")
+      .replace(/\s*-\s*/g, "-")
+      .replace(/\s*\*\s*/g, "")
+      .replace(/\s+/g, " ");
+
+    const inlineEq = compactMath.match(/\b([vyiIlL])\s*=\s*([A-Za-z0-9+\-^().\\ ]{3,120})/);
+    if (inlineEq) {
+      const lhs = inlineEq[1];
+      const rhs = inlineEq[2]
+        .replace(/\bln\s*\(\s*e\s*\(/gi, "\\ln(e(")
+        .replace(/\bsin\s*\(/gi, "\\sin(")
+        .replace(/\bcos\s*\(/gi, "\\cos(")
+        .replace(/\btan\s*\(/gi, "\\tan(")
+        .replace(/\be\^\(\s*-/gi, "e^{-")
+        .replace(/\)\s*\^/g, ")^")
+        .trim();
+      return `[[MATH:${lhs}=${rhs}]]`;
+    }
 
     // Inline snippet replacements inside paragraph text.
     let replaced = compact.replace(

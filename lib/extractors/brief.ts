@@ -653,8 +653,10 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
 function cleanTaskLines(lines: string[]) {
   const normalizeMathGlyphsInText = (input: string) => {
     const s = String(input || "");
-    return s
+    const normalized = s
       // Common OCR/math italic glyphs leaking into prose
+      .replace(/푡+/g, "t")
+      .replace(/푒+/g, "e")
       .replace(/푖+/g, "i")
       .replace(/푗+/g, "j")
       .replace(/푘+/g, "k")
@@ -674,6 +676,11 @@ function cleanTaskLines(lines: string[]) {
       // Degree-like marker from extraction noise
       .replace(/표+/g, "°")
       .replace(/[ \t]+/g, " ");
+    const mathish = /[=+\-*/^()]/.test(normalized) || /\b(sin|cos|tan|ln|log)\b/i.test(normalized);
+    if (!mathish) return normalized;
+    return normalized
+      .replace(/\btt\b/g, "t")
+      .replace(/\bee\b/g, "e");
   };
 
   const isAiasPolicyLine = (text: string) => {
@@ -1326,10 +1333,12 @@ function extractBriefTasks(
     let cut = lines.length;
     for (let i = 0; i < lines.length; i += 1) {
       const compact = normalizeWhitespace(lines[i]).toLowerCase();
+      const noSpace = compact.replace(/\s+/g, "");
       if (!compact) continue;
       if (
         contaminationAnchors.some((cue) => cue.test(compact)) ||
-        /\b(textbooks?|websites?|further\s+reading|additional\s+resources?)\b/i.test(compact)
+        /\b(textbooks?|websites?|further\s+reading|additional\s+resources?)\b/i.test(compact) ||
+        /sourcesofinformationtosupportyouwiththisassignment/i.test(noSpace)
       ) {
         cut = i;
         break;
@@ -1569,6 +1578,127 @@ export function extractBrief(
   const filteredEquations = Array.isArray(options?.equations)
     ? options!.equations.filter((eq) => usedEqIds.has(eq.id))
     : [];
+
+  const eqById = new Map(filteredEquations.map((eq) => [eq.id, eq]));
+  const looksSuspiciousEquationLatex = (latex: string | null | undefined) => {
+    const t = normalizeWhitespace(String(latex || ""));
+    if (!t) return true;
+    if (t.length < 4) return true;
+    if (/sources?\s+of\s+information|routledge|pearson|bloomsbury|wiley/i.test(t)) return true;
+    if (/^i\s*=?$/i.test(t) || /^=\s*1$/i.test(t)) return true;
+    return false;
+  };
+  const hasStackedMathLayout = (textValue: string) => {
+    const s = String(textValue || "");
+    if (!s) return false;
+    const stackedExponent =
+      /[A-Za-z\)]\s*\n\s*\d{1,2}\b/.test(s) ||
+      /\b(sin|cos|tan)\s*\([^)]*\n\s*\d{1,2}\b/i.test(s);
+    const operatorLineBreak =
+      /[=+\-*/]\s*\n\s*[A-Za-z0-9(]/.test(s) ||
+      /\)\s*\n\s*\d{1,2}\b/.test(s);
+    const suspiciousShortMathLines = s
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => /^[A-Za-z0-9+\-*/^=().]{1,3}$/.test(line)).length;
+    return stackedExponent || operatorLineBreak || suspiciousShortMathLines >= 3;
+  };
+  const repairStackedMathLayout = (textValue: string) => {
+    const src = String(textValue || "");
+    if (!src) return src;
+    let out = src;
+    // Convert stacked exponents: t \n 3 -> t^3, ) \n 2 -> )^2
+    out = out.replace(/([A-Za-z\)])\s*\n\s*(\d{1,2})\b/g, "$1^$2");
+    // Rejoin tiny math-only lines into previous line.
+    const lines = out.split("\n");
+    const rebuilt: string[] = [];
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) {
+        rebuilt.push("");
+        continue;
+      }
+      const isTinyMath = /^[+\-*/=()0-9A-Za-z^]{1,4}$/.test(line);
+      if (isTinyMath && rebuilt.length > 0 && rebuilt[rebuilt.length - 1].trim()) {
+        const prev = rebuilt[rebuilt.length - 1];
+        if (/^\d{1,2}$/.test(line) && /[A-Za-z\)]\s*$/.test(prev.trim())) {
+          rebuilt[rebuilt.length - 1] = `${prev}^${line}`;
+        } else {
+          rebuilt[rebuilt.length - 1] = `${prev}${line}`;
+        }
+      } else {
+        rebuilt.push(raw);
+      }
+    }
+    out = rebuilt.join("\n");
+    // Specific multiline power forms: v=(t\n3\n+4)\n2 -> v=(t^3+4)^2
+    out = out.replace(/\(\s*([A-Za-z])\s*\n\s*(\d{1,2})\s*\n\s*([^)]+)\)\s*\n\s*(\d{1,2})/g, "($1^$2+$3)^$4");
+    out = out.replace(/\(\s*([A-Za-z][^)]*)\s*\)\s*\n\s*(\d{1,2})/g, "($1)^$2");
+    // Compact common broken function wrappers: sin(3t^2 \n + 2t-1)
+    out = out.replace(/\(\s*([^\n()]{1,80})\s*\n\s*([+\-][^\n()]{1,80})\s*\)/g, "($1 $2)");
+    // Normalize obvious OCR splits for e^(...)
+    out = out
+      .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^(-$1t)")
+      .replace(/\bl\s+e\s*\n\s*\(/gi, "ln(e(");
+    return out.replace(/\n{3,}/g, "\n\n");
+  };
+  const hasBibliographyLeak = (textValue: string) => {
+    const t = normalizeWhitespace(textValue).toLowerCase();
+    return (
+      /sourcesofinformationtosupportyouwiththisassignment/.test(t.replace(/\s+/g, "")) ||
+      /\bsources?\s+of\s+information\b/.test(t) ||
+      /\b(19|20)\d{2}\)\s+[a-z].+\b(ed\.|edition|press|routledge|pearson|wiley|bloomsbury|springer)\b/i.test(t)
+    );
+  };
+  const hasMathGlyphLeak = (textValue: string) => /[푡푒푖푗푘푙푚푅푉]/.test(String(textValue || ""));
+  for (const task of tasksResult.tasks || []) {
+    const taskWarnings = new Set((task.warnings || []).map((w) => String(w)));
+    const ids = new Set<string>();
+    collectEqIds(task?.text, ids);
+    collectEqIds(task?.prompt, ids);
+    for (const part of task?.parts || []) collectEqIds(part?.text, ids);
+    const idsArr = Array.from(ids);
+    const linkedEqs = idsArr.map((id) => eqById.get(id)).filter(Boolean) as BriefEquation[];
+
+    if (idsArr.some((id) => !eqById.has(id))) {
+      taskWarnings.add("equation token unresolved");
+    }
+    if (
+      linkedEqs.some(
+        (eq) =>
+          eq.needsReview ||
+          Number(eq.confidence || 0) < 0.86 ||
+          looksSuspiciousEquationLatex(eq.latex)
+      )
+    ) {
+      taskWarnings.add("equation quality: low-confidence");
+    }
+    if (hasBibliographyLeak(task.text || "")) {
+      taskWarnings.add("possible end-matter contamination");
+    }
+    if (hasMathGlyphLeak(task.text || "")) {
+      taskWarnings.add("math glyph artifacts present");
+    }
+    if (
+      hasStackedMathLayout(task.text || "") ||
+      (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")))
+    ) {
+      taskWarnings.add("math layout: broken line wraps");
+      task.text = repairStackedMathLayout(task.text || "");
+      task.prompt = task.text;
+      if (Array.isArray(task.parts)) {
+        task.parts = task.parts.map((part) => ({
+          ...part,
+          text: repairStackedMathLayout(part?.text || ""),
+        }));
+      }
+    }
+
+    const mergedWarnings = Array.from(taskWarnings);
+    task.warnings = mergedWarnings.length ? mergedWarnings : undefined;
+    task.confidence = mergedWarnings.length ? "HEURISTIC" : "CLEAN";
+  }
 
   return {
     kind: "BRIEF" as const,
