@@ -8,6 +8,7 @@ import { ui } from "@/components/ui/uiClasses";
 import { useRouter } from "next/navigation";
 import { TaskCard } from "./TaskCard";
 import { statusTone, tone } from "../[briefId]/components/briefStyles";
+import { computeEffectiveTaskWarnings } from "@/lib/briefs/warnings";
 
 function normalizeComparableText(s: string) {
   return String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -123,50 +124,8 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
         : eq;
     return acc;
   }, {});
-  const effectiveWarningsForTask = (task: any) => {
-    const raw: string[] = Array.isArray(task?.warnings) ? task.warnings.map((w: unknown) => String(w)) : [];
-    const n = Number(task?.n);
-    const hasManualTaskLatexOverride =
-      Number.isFinite(n) &&
-      n > 0 &&
-      Object.keys(taskLatexOverrides || {}).some((k) => String(k || "").startsWith(`${n}.`) && String((taskLatexOverrides as any)?.[k] || "").trim());
-
-    const referencedEquationIds = (() => {
-      const ids = new Set<string>();
-      const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
-      const collect = (value: unknown) => {
-        const txt = String(value || "");
-        let m: RegExpExecArray | null;
-        while ((m = tokenRe.exec(txt))) if (m[1]) ids.add(String(m[1]));
-      };
-      collect(task?.text);
-      collect(task?.prompt);
-      if (Array.isArray(task?.parts)) {
-        for (const p of task.parts) collect(p?.text);
-      }
-      return Array.from(ids);
-    })();
-
-    const hasResolvedReferencedEquations =
-      referencedEquationIds.length > 0 &&
-      referencedEquationIds.every((id) => {
-        const eq: any = equationsById?.[id];
-        const latex = String(eq?.latex || "").trim();
-        return !!latex && !eq?.needsReview;
-      });
-
-    const hasResolvedTaskEquations = Array.isArray(task?.equations)
-      ? task.equations.length > 0 &&
-        task.equations.every((eq: any) => {
-          const latex = String(eq?.latex || "").trim();
-          return !!latex && !eq?.needsReview;
-        })
-      : false;
-
-    return raw
-      .filter((w) => !/openai math cleanup applied/i.test(w))
-      .filter((w) => !((hasResolvedReferencedEquations || hasResolvedTaskEquations || hasManualTaskLatexOverride) && /equation quality: low-confidence/i.test(w)));
-  };
+  const effectiveWarningsForTask = (task: any) =>
+    computeEffectiveTaskWarnings(task, { equationsById, taskLatexOverrides });
   const taskWarningRows = rawTasks.flatMap((task: any, idx: number) => {
     const n = Number(task?.n || idx + 1);
     const label = String(task?.label || (task?.n ? `Task ${task.n}` : `Task ${idx + 1}`)).trim();

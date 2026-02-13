@@ -103,13 +103,9 @@ export default function BriefLibraryTable({
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
                         <Pill cls={statusTone(r.status)}>{(r.status || "").toUpperCase()}</Pill>
-                        {doc ? (
-                          <Pill cls={statusTone(doc.status)}>{(doc.status || "").toUpperCase()}</Pill>
-                        ) : (
-                          <Pill cls={tone("warn")}>NO DOC</Pill>
-                        )}
-                        {doc?.lockedAt ? <Pill cls={tone("ok")}>DOC LOCKED</Pill> : <Pill cls={tone("warn")}>DOC NOT LOCKED</Pill>}
-                        <span className="truncate">{doc?.originalFilename || "—"}</span>
+                        {doc && doc.status && String(doc.status).toUpperCase() !== String(r.status || "").toUpperCase() ? (
+                          <Pill cls={statusTone(doc.status)}>{String(doc.status).toUpperCase()}</Pill>
+                        ) : null}
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-700">
                         <span className="font-semibold">Criteria:</span>

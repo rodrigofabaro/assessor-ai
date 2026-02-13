@@ -124,6 +124,34 @@ function pickHeaderDate(doc: ReferenceDocument | null | undefined, key: "issueDa
   return null;
 }
 
+function inferBriefDocForRow(
+  brief: AssignmentBrief,
+  unit: Unit,
+  docs: ReferenceDocument[]
+): ReferenceDocument | null {
+  const assignmentCode = String(brief.assignmentCode || "").trim().toUpperCase();
+  const unitCode = String(unit.unitCode || "").trim().toUpperCase();
+  if (!assignmentCode || !unitCode) return null;
+
+  const candidates = (Array.isArray(docs) ? docs : []).filter((d) => {
+    if (String(d.type || "").toUpperCase() !== "BRIEF") return false;
+    const ex = d.extractedJson || {};
+    const exAssignment = String(ex?.assignmentCode || ex?.assignmentCodeGuess || "").trim().toUpperCase();
+    const exUnit = String(ex?.unitCodeGuess || ex?.header?.unitCode || ex?.header?.unitNumberAndTitle || "").trim().toUpperCase();
+    return exAssignment === assignmentCode && exUnit.includes(unitCode);
+  });
+
+  if (!candidates.length) return null;
+  return candidates.sort((a, b) => {
+    const al = a.lockedAt ? 1 : 0;
+    const bl = b.lockedAt ? 1 : 0;
+    if (al !== bl) return bl - al;
+    const at = new Date(a.updatedAt || a.uploadedAt || 0).getTime();
+    const bt = new Date(b.updatedAt || b.uploadedAt || 0).getTime();
+    return bt - at;
+  })[0];
+}
+
 export type BriefReadiness = "READY" | "ATTN" | "BLOCKED";
 
 
@@ -234,7 +262,9 @@ export function useBriefsAdmin() {
 
     for (const u of unitsArr) {
       for (const b of u.assignmentBriefs || []) {
-        const linkedDoc = b.briefDocumentId ? (docById.get(b.briefDocumentId) || null) : null;
+        const linkedDoc = b.briefDocumentId
+          ? (docById.get(b.briefDocumentId) || null)
+          : inferBriefDocForRow(b, u, docsArr);
         const headerYear = pickYearFromHeader(linkedDoc);
         const issueDate = pickHeaderDate(linkedDoc, "issueDate");
         const finalSubmissionDate = pickHeaderDate(linkedDoc, "finalSubmissionDate");
