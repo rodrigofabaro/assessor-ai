@@ -4,6 +4,7 @@ import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { extractIvSummaryFromDocxBuffer } from "@/lib/iv/evidenceSummary";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
@@ -37,11 +38,13 @@ function safeIvRecords(x: any) {
             uploadedAt: String(r.attachment.uploadedAt || ""),
             size: Number(r.attachment.size || 0),
             storagePath: r.attachment.storagePath ? String(r.attachment.storagePath) : null,
+            summary: r.attachment.summary && typeof r.attachment.summary === "object" ? r.attachment.summary : null,
           }
         : null,
     }))
     .filter((r) => r.id && r.academicYear);
 }
+
 
 async function loadBriefDoc(briefId: string) {
   const brief = await prisma.assignmentBrief.findUnique({
@@ -69,8 +72,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
   const filename = file.name || "iv-form";
   const ext = path.extname(filename).toLowerCase();
   const isPdf = file.type === "application/pdf" || ext === ".pdf";
-  if (!isPdf) {
-    return NextResponse.json({ error: "Only PDF files are supported." }, { status: 400 });
+  const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === ".docx";
+  const isDoc = file.type === "application/msword" || ext === ".doc";
+  if (!isPdf && !isDocx && !isDoc) {
+    return NextResponse.json({ error: "Only PDF, DOCX, or DOC files are supported." }, { status: 400 });
   }
 
   const MAX_BYTES = 50 * 1024 * 1024;
@@ -117,12 +122,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
     },
   });
 
+  const summary = isDocx ? await extractIvSummaryFromDocxBuffer(buffer) : null;
   const attachment = {
     documentId: ivDoc.id,
     originalFilename: ivDoc.originalFilename,
     uploadedAt: ivDoc.uploadedAt.toISOString(),
     size: file.size,
     storagePath: ivDoc.storagePath,
+    summary,
   };
 
   const nextRecords = [...existing];

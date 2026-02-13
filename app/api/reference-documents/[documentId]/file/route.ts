@@ -10,6 +10,14 @@ function safeStr(x: unknown) {
   return typeof x === "string" ? x : "";
 }
 
+function contentTypeFor(filename: string) {
+  const lower = String(filename || "").toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lower.endsWith(".doc")) return "application/msword";
+  return "application/octet-stream";
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ documentId: string }> }
@@ -48,12 +56,14 @@ export async function GET(
 
   const stream = fs.createReadStream(resolved.path);
 
+  const contentType = contentTypeFor(filename);
+  const disposition = contentType === "application/pdf" ? "inline" : "attachment";
+
   return new NextResponse(stream as any, {
     headers: {
-      "Content-Type": "application/pdf",
+      "Content-Type": contentType,
       "Content-Length": String(stat.size),
-      // inline lets iframe/modal render it
-      "Content-Disposition": `inline; filename="${filename.replace(/"/g, "")}"`,
+      "Content-Disposition": `${disposition}; filename="${filename.replace(/"/g, "")}"`,
       "Cache-Control": "no-store",
     },
   });

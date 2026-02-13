@@ -64,6 +64,7 @@ export type ReferenceDocumentUsage = {
 };
 
 export type IvOutcome = "APPROVED" | "CHANGES_REQUIRED" | "REJECTED";
+export type BriefReadiness = "READY" | "ATTN" | "BLOCKED";
 
 export type IvRecord = {
   id: string;
@@ -79,6 +80,14 @@ export type IvRecord = {
     uploadedAt: string;
     size: number;
     storagePath?: string | null;
+    summary?: {
+      assessorName?: string;
+      internalVerifierName?: string;
+      unitTitle?: string;
+      assignmentTitle?: string;
+      learningOutcomes?: string;
+      acsSubmitted?: string;
+    } | null;
   } | null;
 };
 
@@ -135,11 +144,37 @@ function safeIvRecords(x: any): IvRecord[] {
             uploadedAt: String(r.attachment.uploadedAt || ""),
             size: Number(r.attachment.size || 0),
             storagePath: r.attachment.storagePath ? String(r.attachment.storagePath) : null,
+            summary: r.attachment.summary && typeof r.attachment.summary === "object" ? r.attachment.summary : null,
           }
         : null,
     }))
     .filter((r) => r.id && r.academicYear)
     .sort((a, b) => (b.academicYear || "").localeCompare(a.academicYear || ""));
+}
+
+function inferAcademicYear(linkedDoc: ReferenceDocument | null | undefined): string {
+  const fromHeader = String(linkedDoc?.extractedJson?.header?.academicYear || "").trim();
+  if (fromHeader) return fromHeader;
+  const y = new Date().getFullYear();
+  return `${y}-${String(y + 1).slice(2)}`;
+}
+
+function computeReadiness(row: {
+  briefLocked?: string | null;
+  unitLocked?: string | null;
+  linkedDoc?: ReferenceDocument | null;
+  headerYear?: string | null;
+  ivForYear?: IvRecord | null;
+}): { readiness: BriefReadiness; reason: string } {
+  if (!row.briefLocked) return { readiness: "BLOCKED", reason: "Brief is not locked." };
+  if (!row.linkedDoc) return { readiness: "BLOCKED", reason: "No PDF linked to this brief." };
+  if (!row.linkedDoc.lockedAt) return { readiness: "ATTN", reason: "PDF is linked but not locked." };
+  if (!row.unitLocked) return { readiness: "ATTN", reason: "Unit spec is not locked yet." };
+  if (!row.headerYear) return { readiness: "ATTN", reason: "Academic year not extracted from PDF header." };
+  if (!row.ivForYear) return { readiness: "ATTN", reason: `No IV record found for academic year ${row.headerYear}.` };
+  if (row.ivForYear.outcome === "REJECTED") return { readiness: "BLOCKED", reason: "IV outcome is REJECTED." };
+  if (row.ivForYear.outcome === "CHANGES_REQUIRED") return { readiness: "ATTN", reason: "IV outcome is CHANGES REQUIRED." };
+  return { readiness: "READY", reason: "Ready for grading (locked spec + locked brief + IV approved)." };
 }
 
 export function useBriefDetail(briefId: string) {
@@ -312,6 +347,26 @@ export function useBriefDetail(briefId: string) {
 
   const canUnlock = !!linkedDoc?.lockedAt && !!docUsage?.canUnlock;
   const canDelete = !!linkedDoc && !linkedDoc.lockedAt && !!docUsage?.canDelete;
+  const ivDefaultAcademicYear = inferAcademicYear(linkedDoc);
+  const headerYear = useMemo(() => {
+    const y = String(linkedDoc?.extractedJson?.header?.academicYear || "").trim();
+    return y || null;
+  }, [linkedDoc?.extractedJson]);
+  const ivForYear = useMemo(() => {
+    if (!headerYear) return null;
+    return ivRecords.find((r) => norm(r.academicYear) === norm(headerYear)) || null;
+  }, [ivRecords, headerYear]);
+  const readinessState = useMemo(
+    () =>
+      computeReadiness({
+        briefLocked: brief?.lockedAt,
+        unitLocked: brief?.unit?.lockedAt || null,
+        linkedDoc,
+        headerYear,
+        ivForYear,
+      }),
+    [brief?.lockedAt, brief?.unit?.lockedAt, linkedDoc, headerYear, ivForYear]
+  );
 
   const loadIv = async () => {
     if (!briefId) return;
@@ -391,6 +446,75 @@ export function useBriefDetail(briefId: string) {
       notifyToast("success", "IV form uploaded.");
     } catch (e: any) {
       const message = e?.message || "Failed to upload IV form.";
+      setIvError(message);
+      notifyToast("error", message);
+    } finally {
+      setIvBusy(false);
+    }
+  };
+
+  const backfillIvSummary = async (id: string) => {
+    if (!briefId || !id) return;
+    setIvBusy(true);
+    setIvError(null);
+    try {
+      const res = await jsonFetch<any>(`/api/briefs/${briefId}/iv/${id}/backfill-summary`, {
+        method: "POST",
+      });
+      const recs = safeIvRecords(res?.records);
+      setIvRecords(recs);
+      notifyToast("success", "IV evidence summary backfilled.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to backfill IV evidence summary.";
+      setIvError(message);
+      notifyToast("error", message);
+    } finally {
+      setIvBusy(false);
+    }
+  };
+
+  const addIvEvidence = async (file: File, opts?: { academicYear?: string; outcome?: IvOutcome }) => {
+    if (!briefId || !file) return;
+    setIvBusy(true);
+    setIvError(null);
+    let createdIvId: string | null = null;
+    try {
+      const academicYear = String(opts?.academicYear || ivDefaultAcademicYear || "").trim();
+      const outcome: IvOutcome = opts?.outcome || "APPROVED";
+      const createRes = await jsonFetch<any>(`/api/briefs/${briefId}/iv`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          academicYear,
+          outcome,
+          verifierName: null,
+          verificationDate: null,
+          notes: "Evidence upload",
+        }),
+      });
+      const createdRecords = safeIvRecords(createRes?.records);
+      const created = createdRecords[0] || null;
+      if (!created?.id) throw new Error("Failed to create IV record.");
+      createdIvId = created.id;
+
+      const form = new FormData();
+      form.append("file", file);
+      const uploadRes = await jsonFetch<any>(`/api/briefs/${briefId}/iv/${createdIvId}/attachment`, {
+        method: "POST",
+        body: form,
+      });
+      const recs = safeIvRecords(uploadRes?.records);
+      setIvRecords(recs);
+      notifyToast("success", "IV evidence uploaded.");
+    } catch (e: any) {
+      if (createdIvId) {
+        try {
+          await jsonFetch(`/api/briefs/${briefId}/iv/${createdIvId}`, { method: "DELETE" });
+        } catch {
+          // Best effort rollback only.
+        }
+      }
+      const message = e?.message || "Failed to upload IV evidence.";
       setIvError(message);
       notifyToast("error", message);
     } finally {
@@ -615,9 +739,13 @@ export function useBriefDetail(briefId: string) {
     ivBusy,
     ivError,
     ivRecords,
+    ivForYear,
+    ivDefaultAcademicYear,
     addIvRecord,
+    addIvEvidence,
     deleteIvRecord,
     uploadIvAttachment,
+    backfillIvSummary,
     rubric,
     rubricBusy,
     rubricError,
@@ -633,6 +761,8 @@ export function useBriefDetail(briefId: string) {
     saveTaskLatex,
     docUsage,
     usageLoading,
+    readiness: readinessState.readiness,
+    readinessReason: readinessState.reason,
     unlockLinkedDoc,
     deleteLinkedDoc,
   };
