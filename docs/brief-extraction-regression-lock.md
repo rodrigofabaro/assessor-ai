@@ -9,6 +9,13 @@ This document defines the locked extraction/rendering behaviors for the current 
 - Task 2 `b.ii` must **not** contain that table.
 - A `TABLE` block for `Sample` must be detected.
 
+### U4002 A2 (`Unit 4002 - Engineering Mathematics`)
+- Must produce exactly 4 tasks in order: `1, 2, 3, 4`.
+- Task 4 typography anchors must be preserved:
+  - Part `a` must include `Task 1 (a).` followed by a newline before `Provide a screenshot...`
+  - Part `c` must include `Task 1 (b).` followed by a newline before `Provide a screenshot...`
+- Task 4 part split must remain `a`, `b`, `c` (no merge into Task 3).
+
 ### 4017 A1 (`Quality Control Tools and Costing`)
 - Task 1 must keep intro line:
   - `In a bid to convince the CEO ...`

@@ -400,7 +400,7 @@ function renderStructuredParts(
                   {renderPdfTextBlocks(
                     cleanPartText,
                     `${keyPrefix}-parttext-${part.key}-${partIndex}`,
-                    { ...options, reflowWrappedLines: true }
+                    { ...options, reflowWrappedLines: false }
                   )}
                 </div>
               );
@@ -451,7 +451,7 @@ function renderStructuredParts(
                       return renderPdfTextBlocks(
                         cleanChildText,
                         `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
-                        { ...options, reflowWrappedLines: true }
+                        { ...options, reflowWrappedLines: false }
                       );
                     })()}
                   </div>

@@ -150,6 +150,8 @@ async function extractSnapshot(pdfPath) {
   return {
     kind: brief.kind,
     title: brief.title,
+    assignmentCode: brief.assignmentCode || null,
+    unitCodeGuess: brief.unitCodeGuess || null,
     pageCount,
     header: brief.header || null,
     equations: brief.equations || [],
@@ -194,7 +196,10 @@ async function main() {
   }
 
   const fixtureName = path.basename(args.pdfPath).toLowerCase();
-  if (fixtureName.includes("u4002")) {
+  const assignmentCode = String(snapshot.assignmentCode || "").toUpperCase();
+  const unitCodeGuess = String(snapshot.unitCodeGuess || "").trim();
+
+  if (fixtureName.includes("u4002") && assignmentCode === "A1") {
     const task2 = snapshot.tasks.find((t) => t.n === 2);
     if (!task2) {
       console.error("WARNING: U4002 expected Task 2 but none found.");
@@ -218,6 +223,32 @@ async function main() {
     });
     if (!hasSampleTableBlock) {
       console.error("WARNING: U4002 expected Sample/Power table block not detected.");
+      process.exit(1);
+    }
+  }
+
+  if ((fixtureName.includes("u4002") && assignmentCode === "A2") || (unitCodeGuess === "4002" && assignmentCode === "A2")) {
+    const taskNumbers = snapshot.tasks.map((t) => Number(t.n)).filter((n) => Number.isFinite(n));
+    const expected = [1, 2, 3, 4];
+    if (taskNumbers.length !== 4 || expected.some((n, idx) => taskNumbers[idx] !== n)) {
+      console.error(`WARNING: U4002 A2 expected task sequence ${expected.join(",")} but got ${taskNumbers.join(",")}.`);
+      process.exit(1);
+    }
+
+    const task4 = snapshot.tasks.find((t) => Number(t.n) === 4);
+    if (!task4) {
+      console.error("WARNING: U4002 A2 expected Task 4 but none found.");
+      process.exit(1);
+    }
+    const task4Parts = new Map((task4.parts || []).map((p) => [String(p.key || "").toLowerCase(), String(p.text || "")]));
+    const aText = task4Parts.get("a") || "";
+    const cText = task4Parts.get("c") || "";
+    if (!/Task 1 \(a\)\.\nProvide a screenshot/i.test(aText)) {
+      console.error("WARNING: U4002 A2 expected Task 4(a) line break before 'Provide a screenshot'.");
+      process.exit(1);
+    }
+    if (!/Task 1 \(b\)\.\nProvide a screenshot/i.test(cText)) {
+      console.error("WARNING: U4002 A2 expected Task 4(c) line break before 'Provide a screenshot'.");
       process.exit(1);
     }
   }
