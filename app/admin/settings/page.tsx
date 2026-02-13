@@ -16,22 +16,18 @@ type EndpointOkCosts = {
   currency: string;
 };
 
-type EndpointOkCredits = {
-  available: true;
-  totalGranted?: number;
-  totalUsed?: number;
-  totalAvailable?: number;
-};
-
 type EndpointError = {
   available: false;
   status?: number;
   message?: string;
 };
-type AnyEndpoint = EndpointOkUsage | EndpointOkCosts | EndpointOkCredits | EndpointError;
+type AnyEndpoint = EndpointOkUsage | EndpointOkCosts | EndpointError;
 
 type UsagePayload = {
   configured: boolean;
+  keyType?: "admin" | "standard";
+  model?: string;
+  modelSource?: "env" | "settings";
   message?: string;
   generatedAt?: string;
   connection?: {
@@ -65,7 +61,12 @@ type UsagePayload = {
   };
   usage?: EndpointOkUsage | EndpointError;
   costs?: EndpointOkCosts | EndpointError;
-  credits?: EndpointOkCredits | EndpointError;
+};
+
+type ModelPayload = {
+  model: string;
+  source: "env" | "settings";
+  allowedModels: string[];
 };
 
 function formatNumber(value: number) {
@@ -84,13 +85,13 @@ function formatDate(epochSeconds: number) {
   return new Date(epochSeconds * 1000).toLocaleString();
 }
 
-function endpointStatusText(value: UsagePayload["usage"] | UsagePayload["costs"] | UsagePayload["credits"]) {
+function endpointStatusText(value: UsagePayload["usage"] | UsagePayload["costs"]) {
   if (!value) return "Not loaded";
   if (!isEndpointError(value)) return "Available";
   return `Unavailable${value.status ? ` (${value.status})` : ""}`;
 }
 
-function endpointMessage(value: UsagePayload["usage"] | UsagePayload["costs"] | UsagePayload["credits"]) {
+function endpointMessage(value: UsagePayload["usage"] | UsagePayload["costs"]) {
   if (!value || !isEndpointError(value)) return "";
   return value.message || "";
 }
@@ -103,6 +104,10 @@ export default function AdminSettingsPage() {
   const [data, setData] = useState<UsagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [model, setModel] = useState<string>("");
+  const [allowedModels, setAllowedModels] = useState<string[]>([]);
+  const [savingModel, setSavingModel] = useState(false);
+  const [modelMessage, setModelMessage] = useState<string>("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,6 +119,14 @@ export default function AdminSettingsPage() {
       });
       const json = (await res.json()) as UsagePayload;
       setData(json);
+      if (json.model) setModel(json.model);
+
+      const modelRes = await fetch("/api/admin/openai-model", { method: "GET", cache: "no-store" });
+      if (modelRes.ok) {
+        const modelJson = (await modelRes.json()) as ModelPayload;
+        setAllowedModels(modelJson.allowedModels || []);
+        if (!json.model && modelJson.model) setModel(modelJson.model);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
       setData(null);
@@ -136,8 +149,26 @@ export default function AdminSettingsPage() {
   const effectiveUsageTotal = data?.usage && data.usage.available ? usageTotal : localUsageTotal;
   const usageSource = data?.usage && data.usage.available ? "OpenAI org metrics" : data?.localUsage?.available ? "Local app telemetry" : "No usage data";
   const costTotal = data?.costs && data.costs.available ? formatMoney(data.costs.amount, data.costs.currency) : "Unavailable";
-  const creditRemaining =
-    data?.credits && data.credits.available ? formatMoney(data.credits.totalAvailable || 0, "USD") : "Unavailable";
+  const saveModel = useCallback(async () => {
+    if (!model) return;
+    setSavingModel(true);
+    setModelMessage("");
+    try {
+      const res = await fetch("/api/admin/openai-model", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error || "Failed to save model");
+      setModelMessage("Model saved.");
+      await load();
+    } catch (e) {
+      setModelMessage(e instanceof Error ? e.message : "Failed to save model.");
+    } finally {
+      setSavingModel(false);
+    }
+  }, [load, model]);
 
   return (
     <div className="grid gap-4">
@@ -145,7 +176,7 @@ export default function AdminSettingsPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-zinc-900">System settings</h1>
-            <p className="mt-1 text-sm text-zinc-700">OpenAI connectivity, usage metrics, costs, and credit visibility.</p>
+            <p className="mt-1 text-sm text-zinc-700">OpenAI connectivity, usage metrics, and spend visibility.</p>
           </div>
           <button
             onClick={load}
@@ -165,6 +196,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{data?.configured ? "Configured" : "Not configured"}</div>
           <p className="mt-1 text-sm text-zinc-700">{data?.message || "Environment key loaded."}</p>
+          <p className="mt-1 text-xs text-zinc-500">Using {data?.keyType === "admin" ? "admin key" : "standard key"}</p>
         </article>
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -193,11 +225,40 @@ export default function AdminSettingsPage() {
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-950">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-950">💳</span>
-            Spend and credits
+            Spend / cost
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{costTotal}</div>
-          <p className="mt-1 text-sm text-zinc-700">Remaining credits: {creditRemaining}</p>
+          <p className="mt-1 text-sm text-zinc-700">{windowLabel}</p>
         </article>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">Agent model</h2>
+        <p className="mt-1 text-sm text-zinc-600">Select which OpenAI model the agent should use.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="h-10 min-w-[220px] rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+          >
+            {(allowedModels.length ? allowedModels : ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o", "gpt-5-mini"]).map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={saveModel}
+            disabled={savingModel || !model}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+          >
+            {savingModel ? "Saving..." : "Save model"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          Current: {data?.model || model || "unknown"} ({data?.modelSource || "env"})
+        </p>
+        {modelMessage ? <p className="mt-1 text-xs text-zinc-600">{modelMessage}</p> : null}
       </section>
 
       {data?.hints?.needsAdminKeyForOrgMetrics ? (
@@ -288,11 +349,6 @@ export default function AdminSettingsPage() {
             <div className="font-medium text-zinc-900">Cost endpoint</div>
             <div className="text-zinc-700">{endpointStatusText(data?.costs)}</div>
             {endpointMessage(data?.costs) ? <div className="text-zinc-600">{endpointMessage(data?.costs)}</div> : null}
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
-            <div className="font-medium text-zinc-900">Credits endpoint</div>
-            <div className="text-zinc-700">{endpointStatusText(data?.credits)}</div>
-            {endpointMessage(data?.credits) ? <div className="text-zinc-600">{endpointMessage(data?.credits)}</div> : null}
           </div>
         </div>
       </section>

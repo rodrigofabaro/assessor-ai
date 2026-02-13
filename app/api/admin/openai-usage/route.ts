@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readOpenAiUsageHistory } from "@/lib/openai/usageLog";
+import { readOpenAiModel } from "@/lib/openai/modelConfig";
 
 export const runtime = "nodejs";
 
@@ -135,30 +136,17 @@ function parseCostTotals(payload: JsonObject) {
   return { amount, currency };
 }
 
-function parseCreditTotals(payload: JsonObject) {
-  const root = payload as Record<string, unknown>;
-  const totalGranted = toNumber(root.total_granted);
-  const totalUsed = toNumber(root.total_used);
-  const totalAvailable = toNumber(root.total_available);
-
-  if (totalGranted || totalUsed || totalAvailable) {
-    return {
-      totalGranted,
-      totalUsed,
-      totalAvailable,
-    };
-  }
-
-  return null;
-}
-
 export async function GET() {
-  const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
+  const apiKey = String(
+    process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_ADMIN_API_KEY || process.env.OPENAI_ADMIN || process.env.OPENAI_API_KEY || ""
+  )
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
   if (!apiKey) {
     return NextResponse.json(
       {
         configured: false,
-        message: "OPENAI_API_KEY is missing.",
+        message: "OPENAI_ADMIN_KEY or OPENAI_API_KEY is missing.",
       },
       {
         headers: { "Cache-Control": "no-store" },
@@ -176,11 +164,10 @@ export async function GET() {
     limit: String(DEFAULT_WINDOW_DAYS),
   });
 
-  const [modelsRes, usageFetch, costsFetch, creditsFetch] = await Promise.all([
+  const [modelsRes, usageFetch, costsFetch] = await Promise.all([
     fetchOpenAi(apiKey, "/v1/models"),
     fetchOpenAi(apiKey, `/v1/organization/usage/completions?${qp.toString()}`),
     fetchOpenAi(apiKey, `/v1/organization/costs?${qp.toString()}`),
-    fetchOpenAi(apiKey, "/v1/dashboard/billing/credit_grants"),
   ]);
 
   const usage =
@@ -207,38 +194,28 @@ export async function GET() {
           message: costsFetch.message,
         };
 
-  const credits =
-    !isFetchError(creditsFetch)
-      ? (() => {
-          const totals = parseCreditTotals(creditsFetch.json);
-          return totals
-            ? {
-                available: true as const,
-                ...totals,
-              }
-            : {
-                available: false as const,
-                status: 204,
-                message: "No credit data returned.",
-              };
-        })()
-      : {
-          available: false as const,
-          status: creditsFetch.status,
-          message: creditsFetch.message,
-        };
-
   const needsAdminKeyForOrgMetrics =
     (usageFetch.ok ? 200 : usageFetch.status) === 403 || (costsFetch.ok ? 200 : costsFetch.status) === 403;
   const localUsage = readOpenAiUsageHistory(DEFAULT_WINDOW_DAYS);
+  const modelCfg = readOpenAiModel();
+  const usingAdminKey = !!String(process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_ADMIN_API_KEY || process.env.OPENAI_ADMIN || "").trim();
+  const reachable = !isFetchError(modelsRes) || !isFetchError(usageFetch) || !isFetchError(costsFetch);
+  const connectionMessage = !isFetchError(modelsRes)
+    ? "Connected to OpenAI API."
+    : !isFetchError(usageFetch) || !isFetchError(costsFetch)
+      ? "Connected via organization metrics endpoints."
+      : modelsRes.message;
 
   return NextResponse.json(
     {
       configured: true,
+      keyType: usingAdminKey ? "admin" : "standard",
+      model: modelCfg.model,
+      modelSource: modelCfg.source,
       connection: {
-        reachable: modelsRes.ok,
+        reachable,
         status: modelsRes.status,
-        message: !isFetchError(modelsRes) ? "Connected to OpenAI API." : modelsRes.message,
+        message: connectionMessage,
       },
       generatedAt: new Date().toISOString(),
       window: {
@@ -252,7 +229,6 @@ export async function GET() {
       localUsage,
       usage,
       costs,
-      credits,
     },
     {
       headers: { "Cache-Control": "no-store" },

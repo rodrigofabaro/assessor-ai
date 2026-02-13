@@ -3,6 +3,7 @@
  * Kept in a dedicated module so parser logic can't accidentally change this layer.
  */
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
+import { readOpenAiModel } from "@/lib/openai/modelConfig";
 
 export type Equation = {
   id: string;
@@ -420,7 +421,7 @@ async function openAiEquationFromPageImage(input: {
 }): Promise<{ latex: string | null; confidence: number }> {
   const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
   if (!apiKey) return { latex: null, confidence: 0 };
-  const model = process.env.OPENAI_EQUATION_MODEL || "gpt-4.1-mini";
+  const model = readOpenAiModel().model;
   const anchor = (input.anchorText || "").trim();
   const prompt = [
     "Extract the mathematical equation from this assignment page and return only strict JSON.",

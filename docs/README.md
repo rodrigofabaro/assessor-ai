@@ -11,7 +11,19 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you’re working with Codex: **`codex/README.md`** (rules + task template)
 - If you’re generating Exam Board outputs: **`standards/exam-board-mode.md`**
 - If you’re running repo health checks: **`operations/integrity-checks.md`**
+- If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
 - Roadmap tracker: **`Milestones.md`**
+
+## Recent updates (2026-02-13)
+
+- Admin dashboard **System** card now routes to `/admin/settings`.
+- Added OpenAI settings page with:
+  - API connectivity status
+  - organization usage and spend/cost metrics
+  - local historical usage fallback telemetry
+  - endpoint diagnostics
+  - model selection dropdown for agent operations
+- Added admin model config API and persisted model config.
 
 ## Non‑negotiable philosophy
 
