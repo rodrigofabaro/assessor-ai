@@ -104,6 +104,24 @@ function stripExtension(name: string) {
   return name.replace(/\.[^/.]+$/, "");
 }
 
+function summarizeCleanupCandidates(extractedJson: any) {
+  const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+  const rows: string[] = [];
+  for (const task of tasks) {
+    const label = String(task?.label || (task?.n ? `Task ${task.n}` : "Task")).trim();
+    const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).trim()) : [];
+    const reasons = ws.filter(
+      (w) =>
+        /math layout: broken line wraps/i.test(w) ||
+        /equation quality: low-confidence/i.test(w) ||
+        /possible end-matter contamination/i.test(w)
+    );
+    if (!reasons.length) continue;
+    rows.push(`${label}: ${reasons.join("; ")}`);
+  }
+  return rows;
+}
+
 export function formatDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -572,8 +590,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       if (res?.document) applyUpdatedDocument(res.document);
 
       if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson)) {
+        const lines = summarizeCleanupCandidates(res?.extractedJson);
+        const details = lines.length ? `\n\nDetected issues:\n- ${lines.join("\n- ")}` : "";
         const ok = window.confirm(
-          "Extraction found warning patterns in task math layout.\n\nWould you like to run OpenAI cleanup now?"
+          `Extraction found warning patterns and can run OpenAI cleanup.${details}\n\nProceed with AI cleanup now?`
         );
         if (ok) {
           const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
@@ -625,8 +645,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       if (res?.document) applyUpdatedDocument(res.document);
 
       if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson)) {
+        const lines = summarizeCleanupCandidates(res?.extractedJson);
+        const details = lines.length ? `\n\nDetected issues:\n- ${lines.join("\n- ")}` : "";
         const ok = window.confirm(
-          "Re-extraction found warning patterns in task math layout.\n\nWould you like to run OpenAI cleanup now?"
+          `Re-extraction found warning patterns and can run OpenAI cleanup.${details}\n\nProceed with AI cleanup now?`
         );
         if (ok) {
           const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {

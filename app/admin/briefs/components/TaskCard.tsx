@@ -20,6 +20,7 @@ interface Task {
   aias?: string | number;
   confidence?: TaskConfidence;
   warnings?: string[];
+  aiCorrected?: boolean;
   parts?: any; // Specific type depends on external lib
   criteriaCodes?: string[];
   criteriaRefs?: string[];
@@ -568,9 +569,13 @@ export function TaskCard({
     ? "OVERRIDDEN"
     : task?.confidence === "HEURISTIC" ? "HEURISTIC" : "CLEAN";
 
-  const warningItems: string[] = Array.isArray(task?.warnings)
+  const rawWarningItems: string[] = Array.isArray(task?.warnings)
     ? task.warnings.map((w: unknown) => String(w))
     : [];
+  const aiCorrected = !!task?.aiCorrected || rawWarningItems.some((w) => /openai math cleanup applied/i.test(w));
+  const warningItems = rawWarningItems.filter((w) => !/openai math cleanup applied/i.test(w));
+  const effectiveConfidence: TaskConfidence =
+    confidence === "HEURISTIC" && warningItems.length === 0 ? "CLEAN" : confidence;
   const hasMathLayoutWarning = warningItems.some((w) => /math layout: broken line wraps/i.test(w));
 
   // Logic: Isolate context lines (metadata often found at start of task)
@@ -733,6 +738,7 @@ export function TaskCard({
       n: task?.n ?? null,
       label,
       confidence,
+      effectiveConfidence,
       warnings: warningItems,
       pages,
       text: String(task?.text || ""),
@@ -756,9 +762,12 @@ export function TaskCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{label}</Pill>
-            <Pill cls={confidenceTone(confidence)}>
-              {confidence === "OVERRIDDEN" ? "Overridden" : confidence === "HEURISTIC" ? "Warnings" : "Clean"}
+            <Pill cls={confidenceTone(effectiveConfidence)}>
+              {effectiveConfidence === "OVERRIDDEN" ? "Overridden" : effectiveConfidence === "HEURISTIC" ? "Warnings" : "Clean"}
             </Pill>
+            {aiCorrected ? (
+              <Pill cls="bg-sky-50 text-sky-800 ring-1 ring-sky-200">AI corrected</Pill>
+            ) : null}
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
           </div>
           

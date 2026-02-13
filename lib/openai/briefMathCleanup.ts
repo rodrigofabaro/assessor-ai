@@ -8,7 +8,25 @@ type BriefTask = {
   parts?: Array<{ key: string; text: string }>;
   warnings?: string[];
   confidence?: "CLEAN" | "HEURISTIC";
+  aiCorrected?: boolean;
 };
+
+function normalizeExponentParens(text: string) {
+  return String(text || "").replace(/\be\^\(\s*([^)]+)\s*\)/gi, (_m, exp) => `e^{${String(exp).trim()}}`);
+}
+
+function maybeRestoreLogEFromOriginal(original: string, cleaned: string) {
+  const originalText = String(original || "");
+  let next = String(cleaned || "");
+  const hadLogLike = /\ble\(\s*[^)]+\s*\)/i.test(originalText) || /\blog\s*e\s*\(/i.test(originalText);
+  if (!hadLogLike) return next;
+
+  next = next.replace(/\blog\s*e\s*\(/gi, "log_e(");
+  next = next.replace(/\ble\(\s*([^)]+)\s*\)/gi, (_m, arg) => `log_e(${String(arg).trim()})`);
+  next = next.replace(/\be\^\{\s*([^}]+)\s*\}/gi, (_m, arg) => `log_e(${String(arg).trim()})`);
+  next = next.replace(/\be\^\(\s*([^)]+)\s*\)/gi, (_m, arg) => `log_e(${String(arg).trim()})`);
+  return next;
+}
 
 function hasBrokenMathLayout(text: string) {
   const s = String(text || "");
@@ -80,7 +98,7 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
     "- Preserve wording and task meaning.",
     "- Only fix broken math layout/wrap artifacts.",
     "- Convert stacked powers to inline powers (e.g., t newline 3 -> t^3).",
-    "- Keep equation tokens like [[EQ:p3-eq1]] unchanged.",
+    "- Keep protected tokens exactly unchanged (e.g., [[EQ:p3-eq1]], [[IMG:p3-t2-img1]]).",
     "- Do not add commentary.",
     "",
     `Task text:\n${String(task.text || "")}`,
@@ -148,6 +166,66 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
   }
 }
 
+function collectEquationTokenIds(task: BriefTask) {
+  const tokenIds = new Set<string>();
+  const collect = (value: unknown) => {
+    const src = String(value || "");
+    const re = /\[\[EQ:([^\]]+)\]\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src))) {
+      if (m[1]) tokenIds.add(m[1]);
+    }
+  };
+  collect(task.text);
+  collect(task.prompt);
+  for (const part of task.parts || []) collect(part?.text);
+  return tokenIds;
+}
+
+function collectEquationTokenIdsFromFields(value: {
+  text?: string;
+  prompt?: string;
+  parts?: Array<{ key: string; text: string }>;
+}) {
+  const tokenIds = new Set<string>();
+  const collect = (srcValue: unknown) => {
+    const src = String(srcValue || "");
+    const re = /\[\[EQ:([^\]]+)\]\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src))) {
+      if (m[1]) tokenIds.add(m[1]);
+    }
+  };
+  collect(value.text);
+  collect(value.prompt);
+  for (const part of value.parts || []) collect(part?.text);
+  return tokenIds;
+}
+
+function collectProtectedTokenIds(value: {
+  text?: string;
+  prompt?: string;
+  parts?: Array<{ key: string; text: string }>;
+}) {
+  const tokenIds = new Set<string>();
+  const collect = (srcValue: unknown) => {
+    const src = String(srcValue || "");
+    const re = /\[\[((?:EQ|IMG):[^\]]+)\]\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src))) {
+      if (m[1]) tokenIds.add(m[1]);
+    }
+  };
+  collect(value.text);
+  collect(value.prompt);
+  for (const part of value.parts || []) collect(part?.text);
+  return tokenIds;
+}
+
+function stripEquationTokens(value: string) {
+  return String(value || "").replace(/\[\[EQ:[^\]]+\]\]/g, " ");
+}
+
 export async function cleanupBriefTasksMathWithOpenAi(
   brief: any,
   opts?: { runCleanup?: boolean }
@@ -166,23 +244,19 @@ export async function cleanupBriefTasksMathWithOpenAi(
 
   for (const task of tasks) {
     const warnings = Array.isArray(task.warnings) ? task.warnings.map((w) => String(w)) : [];
+    const normalizedWarnings = warnings.filter((w) => !/openai math cleanup applied/i.test(w));
+    if (!normalizedWarnings.length) {
+      task.warnings = [];
+      task.confidence = "CLEAN";
+      continue;
+    }
+
     const needsCleanup =
-      warnings.some((w) => /math layout: broken line wraps/i.test(w)) ||
-      warnings.some((w) => /equation quality: low-confidence/i.test(w));
+      normalizedWarnings.some((w) => /math layout: broken line wraps/i.test(w)) ||
+      normalizedWarnings.some((w) => /equation quality: low-confidence/i.test(w));
     if (!needsCleanup) continue;
 
-    const tokenIds = new Set<string>();
-    const collect = (value: unknown) => {
-      const src = String(value || "");
-      const re = /\[\[EQ:([^\]]+)\]\]/g;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(src))) {
-        if (m[1]) tokenIds.add(m[1]);
-      }
-    };
-    collect(task.text);
-    collect(task.prompt);
-    for (const part of task.parts || []) collect(part?.text);
+    const tokenIds = collectEquationTokenIds(task);
 
     const relatedEqs = Array.from(tokenIds)
       .map((id) => eqById.get(id))
@@ -192,29 +266,90 @@ export async function cleanupBriefTasksMathWithOpenAi(
     const cleaned = await cleanupTaskWithOpenAi(task, relatedEqs);
     if (!cleaned.ok) {
       failed += 1;
-      const nextWarnings = new Set(warnings);
+      const nextWarnings = new Set(normalizedWarnings);
       nextWarnings.add(`openai cleanup skipped: ${cleaned.reason}`);
       task.warnings = Array.from(nextWarnings);
       task.confidence = "HEURISTIC";
       continue;
     }
 
+    // Safety: AI cleanup must not remove protected token coverage.
+    const originalProtectedTokens = collectProtectedTokenIds(task);
+    const cleanedProtectedTokens = collectProtectedTokenIds({
+      text: cleaned.text,
+      prompt: cleaned.text,
+      parts: cleaned.parts,
+    });
+    const removedToken = Array.from(originalProtectedTokens).some((id) => !cleanedProtectedTokens.has(id));
+    if (removedToken) {
+      failed += 1;
+      const nextWarnings = new Set(normalizedWarnings);
+      nextWarnings.add("openai cleanup skipped: removed protected tokens");
+      task.warnings = Array.from(nextWarnings);
+      task.confidence = "HEURISTIC";
+      task.aiCorrected = false;
+      continue;
+    }
+    const originalTokens = collectEquationTokenIds(task);
+    if (originalTokens.size > 0) {
+      const cleanedJoined = [
+        String(cleaned.text || ""),
+        ...((cleaned.parts || []).map((p) => String(p?.text || ""))),
+      ].join("\n");
+      const rawLatexOutsideTokens = /\\(?:frac|sqrt|left|right|sin|cos|tan|log|ln)\b/.test(
+        stripEquationTokens(cleanedJoined)
+      );
+      if (rawLatexOutsideTokens) {
+        failed += 1;
+        const nextWarnings = new Set(normalizedWarnings);
+        nextWarnings.add("openai cleanup skipped: introduced raw latex");
+        task.warnings = Array.from(nextWarnings);
+        task.confidence = "HEURISTIC";
+        task.aiCorrected = false;
+        continue;
+      }
+    }
+
     task.text = cleaned.text;
     task.prompt = cleaned.text;
+    task.text = normalizeExponentParens(task.text || "");
+    task.prompt = normalizeExponentParens(task.prompt || "");
     if (cleaned.parts && cleaned.parts.length) {
-      task.parts = cleaned.parts;
+      const originalByKey = new Map(
+        (Array.isArray(task.parts) ? task.parts : []).map((p: any) => [String(p?.key || "").toLowerCase(), String(p?.text || "")])
+      );
+      task.parts = cleaned.parts.map((part) => {
+        const key = String(part?.key || "").toLowerCase();
+        const original = originalByKey.get(key) || "";
+        let text = normalizeExponentParens(String(part?.text || ""));
+        text = maybeRestoreLogEFromOriginal(original, text);
+        return { ...part, text };
+      });
     }
 
     const nextWarnings = new Set(
       (task.warnings || [])
         .map((w) => String(w))
         .filter((w) => !/math layout: broken line wraps/i.test(w))
+        .filter((w) => !/equation quality: low-confidence/i.test(w))
+        .filter((w) => !/openai math cleanup applied/i.test(w))
     );
+    const remainingTokenIds = collectEquationTokenIds(task);
+    const hasLowConfidenceEquationToken = Array.from(remainingTokenIds).some((id) => {
+      const eq: any = eqById.get(id);
+      if (!eq) return true;
+      const conf = Number(eq?.confidence ?? 0);
+      return !eq?.latex || conf < 0.85;
+    });
+    if (hasLowConfidenceEquationToken) {
+      nextWarnings.add("equation quality: low-confidence");
+    }
     if (hasBrokenMathLayout(task.text || "")) {
       nextWarnings.add("math layout: broken line wraps");
       task.confidence = "HEURISTIC";
+      task.aiCorrected = false;
     } else {
-      nextWarnings.add("openai math cleanup applied");
+      task.aiCorrected = true;
       task.confidence = nextWarnings.size ? "HEURISTIC" : "CLEAN";
     }
     task.warnings = Array.from(nextWarnings);

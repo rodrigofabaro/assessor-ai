@@ -21,7 +21,7 @@ type Props = {
   onSaveLatex?: (equationId: string, latex: string) => Promise<void> | void;
 };
 
-const TOKEN_RE = /(\[\[EQ:[^\]]+\]\])/g;
+const TOKEN_RE = /(\[\[(?:EQ|IMG):[^\]]+\]\])/g;
 const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 
@@ -85,10 +85,11 @@ function injectHeuristicMathTokens(input: string) {
       .replace(/\s*\*\s*/g, "")
       .replace(/\s+/g, " ");
 
-    const inlineEq = compactMath.match(/\b([vyiIlL])\s*=\s*([A-Za-z0-9+\-^().\\ ]{3,120})/);
+    const inlineEq = compactMath.match(/\b([vyiIlL])\s*=\s*([A-Za-z0-9+\-^().\\{}_, ]{3,160})/);
     if (inlineEq) {
       const lhs = inlineEq[1];
       const rhs = inlineEq[2]
+        .replace(/\ble\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
         .replace(/\bln\s*\(\s*e\s*\(/gi, "\\ln(e(")
         .replace(/\bsin\s*\(/gi, "\\sin(")
         .replace(/\bcos\s*\(/gi, "\\cos(")
@@ -233,8 +234,9 @@ export default function InlineEquationText({
 
   for (let i = 0; i < parts.length; i += 1) {
     const part = parts[i] || "";
-    const tokenId = part.match(/^\[\[EQ:([^\]]+)\]\]$/)?.[1];
-    if (!tokenId) {
+    const eqTokenId = part.match(/^\[\[EQ:([^\]]+)\]\]$/)?.[1];
+    const imgTokenId = part.match(/^\[\[IMG:([^\]]+)\]\]$/)?.[1];
+    if (!eqTokenId && !imgTokenId) {
       const chunks = part.split(HEURISTIC_MATH_TOKEN_RE);
       for (let c = 0; c < chunks.length; c += 1) {
         const chunk = chunks[c] || "";
@@ -254,10 +256,27 @@ export default function InlineEquationText({
       continue;
     }
 
-    const eq = equationsById[tokenId];
+    if (imgTokenId) {
+      out.push(
+        <span key={`img-${imgTokenId}`} className="my-1 block rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-900">
+          diagram reference from PDF image
+          {openPdfHref ? (
+            <>
+              {" "}
+              <a href={openPdfHref} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                open source PDF
+              </a>
+            </>
+          ) : null}
+        </span>
+      );
+      continue;
+    }
+
+    const eq = equationsById[eqTokenId];
     if (!eq) {
       out.push(
-        <span key={`missing-${tokenId}`} className="rounded border border-amber-300 bg-amber-50 px-1 text-[10px] text-amber-900">
+        <span key={`missing-${eqTokenId}`} className="rounded border border-amber-300 bg-amber-50 px-1 text-[10px] text-amber-900">
           equation missing
         </span>
       );

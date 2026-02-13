@@ -1652,6 +1652,19 @@ export function extractBrief(
     );
   };
   const hasMathGlyphLeak = (textValue: string) => /[푡푒푖푗푘푙푚푅푉]/.test(String(textValue || ""));
+  const hasImageToken = (textValue: string) => /\[\[IMG:[^\]]+\]\]/.test(String(textValue || ""));
+  const imageCueRegex =
+    /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b/i;
+  const injectImageToken = (textValue: string, token: string) => {
+    const src = String(textValue || "");
+    if (!src.trim() || hasImageToken(src) || !imageCueRegex.test(src)) return src;
+    const withSentenceInsert = src.replace(
+      /(\b(?:circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b[^.\n]*[.]?)/i,
+      `$1\n${token}`
+    );
+    if (withSentenceInsert !== src) return withSentenceInsert;
+    return `${src}\n${token}`.trim();
+  };
   for (const task of tasksResult.tasks || []) {
     const taskWarnings = new Set((task.warnings || []).map((w) => String(w)));
     const ids = new Set<string>();
@@ -1679,6 +1692,24 @@ export function extractBrief(
     }
     if (hasMathGlyphLeak(task.text || "")) {
       taskWarnings.add("math glyph artifacts present");
+    }
+    const cueInTask = imageCueRegex.test(task.text || "");
+    const cueInParts = Array.isArray(task.parts) && task.parts.some((part) => imageCueRegex.test(part?.text || ""));
+    if ((cueInTask || cueInParts) && !hasImageToken(task.text || "")) {
+      const leadPage = Array.isArray(task.pages) && task.pages.length ? Number(task.pages[0]) : 0;
+      const imgToken = `[[IMG:p${leadPage || 0}-t${task.n}-img1]]`;
+      task.text = injectImageToken(task.text || "", imgToken);
+      task.prompt = task.text;
+      if (Array.isArray(task.parts) && task.parts.length) {
+        let injected = false;
+        task.parts = task.parts.map((part) => {
+          if (!injected && imageCueRegex.test(part?.text || "")) {
+            injected = true;
+            return { ...part, text: injectImageToken(part?.text || "", imgToken) };
+          }
+          return part;
+        });
+      }
     }
     if (
       hasStackedMathLayout(task.text || "") ||
