@@ -472,7 +472,7 @@ export function useBriefDetail(briefId: string) {
           outcome,
           verifierName: null,
           verificationDate: null,
-          notes: "Evidence upload",
+          notes: null,
         }),
       });
       const createdRecords = safeIvRecords(createRes?.records);
