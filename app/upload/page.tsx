@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { safeJson, cx } from "@/lib/upload/utils";
 import { useUploadPicklists } from "@/lib/upload/useUploadPicklists";
 import type { Student } from "@/lib/upload/types";
@@ -16,6 +17,8 @@ type UploadResponse = {
 };
 
 export default function UploadPage() {
+  const sp = useSearchParams();
+  const seedStudentId = String(sp.get("studentId") || "").trim();
   const { studentsSafe, assignmentsSafe, err: picklistErr, setErr: setPicklistErr, refresh } = useUploadPicklists();
 
   const [studentId, setStudentId] = useState("");
@@ -32,6 +35,18 @@ export default function UploadPage() {
 
   const canUpload = files.length > 0 && !busy;
   const mergedErr = err || picklistErr;
+  const selectedStudent = studentsSafe.find((s) => s.id === studentId) || null;
+  const selectedAssignment = assignmentsSafe.find((a) => a.id === assignmentId) || null;
+
+  useEffect(() => {
+    if (!seedStudentId) return;
+    if (studentId) return;
+    const exists = studentsSafe.some((s) => s.id === seedStudentId);
+    if (exists) setStudentId(seedStudentId);
+  }, [seedStudentId, studentId, studentsSafe]);
+
+  const totalBytes = useMemo(() => files.reduce((sum, f) => sum + (f?.size || 0), 0), [files]);
+  const totalMb = (totalBytes / (1024 * 1024)).toFixed(2);
 
   async function onUpload() {
     setBusy(true);
@@ -47,18 +62,14 @@ export default function UploadPage() {
 
       const res = await fetch("/api/submissions/upload", { method: "POST", body: fd });
       const j = (await safeJson(res)) as UploadResponse;
-
-      if (!res.ok) {
-        throw new Error(j?.error || `Upload failed (${res.status})`);
-      }
+      if (!res.ok) throw new Error(j?.error || `Upload failed (${res.status})`);
 
       const n = Array.isArray(j?.submissions) ? j.submissions.length : 0;
-
-      setMsg(`Uploaded ${n} file${n === 1 ? "" : "s"}.`);
+      setMsg(`Uploaded ${n} file${n === 1 ? "" : "s"}. Extraction has been queued automatically.`);
       setFiles([]);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setErr(msg);
+      const message = e instanceof Error ? e.message : String(e);
+      setErr(message);
     } finally {
       setBusy(false);
     }
@@ -71,15 +82,24 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Upload submissions</h1>
-        <p className="mt-2 max-w-2xl text-sm text-zinc-600">
-          Drop in one or more files (PDF/DOCX). Student and assignment are optional — leave them as{" "}
-          <span className="font-medium">Auto / Unassigned</span> and confirm later in the submissions list. Each file
-          becomes its own submission record.
-        </p>
-      </div>
+    <div className="grid gap-5">
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Upload Student Work</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-700">
+              Upload one or many student files (PDF/DOC/DOCX). We extract the cover page, identify unit/assignment, and prepare each submission for grading.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 font-semibold text-zinc-700">
+                Batch: {files.length} file{files.length === 1 ? "" : "s"}
+              </span>
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 font-semibold text-zinc-700">Size: {totalMb} MB</span>
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 font-semibold text-sky-800">Auto extract enabled</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-2">
@@ -101,6 +121,21 @@ export default function UploadPage() {
           />
         </div>
 
+        <div className="mt-4 grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700 md:grid-cols-3">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Student binding</div>
+            <div className="mt-1 font-medium text-zinc-900">{selectedStudent?.fullName || "Auto / Unassigned"}</div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Assignment binding</div>
+            <div className="mt-1 font-medium text-zinc-900">{selectedAssignment?.title || "Auto detect via cover page"}</div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">After upload</div>
+            <div className="mt-1 font-medium text-zinc-900">Extract → Triage → Ready for grading</div>
+          </div>
+        </div>
+
         <FilePicker files={files} setFiles={(updater) => setFiles((xs) => updater(xs))} />
 
         <UploadActions busy={busy} canUpload={canUpload} onUpload={onUpload} />
@@ -109,7 +144,7 @@ export default function UploadPage() {
           <div
             className={cx(
               "mt-4 rounded-xl border p-3 text-sm",
-              mergedErr ? "border-red-200 bg-red-50 text-red-900" : "border-indigo-200 bg-indigo-50 text-indigo-900"
+              mergedErr ? "border-red-200 bg-red-50 text-red-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"
             )}
           >
             {mergedErr || msg}
@@ -126,3 +161,4 @@ export default function UploadPage() {
     </div>
   );
 }
+

@@ -1,5 +1,6 @@
 // app/page.tsx
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 function Icon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
   const common = {
@@ -194,7 +195,28 @@ function Step({ n, title, desc }: { n: string; title: string; desc: string }) {
   );
 }
 
-export default function HomePage() {
+async function getLiveHomeStatus() {
+  try {
+    const [specs, briefs, submissions, locked] = await Promise.all([
+      prisma.referenceDocument.count({ where: { type: "SPEC" } }),
+      prisma.referenceDocument.count({ where: { type: "BRIEF" } }),
+      prisma.submission.count(),
+      prisma.referenceDocument.count({
+        where: {
+          type: { in: ["SPEC", "BRIEF"] },
+          lockedAt: { not: null },
+        },
+      }),
+    ]);
+    return { specs, briefs, submissions, locked };
+  } catch {
+    return { specs: undefined, briefs: undefined, submissions: undefined, locked: undefined };
+  }
+}
+
+export default async function HomePage() {
+  const status = await getLiveHomeStatus();
+
   return (
     <div className="grid gap-6">
       {/* Hero */}
@@ -269,7 +291,12 @@ export default function HomePage() {
               tone="amber"
               icon="users"
             />
-            <StatusCard />
+            <StatusCard
+              specs={status.specs}
+              briefs={status.briefs}
+              submissions={status.submissions}
+              locked={status.locked}
+            />
           </div>
         </div>
       </section>
