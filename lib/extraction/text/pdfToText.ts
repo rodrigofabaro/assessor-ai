@@ -514,6 +514,17 @@ async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equ
   };
   const unresolved = equations.filter((eq) => (!eq.latex && eq.needsReview) || Number(eq.confidence || 0) < 0.86 || looksSuspicious(eq.latex));
   if (!unresolved.length) return equations;
+  const matchesAnchorSemantics = (latex: string, anchor: string | null | undefined) => {
+    const a = String(anchor || "").toLowerCase();
+    if (!a) return true;
+    const l = String(latex || "");
+    if (/exponential\s+(growth|decay)|exponential\s+curve/.test(a)) {
+      const hasExpCue = /(?:e\^|\\exp|[0-9]+\^\{?t\}?|\^\{?t\}?)/i.test(l);
+      const looksPolyOnly = /x\^2|x\^3/i.test(l) && !hasExpCue;
+      if (!hasExpCue || looksPolyOnly) return false;
+    }
+    return true;
+  };
 
   const pageImageCache = new Map<number, string | null>();
   const out = [...equations];
@@ -532,6 +543,7 @@ async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equ
       anchorText: eq.anchorText || null,
     });
     if (!guessed.latex) continue;
+    if (!matchesAnchorSemantics(guessed.latex, eq.anchorText)) continue;
     out[i] = {
       ...eq,
       latex: guessed.latex,

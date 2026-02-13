@@ -12,7 +12,10 @@ type BriefTask = {
 };
 
 function normalizeExponentParens(text: string) {
-  return String(text || "").replace(/\be\^\(\s*([^)]+)\s*\)/gi, (_m, exp) => `e^{${String(exp).trim()}}`);
+  return String(text || "")
+    .replace(/\be\^\(\s*([^)]+)\s*\)/gi, (_m, exp) => `e^{${String(exp).trim()}}`)
+    .replace(/\be\s*-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
+    .replace(/\be-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}");
 }
 
 function maybeRestoreLogEFromOriginal(original: string, cleaned: string) {
@@ -47,6 +50,8 @@ function localMathRepair(text: string) {
   out = out.replace(/([A-Za-z0-9)\]}])\s*\n\s*([+\-][A-Za-z0-9(])/g, "$1 $2");
   out = out
     .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^{-${1}t}")
+    .replace(/\be\s*-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
+    .replace(/\be-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
     .replace(/\be\^\(\s*([^)]+)\s*\)/gi, "e^{$1}")
     .replace(/\bl\s+e\s*\n\s*\(/gi, "log_e(")
     .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")
@@ -383,7 +388,7 @@ export async function cleanupBriefTasksMathWithOpenAi(
     if (hasBrokenMathLayout(task.text || "")) {
       nextWarnings.add("math layout: broken line wraps");
       task.confidence = "HEURISTIC";
-      task.aiCorrected = false;
+      task.aiCorrected = true;
     } else {
       task.aiCorrected = true;
       task.confidence = nextWarnings.size ? "HEURISTIC" : "CLEAN";

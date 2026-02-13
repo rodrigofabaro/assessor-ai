@@ -16,6 +16,103 @@ function safeBool(x: unknown) {
   return x === true || x === "true" || x === 1 || x === "1";
 }
 
+function parseTaskNumbers(input: unknown): number[] {
+  if (!Array.isArray(input)) return [];
+  const out = new Set<number>();
+  for (const v of input) {
+    const n = Number(v);
+    if (Number.isInteger(n) && n > 0) out.add(n);
+  }
+  return Array.from(out).sort((a, b) => a - b);
+}
+
+function collectEqIdsFromBriefLike(value: any) {
+  const ids = new Set<string>();
+  const collect = (src: unknown) => {
+    const text = String(src || "");
+    const re = /\[\[EQ:([^\]]+)\]\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      if (m[1]) ids.add(m[1]);
+    }
+  };
+  const tasks = Array.isArray(value?.tasks) ? value.tasks : [];
+  for (const task of tasks) {
+    collect(task?.text);
+    collect(task?.prompt);
+    collect(task?.scenarioText);
+    if (Array.isArray(task?.parts)) {
+      for (const part of task.parts) collect(part?.text);
+    }
+  }
+  const scenarios = Array.isArray(value?.scenarios) ? value.scenarios : [];
+  for (const scenario of scenarios) collect(scenario?.text);
+  return ids;
+}
+
+function mergeBriefExtractionByTaskNumbers(prev: any, next: any, taskNumbers: number[]) {
+  const prevTasks = Array.isArray(prev?.tasks) ? prev.tasks : [];
+  const nextTasks = Array.isArray(next?.tasks) ? next.tasks : [];
+  const selected = new Set(taskNumbers);
+  const nextByN = new Map<number, any>();
+  for (const task of nextTasks) {
+    const n = Number(task?.n);
+    if (Number.isInteger(n)) nextByN.set(n, task);
+  }
+
+  const mergedTasks: any[] = [];
+  const seen = new Set<number>();
+  for (const oldTask of prevTasks) {
+    const n = Number(oldTask?.n);
+    if (!Number.isInteger(n)) {
+      mergedTasks.push(oldTask);
+      continue;
+    }
+    seen.add(n);
+    if (selected.has(n) && nextByN.has(n)) {
+      mergedTasks.push(nextByN.get(n));
+    } else {
+      mergedTasks.push(oldTask);
+    }
+  }
+  for (const n of selected) {
+    if (!seen.has(n) && nextByN.has(n)) mergedTasks.push(nextByN.get(n));
+  }
+  mergedTasks.sort((a, b) => Number(a?.n || 0) - Number(b?.n || 0));
+
+  const prevScenarios = Array.isArray(prev?.scenarios) ? prev.scenarios : [];
+  const nextScenarios = Array.isArray(next?.scenarios) ? next.scenarios : [];
+  const carryScenarios = prevScenarios.filter((s: any) => !selected.has(Number(s?.appliesToTask)));
+  const replaceScenarios = nextScenarios.filter((s: any) => selected.has(Number(s?.appliesToTask)));
+  const mergedScenarios = [...carryScenarios, ...replaceScenarios];
+
+  const merged = {
+    ...prev,
+    tasks: mergedTasks,
+    scenarios: mergedScenarios,
+    pageCount: next?.pageCount ?? prev?.pageCount,
+    hasFormFeedBreaks: next?.hasFormFeedBreaks ?? prev?.hasFormFeedBreaks,
+    extractionWarnings: next?.extractionWarnings ?? prev?.extractionWarnings,
+    preview: next?.preview ?? prev?.preview,
+    charCount: next?.charCount ?? prev?.charCount,
+  };
+
+  const ids = collectEqIdsFromBriefLike(merged);
+  const eqMap = new Map<string, any>();
+  const prevEq = Array.isArray(prev?.equations) ? prev.equations : [];
+  const nextEq = Array.isArray(next?.equations) ? next.equations : [];
+  for (const eq of prevEq) {
+    const id = String(eq?.id || "");
+    if (id) eqMap.set(id, eq);
+  }
+  for (const eq of nextEq) {
+    const id = String(eq?.id || "");
+    if (id) eqMap.set(id, eq);
+  }
+  merged.equations = Array.from(ids).map((id) => eqMap.get(id)).filter(Boolean);
+  return merged;
+}
+
 function summarizeExtracted(extractedJson: any) {
   try {
     if (!extractedJson || typeof extractedJson !== "object") return null;
@@ -55,6 +152,7 @@ export async function POST(req: Request) {
   const forceReextract = safeBool(body?.forceReextract || body?.forceReExtract || body?.force || body?.reextract);
   const runOpenAiCleanup = body?.runOpenAiCleanup === true || body?.openAiCleanup === true;
   const reason = safeStr(body?.reason || body?.note || body?.message);
+  const taskNumbers = parseTaskNumbers(body?.taskNumbers);
 
   if (!documentId) {
     return NextResponse.json({ error: "MISSING_DOCUMENT_ID", message: "Missing reference document id." }, { status: 400 });
@@ -134,7 +232,19 @@ export async function POST(req: Request) {
     });
 
     const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
-    const extractedJson = result?.extractedJson ?? null;
+    let extractedJson = result?.extractedJson ?? null;
+    const canPartialMerge =
+      taskNumbers.length > 0 &&
+      doc.type === "BRIEF" &&
+      doc.extractedJson &&
+      typeof doc.extractedJson === "object" &&
+      String((doc.extractedJson as any)?.kind || "").toUpperCase() === "BRIEF" &&
+      extractedJson &&
+      typeof extractedJson === "object" &&
+      String((extractedJson as any)?.kind || "").toUpperCase() === "BRIEF";
+    if (canPartialMerge) {
+      extractedJson = mergeBriefExtractionByTaskNumbers(doc.extractedJson, extractedJson, taskNumbers);
+    }
 
     const nextExtractSummary = summarizeExtracted(extractedJson);
     const nowIso = new Date().toISOString();
@@ -173,6 +283,7 @@ export async function POST(req: Request) {
       usedPath: resolved.path,
       warnings,
       extractedJson,
+      partialTaskReextract: taskNumbers.length ? taskNumbers : undefined,
       document: updatedDoc,
     });
   } catch (err: any) {

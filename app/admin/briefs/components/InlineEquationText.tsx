@@ -92,6 +92,8 @@ function injectHeuristicMathTokens(input: string) {
         .replace(/\ble\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
         .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
         .replace(/\blog_e\s*\(\s*([^)]+)\s*\)/gi, (_m, arg) => `\\log_{e}\\left(${String(arg).trim()}\\right)`)
+        .replace(/\be\s*-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
+        .replace(/\be-\s*(\d+(?:\.\d+)?t)\b/gi, "e^{-{$1}}")
         .replace(/\bln\s*\(\s*e\s*\(/gi, "\\ln(e(")
         .replace(/\bsin\s*\(/gi, "\\sin(")
         .replace(/\bcos\s*\(/gi, "\\cos(")

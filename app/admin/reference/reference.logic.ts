@@ -122,6 +122,14 @@ function summarizeCleanupCandidates(extractedJson: any) {
   return rows;
 }
 
+function parseTaskNumbersInput(raw: string): number[] {
+  const values = String(raw || "")
+    .split(/[,\s]+/)
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  return Array.from(new Set(values)).sort((a, b) => a - b);
+}
+
 export function formatDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -627,6 +635,15 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     const reason =
       window.prompt("Optional note for the audit trail (why are you re-extracting?)", "Fix extraction") || "";
+    let taskNumbers: number[] = [];
+    if (selectedDoc.type === "BRIEF") {
+      const rawTasks = window.prompt(
+        "Optional: task numbers to re-extract only (example: 3,4). Leave blank for full re-extract.",
+        ""
+      );
+      if (rawTasks === null) return;
+      taskNumbers = parseTaskNumbersInput(rawTasks);
+    }
     const shouldOfferCleanup = (extractedJson: any) => {
       const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
       return tasks.some((task: any) => {
@@ -635,12 +652,18 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       });
     };
 
-    setBusy("Re-extracting...");
+    setBusy(taskNumbers.length ? `Re-extracting tasks ${taskNumbers.join(", ")}...` : "Re-extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason, runOpenAiCleanup: false }),
+        body: JSON.stringify({
+          documentId: selectedDoc.id,
+          forceReextract: true,
+          reason,
+          runOpenAiCleanup: false,
+          ...(taskNumbers.length ? { taskNumbers } : {}),
+        }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
 
@@ -654,16 +677,32 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
           const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason, runOpenAiCleanup: true }),
+            body: JSON.stringify({
+              documentId: selectedDoc.id,
+              forceReextract: true,
+              reason,
+              runOpenAiCleanup: true,
+              ...(taskNumbers.length ? { taskNumbers } : {}),
+            }),
           });
           if (cleanupRes?.document) applyUpdatedDocument(cleanupRes.document);
-          notifyToast("success", "Re-extraction complete with OpenAI cleanup.");
+          notifyToast(
+            "success",
+            taskNumbers.length
+              ? `Task re-extraction complete with OpenAI cleanup (tasks: ${taskNumbers.join(", ")}).`
+              : "Re-extraction complete with OpenAI cleanup."
+          );
           await refreshAll({ keepSelection: true });
           return;
         }
       }
       await refreshAll({ keepSelection: true });
-      notifyToast("success", "Re-extraction complete.");
+      notifyToast(
+        "success",
+        taskNumbers.length
+          ? `Task re-extraction complete (tasks: ${taskNumbers.join(", ")}).`
+          : "Re-extraction complete."
+      );
     } catch (e: any) {
       setError(e?.message || "Re-extract failed");
     } finally {
