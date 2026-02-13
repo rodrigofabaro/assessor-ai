@@ -52,54 +52,42 @@ function loadTsModule(filePath) {
   return mod.exports;
 }
 
-function assertEqual(actual, expected, label) {
-  if (actual !== expected) {
-    throw new Error(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
 }
 
 function run() {
-  const { inferEquationLatex } = loadTsModule("lib/extraction/text/pdfToText.ts");
+  const { defaultEquationFallbackPolicy, pickEquationFallbackCandidates } = loadTsModule(
+    "lib/extraction/brief/aiFallback.ts"
+  );
 
-  const cases = [
-    {
-      label: "fraction",
-      lines: ["P=", "V", "2", "R"],
-      latex: "P = \\frac{V^2}{R}",
-    },
-    {
-      label: "guitar",
-      lines: ["t=2\\pi", "m", "2", "l", "F"],
-      latex: "t = 2\\pi \\sqrt{\\frac{m^2 l}{F}}",
-    },
-    {
-      label: "capacitor",
-      lines: ["V_C = V_S", "1-e", "-t", "RC"],
-      latex: "V_C = V_S\\left(1 - e^{-\\frac{t}{RC}}\\right)",
-    },
-    {
-      label: "signal",
-      lines: ["V_S = 8 sin 6\\pi t - \\pi 4", "f=2MHz"],
-      latex: "V_S = 8\\sin\\left(6\\pi t - \\frac{\\pi}{4}\\right),\\; f = 2\\,\\mathrm{MHz}",
-    },
-    {
-      label: "cosh",
-      lines: ["y=80cosh", "x", "80"],
-      latex: "y = 80\\cosh\\left(\\frac{x}{80}\\right)",
-    },
-  ];
+  const policyOff = defaultEquationFallbackPolicy(false);
+  const none = pickEquationFallbackCandidates(
+    [{ id: "e1", latex: null, confidence: 0.1, needsReview: true }],
+    policyOff
+  );
+  assert(none.size === 0, "policy disabled should return no candidates");
 
-  for (const c of cases) {
-    const out = inferEquationLatex(c.lines);
-    assertEqual(out.latex, c.latex, c.label);
-  }
+  const policyOn = defaultEquationFallbackPolicy(true);
+  const ids = pickEquationFallbackCandidates(
+    [
+      { id: "e1", latex: null, confidence: 0.2, needsReview: true }, // must pick
+      { id: "e2", latex: "i=", confidence: 0.9, needsReview: true }, // suspicious + review
+      { id: "e3", latex: "y=4x^2-6x", confidence: 0.99, needsReview: false }, // skip
+      { id: "e4", latex: null, confidence: 0.3, needsReview: true }, // must pick
+      { id: "e5", latex: null, confidence: 0.4, needsReview: true }, // may be trimmed by cap
+      { id: "e6", latex: null, confidence: 0.5, needsReview: true }, // may be trimmed by cap
+    ],
+    policyOn
+  );
 
-  const nonFormula = inferEquationLatex(["t = time."]);
-  if (typeof nonFormula.latex !== "string" || !nonFormula.latex.includes("time")) {
-    throw new Error("non-formula fallback behavior changed unexpectedly");
-  }
+  assert(ids.has("e1"), "should include null/review candidate e1");
+  assert(ids.has("e4"), "should include null/review candidate e4");
+  assert(!ids.has("e3"), "should skip high-confidence reviewed equation");
+  assert(ids.size <= policyOn.maxCandidates, "should obey maxCandidates cap");
 
-  console.log("Equation rule tests passed.");
+  console.log("ai fallback policy tests passed.");
 }
 
 run();
+

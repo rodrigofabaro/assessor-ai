@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import { pdfToText } from "@/lib/extraction/text/pdfToText";
 import { parseSpec } from "@/lib/extraction/parsers/specParser";
 import { extractBrief } from "@/lib/extractors/brief";
+import { cleanupBriefTasksMathWithOpenAi } from "@/lib/openai/briefMathCleanup";
 
 export type ExtractWarning = string;
 
@@ -10,6 +11,7 @@ export async function extractReferenceDocument(args: {
   type: string;
   filePath: string;
   docTitleFallback: string;
+  runOpenAiCleanup?: boolean;
 }) {
   const buf = await fs.readFile(args.filePath);
 
@@ -45,7 +47,10 @@ export async function extractReferenceDocument(args: {
       extractionWarnings: extractionWarnings.length ? extractionWarnings : undefined,
     };
   } else if (args.type === "BRIEF") {
-    const brief = extractBrief(text, args.docTitleFallback, { equations });
+    const brief = await cleanupBriefTasksMathWithOpenAi(
+      extractBrief(text, args.docTitleFallback, { equations }),
+      { runCleanup: args.runOpenAiCleanup }
+    );
     extractedJson = {
       ...brief,
       pageCount,

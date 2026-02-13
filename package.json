@@ -9,11 +9,15 @@
     "start": "next start",
     "lint": "next lint",
     "test": "pnpm lint",
+    "test:tasks-tab": "node scripts/tasks-tab.logic.test.js",
+    "test:ai-fallback": "node scripts/ai-fallback-policy.test.js",
+    "test:word-math": "node scripts/word-linear-math.test.js",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.92",
     "@prisma/client": "^5.22.0",
     "katex": "^0.16.28",
     "mammoth": "^1.11.0",

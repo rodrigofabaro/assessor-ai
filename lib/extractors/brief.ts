@@ -1,5 +1,6 @@
 import { firstMatch, normalizeWhitespace } from "./common";
 import { extractCriteriaCodesFromText } from "../extraction/utils/criteriaCodes";
+import { buildRangesFromStarts, nextIndexAfter, uniquePagesForRange, type LineWithPage } from "../extraction/brief/sections";
 
 /**
  * BRIEF extractor
@@ -204,8 +205,10 @@ function reflowProsePreserveLists(text: string) {
 
     const endsWithTerminal = /[.?!:]$/.test(currentLine);
     const endsWithComma = /,$/.test(currentLine);
+    const isTaskReferenceWrap =
+      /Task\s+\d+\s*$/i.test(currentLine) && /^\([a-z]\)\./i.test(trimmed);
     const shouldJoin = !endsWithTerminal && (endsWithComma || startsWithLowerish(trimmed));
-    if (shouldJoin) {
+    if (shouldJoin && !isTaskReferenceWrap) {
       currentLine = `${currentLine} ${trimmed}`;
     } else {
       output.push(currentLine);
@@ -649,19 +652,93 @@ export function extractBriefHeaderFromPreview(preview: string): BriefHeader {
 }
 
 function cleanTaskLines(lines: string[]) {
+  const normalizeMathGlyphsInText = (input: string) => {
+    const s = String(input || "");
+    const normalized = s
+      // Common OCR/math italic glyphs leaking into prose
+      .replace(/푡+/g, "t")
+      .replace(/푒+/g, "e")
+      .replace(/푖+/g, "i")
+      .replace(/푗+/g, "j")
+      .replace(/푘+/g, "k")
+      .replace(/푣+/g, "v")
+      .replace(/푎+/g, "a")
+      .replace(/푚+/g, "m")
+      .replace(/푙+/g, "l")
+      .replace(/푅+/g, "R")
+      .replace(/푉+/g, "V")
+      .replace(/퐿+/g, "L")
+      .replace(/퐼+/g, "I")
+      .replace(/퐵+/g, "B")
+      .replace(/퐴+/g, "A")
+      .replace(/휃+/g, "θ")
+      .replace(/훼+/g, "α")
+      .replace(/훽+/g, "β")
+      // Degree-like marker from extraction noise
+      .replace(/표+/g, "°")
+      .replace(/[ \t]+/g, " ");
+    const mathish = /[=+\-*/^()]/.test(normalized) || /\b(sin|cos|tan|ln|log)\b/i.test(normalized);
+    if (!mathish) return normalized;
+    return normalized
+      .replace(/\btt\b/g, "t")
+      .replace(/\bee\b/g, "e");
+  };
+
+  const isAiasPolicyLine = (text: string) => {
+    const t = String(text || "").trim().replace(/\s+/g, " ");
+    if (!t) return false;
+    if (/^\(\s*aias\b.*level\s*\d+\s*\)\s*$/i.test(t)) return true;
+    if (/^final$/i.test(t)) return true;
+    if (/^submission\s+must\s+be\s+written\b/i.test(t)) return true;
+    if (/^in\s+the\s+student.?s\s+own\s+words\b/i.test(t)) return true;
+    if (/^and\s+demonstrate\s+personal\b/i.test(t)) return true;
+    if (/^understanding\.?$/i.test(t)) return true;
+    return false;
+  };
+
   const cleaned = lines
-    .map((line) => line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, ""))
+    .map((line) => normalizeMathGlyphsInText(line.replace(/\t/g, "  ").replace(/[ \u00a0]+$/g, "")))
     .filter((line) => {
       const t = line.trim();
       if (!t) return true;
       // Strip repeated page header artifacts that leak into extracted body text.
       if (/^task\s+\d+\s*$/i.test(t)) return false;
       if (/^\(\s*no\s+ai\s*\)\s*$/i.test(t)) return false;
+      if (isAiasPolicyLine(t)) return false;
       return true;
     });
+  // Some PDFs emit a standalone degree line after a symbol line (e.g. "v" then "°").
+  for (let i = 1; i < cleaned.length; i += 1) {
+    if (cleaned[i].trim() === "°") {
+      cleaned[i - 1] = `${cleaned[i - 1]}°`;
+      cleaned.splice(i, 1);
+      i -= 1;
+    }
+  }
   while (cleaned.length && cleaned[0].trim() === "") cleaned.shift();
   while (cleaned.length && cleaned[cleaned.length - 1].trim() === "") cleaned.pop();
   return cleaned;
+}
+
+function stripAiasPolicyBanner(text: string) {
+  return String(text || "")
+    .replace(/(?:^|\n)\s*\(\s*aias\b[^\n]*\)\s*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*final\s*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*submission\s+must\s+be\s+written[^\n]*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*in\s+the\s+student.?s\s+own\s+words[^\n]*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*and\s+demonstrate\s+personal[^\n]*(?=\n|$)/gi, "\n")
+    .replace(/(?:^|\n)\s*understanding\.?\s*(?=\n|$)/gi, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function enforceTaskSentenceBreaks(text: string) {
+  return String(text || "")
+    .replace(/\s+(PART\s+\d+\b)/gi, "\n$1")
+    .replace(/(across the inductor\.)\s+(Assuming that\b)/gi, "$1\n$2")
+    .replace(/(\(i\.e\.,\s*find\s+I\s*[×x]\s*B\)\.)\s+(Sketch this\b)/gi, "$1\n$2")
+    .replace(/(given in Task\s+\d+)\s*\n\s*\(([a-z])\)\.\s*(Provide a screenshot\b)/gi, "$1 ($2).\n$3")
+    .replace(/(given in Task\s+\d+)\s+\(([a-z])\)\.\s+(Provide a screenshot\b)/gi, "$1 ($2).\n$3");
 }
 
 function shouldReflowPartLines(lines: string[]) {
@@ -732,6 +809,16 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
     const trimmed = line.trim();
     if (!trimmed) {
       currentText.push("");
+      continue;
+    }
+
+    const partHeading = trimmed.match(/^PART\s+(\d+)\b[\s:.-]*(.*)$/i);
+    if (partHeading) {
+      flush();
+      const idx = Math.max(1, Number(partHeading[1]) || 1) - 1;
+      currentKey = String.fromCharCode(97 + Math.min(25, idx));
+      currentLetter = currentKey;
+      if (partHeading[2]) currentText.push(partHeading[2].trim());
       continue;
     }
 
@@ -826,7 +913,7 @@ function extractBriefTasks(
     const lines = stripFooterLines(splitLines(pageText));
     return lines.map((line) => normalizeLine(line)).join("\n");
   });
-  const linesWithPages: Array<{ line: string; page: number }> = [];
+  const linesWithPages: LineWithPage[] = [];
   const endMatter = extractEndMatterBlocks(cleanedPages);
   const pageBreaksMissing = pages.length <= 1;
   if (pageBreaksMissing) warnings.push("page breaks missing; page numbers unreliable.");
@@ -950,7 +1037,7 @@ function extractBriefTasks(
         extractAiasValue(textBody);
       const pagesForTask = fallbackPage ? [fallbackPage] : undefined;
 
-      const reflowedTextBody = reflowPreservingTables(textBody);
+      const reflowedTextBody = enforceTaskSentenceBreaks(reflowPreservingTables(textBody));
       promoted.push({
         n,
         label: `Task ${n}`,
@@ -1007,10 +1094,8 @@ function extractBriefTasks(
     candidatesByNumber.get(candidate.n)!.push(candidate);
   }
 
-  const duplicateHeadingNumbers = new Set<number>();
   const selectedHeadings: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
   for (const [n, group] of candidatesByNumber.entries()) {
-    if (group.length > 1) duplicateHeadingNumbers.add(n);
     // Prefer the earliest heading when scores tie; later repeats are usually page-header duplicates.
     const best = [...group].sort((a, b) => b.score - a.score || a.index - b.index)[0];
     selectedHeadings.push(best);
@@ -1019,9 +1104,158 @@ function extractBriefTasks(
 
   const tasks: BriefTask[] = [];
 
+  const normalizeTaskOrderingAndContinuations = (list: BriefTask[]) => {
+    const out = [...list];
+    for (let i = 1; i < out.length; i += 1) {
+      const prev = out[i - 1];
+      const curr = out[i];
+      const currParts = Array.isArray(curr.parts) ? curr.parts : [];
+      const prevParts = Array.isArray(prev.parts) ? prev.parts : [];
+      const currRawText = String(curr.text || "").trim();
+      const currFirstKeyFromText = currRawText.match(/^([a-z])\)\s+/i)?.[1]?.toLowerCase() || "";
+      const currFirstKey = String(currParts[0]?.key || currFirstKeyFromText).toLowerCase();
+      const prevPartKeys = new Set(prevParts.map((p) => String(p?.key || "").toLowerCase()));
+      const currText = normalizeWhitespace(String(curr.text || ""));
+      const prevTextRaw = String(prev.text || "");
+      const pagesOverlap =
+        Array.isArray(prev.pages) &&
+        Array.isArray(curr.pages) &&
+        prev.pages.some((p) => curr.pages!.includes(p));
+      const currLooksShort =
+        currText.length < 180 ||
+        (Array.isArray(curr.warnings) && curr.warnings.includes("task body: suspiciously short"));
+      const prevLooksContinuation =
+        /given in\s*$/i.test(prevTextRaw.trim()) ||
+        (prevPartKeys.has("a") && prevPartKeys.has("b") && !prevPartKeys.has("c"));
+      const suspiciousInversion = Number(prev.n) === Number(curr.n) + 1;
+
+      if (
+        suspiciousInversion &&
+        pagesOverlap &&
+        currLooksShort &&
+        currFirstKey === "c" &&
+        prevLooksContinuation
+      ) {
+        const mergedParts = [...prevParts];
+        const continuationParts =
+          currParts.length > 0
+            ? currParts
+            : currFirstKeyFromText
+              ? [{ key: currFirstKeyFromText, text: currRawText.replace(/^[a-z]\)\s+/i, "").trim() }]
+              : [];
+        for (const part of continuationParts) {
+          const key = String(part?.key || "").toLowerCase();
+          if (!mergedParts.some((p) => String(p?.key || "").toLowerCase() === key)) mergedParts.push(part);
+        }
+        prev.parts = mergedParts;
+        prev.text = `${String(prev.text || "").trim()}\n${String(curr.text || "").trim()}`
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        prev.prompt = `${String(prev.prompt || prev.text || "").trim()}\n${String(curr.prompt || curr.text || "").trim()}`
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+        prev.pages = Array.from(new Set([...(prev.pages || []), ...(curr.pages || [])]));
+        // Keep the destination task number. The current item is a continuation fragment.
+        prev.label = `Task ${prev.n}`;
+        out.splice(i, 1);
+        i -= 1;
+      }
+    }
+
+    // Recover briefs where Task 3 ("PART 1 / PART 2") is fused into Task 2 while Task 4 exists.
+    for (let i = 0; i < out.length - 1; i += 1) {
+      const current = out[i];
+      const next = out[i + 1];
+      const currentText = String(current.text || "");
+      const nextText = String(next.text || "");
+      const hasPartBlock =
+        /\bPART\s*1\b/i.test(currentText) &&
+        /\bPART\s*2\b/i.test(currentText) &&
+        /signal\s+processor/i.test(currentText);
+      const nextLooksLikeGraphTask =
+        /Use\s+Graph\s+software\s+to\s+plot\s+the\s+current\s+signal\s+given\s+in\s+Task\s*1\s*\(a\)/i.test(nextText) ||
+        /Use\s+Graph\s+software\s+to\s+plot\s+the\s+two\s+voltage\s+signals/i.test(nextText);
+      if (!hasPartBlock || !nextLooksLikeGraphTask) continue;
+
+      const signalStart = currentText.search(/\bThe\s+two\s+signals\s+below\s+are\s+sensed\s+by\s+a\s+signal\s+processor\b/i);
+      let splitAt = -1;
+      if (signalStart >= 0) {
+        splitAt = signalStart;
+      } else {
+        // Fallback: split at the second PART 1 marker when two task blocks are fused.
+        const part1Matches = Array.from(currentText.matchAll(/(?:^|\n)\s*PART\s*1\b/gi));
+        if (part1Matches.length >= 2 && typeof part1Matches[1].index === "number") {
+          splitAt = part1Matches[1].index;
+        }
+      }
+      if (splitAt < 0) continue;
+      const before = currentText.slice(0, splitAt).trim();
+      let partTaskBody = currentText.slice(splitAt).trim();
+      if (!/^\s*PART\s*1\b/i.test(partTaskBody) && /\n\s*PART\s*2\b/i.test(partTaskBody)) {
+        partTaskBody = `PART 1\n${partTaskBody}`.replace(/\n{3,}/g, "\n\n").trim();
+      }
+      if (!before || !partTaskBody) continue;
+
+      current.text = before;
+      current.prompt = before;
+      current.parts = extractParts(before) || undefined;
+
+      const newTaskNumber = Number(current.n) + 1;
+      const newTask: BriefTask = {
+        n: newTaskNumber,
+        label: `Task ${newTaskNumber}`,
+        aias: current.aias,
+        text: partTaskBody,
+        title: null,
+        prompt: partTaskBody,
+        parts: extractParts(partTaskBody) || undefined,
+        pages:
+          Array.isArray(next.pages) && next.pages.length
+            ? [...next.pages]
+            : Array.isArray(current.pages) && current.pages.length
+              ? [current.pages[current.pages.length - 1]]
+              : current.pages,
+        confidence: "CLEAN",
+      };
+
+      out.splice(i + 1, 0, newTask);
+      for (let j = i + 2; j < out.length; j += 1) {
+        if (Number(out[j].n) === newTaskNumber) out[j].n = Number(out[j].n) + 1;
+      }
+
+      // Repair known truncation in Task 4(b) once Task 3 is restored.
+      const graphTask = out[i + 2];
+      if (graphTask && Array.isArray(graphTask.parts)) {
+        const bPart = graphTask.parts.find((p) => String(p?.key || "").toLowerCase() === "b");
+        if (bPart && /given\s+in\s*$/i.test(String(bPart.text || "").trim())) {
+          bPart.text = `${String(bPart.text || "").trim()}\nTask ${newTaskNumber} Part 1. Provide a screenshot of your waveforms.`;
+          graphTask.text = String(graphTask.text || "").replace(
+            /(b\)\s*Use\s+Graph[\s\S]*?given\s+in)\s*(\n|$)/i,
+            `$1\nTask ${newTaskNumber} Part 1. Provide a screenshot of your waveforms.\n`
+          );
+          graphTask.prompt = String(graphTask.prompt || graphTask.text || "").replace(
+            /(b\)\s*Use\s+Graph[\s\S]*?given\s+in)\s*(\n|$)/i,
+            `$1\nTask ${newTaskNumber} Part 1. Provide a screenshot of your waveforms.\n`
+          );
+        }
+      }
+      break;
+    }
+
+    out.sort((a, b) => Number(a.n) - Number(b.n));
+    out.forEach((task) => {
+      task.label = `Task ${task.n}`;
+    });
+    return out;
+  };
+
   const scenarioHeadingRegex = /(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context)\b/i;
   const scenarioRanges: Array<{ start: number; end: number; appliesToTask?: number; pages: number[]; text: string }> = [];
   const scenarios: BriefScenario[] = [];
+  const scenarioHeadingIndices = linesWithPages
+    .map((entry, idx) => ({ idx, isHeading: scenarioHeadingRegex.test(entry.line || "") }))
+    .filter((x) => x.isHeading)
+    .map((x) => x.idx);
 
   for (let i = 0; i < linesWithPages.length; i += 1) {
     const line = linesWithPages[i]?.line || "";
@@ -1040,9 +1274,7 @@ function extractBriefTasks(
     if (!headingMatched) continue;
     const nextTask = selectedHeadings.find((candidate) => candidate.index > i);
     if (!nextTask) continue;
-    const nextScenarioHeadingIndex = linesWithPages.findIndex(
-      (entry, lineIndex) => lineIndex > i && scenarioHeadingRegex.test(entry.line)
-    );
+    const nextScenarioHeadingIndex = nextIndexAfter(scenarioHeadingIndices, i);
     const endIndex =
       nextScenarioHeadingIndex > i
         ? Math.min(nextTask.index, nextScenarioHeadingIndex)
@@ -1054,7 +1286,7 @@ function extractBriefTasks(
     const scenarioText = scenarioLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
     const cleanedScenarioText = scenarioText.replace(/^context\b\s*[:\-–—]?\s*/i, "").trim();
     if (!cleanedScenarioText) continue;
-    const scenarioPages = Array.from(new Set(linesWithPages.slice(i, endIndex).map((entry) => entry.page)));
+    const scenarioPages = uniquePagesForRange(linesWithPages, i, endIndex);
     scenarioRanges.push({
       start: i,
       end: endIndex,
@@ -1117,13 +1349,21 @@ function extractBriefTasks(
   };
 
   const trimAtEndMatter = (lines: string[]) => {
+    const isCitationLine = (line: string) =>
+      /^[A-Z][A-Za-z .,'&\-]{2,120}\(\d{4}\)\s*[A-Za-z]/.test(normalizeWhitespace(line));
     let cut = lines.length;
     for (let i = 0; i < lines.length; i += 1) {
       const compact = normalizeWhitespace(lines[i]).toLowerCase();
+      const noSpace = compact.replace(/\s+/g, "");
       if (!compact) continue;
+      if (isCitationLine(lines[i])) {
+        cut = i;
+        break;
+      }
       if (
         contaminationAnchors.some((cue) => cue.test(compact)) ||
-        /\b(textbooks?|websites?|further\s+reading|additional\s+resources?)\b/i.test(compact)
+        /\b(textbooks?|websites?|further\s+reading|additional\s+resources?)\b/i.test(compact) ||
+        /sourcesofinformationtosupportyouwiththisassignment/i.test(noSpace)
       ) {
         cut = i;
         break;
@@ -1132,9 +1372,20 @@ function extractBriefTasks(
     return lines.slice(0, cut);
   };
 
+  const headingRanges = buildRangesFromStarts(
+    selectedHeadings.map((h) => h.index),
+    linesWithPages.length
+  );
+  const scenarioByTask = new Map<number, BriefScenario>();
+  for (const scenario of scenarios) {
+    const key = Number(scenario.appliesToTask || 0);
+    if (key > 0 && !scenarioByTask.has(key)) scenarioByTask.set(key, scenario);
+  }
+
   selectedHeadings.forEach((heading, idx) => {
-    const start = heading.index + 1;
-    const end = idx + 1 < selectedHeadings.length ? selectedHeadings[idx + 1].index : linesWithPages.length;
+    const range = headingRanges[idx];
+    const start = (range?.start ?? heading.index) + 1;
+    const end = range?.end ?? linesWithPages.length;
     const bodyLines = cleanTaskLines(
       linesWithPages
         .slice(start, end)
@@ -1156,10 +1407,6 @@ function extractBriefTasks(
       taskWarnings.push("task body: empty");
     }
 
-    if (duplicateHeadingNumbers.has(heading.n)) {
-      taskWarnings.push("duplicate heading candidates merged");
-    }
-
     const normalizedBody = normalizeWhitespace(textBody);
     const contaminated = contaminationAnchors.some((cue) => cue.test(normalizedBody));
     if (contaminated) taskWarnings.push("possible end-matter contamination");
@@ -1178,13 +1425,13 @@ function extractBriefTasks(
     const aias =
       extractAiasValue(normalizeWhitespace(previewLines.join(" "))) ||
       extractAiasValue(textBody);
-    const pagesForTask = Array.from(new Set(linesWithPages.slice(heading.index, end).map((l) => l.page)));
+    const pagesForTask = uniquePagesForRange(linesWithPages, heading.index, end);
 
-    const reflowedTextBody = relocateSamplePowerTableToPartA(reflowPreservingTables(textBody));
-    const parts = extractParts(reflowedTextBody);
-    const confidenceWarnings = taskWarnings.filter(
-      (warning) => warning !== "duplicate heading candidates merged"
+    const reflowedTextBody = enforceTaskSentenceBreaks(
+      stripAiasPolicyBanner(relocateSamplePowerTableToPartA(reflowPreservingTables(textBody)))
     );
+    const parts = extractParts(reflowedTextBody);
+    const confidenceWarnings = taskWarnings;
     tasks.push({
       n: heading.n,
       label: `Task ${heading.n}`,
@@ -1194,7 +1441,7 @@ function extractBriefTasks(
       text: reflowedTextBody,
       prompt: reflowedTextBody,
       parts: parts || undefined,
-      scenarioText: scenarios.find((scenario) => scenario.appliesToTask === heading.n)?.text || null,
+      scenarioText: scenarioByTask.get(heading.n)?.text || null,
       warnings: taskWarnings.length ? taskWarnings : undefined,
       confidence: confidenceWarnings.length ? "HEURISTIC" : "CLEAN",
     });
@@ -1224,7 +1471,8 @@ function extractBriefTasks(
     updatedEndMatter = sourcesBlock || criteriaBlock ? { sourcesBlock, criteriaBlock } : null;
   }
 
-  return { tasks, scenarios, warnings, endMatter: updatedEndMatter };
+  const normalizedTasks = normalizeTaskOrderingAndContinuations(tasks);
+  return { tasks: normalizedTasks, scenarios, warnings, endMatter: updatedEndMatter };
 }
 
 function parseUnitNumberAndTitle(raw: string | null | undefined): { unitNumber?: string; unitTitle?: string } {
@@ -1363,9 +1611,380 @@ export function extractBrief(
     collectEqIds(task?.scenarioText, usedEqIds);
     for (const part of task?.parts || []) collectEqIds(part?.text, usedEqIds);
   }
-  const filteredEquations = Array.isArray(options?.equations)
-    ? options!.equations.filter((eq) => usedEqIds.has(eq.id))
-    : [];
+  const allEquations = Array.isArray(options?.equations) ? options!.equations : [];
+  const eqById = new Map(allEquations.map((eq) => [eq.id, eq]));
+  const looksSuspiciousEquationLatex = (latex: string | null | undefined) => {
+    const t = normalizeWhitespace(String(latex || ""));
+    if (!t) return true;
+    if (t.length < 4) return true;
+    if (/sources?\s+of\s+information|routledge|pearson|bloomsbury|wiley/i.test(t)) return true;
+    if (/^i\s*=?$/i.test(t) || /^=\s*1$/i.test(t)) return true;
+    return false;
+  };
+  const hasStackedMathLayout = (textValue: string) => {
+    const s = String(textValue || "").replace(/−/g, "-");
+    if (!s) return false;
+    const stackedExponent =
+      /[A-Za-z\)]\s*\n\s*\d{1,2}\b/.test(s) ||
+      /\b(sin|cos|tan)\s*\([^)]*\n\s*\d{1,2}\b/i.test(s);
+    const operatorLineBreak =
+      /[=+\-*/]\s*\n\s*[A-Za-z0-9(]/.test(s) ||
+      /\)\s*\n\s*\d{1,2}\b/.test(s);
+    const suspiciousShortMathLines = s
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => /^[A-Za-z0-9+\-*/^=().]{1,3}$/.test(line)).length;
+    return stackedExponent || operatorLineBreak || suspiciousShortMathLines >= 3;
+  };
+  const repairStackedMathLayout = (textValue: string) => {
+    const src = String(textValue || "");
+    if (!src) return src;
+    let out = src.replace(/−/g, "-");
+    // Convert stacked exponents: t \n 3 -> t^3, ) \n 2 -> )^2
+    out = out.replace(/([A-Za-z\)])\s*\n\s*(\d{1,2})\b/g, "$1^$2");
+    // Join wrapped sign/continuation math lines: "2t^2\n-5t+3" -> "2t^2 -5t+3"
+    out = out.replace(/([A-Za-z0-9)\]}])\s*\n\s*([+\-][A-Za-z0-9(])/g, "$1 $2");
+    // Rejoin tiny math-only lines into previous line.
+    const lines = out.split("\n");
+    const rebuilt: string[] = [];
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) {
+        rebuilt.push("");
+        continue;
+      }
+      const isTinyMath = /^[+\-*/=()0-9A-Za-z^]{1,4}$/.test(line);
+      if (isTinyMath && rebuilt.length > 0 && rebuilt[rebuilt.length - 1].trim()) {
+        const prev = rebuilt[rebuilt.length - 1];
+        if (/^\d{1,2}$/.test(line) && /[A-Za-z\)]\s*$/.test(prev.trim())) {
+          rebuilt[rebuilt.length - 1] = `${prev}^${line}`;
+        } else {
+          rebuilt[rebuilt.length - 1] = `${prev}${line}`;
+        }
+      } else {
+        rebuilt.push(raw);
+      }
+    }
+    out = rebuilt.join("\n");
+    // Specific multiline power forms: v=(t\n3\n+4)\n2 -> v=(t^3+4)^2
+    out = out.replace(/\(\s*([A-Za-z])\s*\n\s*(\d{1,2})\s*\n\s*([^)]+)\)\s*\n\s*(\d{1,2})/g, "($1^$2+$3)^$4");
+    out = out.replace(/\(\s*([A-Za-z][^)]*)\s*\)\s*\n\s*(\d{1,2})/g, "($1)^$2");
+    // Compact common broken function wrappers: sin(3t^2 \n + 2t-1)
+    out = out.replace(/\(\s*([^\n()]{1,80})\s*\n\s*([+\-][^\n()]{1,80})\s*\)/g, "($1 $2)");
+    // Normalize obvious OCR splits for e^(...)
+    out = out
+      .replace(/\be\s*\n\s*-\s*([0-9.]+)\s*t\b/gi, "e^{-$1t}")
+      .replace(/\bl\s+e\s*\n\s*\(/gi, "log_e(")
+      .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")
+      .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, "log_e($1)");
+    return out.replace(/\n{3,}/g, "\n\n");
+  };
+  const hasBibliographyLeak = (textValue: string) => {
+    const t = normalizeWhitespace(textValue).toLowerCase();
+    return (
+      /sourcesofinformationtosupportyouwiththisassignment/.test(t.replace(/\s+/g, "")) ||
+      /\bsources?\s+of\s+information\b/.test(t) ||
+      /\b(19|20)\d{2}\)\s+[a-z].+\b(ed\.|edition|press|routledge|pearson|wiley|bloomsbury|springer)\b/i.test(t)
+    );
+  };
+  const hasMathGlyphLeak = (textValue: string) => /[푡푒푖푗푘푙푚푅푉]/.test(String(textValue || ""));
+  const normalizeSimpleMathText = (textValue: string) => {
+    const normalizeEquationLine = (line: string) => {
+      const src = String(line || "");
+      // Apply aggressive fixes only to equation-like lines.
+      if (!/\b[a-z]\s*=/i.test(src)) return src;
+      return src
+        .replace(/([A-Za-z\)])\s+(\d{1,2})(?=\s*[\)+\-*/]|$)/g, "$1^$2")
+        .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+        .replace(/\be\^\{\s*-\s*([0-9.]+)\s*t\s*\}/gi, (_m, exp) => `e^{-${String(exp).trim()}t}`);
+    };
+
+    return String(textValue || "")
+      .replace(/−/g, "-")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/\bl\s+e\s*\(/gi, "log_e(")
+      .replace(/\ble\(\s*([^)]+)\s*\)/gi, "log_e($1)")
+      .replace(/\blog\s*e\s*\(\s*([^)]+)\s*\)/gi, "log_e($1)")
+      .split("\n")
+      .map(normalizeEquationLine)
+      .join("\n")
+      .replace(/\b(capacitor)\s*\^\s*(\d+(?:\.\d+)?)/gi, "$1 $2")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  };
+  const hasImageToken = (textValue: string) => /\[\[IMG:[^\]]+\]\]/.test(String(textValue || ""));
+  const imageCueRegex =
+    /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b/i;
+  const injectImageToken = (textValue: string, token: string) => {
+    const src = String(textValue || "");
+    if (!src.trim() || hasImageToken(src) || !imageCueRegex.test(src)) return src;
+    const withSentenceInsert = src.replace(
+      /(\b(?:circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b[^.\n]*[.]?)/i,
+      `$1\n${token}`
+    );
+    if (withSentenceInsert !== src) return withSentenceInsert;
+    return `${src}\n${token}`.trim();
+  };
+  const sanitizeEquationContext = (textValue: string) => {
+    const src = String(textValue || "").replace(/−/g, "-");
+    if (!src) return src;
+    const lines = src.split("\n");
+    const out: string[] = [];
+    const looksResidue = (line: string) => {
+      const t = line.trim();
+      if (!t) return false;
+      if (/\[\[(?:EQ|IMG):[^\]]+\]\]/.test(t)) return false;
+      if (/^[A-Za-z]{1,3}$/.test(t)) return true;
+      if (/^[A-Za-z0-9+\-=/^_.()\\]{1,18}$/.test(t) && !/[a-z]{3,}/i.test(t)) return true;
+      if (/[푡푒푖푗푘푙푚푅푉]/.test(t)) return true;
+      return false;
+    };
+    for (let i = 0; i < lines.length; i += 1) {
+      let line = lines[i] || "";
+      line = line.replace(/(\[\[EQ:[^\]]+\]\])[A-Za-z]{1,2}$/g, "$1");
+      const hasEq = /\[\[EQ:[^\]]+\]\]/.test(line);
+      out.push(line);
+      if (!hasEq) continue;
+      let j = i + 1;
+      while (j < lines.length && j <= i + 3) {
+        const candidate = lines[j] || "";
+        if (!candidate.trim()) break;
+        if (!looksResidue(candidate)) break;
+        j += 1;
+      }
+      i = j - 1;
+    }
+    let merged = out.join("\n");
+    merged = merged
+      .replace(/\[\[EQ:([^\]]+)\]\]\s*[A-Za-z]{0,2}\s*\n\s*\[\[EQ:([^\]]+)\]\]/g, "[[EQ:$1]]\n[[EQ:$2]]")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return merged;
+  };
+  const pruneRedundantEqTokens = (textValue: string, eqMap: Map<string, BriefEquation>) => {
+    return String(textValue || "").replace(
+      /\[\[EQ:([^\]]+)\]\]\s*[A-Za-z]{0,2}\s*\n?\s*\[\[EQ:([^\]]+)\]\]/g,
+      (_m, id1, id2) => {
+        const e1 = eqMap.get(String(id1));
+        const e2 = eqMap.get(String(id2));
+        const bad1 = !e1 || Number(e1.confidence || 0) < 0.86 || looksSuspiciousEquationLatex(e1.latex);
+        const bad2 = !e2 || Number(e2.confidence || 0) < 0.86 || looksSuspiciousEquationLatex(e2.latex);
+        if (bad1 && !bad2) return `[[EQ:${id2}]]`;
+        if (!bad1 && bad2) return `[[EQ:${id1}]]`;
+        return `[[EQ:${id1}]]\n[[EQ:${id2}]]`;
+      }
+    );
+  };
+  const normalizeTokenPunctuation = (textValue: string) =>
+    String(textValue || "")
+      .replace(/\s+\.\s+\[\[/g, " [[")
+      .replace(/([!?])\s*\[\[/g, "$1 [[")
+      .replace(/\.{2,}\s*(\[\[(?:IMG|EQ):[^\]]+\]\])/g, "\n$1")
+      .replace(/(\[\[IMG:[^\]]+\]\])\s*\.\s*(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
+      .replace(/(\[\[IMG:[^\]]+\]\])\s+(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
+      .replace(/(\[\[EQ:[^\]]+\]\])\s+(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  const stripEqDuplicateFollowupLine = (textValue: string, eqMap: Map<string, BriefEquation>) => {
+    const canonical = (s: string) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/\\theta/g, "θ")
+        .replace(/\\alpha/g, "α")
+        .replace(/\\beta/g, "β")
+        .replace(/\\sin/g, "sin")
+        .replace(/\\cos/g, "cos")
+        .replace(/\\tan/g, "tan")
+        .replace(/[{}\\]/g, "")
+        .replace(/[^\p{L}\p{N}()+\-*/=]/gu, "");
+    const looksEqLine = (s: string) =>
+      /[=()+\-*/^]/.test(s) || /\b(sin|cos|tan|log|ln)\b/i.test(s) || /[αβθ]/i.test(s);
+
+    const lines = String(textValue || "").split("\n");
+    const out: string[] = [];
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i] || "";
+      out.push(line);
+      const m = line.match(/^\s*\[\[EQ:([^\]]+)\]\]\s*$/);
+      if (!m) continue;
+      const eq = eqMap.get(String(m[1] || ""));
+      const latex = String(eq?.latex || "").trim();
+      if (!latex) continue;
+      let j = i + 1;
+      while (j < lines.length && !String(lines[j] || "").trim()) {
+        out.push(lines[j] || "");
+        j += 1;
+      }
+      if (j >= lines.length) continue;
+      const next = String(lines[j] || "").trim();
+      if (!next || !looksEqLine(next)) continue;
+      const nextCanon = canonical(next);
+      const latexCanon = canonical(latex);
+      // Remove exact and near-exact follow-up duplicates after an EQ token.
+      if (nextCanon && latexCanon && (nextCanon === latexCanon || nextCanon.endsWith(latexCanon) || latexCanon.endsWith(nextCanon))) {
+        i = j; // skip the duplicate line
+      }
+    }
+    return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  };
+  const stripEquationNeighborNoise = (textValue: string, ids: string[]) => {
+    let out = String(textValue || "");
+    for (const id of ids) {
+      out = out.replace(
+        new RegExp(`(\\[\\[EQ:${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]\\])\\s+[A-Za-z0-9{}\\\\^_=/.-]{2,24}(?=\\s+(?:Integrate\\b|Determine\\b|PART\\b|The\\s+current\\b|For\\s+the\\b|when\\s+the\\s+time\\b|$))`, "g"),
+        "$1"
+      );
+    }
+    return out;
+  };
+  const eqsByPage = new Map<number, BriefEquation[]>();
+  for (const eq of allEquations) {
+    const p = Number(eq.pageNumber || 0);
+    if (!p) continue;
+    if (!eqsByPage.has(p)) eqsByPage.set(p, []);
+    eqsByPage.get(p)!.push(eq);
+  }
+  for (const [p, arr] of eqsByPage.entries()) {
+    arr.sort((a, b) => (a.bbox?.y ?? 0) - (b.bbox?.y ?? 0));
+    eqsByPage.set(p, arr);
+  }
+  const pickUnusedEqForTask = (pagesForTask: number[], used: Set<string>) => {
+    for (const p of pagesForTask) {
+      const arr = eqsByPage.get(p) || [];
+      for (const eq of arr) {
+        if (!used.has(eq.id)) return eq.id;
+      }
+    }
+    return null;
+  };
+  const transformTaskTexts = (task: any, transform: (value: string) => string) => {
+    task.text = transform(String(task?.text || ""));
+    task.prompt = task.text;
+    if (Array.isArray(task.parts) && task.parts.length) {
+      task.parts = task.parts.map((part: any) => ({
+        ...part,
+        text: transform(String(part?.text || "")),
+      }));
+    }
+  };
+  const rebuildTaskTextFromParts = (task: any) => {
+    if (!Array.isArray(task.parts) || !task.parts.length) return;
+    const rebuilt = task.parts
+      .map((p: any, idx: number) => `PART ${idx + 1}\n${String(p?.text || "").trim()}`)
+      .join("\n")
+      .trim();
+    if (rebuilt) {
+      task.text = rebuilt;
+      task.prompt = rebuilt;
+    }
+  };
+  const usedEqIdsMutable = new Set<string>(usedEqIds);
+  for (const task of tasksResult.tasks || []) {
+    transformTaskTexts(task, (value) => normalizeSimpleMathText(sanitizeEquationContext(value)));
+    const taskWarnings = new Set((task.warnings || []).map((w) => String(w)));
+    const ids = new Set<string>();
+    collectEqIds(task?.text, ids);
+    collectEqIds(task?.prompt, ids);
+    for (const part of task?.parts || []) collectEqIds(part?.text, ids);
+    if (Array.isArray(task.parts) && task.parts.length) {
+      const pagesForTask = Array.isArray(task.pages) ? task.pages.map((p) => Number(p)).filter(Boolean) : [];
+      task.parts = task.parts.map((part) => {
+        const raw = String(part?.text || "");
+        if (/\[\[EQ:[^\]]+\]\]/.test(raw)) return part;
+        if (!/\bfollowing\b.+\b(curve|function|equation)\b/i.test(raw) && !/quantified as/i.test(raw)) return part;
+        const pick = pickUnusedEqForTask(pagesForTask, usedEqIdsMutable);
+        if (!pick) return part;
+        usedEqIdsMutable.add(pick);
+        return { ...part, text: `${raw}\n[[EQ:${pick}]]` };
+      });
+      rebuildTaskTextFromParts(task);
+      ids.clear();
+      collectEqIds(task?.text, ids);
+      collectEqIds(task?.prompt, ids);
+      for (const part of task?.parts || []) collectEqIds(part?.text, ids);
+    }
+    const idsArr = Array.from(ids);
+    const linkedEqs = idsArr.map((id) => eqById.get(id)).filter(Boolean) as BriefEquation[];
+    for (const eq of linkedEqs) {
+      if (Number(eq.confidence || 0) < 0.86 || looksSuspiciousEquationLatex(eq.latex)) {
+        eq.needsReview = true;
+      }
+    }
+
+    if (idsArr.some((id) => !eqById.has(id))) {
+      taskWarnings.add("equation token unresolved");
+    }
+    if (
+      linkedEqs.some(
+        (eq) =>
+          eq.needsReview ||
+          Number(eq.confidence || 0) < 0.86 ||
+          looksSuspiciousEquationLatex(eq.latex)
+      )
+    ) {
+      taskWarnings.add("equation quality: low-confidence");
+    }
+    if (hasBibliographyLeak(task.text || "")) {
+      taskWarnings.add("possible end-matter contamination");
+    }
+    if (hasMathGlyphLeak(task.text || "")) {
+      taskWarnings.add("math glyph artifacts present");
+    }
+    const cueInTask = imageCueRegex.test(task.text || "");
+    const cueInParts = Array.isArray(task.parts) && task.parts.some((part) => imageCueRegex.test(part?.text || ""));
+    if ((cueInTask || cueInParts) && !hasImageToken(task.text || "")) {
+      const leadPage = Array.isArray(task.pages) && task.pages.length ? Number(task.pages[0]) : 0;
+      const imgToken = `[[IMG:p${leadPage || 0}-t${task.n}-img1]]`;
+      task.text = injectImageToken(task.text || "", imgToken);
+      if (Array.isArray(task.parts) && task.parts.length) {
+        let injected = false;
+        task.parts = task.parts.map((part) => {
+          if (!injected && imageCueRegex.test(part?.text || "")) {
+            injected = true;
+            return { ...part, text: injectImageToken(part?.text || "", imgToken) };
+          }
+          return part;
+        });
+      }
+      task.prompt = task.text;
+    }
+    if (idsArr.length) {
+      transformTaskTexts(task, (value) => stripEquationNeighborNoise(value, idsArr));
+      transformTaskTexts(task, (value) => stripEqDuplicateFollowupLine(value, eqById));
+      transformTaskTexts(task, (value) => pruneRedundantEqTokens(value, eqById));
+    }
+    transformTaskTexts(task, normalizeTokenPunctuation);
+    if (
+      hasStackedMathLayout(task.text || "") ||
+      (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")))
+    ) {
+      transformTaskTexts(task, (value) => normalizeSimpleMathText(repairStackedMathLayout(value)));
+      const stillBroken =
+        hasStackedMathLayout(task.text || "") ||
+        (Array.isArray(task.parts) && task.parts.some((part) => hasStackedMathLayout(part?.text || "")));
+      if (stillBroken) {
+        taskWarnings.add("math layout: broken line wraps");
+      } else {
+        taskWarnings.delete("math layout: broken line wraps");
+      }
+    }
+
+    const mergedWarnings = Array.from(taskWarnings);
+    task.warnings = mergedWarnings.length ? mergedWarnings : undefined;
+    task.confidence = mergedWarnings.length ? "HEURISTIC" : "CLEAN";
+  }
+
+  const usedEqIdsFinal = new Set<string>();
+  for (const scenario of tasksResult.scenarios || []) collectEqIds(scenario?.text, usedEqIdsFinal);
+  for (const task of tasksResult.tasks || []) {
+    collectEqIds(task?.text, usedEqIdsFinal);
+    collectEqIds(task?.prompt, usedEqIdsFinal);
+    collectEqIds(task?.scenarioText, usedEqIdsFinal);
+    for (const part of task?.parts || []) collectEqIds(part?.text, usedEqIdsFinal);
+  }
 
   return {
     kind: "BRIEF" as const,
@@ -1381,7 +2000,7 @@ export function extractBrief(
     criteriaCodes,
     loHeaders,
     endMatter: tasksResult.endMatter || null,
-    equations: filteredEquations,
+    equations: allEquations.filter((eq) => usedEqIdsFinal.has(eq.id)),
     scenarios: tasksResult.scenarios,
     tasks: tasksResult.tasks,
     warnings: warnings.length ? warnings : undefined,

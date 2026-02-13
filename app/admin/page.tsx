@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 type Tone = "sky" | "emerald" | "amber" | "slate";
 
@@ -53,7 +54,121 @@ function AdminCard({
   );
 }
 
-export default function AdminIndex() {
+export default async function AdminIndex() {
+  const now = Date.now();
+
+  const metricsPromise = Promise.all([
+    prisma.referenceDocument.count({
+      where: {
+        type: "SPEC",
+        status: { in: ["EXTRACTED", "REVIEWED"] },
+        lockedAt: null,
+      },
+    }),
+    prisma.referenceDocument.count({
+      where: {
+        type: "BRIEF",
+        status: { in: ["EXTRACTED", "REVIEWED"] },
+        lockedAt: null,
+      },
+    }),
+    prisma.submission.count({
+      where: {
+        studentId: null,
+      },
+    }),
+    prisma.submission.count({
+      where: {
+        status: "NEEDS_OCR",
+      },
+    }),
+    prisma.submission.count({
+      where: {
+        status: "FAILED",
+      },
+    }),
+    prisma.referenceDocument.count({
+      where: {
+        status: "FAILED",
+      },
+    }),
+    prisma.referenceDocument.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.submission.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        filename: true,
+        status: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  const [
+    specsAwaitingLock,
+    briefsAwaitingLock,
+    unlinkedSubmissions,
+    needsOcrSubmissions,
+    failedSubmissions,
+    failedReferences,
+    recentDocs,
+    recentSubmissions,
+  ] = await metricsPromise;
+
+  const attention = [
+    {
+      label: "Specs awaiting lock",
+      count: specsAwaitingLock,
+      href: "/admin/specs",
+      hint: "Extracted/reviewed specs should be locked before grading runs.",
+    },
+    {
+      label: "Briefs awaiting lock",
+      count: briefsAwaitingLock,
+      href: "/admin/briefs",
+      hint: "Brief mapping and rubric should be confirmed before release.",
+    },
+    {
+      label: "Submissions without student link",
+      count: unlinkedSubmissions,
+      href: "/admin/students",
+      hint: "Unlinked submissions reduce traceability and audit confidence.",
+    },
+    {
+      label: "Submissions needing OCR",
+      count: needsOcrSubmissions,
+      href: "/upload",
+      hint: "Low-confidence text extraction needs OCR follow-up.",
+    },
+    {
+      label: "Failed extractions",
+      count: failedSubmissions + failedReferences,
+      href: "/admin/reference",
+      hint: "Failed docs/submissions should be retried or corrected.",
+    },
+  ];
+
+  function minsAgo(ts: Date) {
+    return Math.max(0, Math.round((now - new Date(ts).getTime()) / 60000));
+  }
+
+  function statusTone(status: string) {
+    if (status === "FAILED") return "border-red-200 bg-red-50 text-red-700";
+    if (status === "LOCKED" || status === "DONE") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "border-zinc-200 bg-zinc-50 text-zinc-700";
+  }
+
   return (
     <div className="grid gap-4">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -89,8 +204,8 @@ export default function AdminIndex() {
         <AdminCard
           title="System"
           desc="Check reference inboxes and lock state to keep audit readiness and QA confidence high."
-          href="/admin/reference"
-          cta="Open system"
+          href="/admin/settings"
+          cta="Open settings"
           tone="slate"
           icon="⚙️"
         />
@@ -99,20 +214,60 @@ export default function AdminIndex() {
       <section className="grid gap-3 lg:grid-cols-2">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-zinc-900">Needs attention now</h2>
-          <ul className="mt-3 grid gap-2 text-sm text-zinc-700">
-            <li className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Review extracted specs awaiting lock confirmation.</li>
-            <li className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Confirm brief mappings before releasing grading runs.</li>
-            <li className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Resolve students without linked submissions.</li>
-          </ul>
+          <div className="mt-3 grid gap-2">
+            {attention.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-medium text-zinc-900">{item.label}</div>
+                  <div className="rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-xs font-semibold text-zinc-800">{item.count}</div>
+                </div>
+                <div className="mt-1 text-xs text-zinc-600">{item.hint}</div>
+              </Link>
+            ))}
+          </div>
         </article>
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-zinc-900">Recently updated</h2>
-          <ul className="mt-3 grid gap-2 text-sm text-zinc-700">
-            <li className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Specs extraction tooling and library controls.</li>
-            <li className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Briefs review workflows and mapping visibility.</li>
-            <li className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Student import and profile operations.</li>
-          </ul>
+          <div className="mt-3 grid gap-2 text-sm text-zinc-700">
+            {recentDocs.length === 0 && recentSubmissions.length === 0 ? (
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-zinc-600">No recent activity yet.</div>
+            ) : null}
+
+            {recentDocs.map((doc) => (
+              <Link
+                key={`doc-${doc.id}`}
+                href="/admin/reference"
+                className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:bg-zinc-100"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="truncate font-medium text-zinc-900">
+                    {doc.type}: {doc.title}
+                  </div>
+                  <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(doc.status)}>{doc.status}</span>
+                </div>
+                <div className="mt-1 text-xs text-zinc-600">Updated {minsAgo(doc.updatedAt)}m ago</div>
+              </Link>
+            ))}
+
+            {recentSubmissions.map((sub) => (
+              <Link
+                key={`sub-${sub.id}`}
+                href="/upload"
+                className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:bg-zinc-100"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="truncate font-medium text-zinc-900">Submission: {sub.filename}</div>
+                  <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(sub.status)}>{sub.status}</span>
+                </div>
+                <div className="mt-1 text-xs text-zinc-600">Updated {minsAgo(sub.updatedAt)}m ago</div>
+              </Link>
+            ))}
+          </div>
         </article>
       </section>
     </div>

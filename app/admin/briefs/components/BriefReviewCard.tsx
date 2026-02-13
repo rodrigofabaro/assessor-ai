@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Criterion, ReferenceDocument, Unit } from "../../reference/reference.logic";
 import { Pill } from "./ui";
 import BriefMappingPanel from "./BriefMappingPanel";
@@ -9,12 +9,69 @@ import { useRouter } from "next/navigation";
 import { TaskCard } from "./TaskCard";
 import { statusTone, tone } from "../[briefId]/components/briefStyles";
 
+function normalizeComparableText(s: string) {
+  return String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function parsePartsFromPartBlocks(text: string) {
+  const src = String(text || "");
+  const re = /(?:^|\n)\s*PART\s+(\d+)\s*\n/g;
+  const starts: Array<{ idx: number; n: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src))) {
+    starts.push({ idx: m.index, n: Number(m[1]) });
+  }
+  if (!starts.length) return [] as Array<{ key: string; text: string }>;
+
+  const alpha = "abcdefghijklmnopqrstuvwxyz";
+  const parts: Array<{ key: string; text: string }> = [];
+  for (let i = 0; i < starts.length; i += 1) {
+    const cur = starts[i];
+    const next = starts[i + 1];
+    const markerLen = (`PART ${cur.n}\n`).length;
+    const start = cur.idx + (src.slice(cur.idx).startsWith("\n") ? 1 : 0);
+    const markerPos = src.indexOf("\n", start);
+    if (markerPos < 0) continue;
+    const bodyStart = markerPos + 1;
+    const bodyEnd = next ? next.idx : src.length;
+    const body = src.slice(bodyStart, bodyEnd).trim();
+    const key = alpha[i] || `p${i + 1}`;
+    if (body) parts.push({ key, text: body });
+  }
+  return parts;
+}
+
+function syncTaskFromText(task: any) {
+  const text = String(task?.text || "");
+  if (!text.trim()) return task;
+  const next = { ...task, prompt: text };
+  const parsed = parsePartsFromPartBlocks(text);
+  if (!parsed.length) return next;
+
+  const existing = Array.isArray(task?.parts) ? task.parts : [];
+  const existingJoined = normalizeComparableText(existing.map((p: any) => String(p?.text || "")).join("\n"));
+  const parsedJoined = normalizeComparableText(parsed.map((p) => p.text).join("\n"));
+  if (parsedJoined && parsedJoined !== existingJoined) {
+    next.parts = parsed;
+  }
+  return next;
+}
+
 export default function BriefReviewCard({ rx }: { rx: any }) {
   const router = useRouter();
   const doc = rx.selectedDoc as ReferenceDocument | null;
 
-  // 1. Extract latest draft from props
-  const latestDraft: any = doc?.extractedJson || null;
+  // 1. Prefer live manual JSON preview (when enabled and valid), then saved manual draft, then extracted.
+  const manualDraft: any = (doc?.sourceMeta as any)?.manualDraft || null;
+  let liveRawDraft: any = null;
+  if (rx.showRawJson && typeof rx.rawJson === "string" && rx.rawJson.trim()) {
+    try {
+      liveRawDraft = JSON.parse(rx.rawJson);
+    } catch {
+      liveRawDraft = null;
+    }
+  }
+  const latestDraft: any = liveRawDraft || manualDraft || doc?.extractedJson || null;
 
   /**
    * 2. Derive a "safe" draft (replaces lastGoodDraft state/effect)
@@ -30,13 +87,16 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
     ? latestDraft 
     : (doc?.extractedJson ?? null);
 
-  
+  const rawTasks = (Array.isArray(draft?.tasks) ? draft.tasks : []).map(syncTaskFromText);
   const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
-  const taskWarnings = draftWarnings.filter((w: any) => String(w).toLowerCase().includes("task"));
   const lockConflict = rx.lockConflict;
   const [expandAll, setExpandAll] = useState(false);
   const [expandSignal, setExpandSignal] = useState(0);
   const [copyJsonStatus, setCopyJsonStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [screenshotStatus, setScreenshotStatus] = useState<string>("");
+  const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const [uploadedShots, setUploadedShots] = useState<Array<{ name: string; path: string }>>([]);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
   const readiness = (doc as any)?.readiness as string | undefined;
   const usage = rx.selectedDocUsage;
   const usageLoading = rx.usageLoading;
@@ -45,9 +105,9 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
   const canUnlock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !!doc.lockedAt && !!usage && !usage.inUse;
   const canDelete = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt && !!usage && !usage.inUse;
 
-  const rawTasks = Array.isArray(draft?.tasks) ? draft.tasks : [];
   const extractedEquations = Array.isArray(draft?.equations) ? draft.equations : [];
   const equationLatexOverrides = doc?.sourceMeta?.equationLatexOverrides || {};
+  const taskLatexOverrides = doc?.sourceMeta?.taskLatexOverrides || {};
   const equationsById = extractedEquations.reduce((acc: Record<string, any>, eq: any) => {
     if (!eq?.id) return acc;
     const override = equationLatexOverrides?.[eq.id];
@@ -63,17 +123,79 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
         : eq;
     return acc;
   }, {});
+  const effectiveWarningsForTask = (task: any) => {
+    const raw: string[] = Array.isArray(task?.warnings) ? task.warnings.map((w: unknown) => String(w)) : [];
+    const n = Number(task?.n);
+    const hasManualTaskLatexOverride =
+      Number.isFinite(n) &&
+      n > 0 &&
+      Object.keys(taskLatexOverrides || {}).some((k) => String(k || "").startsWith(`${n}.`) && String((taskLatexOverrides as any)?.[k] || "").trim());
+
+    const referencedEquationIds = (() => {
+      const ids = new Set<string>();
+      const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
+      const collect = (value: unknown) => {
+        const txt = String(value || "");
+        let m: RegExpExecArray | null;
+        while ((m = tokenRe.exec(txt))) if (m[1]) ids.add(String(m[1]));
+      };
+      collect(task?.text);
+      collect(task?.prompt);
+      if (Array.isArray(task?.parts)) {
+        for (const p of task.parts) collect(p?.text);
+      }
+      return Array.from(ids);
+    })();
+
+    const hasResolvedReferencedEquations =
+      referencedEquationIds.length > 0 &&
+      referencedEquationIds.every((id) => {
+        const eq: any = equationsById?.[id];
+        const latex = String(eq?.latex || "").trim();
+        return !!latex && !eq?.needsReview;
+      });
+
+    const hasResolvedTaskEquations = Array.isArray(task?.equations)
+      ? task.equations.length > 0 &&
+        task.equations.every((eq: any) => {
+          const latex = String(eq?.latex || "").trim();
+          return !!latex && !eq?.needsReview;
+        })
+      : false;
+
+    return raw
+      .filter((w) => !/openai math cleanup applied/i.test(w))
+      .filter((w) => !((hasResolvedReferencedEquations || hasResolvedTaskEquations || hasManualTaskLatexOverride) && /equation quality: low-confidence/i.test(w)));
+  };
+  const taskWarningRows = rawTasks.flatMap((task: any, idx: number) => {
+    const n = Number(task?.n || idx + 1);
+    const label = String(task?.label || (task?.n ? `Task ${task.n}` : `Task ${idx + 1}`)).trim();
+    const ws = effectiveWarningsForTask(task);
+    return ws.map((w: any) => ({ n, label, warning: String(w) }));
+  });
+  const taskWarnings = taskWarningRows.map((row) => ({ ...row, text: `${row.label}: ${row.warning}` }));
   const tasks = rawTasks.filter((task: any) => {
     const text = typeof task?.text === "string" ? task.text : "";
     return text.trim().length > 0;
   });
   const tasksTotal = rawTasks.length;
   const tasksShown = tasks.length;
-  const taskWarningCount = rawTasks.reduce((sum: number, task: any) => sum + (task?.warnings?.length || 0), 0);
+  const taskWarningCount = rawTasks.reduce((sum: number, task: any) => sum + effectiveWarningsForTask(task).length, 0);
   const warningCount = draftWarnings.length + taskWarningCount;
   const toggleExpandAll = (next: boolean) => {
     setExpandAll(next);
     setExpandSignal((prev) => prev + 1);
+  };
+
+  const jumpToTask = (taskNumber: number) => {
+    if (!Number.isFinite(taskNumber) || taskNumber < 1) return;
+    toggleExpandAll(true);
+    window.setTimeout(() => {
+      const el = document.getElementById(`task-card-${taskNumber}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 80);
   };
 
   const handleCopyExtractionJson = async () => {
@@ -85,6 +207,46 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
       setCopyJsonStatus("failed");
     }
     setTimeout(() => setCopyJsonStatus("idle"), 2000);
+  };
+
+  const uploadScreenshotFile = async (file: File) => {
+    if (!file || !doc?.id) return;
+    setScreenshotBusy(true);
+    setScreenshotStatus("");
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("documentId", doc.id);
+      const res = await fetch("/api/dev/screenshot", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setScreenshotStatus(data?.message || data?.error || "Failed to upload screenshot.");
+        return;
+      }
+      const savedName = String(data?.savedName || file.name);
+      const savedPath = String(data?.savedPath || "");
+      setUploadedShots((prev) => [{ name: savedName, path: savedPath }, ...prev].slice(0, 8));
+      setScreenshotStatus(`Saved: ${savedName}`);
+    } catch (e: any) {
+      setScreenshotStatus(e?.message || "Failed to upload screenshot.");
+    } finally {
+      setScreenshotBusy(false);
+    }
+  };
+
+  const handleScreenshotInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadScreenshotFile(file);
+    e.target.value = "";
+  };
+
+  const handlePasteScreenshot = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find((it) => it.type.startsWith("image/"));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) await uploadScreenshotFile(file);
   };
 
   return (
@@ -240,11 +402,14 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                     <TaskCard
                       key={`task-${t?.id ?? ""}-${t?.n ?? ""}-${i}-${expandSignal}`}
                       task={t}
+                      anchorId={`task-card-${Number(t?.n || i + 1)}`}
                       defaultExpanded={expandAll}
+                      taskLatexOverrides={taskLatexOverrides}
                       equationsById={equationsById}
                       openPdfHref={doc ? `/api/reference-documents/${doc.id}/file` : undefined}
                       canEditLatex={true}
                       onSaveEquationLatex={rx.saveSelectedDocEquationLatex}
+                      onSaveTaskLatexOverrides={rx.saveSelectedDocTaskLatex}
                     />
                   ))}
                 </div>
@@ -289,9 +454,42 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
             <div className="mt-3 grid gap-2 text-sm text-zinc-700">
               {doc.lockedAt ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">Locked: extraction and edits are disabled.</div> : null}
+              {warningCount > 0 ? (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-700">Fix options</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={!canExtract}
+                      onClick={rx.reextractSelected}
+                      className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+                    >
+                      Re-extract and review
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!canExtract}
+                      onClick={rx.extractSelected}
+                      className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+                    >
+                      Re-run extract
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        rx.setShowRawJson?.(true);
+                        document.getElementById("brief-raw-json")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className={ui.btnSecondary + " text-xs"}
+                    >
+                      Open manual override
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {draftWarnings.length ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                  <div className="text-xs font-semibold uppercase tracking-wide">Extraction warnings</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide">Extraction warnings ({draftWarnings.length})</div>
                   <ul className="mt-2 list-disc pl-5 text-sm">
                     {draftWarnings.map((w: string, i: number) => (
                       <li key={`${w}-${i}`}>{w}</li>
@@ -301,6 +499,24 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               ) : (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No extraction warnings.</div>
               )}
+              {taskWarnings.length ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                  <div className="text-xs font-semibold uppercase tracking-wide">Task warnings ({taskWarnings.length})</div>
+                  <ul className="mt-2 list-disc pl-5 text-sm">
+                    {taskWarnings.map((w: { n: number; text: string }, i: number) => (
+                      <li key={`${w.text}-${i}`}>
+                        <button
+                          type="button"
+                          onClick={() => jumpToTask(w.n)}
+                          className="text-left underline decoration-dotted underline-offset-2 hover:text-amber-950"
+                        >
+                          {w.text}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -329,18 +545,112 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                   <span className="break-words">Enable manual override editing</span>
                 </label>
                 <p className="text-xs text-zinc-600">Use only when extraction misses structure. Overrides are logged at lock time.</p>
+                {rx.showRawJson && typeof rx.rawJson === "string" && rx.rawJson.trim() ? (
+                  (() => {
+                    try {
+                      JSON.parse(rx.rawJson);
+                      return <p className="text-[11px] text-emerald-700">Live preview is using your current manual JSON.</p>;
+                    } catch {
+                      return <p className="text-[11px] text-rose-700">Invalid JSON: preview is still showing last valid draft.</p>;
+                    }
+                  })()
+                ) : null}
                 <div>
-                  <button
-                    type="button"
-                    onClick={handleCopyExtractionJson}
-                    className={ui.btnSecondary + " text-xs"}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={screenshotInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleScreenshotInput}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyExtractionJson}
+                      className={ui.btnSecondary + " text-xs"}
+                    >
+                      {copyJsonStatus === "copied"
+                        ? "Copied extraction JSON"
+                        : copyJsonStatus === "failed"
+                          ? "Copy failed"
+                          : "Copy extraction JSON"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!doc || !!rx.busy}
+                      onClick={rx.saveRawJsonDraft}
+                      className={ui.btnPrimary + " text-xs disabled:cursor-not-allowed disabled:bg-zinc-300"}
+                    >
+                      Save draft override
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!doc || !!rx.busy}
+                      onClick={rx.clearRawJsonDraft}
+                      className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+                    >
+                      Clear saved override
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!doc || screenshotBusy}
+                      onClick={() => screenshotInputRef.current?.click()}
+                      className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+                    >
+                      {screenshotBusy ? "Uploading..." : "Upload screenshot"}
+                    </button>
+                  </div>
+                  <div
+                    onPaste={handlePasteScreenshot}
+                    className="mt-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-600"
+                    title="Click then paste screenshot (Ctrl+V)"
                   >
-                    {copyJsonStatus === "copied"
-                      ? "Copied extraction JSON"
-                      : copyJsonStatus === "failed"
-                        ? "Copy failed"
-                        : "Copy extraction JSON"}
-                  </button>
+                    Paste screenshot here (Ctrl+V) or use Upload screenshot.
+                  </div>
+                  {screenshotStatus ? <p className="mt-2 text-[11px] text-sky-700">{screenshotStatus}</p> : null}
+                  {uploadedShots.length ? (
+                    <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                      {uploadedShots.map((shot, idx) => (
+                        <div key={`${shot.path}-${idx}`} className="mb-1 flex items-center gap-2 last:mb-0">
+                          <div className="min-w-0 flex-1 truncate">
+                            {shot.name} - <code>{shot.path}</code>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(shot.path);
+                                setScreenshotStatus(`Copied path: ${shot.name}`);
+                              } catch {
+                                setScreenshotStatus("Failed to copy screenshot path.");
+                              }
+                            }}
+                            className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                          >
+                            Copy path
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const payload = `screenshot: ${shot.path}`;
+                              try {
+                                await navigator.clipboard.writeText(payload);
+                                setScreenshotStatus(`Copied send message for: ${shot.name}`);
+                              } catch {
+                                setScreenshotStatus("Failed to prepare send message.");
+                              }
+                            }}
+                            className="rounded border border-sky-300 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-800 hover:bg-sky-100"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {manualDraft ? (
+                    <p className="mt-2 text-[11px] text-emerald-700">Saved override draft is active for this brief.</p>
+                  ) : null}
                 </div>
                 {rx.showRawJson ? (
                   <div className="overflow-x-auto max-w-full">

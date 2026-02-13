@@ -1,0 +1,220 @@
+{
+  "kind": "BRIEF",
+  "title": "Unit 4002 - Engineering Mathematics - Assignment 2",
+  "assignmentCode": "A2",
+  "unitCodeGuess": "4002",
+  "pageCount": 5,
+  "header": {
+    "qualification": "Pearson BTEC Higher Nationals for England (2024)",
+    "unitNumberAndTitle": "4002. Engineering Mathematics",
+    "assignmentTitle": "Analytical & Computational Methods",
+    "assignment": "2 of 3",
+    "assessor": "Engineering Team",
+    "unitCode": "J/651/0708",
+    "internalVerifier": "Dr. Mike Shaw",
+    "verificationDate": "1st September 2025",
+    "verificationDateIso": "2025-09-01",
+    "issueDate": "1st September 2025",
+    "issueDateIso": "2025-09-01",
+    "finalSubmissionDate": "31st August 2026",
+    "finalSubmissionDateIso": "2026-08-31",
+    "academicYear": "1"
+  },
+  "equations": [
+    {
+      "pageNumber": 3,
+      "bbox": {
+        "x": 155.28,
+        "y": 233.64,
+        "w": 229.15200000000002,
+        "h": 144
+      },
+      "latex": "I = 3i + 2j - 5k",
+      "latexSource": "heuristic",
+      "confidence": 0.76,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 3,
+      "bbox": {
+        "x": 155.28,
+        "y": 204.3,
+        "w": 227.83199999999997,
+        "h": 144
+      },
+      "latex": "B = 2i - 4j + 6k",
+      "latexSource": "heuristic",
+      "confidence": 0.76,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 3,
+      "bbox": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "latex": "i_s = 15 \\cos \\left( 2\\pi f t - \\frac{\\pi}{3} \\right) \\; [A]",
+      "latexSource": "heuristic",
+      "confidence": 0.95,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 3,
+      "bbox": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "latex": "x = 10 \\cos \\left( 6 \\pi t - \\frac{\\pi}{6} \\right) \\quad [W]",
+      "latexSource": "heuristic",
+      "confidence": 0.95,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 4,
+      "bbox": {
+        "x": 311.82,
+        "y": 690.84,
+        "w": 63.61200000000002,
+        "h": 166.55999999999995
+      },
+      "latex": "v1 = 30 sin(5t) v2 = A cos(5t)",
+      "latexSource": "heuristic",
+      "confidence": 0.76,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 4,
+      "bbox": {
+        "x": 318.24,
+        "y": 626.82,
+        "w": 65.29199999999997,
+        "h": 144.4799999999999
+      },
+      "latex": "= 40 sin(5t + \\alpha)",
+      "latexSource": "heuristic",
+      "confidence": 0.76,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 4,
+      "bbox": {
+        "x": 298.2,
+        "y": 463.68,
+        "w": 90.91199999999998,
+        "h": 144.48000000000008
+      },
+      "latex": "v_0 = 40 \\sin(5t + \\alpha)",
+      "latexSource": "heuristic",
+      "confidence": 0.98,
+      "needsReview": false
+    },
+    {
+      "pageNumber": 4,
+      "bbox": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "latex": "R \\sin(2\\theta + \\beta)",
+      "latexSource": "heuristic",
+      "confidence": 0.98,
+      "needsReview": false
+    }
+  ],
+  "tasks": [
+    {
+      "n": 1,
+      "label": "Task 1",
+      "title": null,
+      "pages": [
+        3
+      ],
+      "text": "Note: You need to have your calculator in radians (RAD) mode for this task (since the angles are given in radians - i.e., π is featured).\n\na) A current waveform in a robotic arm may be described by...\n[[EQ:p3-eq3]]\n\nwhere frequency, f = 2Hz and t represents time.\nMake time (t) the subject of this formula and hence determine a point in time when the current waveform has a magnitude of +8A.\n\nb) The instantaneous value of a power signal may be described by;\n[[EQ:p3-eq4]]\n\nFind the magnitude of the vertical and horizontal components of this signal. Note that the symbol ∠ indicates ‘angle’.",
+      "parts": [
+        {
+          "key": "a",
+          "text": "A current waveform in a robotic arm may be described by...\n[[EQ:p3-eq3]]\n\nwhere frequency, f = 2Hz and t represents time.\nMake time (t) the subject of this formula and hence determine a point in time when the current waveform has a magnitude of +8A."
+        },
+        {
+          "key": "b",
+          "text": "The instantaneous value of a power signal may be described by;\n[[EQ:p3-eq4]]\n\nFind the magnitude of the vertical and horizontal components of this signal. Note that the symbol ∠ indicates ‘angle’."
+        }
+      ],
+      "scenarioText": "You work as a Test Engineer for a global manufacturer of electrical and mechanical\ncomponents and systems. Your Line Manager is responsible for delegating to you and your\ncolleagues the testing of theory, principles, and hypotheses from several worldwide\ncompany divisions. She has asked you to undertake a series of such evaluations.",
+      "tableBlocks": [],
+      "warnings": []
+    },
+    {
+      "n": 2,
+      "label": "Task 2",
+      "title": null,
+      "pages": [
+        3,
+        4
+      ],
+      "text": "a) A resistor, R, is connected in series with an inductor, L. An a.c. current, i, flows\nthrough this RL combination, causing a voltage (VR ) of 40V to be developed across the resistor, and a voltage (VL ) of 30V to be developed across the inductor.\nAssuming that VR is in-phase with i, and VL leads VR by 90°\n, draw a vector diagram for\nthis arrangement and then calculate the magnitude of the resultant voltage across the whole RL combination.\nb) A current-carrying filament is subjected to a strong magnetic field within an\nexperimental chamber. It is required to find the force on the filament. The current may be modelled in three-dimensional space as:\n[[EQ:p3-eq1]]\nand the magnetic field as:\n[[EQ:p3-eq2]]\nFind the Cross Product of these two vectors to ascertain the characteristics of the force on the filament (i.e., find I × B).\nSketch this Cross Product (or use software to do so).",
+      "parts": [
+        {
+          "key": "a",
+          "text": "A resistor, R, is connected in series with an inductor, L. An a.c. current, i, flows through this RL combination, causing a voltage (VR ) of 40V to be developed across the resistor, and a voltage (VL ) of 30V to be developed across the inductor.\nAssuming that VR is in-phase with i, and VL leads VR by 90°\n, draw a vector diagram for\nthis arrangement and then calculate the magnitude of the resultant voltage across the whole RL combination."
+        },
+        {
+          "key": "b",
+          "text": "A current-carrying filament is subjected to a strong magnetic field within an experimental chamber. It is required to find the force on the filament. The current may be modelled in three-dimensional space as:\n[[EQ:p3-eq1]]\nand the magnetic field as:\n[[EQ:p3-eq2]]\nFind the Cross Product of these two vectors to ascertain the characteristics of the force on the filament (i.e., find I × B).\nSketch this Cross Product (or use software to do so)."
+        }
+      ],
+      "scenarioText": null,
+      "tableBlocks": [],
+      "warnings": []
+    },
+    {
+      "n": 3,
+      "label": "Task 3",
+      "title": null,
+      "pages": [
+        4
+      ],
+      "text": "PART 1\nThe two signals below are sensed by a signal processor;\n[[EQ:p4-eq1]]\nThe signal processor adds the signals to form a third signal, which must be described as a distinct signal in the following form; v°\n[[EQ:p4-eq2]]\nUse a compound angle identity to determine the value of A (the amplitude of v2).\nEnsure that you have your calculator in Radians (RAD) mode when determining your answer.\n\nPART 2\nThe third harmonic of a sound wave is given by;\n[[EQ:p4-eq3]]\nExpress this sound wave in the form;\n[[EQ:p4-eq4]]\nR sin(2θ + β)",
+      "parts": [],
+      "scenarioText": null,
+      "tableBlocks": [],
+      "warnings": []
+    },
+    {
+      "n": 4,
+      "label": "Task 4",
+      "title": null,
+      "pages": [
+        4
+      ],
+      "text": "a) Use Graph software to plot the current signal given in Task 1 (a).\nProvide a screenshot of your waveform.\nb) Use Graph software to plot the two voltage signals (v1 and v2) given in\nTask 3 Part 1. Provide a screenshot of your waveforms.\nc) Use Geogebra to plot the vector given in Task 1 (b).\nProvide a screenshot of this vector function.",
+      "parts": [
+        {
+          "key": "a",
+          "text": "Use Graph software to plot the current signal given in Task 1 (a).\nProvide a screenshot of your waveform."
+        },
+        {
+          "key": "b",
+          "text": "Use Graph software to plot the two voltage signals (v1 and v2) given in\nTask 3 Part 1. Provide a screenshot of your waveforms."
+        },
+        {
+          "key": "c",
+          "text": "Use Geogebra to plot the vector given in Task 1 (b).\nProvide a screenshot of this vector function."
+        }
+      ],
+      "scenarioText": null,
+      "tableBlocks": [],
+      "warnings": []
+    }
+  ],
+  "warnings": [],
+  "endMatter": {
+    "sourcesBlock": "Sources of\ninformation to\nsupport you with\nthis Assignment\nBird J. (2021) Higher Engineering Mathematics. 9th Ed. Routledge.\nBird J.   (2019) Science and Mathematics for Engineering. 6th Ed. Routledge.\nGlyn J. and Dyke P. (2020) Modern Engineering Mathematics. 6th edition. Pearson.\nMade Easy Editorial Board (2022) Engineering Mathematics for GATE 2023 and ESE\n2023 (Prelims) – Theory and Previous Year Solved Papers. India: Made Easy\nPublications\nPvt Ltd.\nRattan K.S., Klingbeil N.W., and Baudendistel C.M. (2021) Introductory Mathematics\nfor Engineering Applications. 2nd Ed. Wiley.\nRam M. (2021) Recent Advances in Mathematics for Engineering. CRC Press.\nTeodorescu P., Stanescu N., and Pandrea N. (2013) Numerical Analysis with\nApplications in Mechanics and Engineering. Wiley-IEEE Press.\nRam M. (2020) Mathematics in  Engineering Sciences: Novel Theories, Technologies,\nand Applications. 1st Edition. CRC Press.\nSobot, R. (2022) Engineering Mathematics by Example. 1st Ed. Springer.\nStroud, K.A. and Booth, D.J. (2020) Engineering Mathematics. 8th Ed. Bloomsbury\nPublishing\nUrbano M. (2019) Introductory Electrical Engineering with Math Explained in\nAccessible Language. Wiley.\nVick B. (2020) Applied Engineering Mathematics. CRC Press.",
+    "criteriaBlock": "Revant Learning Outcomes and Assessment Criteria\n\nPass\n\nMerit\n\nDistinction\n\nL03\nUse analytical and computational methods for solving\nengineering and manufacturing sector problems by relating\nsinusoidal wave and vector functions to their respective\napplications\n\n\nP6\nSolve engineering/\nmanufacturing problems\n[[EQ:p5-eq1]]\ngraphically.\n\nApply engineering\nmathematical software\nto confirm the analytical\nsolutions for at least\nthree engineering/\nmanufacturing problems\n[[EQ:p5-eq2]]\nvector functions.\n\n\nP7\n\nUse appropriate methodology\nto determine engineering\nparameters of data represented\nin vector form.\n[[EQ:p5-eq3]]\nM3                               D2"
+  }
+}

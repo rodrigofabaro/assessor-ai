@@ -232,7 +232,7 @@ export default function HomePage() {
                 Go to Upload
               </Link>
               <Link
-                href="/admin/specs"
+                href="/admin"
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50"
               >
                 Go to Admin

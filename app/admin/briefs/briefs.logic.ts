@@ -199,12 +199,19 @@ export function useBriefsAdmin() {
     // hash tabs: /admin/briefs#extract
     if (typeof window !== "undefined") {
       const h = window.location.hash.replace("#", "");
+      const saved = (window.localStorage.getItem("admin_briefs_tab") || "").toLowerCase();
       if (h === "extract") setTab("extract");
-      if (h === "library") setTab("library");
+      else if (h === "library") setTab("library");
+      else if (saved === "extract" || saved === "library") setTab(saved as "extract" | "library");
     }
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyLockedDocs]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("admin_briefs_tab", tab);
+  }, [tab]);
 
   const unitOptions = useMemo(() => {
     const arr = Array.isArray(units) ? units : [];

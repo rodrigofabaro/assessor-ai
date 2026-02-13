@@ -7,6 +7,7 @@ const NAV = [
   { href: "/admin/reference", label: "Reference", desc: "Specs / briefs" },
   { href: "/admin/bindings", label: "Bindings", desc: "Brief ↔ unit map" },
   { href: "/admin/students", label: "Students", desc: "Student records" },
+  { href: "/admin/settings", label: "Settings", desc: "OpenAI usage" },
 ] as const;
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {

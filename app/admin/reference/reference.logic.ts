@@ -104,6 +104,67 @@ function stripExtension(name: string) {
   return name.replace(/\.[^/.]+$/, "");
 }
 
+function summarizeCleanupCandidates(extractedJson: any, taskNumbers?: number[] | null) {
+  const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+  const filter = Array.isArray(taskNumbers) && taskNumbers.length ? new Set(taskNumbers) : null;
+  const rows: string[] = [];
+  for (const task of tasks) {
+    const n = Number(task?.n);
+    if (filter && Number.isInteger(n) && !filter.has(n)) continue;
+    const label = String(task?.label || (task?.n ? `Task ${task.n}` : "Task")).trim();
+    const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).trim()) : [];
+    const reasons = ws.filter(
+      (w) =>
+        /math layout: broken line wraps/i.test(w) ||
+        /equation quality: low-confidence/i.test(w) ||
+        /possible end-matter contamination/i.test(w)
+    );
+    if (!reasons.length) continue;
+    rows.push(`${label}: ${reasons.join("; ")}`);
+  }
+  return rows;
+}
+
+function parseTaskNumbersInput(raw: string): number[] {
+  const out = new Set<number>();
+  const pieces = String(raw || "")
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const piece of pieces) {
+    if (/^\d+$/.test(piece)) {
+      const n = Number(piece);
+      if (Number.isInteger(n) && n > 0) out.add(n);
+      continue;
+    }
+    // Support "1d" style input by targeting task 1 only.
+    const partScoped = piece.match(/^(\d+)[a-z]$/i);
+    if (partScoped) {
+      const n = Number(partScoped[1]);
+      if (Number.isInteger(n) && n > 0) out.add(n);
+      continue;
+    }
+    // Support common variants like "3(b)", "3.b", "task3", "task-3a".
+    const leadingDigits = piece.match(/(\d+)/);
+    if (leadingDigits) {
+      const n = Number(leadingDigits[1]);
+      if (Number.isInteger(n) && n > 0) out.add(n);
+    }
+  }
+  return Array.from(out).sort((a, b) => a - b);
+}
+
+function shouldOfferCleanup(extractedJson: any, selectedTasks?: number[]) {
+  const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+  const filter = Array.isArray(selectedTasks) && selectedTasks.length ? new Set(selectedTasks) : null;
+  return tasks.some((task: any) => {
+    const n = Number(task?.n);
+    if (filter && Number.isInteger(n) && !filter.has(n)) return false;
+    const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).toLowerCase()) : [];
+    return ws.some((w: string) => w.includes("math layout: broken line wraps") || w.includes("equation quality: low-confidence"));
+  });
+}
+
 export function formatDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -224,6 +285,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [mapSelected, setMapSelected] = useState<Record<string, boolean>>({});
   const [showRawJson, setShowRawJson] = useState(false);
   const [rawJson, setRawJson] = useState("");
+  const [rawJsonDirty, setRawJsonDirty] = useState(false);
+  const [rawJsonDocId, setRawJsonDocId] = useState<string | null>(null);
   const [assignmentCodeInput, setAssignmentCodeInput] = useState("");
 
   // Persist filters
@@ -365,6 +428,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   useEffect(() => {
     if (!selectedDoc) {
       setRawJson("");
+      setRawJsonDirty(false);
+      setRawJsonDocId(null);
       setBriefUnitId("");
       setMapSelected({});
       setAssignmentCodeInput("");
@@ -372,8 +437,17 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       return;
     }
 
-    const draft = selectedDoc.extractedJson;
-    setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
+    const manualDraft = (() => {
+      const v = (selectedDoc.sourceMeta as any)?.manualDraft;
+      return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+    })();
+    const draft = manualDraft || selectedDoc.extractedJson;
+    const switchedDoc = rawJsonDocId !== selectedDoc.id;
+    if (switchedDoc || !rawJsonDirty) {
+      setRawJson(draft ? JSON.stringify(draft, null, 2) : "");
+      setRawJsonDirty(false);
+      setRawJsonDocId(selectedDoc.id);
+    }
 
     // Brief: preselect mapping (best-effort)
     if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
@@ -392,7 +466,73 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       }
       setMapSelected(sel);
     }
-  }, [selectedDoc, units, allCriteria]);
+  }, [selectedDoc, units, allCriteria, rawJsonDirty, rawJsonDocId]);
+
+  function updateRawJson(next: string) {
+    setRawJson(next);
+    setRawJsonDirty(true);
+    if (selectedDoc?.id) setRawJsonDocId(selectedDoc.id);
+  }
+
+  async function saveRawJsonDraft() {
+    if (!selectedDoc) return;
+    setError(null);
+    const text = String(rawJson || "").trim();
+    if (!text) {
+      setError("Manual override JSON is empty.");
+      return;
+    }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e: any) {
+      setError(`Manual override JSON is invalid: ${e?.message || "parse error"}`);
+      return;
+    }
+
+    setBusy("Saving override draft...");
+    try {
+      const prevMeta = ((selectedDoc.sourceMeta as any) || {}) as Record<string, unknown>;
+      const sourceMeta = { ...prevMeta, manualDraft: parsed };
+      await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ manualDraft: parsed }),
+      });
+      applyUpdatedDocument({ ...selectedDoc, sourceMeta } as ReferenceDocument);
+      setRawJson(JSON.stringify(parsed, null, 2));
+      setRawJsonDirty(false);
+      notifyToast("success", "Manual override draft saved.");
+    } catch (e: any) {
+      setError(e?.message || "Failed to save manual override draft.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function clearRawJsonDraft() {
+    if (!selectedDoc) return;
+    setError(null);
+    setBusy("Clearing override draft...");
+    try {
+      const prevMeta = ((selectedDoc.sourceMeta as any) || {}) as Record<string, unknown>;
+      const sourceMeta = { ...prevMeta, manualDraft: null };
+      await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ manualDraft: null }),
+      });
+      applyUpdatedDocument({ ...selectedDoc, sourceMeta } as ReferenceDocument);
+      const fallback = selectedDoc.extractedJson;
+      setRawJson(fallback ? JSON.stringify(fallback, null, 2) : "");
+      setRawJsonDirty(false);
+      notifyToast("success", "Manual override draft cleared.");
+    } catch (e: any) {
+      setError(e?.message || "Failed to clear manual override draft.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function refreshSelectedUsage(docId: string) {
     setUsageLoading(true);
@@ -560,9 +700,28 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id }),
+        body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: false }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
+
+      if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson)) {
+        const lines = summarizeCleanupCandidates(res?.extractedJson);
+        const details = lines.length ? `\n\nDetected issues:\n- ${lines.join("\n- ")}` : "";
+        const ok = window.confirm(
+          `Extraction found warning patterns and can run OpenAI cleanup.${details}\n\nProceed with AI cleanup now?`
+        );
+        if (ok) {
+          const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: true }),
+          });
+          if (cleanupRes?.document) applyUpdatedDocument(cleanupRes.document);
+          notifyToast("success", "Extraction complete with OpenAI cleanup.");
+          await refreshAll({ keepSelection: true });
+          return;
+        }
+      }
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Extraction complete.");
     } catch (e: any) {
@@ -583,17 +742,67 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     const reason =
       window.prompt("Optional note for the audit trail (why are you re-extracting?)", "Fix extraction") || "";
+    let taskNumbers: number[] = [];
+    if (selectedDoc.type === "BRIEF") {
+      const rawTasks = window.prompt(
+        "Optional: task numbers to re-extract only (example: 1 or 3,4). You can type 1d to target Task 1 context. Leave blank for full re-extract.",
+        ""
+      );
+      if (rawTasks === null) return;
+      taskNumbers = parseTaskNumbersInput(rawTasks);
+    }
 
-    setBusy("Re-extracting...");
+    setBusy(taskNumbers.length ? `Re-extracting tasks ${taskNumbers.join(", ")}...` : "Re-extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason }),
+        body: JSON.stringify({
+          documentId: selectedDoc.id,
+          forceReextract: true,
+          reason,
+          runOpenAiCleanup: false,
+          ...(taskNumbers.length ? { taskNumbers } : {}),
+        }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
+
+      if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson, taskNumbers)) {
+        const lines = summarizeCleanupCandidates(res?.extractedJson, taskNumbers);
+        const details = lines.length ? `\n\nDetected issues:\n- ${lines.join("\n- ")}` : "";
+        const ok = window.confirm(
+          `Re-extraction found warning patterns and can run OpenAI cleanup.${details}\n\nProceed with AI cleanup now?`
+        );
+        if (ok) {
+          const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              documentId: selectedDoc.id,
+              forceReextract: true,
+              reason,
+              runOpenAiCleanup: true,
+              ...(taskNumbers.length ? { taskNumbers } : {}),
+            }),
+          });
+          if (cleanupRes?.document) applyUpdatedDocument(cleanupRes.document);
+          notifyToast(
+            "success",
+            taskNumbers.length
+              ? `Task re-extraction complete with OpenAI cleanup (tasks: ${taskNumbers.join(", ")}).`
+              : "Re-extraction complete with OpenAI cleanup."
+          );
+          await refreshAll({ keepSelection: true });
+          return;
+        }
+      }
       await refreshAll({ keepSelection: true });
-      notifyToast("success", "Re-extraction complete.");
+      notifyToast(
+        "success",
+        taskNumbers.length
+          ? `Task re-extraction complete (tasks: ${taskNumbers.join(", ")}).`
+          : "Re-extraction complete."
+      );
     } catch (e: any) {
       setError(e?.message || "Re-extract failed");
     } finally {
@@ -611,6 +820,11 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       let draft: any = undefined;
       if (showRawJson && rawJson.trim()) {
         draft = JSON.parse(rawJson);
+      } else {
+        const savedDraft = (selectedDoc.sourceMeta as any)?.manualDraft;
+        if (savedDraft && typeof savedDraft === "object" && !Array.isArray(savedDraft)) {
+          draft = savedDraft;
+        }
       }
 
       const body: any = { documentId: selectedDoc.id };
@@ -879,6 +1093,35 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     notifyToast("success", "Equation LaTeX saved.");
   }
 
+  async function saveSelectedDocTaskLatex(taskNumber: number, overridesByPart: Record<string, string>) {
+    if (!selectedDoc?.id || !Number.isFinite(taskNumber) || taskNumber < 1) return;
+    const prev = (selectedDoc?.sourceMeta?.taskLatexOverrides || {}) as Record<string, string>;
+    const next: Record<string, string> = { ...prev };
+    const prefix = `${taskNumber}.`;
+    for (const k of Object.keys(next)) {
+      if (k.startsWith(prefix)) delete next[k];
+    }
+    for (const [partKey, latex] of Object.entries(overridesByPart || {})) {
+      const key = `${taskNumber}.${String(partKey || "").trim().toLowerCase()}`;
+      const value = String(latex || "").trim();
+      if (!key || !value) continue;
+      next[key] = value;
+    }
+    await jsonFetch(`/api/reference-documents/${selectedDoc.id}/meta`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ taskLatexOverrides: next }),
+    });
+    setDocuments((docs) =>
+      docs.map((d) =>
+        d.id === selectedDoc.id
+          ? { ...d, sourceMeta: { ...(d.sourceMeta || {}), taskLatexOverrides: next } }
+          : d
+      )
+    );
+    notifyToast("success", "Task LaTeX overrides saved.");
+  }
+
   async function toggleUnitArchive() {
     setUnitNotice(null);
     if (!selectedUnit) return;
@@ -986,7 +1229,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setBriefUnitId,
     setMapSelected,
     setShowRawJson,
-    setRawJson,
+    setRawJson: updateRawJson,
     setAssignmentCodeInput,
     setEditUnitCode,
     setEditUnitTitle,
@@ -1005,6 +1248,9 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     unlockSelectedDocument,
     saveSelectedUnit,
     saveSelectedDocEquationLatex,
+    saveSelectedDocTaskLatex,
+    saveRawJsonDraft,
+    clearRawJsonDraft,
     toggleUnitArchive,
     deleteSelectedUnit,
 
