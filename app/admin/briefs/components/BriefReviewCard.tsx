@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Criterion, ReferenceDocument, Unit } from "../../reference/reference.logic";
 import { Pill } from "./ui";
 import BriefMappingPanel from "./BriefMappingPanel";
@@ -89,17 +89,14 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
 
   const rawTasks = (Array.isArray(draft?.tasks) ? draft.tasks : []).map(syncTaskFromText);
   const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
-  const taskWarningRows = rawTasks.flatMap((task: any, idx: number) => {
-    const n = Number(task?.n || idx + 1);
-    const label = String(task?.label || (task?.n ? `Task ${task.n}` : `Task ${idx + 1}`)).trim();
-    const ws = Array.isArray(task?.warnings) ? task.warnings : [];
-    return ws.map((w: any) => ({ n, label, warning: String(w) }));
-  });
-  const taskWarnings = taskWarningRows.map((row) => ({ ...row, text: `${row.label}: ${row.warning}` }));
   const lockConflict = rx.lockConflict;
   const [expandAll, setExpandAll] = useState(false);
   const [expandSignal, setExpandSignal] = useState(0);
   const [copyJsonStatus, setCopyJsonStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [screenshotStatus, setScreenshotStatus] = useState<string>("");
+  const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const [uploadedShots, setUploadedShots] = useState<Array<{ name: string; path: string }>>([]);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
   const readiness = (doc as any)?.readiness as string | undefined;
   const usage = rx.selectedDocUsage;
   const usageLoading = rx.usageLoading;
@@ -126,13 +123,64 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
         : eq;
     return acc;
   }, {});
+  const effectiveWarningsForTask = (task: any) => {
+    const raw: string[] = Array.isArray(task?.warnings) ? task.warnings.map((w: unknown) => String(w)) : [];
+    const n = Number(task?.n);
+    const hasManualTaskLatexOverride =
+      Number.isFinite(n) &&
+      n > 0 &&
+      Object.keys(taskLatexOverrides || {}).some((k) => String(k || "").startsWith(`${n}.`) && String((taskLatexOverrides as any)?.[k] || "").trim());
+
+    const referencedEquationIds = (() => {
+      const ids = new Set<string>();
+      const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
+      const collect = (value: unknown) => {
+        const txt = String(value || "");
+        let m: RegExpExecArray | null;
+        while ((m = tokenRe.exec(txt))) if (m[1]) ids.add(String(m[1]));
+      };
+      collect(task?.text);
+      collect(task?.prompt);
+      if (Array.isArray(task?.parts)) {
+        for (const p of task.parts) collect(p?.text);
+      }
+      return Array.from(ids);
+    })();
+
+    const hasResolvedReferencedEquations =
+      referencedEquationIds.length > 0 &&
+      referencedEquationIds.every((id) => {
+        const eq: any = equationsById?.[id];
+        const latex = String(eq?.latex || "").trim();
+        return !!latex && !eq?.needsReview;
+      });
+
+    const hasResolvedTaskEquations = Array.isArray(task?.equations)
+      ? task.equations.length > 0 &&
+        task.equations.every((eq: any) => {
+          const latex = String(eq?.latex || "").trim();
+          return !!latex && !eq?.needsReview;
+        })
+      : false;
+
+    return raw
+      .filter((w) => !/openai math cleanup applied/i.test(w))
+      .filter((w) => !((hasResolvedReferencedEquations || hasResolvedTaskEquations || hasManualTaskLatexOverride) && /equation quality: low-confidence/i.test(w)));
+  };
+  const taskWarningRows = rawTasks.flatMap((task: any, idx: number) => {
+    const n = Number(task?.n || idx + 1);
+    const label = String(task?.label || (task?.n ? `Task ${task.n}` : `Task ${idx + 1}`)).trim();
+    const ws = effectiveWarningsForTask(task);
+    return ws.map((w: any) => ({ n, label, warning: String(w) }));
+  });
+  const taskWarnings = taskWarningRows.map((row) => ({ ...row, text: `${row.label}: ${row.warning}` }));
   const tasks = rawTasks.filter((task: any) => {
     const text = typeof task?.text === "string" ? task.text : "";
     return text.trim().length > 0;
   });
   const tasksTotal = rawTasks.length;
   const tasksShown = tasks.length;
-  const taskWarningCount = rawTasks.reduce((sum: number, task: any) => sum + (task?.warnings?.length || 0), 0);
+  const taskWarningCount = rawTasks.reduce((sum: number, task: any) => sum + effectiveWarningsForTask(task).length, 0);
   const warningCount = draftWarnings.length + taskWarningCount;
   const toggleExpandAll = (next: boolean) => {
     setExpandAll(next);
@@ -159,6 +207,46 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
       setCopyJsonStatus("failed");
     }
     setTimeout(() => setCopyJsonStatus("idle"), 2000);
+  };
+
+  const uploadScreenshotFile = async (file: File) => {
+    if (!file || !doc?.id) return;
+    setScreenshotBusy(true);
+    setScreenshotStatus("");
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("documentId", doc.id);
+      const res = await fetch("/api/dev/screenshot", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setScreenshotStatus(data?.message || data?.error || "Failed to upload screenshot.");
+        return;
+      }
+      const savedName = String(data?.savedName || file.name);
+      const savedPath = String(data?.savedPath || "");
+      setUploadedShots((prev) => [{ name: savedName, path: savedPath }, ...prev].slice(0, 8));
+      setScreenshotStatus(`Saved: ${savedName}`);
+    } catch (e: any) {
+      setScreenshotStatus(e?.message || "Failed to upload screenshot.");
+    } finally {
+      setScreenshotBusy(false);
+    }
+  };
+
+  const handleScreenshotInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadScreenshotFile(file);
+    e.target.value = "";
+  };
+
+  const handlePasteScreenshot = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find((it) => it.type.startsWith("image/"));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) await uploadScreenshotFile(file);
   };
 
   return (
@@ -469,6 +557,13 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                 ) : null}
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={screenshotInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleScreenshotInput}
+                    />
                     <button
                       type="button"
                       onClick={handleCopyExtractionJson}
@@ -496,7 +591,63 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
                     >
                       Clear saved override
                     </button>
+                    <button
+                      type="button"
+                      disabled={!doc || screenshotBusy}
+                      onClick={() => screenshotInputRef.current?.click()}
+                      className={ui.btnSecondary + " text-xs disabled:cursor-not-allowed disabled:opacity-60"}
+                    >
+                      {screenshotBusy ? "Uploading..." : "Upload screenshot"}
+                    </button>
                   </div>
+                  <div
+                    onPaste={handlePasteScreenshot}
+                    className="mt-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-600"
+                    title="Click then paste screenshot (Ctrl+V)"
+                  >
+                    Paste screenshot here (Ctrl+V) or use Upload screenshot.
+                  </div>
+                  {screenshotStatus ? <p className="mt-2 text-[11px] text-sky-700">{screenshotStatus}</p> : null}
+                  {uploadedShots.length ? (
+                    <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                      {uploadedShots.map((shot, idx) => (
+                        <div key={`${shot.path}-${idx}`} className="mb-1 flex items-center gap-2 last:mb-0">
+                          <div className="min-w-0 flex-1 truncate">
+                            {shot.name} - <code>{shot.path}</code>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(shot.path);
+                                setScreenshotStatus(`Copied path: ${shot.name}`);
+                              } catch {
+                                setScreenshotStatus("Failed to copy screenshot path.");
+                              }
+                            }}
+                            className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                          >
+                            Copy path
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const payload = `screenshot: ${shot.path}`;
+                              try {
+                                await navigator.clipboard.writeText(payload);
+                                setScreenshotStatus(`Copied send message for: ${shot.name}`);
+                              } catch {
+                                setScreenshotStatus("Failed to prepare send message.");
+                              }
+                            }}
+                            className="rounded border border-sky-300 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-800 hover:bg-sky-100"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   {manualDraft ? (
                     <p className="mt-2 text-[11px] text-emerald-700">Saved override draft is active for this brief.</p>
                   ) : null}

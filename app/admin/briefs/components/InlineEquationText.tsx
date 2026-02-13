@@ -25,9 +25,42 @@ type Props = {
 const TOKEN_RE = /(\[\[(?:EQ|IMG):[^\]]+\]\])/g;
 const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
+const TASK_REF_RE = /\b(Task\s+(\d+)(?:\s+Part\s+([A-Za-z0-9]+))?)\b/g;
+
+function normalizeLatexForRender(latex: string, displayMode: boolean) {
+  let out = String(latex || "")
+    // Normalize common Unicode subscript variables to ASCII identifiers for downstream matching/splitting.
+    .replace(/([A-Za-z])₀/g, "$1_0")
+    .replace(/([A-Za-z])₁/g, "$1_1")
+    .replace(/([A-Za-z])₂/g, "$1_2")
+    .replace(/([A-Za-z])₃/g, "$1_3")
+    .replace(/([A-Za-z])₄/g, "$1_4")
+    .replace(/([A-Za-z])₅/g, "$1_5")
+    .replace(/([A-Za-z])₆/g, "$1_6")
+    .replace(/([A-Za-z])₇/g, "$1_7")
+    .replace(/([A-Za-z])₈/g, "$1_8")
+    .replace(/([A-Za-z])₉/g, "$1_9")
+    .replace(/\b(sin|cos|tan|log|ln)\s*\(/gi, (_m, fn) => `\\${String(fn).toLowerCase()}(`)
+    .trim();
+
+  // Split merged equations like "v1 = ... v2 = ..." onto separate display lines.
+  if (displayMode && /=/.test(out)) {
+    const pieces = out
+      .replace(/\s+/g, " ")
+      .split(/\s+(?=[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=)/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const assignmentPieces = pieces.filter((p) => /^[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=/.test(p));
+    if (assignmentPieces.length >= 2) {
+      out = assignmentPieces.join(" \\\\ ");
+    }
+  }
+
+  return out;
+}
 
 function renderKatex(latex: string, displayMode = true) {
-  return katex.renderToString(latex, {
+  return katex.renderToString(normalizeLatexForRender(latex, displayMode), {
     throwOnError: false,
     displayMode,
     output: "html",
@@ -35,8 +68,27 @@ function renderKatex(latex: string, displayMode = true) {
   });
 }
 
+function isMultiAssignmentLatex(latex: string) {
+  const normalized = String(latex || "")
+    .replace(/([A-Za-z])₀/g, "$1_0")
+    .replace(/([A-Za-z])₁/g, "$1_1")
+    .replace(/([A-Za-z])₂/g, "$1_2")
+    .replace(/([A-Za-z])₃/g, "$1_3")
+    .replace(/([A-Za-z])₄/g, "$1_4")
+    .replace(/([A-Za-z])₅/g, "$1_5")
+    .replace(/([A-Za-z])₆/g, "$1_6")
+    .replace(/([A-Za-z])₇/g, "$1_7")
+    .replace(/([A-Za-z])₈/g, "$1_8")
+    .replace(/([A-Za-z])₉/g, "$1_9");
+  const matches = normalized.match(/\b[A-Za-z](?:[A-Za-z0-9_]*|_[0-9]+)\s*=/g) || [];
+  return matches.length >= 2;
+}
+
 function normalizeDisplayText(input: string) {
   let out = String(input || "")
+    // Ensure token boundaries don't glue to surrounding words (e.g. [[EQ:id]]Find).
+    .replace(/(\S)(\[\[(?:EQ|IMG|MATH):[\s\S]*?\]\])/g, "$1 $2")
+    .replace(/(\[\[(?:EQ|IMG|MATH):[\s\S]*?\]\])(\S)/g, "$1 $2")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replace(/푃/g, "P")
     .replace(/푉/g, "V")
@@ -49,7 +101,13 @@ function normalizeDisplayText(input: string) {
     .replace(/−/g, "-")
     .replace(/�/g, " ")
     .replace(/\b([A-Za-z])\1\b/g, "$1")
-    .replace(/\(([A-Za-z])\1\)/g, "($1)");
+    .replace(/\(([A-Za-z])\1\)/g, "($1)")
+    // Fix common OCR joins around equations/units.
+    .replace(/([)\]}])([A-Za-z])/g, "$1 $2")
+    .replace(/\b([A-Za-z])where\b/g, "$1 where")
+    .replace(/\b([A-Za-z])Find\b/g, "$1 Find")
+    // Preserve newlines; only collapse repeated horizontal spacing.
+    .replace(/[ \t]{2,}/g, " ");
 
   out = injectHeuristicMathTokens(out);
 
@@ -145,7 +203,7 @@ function linkify(text: string, keyPrefix: string) {
   while ((match = re.exec(text))) {
     const start = match.index;
     const raw = match[0];
-    if (start > last) nodes.push(text.slice(last, start));
+    if (start > last) nodes.push(...linkifyTaskRefs(text.slice(last, start), `${keyPrefix}-t-${start}`));
     const clean = raw.replace(/[),.;]+$/g, "");
     const trailing = raw.slice(clean.length);
     nodes.push(
@@ -159,8 +217,37 @@ function linkify(text: string, keyPrefix: string) {
         {clean}
       </a>
     );
-    if (trailing) nodes.push(trailing);
+    if (trailing) nodes.push(...linkifyTaskRefs(trailing, `${keyPrefix}-tt-${start}`));
     last = start + raw.length;
+  }
+  if (last < text.length) nodes.push(...linkifyTaskRefs(text.slice(last), `${keyPrefix}-tail`));
+  return nodes;
+}
+
+function linkifyTaskRefs(text: string, keyPrefix: string) {
+  const nodes: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  const re = new RegExp(TASK_REF_RE.source, "g");
+  while ((match = re.exec(text))) {
+    const start = match.index;
+    const full = match[1];
+    const n = Number(match[2]);
+    if (start > last) nodes.push(text.slice(last, start));
+    if (Number.isFinite(n) && n > 0) {
+      nodes.push(
+        <a
+          key={`${keyPrefix}-task-${start}`}
+          href={`#task-card-${n}`}
+          className="underline decoration-sky-400 underline-offset-2 text-sky-700 font-medium hover:text-sky-800"
+        >
+          {full}
+        </a>
+      );
+    } else {
+      nodes.push(full);
+    }
+    last = start + full.length;
   }
   if (last < text.length) nodes.push(text.slice(last));
   return nodes;
@@ -377,7 +464,7 @@ export default function InlineEquationText({
           out.push(
             <span
               key={`hm-${i}-${c}`}
-              className="inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle py-0.5"
+              className="inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle py-0.5 mx-1"
               dangerouslySetInnerHTML={{ __html: renderKatex(math, false) }}
             />
           );
@@ -417,15 +504,17 @@ export default function InlineEquationText({
     }
 
     if (eq.latex && !eq.needsReview) {
+      const forceDisplay = isMultiAssignmentLatex(eq.latex);
+      const displayMode = forceDisplay || !inlineContext;
       out.push(
         <span
           key={`eq-${eq.id}`}
           className={
-            (inlineContext
-              ? "inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle py-0.5"
-              : "block max-w-full overflow-x-auto whitespace-nowrap align-middle py-1")
+            (displayMode
+              ? "block max-w-full overflow-x-auto whitespace-nowrap align-middle py-1"
+              : "inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle py-0.5 mx-1")
           }
-          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex, !inlineContext) }}
+          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex, displayMode) }}
         />
       );
       continue;
@@ -443,5 +532,5 @@ export default function InlineEquationText({
     );
   }
 
-  return <span>{out}</span>;
+  return <>{out}</>;
 }

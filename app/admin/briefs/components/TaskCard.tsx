@@ -147,12 +147,38 @@ function formatPdfTextToBlocks(text: string, options?: { reflowWrappedLines?: bo
   let listItems: string[] = [];
   let listType: "ul" | "ol" | null = null;
 
+  const smartReflowParagraph = (linesIn: string[]) => {
+    if (!linesIn.length) return "";
+    const lines = linesIn.map((line) => line.replace(/[ \t]+$/g, "").trim()).filter(Boolean);
+    if (!lines.length) return "";
+    const out: string[] = [lines[0]];
+    const isHardBreakLine = (line: string) =>
+      /^(\[\[(?:EQ|IMG):[^\]]+\]\]|[a-z]\)|[ivxlcdm]+\)|PART\s+\d+|Task\s+\d+)/i.test(line);
+    const endsSentence = (line: string) => /[.!?;:)]\s*$/.test(line);
+    const startsNewSentence = (line: string) => /^[A-Z]/.test(line);
+    for (let i = 1; i < lines.length; i += 1) {
+      const cur = lines[i];
+      const prev = out[out.length - 1] || "";
+      const keepBreak =
+        isHardBreakLine(cur) ||
+        isHardBreakLine(prev) ||
+        endsSentence(prev) ||
+        startsNewSentence(cur);
+      if (keepBreak) {
+        out.push(cur);
+      } else {
+        out[out.length - 1] = `${prev} ${cur}`.replace(/[ \t]{2,}/g, " ").trim();
+      }
+    }
+    return out.join("\n");
+  };
+
   const flushParagraph = () => {
     if (!paragraphLines.length) return;
-    const text = paragraphLines
-      .map((line) => line.replace(/[ \t]+$/g, ""))
-      .join(options?.reflowWrappedLines ? " " : "\n")
-      .replace(/\s{2,}/g, " ")
+    const text = (
+      options?.reflowWrappedLines ? smartReflowParagraph(paragraphLines) : paragraphLines.join("\n")
+    )
+      .replace(/[ \t]{2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
     if (text) blocks.push({ type: "paragraph", text });
@@ -318,9 +344,9 @@ function renderPdfTextBlocks(
     if (!isEqLike) return null;
     const latex = normalizeEquationLatex(t);
     return (
-      <div key={lineKey} className="leading-7">
+      <span key={lineKey} className="inline-block align-middle">
         {renderInlineText(`[[MATH:${latex}]]`, options)}
-      </div>
+      </span>
     );
   };
 
@@ -345,6 +371,8 @@ function renderPdfTextBlocks(
         if (!next) break;
         if (/^([a-z]|[ivxlcdm]+)\)\s*$/i.test(next)) break;
         if (/^(Task\s+\d+|Vocational Scenario|Use the z-table|Sources of information)/i.test(next)) break;
+        // Preserve standalone token lines so equations/images render on their own line.
+        if (/^\[\[(?:EQ|IMG):[^\]]+\]\]$/i.test(next)) break;
         merged += ` ${next}`;
         j += 1;
       }
@@ -395,9 +423,15 @@ function renderPdfTextBlocks(
     }
 
     const maybeEq = maybeRenderEquationLine(trimmed, `${lineKey}-eq`);
-    if (maybeEq) return maybeEq;
+    if (maybeEq) {
+      return (
+        <div key={lineKey} className="leading-7">
+          {maybeEq}
+        </div>
+      );
+    }
 
-    const headingLike = /^(Task\s+\d+|Vocational Scenario|Use the z-table|Sources of information)/i.test(trimmed);
+    const headingLike = /^(Task\s+\d+\s*[:\-]?\s*|Vocational Scenario|Use the z-table|Sources of information)$/i.test(trimmed);
     if (headingLike) {
       return (
         <div key={lineKey} className="leading-7 font-semibold">
@@ -725,17 +759,51 @@ export function TaskCard({
   const rawWarningItems: string[] = Array.isArray(task?.warnings)
     ? task.warnings.map((w: unknown) => String(w))
     : [];
+  const referencedEquationIds = useMemo(() => {
+    const ids = new Set<string>();
+    const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
+    const collect = (value: unknown) => {
+      const txt = String(value || "");
+      let m: RegExpExecArray | null;
+      while ((m = tokenRe.exec(txt))) {
+        if (m[1]) ids.add(String(m[1]));
+      }
+    };
+    collect(task?.text);
+    collect(task?.prompt);
+    if (Array.isArray(task?.parts)) {
+      for (const p of task.parts) collect(p?.text);
+    }
+    return Array.from(ids);
+  }, [task?.text, task?.prompt, task?.parts]);
+  const hasManualTaskLatexOverride = (() => {
+    const n = Number(task?.n);
+    if (!Number.isFinite(n) || n <= 0) return false;
+    const prefix = `${n}.`;
+    const src = taskLatexOverrides || {};
+    return Object.keys(src).some((k) => {
+      if (!String(k || "").startsWith(prefix)) return false;
+      return String((src as Record<string, string>)[k] || "").trim().length > 0;
+    });
+  })();
   const hasResolvedManualEquations = Array.isArray(task?.equations)
     ? task.equations.length > 0 &&
       task.equations.every((eq: any) => {
         const latex = String(eq?.latex || "").trim();
-        return !!latex && !eq?.needsReview && Number(eq?.confidence || 0) >= 0.9;
+        return !!latex && !eq?.needsReview;
+      })
+    : false;
+  const hasResolvedReferencedEquations = referencedEquationIds.length > 0
+    ? referencedEquationIds.every((id) => {
+        const eq: any = equationsById?.[id];
+        const latex = String(eq?.latex || "").trim();
+        return !!latex && !eq?.needsReview;
       })
     : false;
   const aiCorrected = !!task?.aiCorrected || rawWarningItems.some((w) => /openai math cleanup applied/i.test(w));
   const warningItems = rawWarningItems
     .filter((w) => !/openai math cleanup applied/i.test(w))
-    .filter((w) => !(hasResolvedManualEquations && /equation quality: low-confidence/i.test(w)));
+    .filter((w) => !((hasResolvedManualEquations || hasResolvedReferencedEquations || hasManualTaskLatexOverride) && /equation quality: low-confidence/i.test(w)));
   const effectiveConfidence: TaskConfidence =
     confidence === "HEURISTIC" && warningItems.length === 0 ? "CLEAN" : confidence;
   const hasMathLayoutWarning = warningItems.some((w) => /math layout: broken line wraps/i.test(w));
@@ -1275,7 +1343,7 @@ export function TaskCard({
           <TaskSidebar 
             totalWords={totalWords}
             pages={pages}
-            confidence={confidence}
+            confidence={effectiveConfidence}
             warningsCount={warningItems.length}
             tablesCount={tableBlocks.length}
             partsCount={Array.isArray(task?.parts) ? task.parts.length : 0}
