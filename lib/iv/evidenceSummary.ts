@@ -35,6 +35,31 @@ function normalizeDateCandidate(value: string | null): string | null {
   return null;
 }
 
+function parseVerifierAndDateFromLine(line: string): { verifierName?: string; verificationDate?: string } {
+  const text = String(line || "").replace(/\s+/g, " ").trim();
+  if (!/internal\s*verifier/i.test(text)) return {};
+  const nameMatch =
+    text.match(/internal\s*verifier(?:\s*name)?\s*[:\-]?\s*(.+?)\s+(?:date|dated)\s*[:\-]?\s*.+$/i) ||
+    text.match(/internal\s*verifier(?:\s*name)?\s*[:\-]?\s*(.+)$/i);
+  const dateMatch = text.match(/(?:date|dated)\s*[:\-]?\s*([A-Za-z0-9\/\-. ]+)$/i);
+  const verifierName = String(nameMatch?.[1] || "").trim() || undefined;
+  const verificationDate = normalizeDateCandidate(String(dateMatch?.[1] || "").trim()) || undefined;
+  return { verifierName, verificationDate };
+}
+
+function extractGeneralCommentsBlock(source: string): string | null {
+  const text = String(source || "");
+  const headingRe = /General\s*Comments?\s*(?:\(if\s*appropriate\))?\s*:?/i;
+  const m = headingRe.exec(text);
+  if (!m || m.index < 0) return null;
+  const after = text.slice(m.index + m[0].length);
+  if (!after.trim()) return null;
+  const stopRe = /\n\s*(?:Assessor|Internal\s*Verifier|Outcome|Date|Signature|Signed|Verification|Action\s*Required)\b/i;
+  const stop = stopRe.exec(after);
+  const block = (stop && stop.index >= 0 ? after.slice(0, stop.index) : after).trim();
+  return block ? block.replace(/\s*\n\s*/g, "\n").trim() : null;
+}
+
 export async function extractIvSummaryFromDocxBuffer(buffer: Buffer) {
   try {
     const result = await mammoth.extractRawText({ buffer });
@@ -47,9 +72,15 @@ export async function extractIvSummaryFromDocxBuffer(buffer: Buffer) {
     if (!text) return null;
     const tailStart = Math.max(0, Math.floor(text.length * 0.55));
     const tail = text.slice(tailStart);
+    const tailLines = tail.split("\n").map((l) => l.trim()).filter(Boolean);
+    const lastVerifierLine = [...tailLines].reverse().find((l) => /internal\s*verifier/i.test(l)) || "";
+    const lineParsed = parseVerifierAndDateFromLine(lastVerifierLine);
 
     const assessorName = firstMatch(text, [/Assessor\s*Name\s*:\s*([^\n]+)/i]);
-    const internalVerifierName = firstMatch(text, [/Internal\s*Verifier\s*Name\s*:\s*([^\n]+)/i]);
+    const internalVerifierName = firstMatch(text, [
+      /Internal\s*Verifier(?:\s*Name)?\s*:\s*([^\n:]{2,140}?)(?:\s+Date\s*:?\s*[^\n]+)?$/im,
+      /Internal\s*Verifier\s*Name\s*:\s*([^\n]+)/i,
+    ]) || lineParsed.verifierName || null;
     const unitTitle = firstMatch(text, [/Unit\s*Title\s*:\s*([^\n]+)/i]);
     const assignmentTitle = firstMatch(text, [/Assignment\s*title\s*:\s*([^\n]+)/i]);
     const learningOutcomes = firstMatch(text, [/Learning\s*outcomes[\s\S]{0,80}?:\s*([^\n]+)/i]);
@@ -59,12 +90,16 @@ export async function extractIvSummaryFromDocxBuffer(buffer: Buffer) {
     ]);
     const verificationDate = normalizeDateCandidate(
       lastMatch(tail, [
+        /Internal\s*Verifier(?:\s*Name)?\s*:\s*[^\n]{0,180}?\bDate\s*:?\s*([^\n]+)/i,
         /(?:Verification\s*Date|Date\s*Verified|Verified\s*Date)\s*[:\-]\s*([^\n]+)/i,
         /Internal\s*Verifier[\s\S]{0,120}?\nDate\s*[:\-]?\s*([^\n]+)/i,
       ]) || firstMatch(text, [/(?:Verification\s*Date|Date\s*Verified|Verified\s*Date)\s*[:\-]\s*([^\n]+)/i])
-    );
+    ) || lineParsed.verificationDate || null;
     const generalComments =
+      extractGeneralCommentsBlock(tail) ||
+      extractGeneralCommentsBlock(text) ||
       lastMatch(tail, [
+        /General\s*Comments?\s*\(if\s*appropriate\)\s*[:\-]\s*([\s\S]{0,1200}?)(?:\n(?:Assessor|Internal\s*Verifier|Outcome|Date|Signature|Signed)\b|$)/i,
         /General\s*comments?\s*[:\-]\s*([\s\S]{0,800}?)(?:\n(?:Assessor|Internal\s*Verifier|Outcome|Date|Signature|Signed)\b|$)/i,
         /Comments?\s*[:\-]\s*([\s\S]{0,800}?)(?:\n(?:Assessor|Internal\s*Verifier|Outcome|Date|Signature|Signed)\b|$)/i,
       ]) || null;

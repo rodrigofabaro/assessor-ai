@@ -100,9 +100,12 @@ export function IvTab({ vm }: { vm: any }) {
           vm.ivRecords.map((r: any) => (
             <article key={r.id} className="rounded-xl border border-zinc-200 bg-white p-4">
               {(() => {
+                const yearRaw = String(r.academicYear || "").trim();
+                const showYear = /^\d{4}\s*-\s*\d{2}$/.test(yearRaw);
+                const summaryVerifier = String(r.attachment?.summary?.internalVerifierName || "").trim();
                 const verifierDisplay =
                   String(r.verifierName || "").trim() ||
-                  String(r.attachment?.summary?.internalVerifierName || "").trim() ||
+                  summaryVerifier ||
                   "Not provided";
                 const verifiedDateRaw =
                   String(r.verificationDate || "").trim() ||
@@ -117,7 +120,7 @@ export function IvTab({ vm }: { vm: any }) {
                   <>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-base font-semibold text-zinc-900">{r.academicYear}</div>
+                  {showYear ? <div className="text-base font-semibold text-zinc-900">{yearRaw}</div> : null}
                   <Pill cls={r.outcome === "APPROVED" ? tone("ok") : r.outcome === "REJECTED" ? tone("bad") : tone("warn")}>
                     {String(r.outcome).replaceAll("_", " ")}
                   </Pill>
@@ -171,12 +174,13 @@ export function IvTab({ vm }: { vm: any }) {
                     {r.attachment?.summary ? (
                       <div className="grid gap-1 rounded border border-zinc-200 bg-white p-3 text-[12px] text-zinc-700 md:grid-cols-2">
                         <div className="font-semibold text-zinc-800 md:col-span-2">Extracted From IV Document</div>
-                        {r.attachment.summary.internalVerifierName ? <div>Internal verifier: {r.attachment.summary.internalVerifierName}</div> : null}
                         {r.attachment.summary.assessorName ? <div>Assessor: {r.attachment.summary.assessorName}</div> : null}
                         {r.attachment.summary.unitTitle ? <div>Unit: {r.attachment.summary.unitTitle}</div> : null}
                         {r.attachment.summary.assignmentTitle ? <div>Assignment: {r.attachment.summary.assignmentTitle}</div> : null}
+                        {summaryVerifier && summaryVerifier.toLowerCase() !== verifierDisplay.toLowerCase() ? (
+                          <div>Internal verifier: {summaryVerifier}</div>
+                        ) : null}
                         {r.attachment.summary.learningOutcomes ? <div className="md:col-span-2">Learning outcomes: {r.attachment.summary.learningOutcomes}</div> : null}
-                        {r.attachment.summary.acsSubmitted ? <div className="md:col-span-2">Assessment criteria: {r.attachment.summary.acsSubmitted}</div> : null}
                       </div>
                     ) : null}
                     {!r.attachment?.summary && /\.docx$/i.test(String(r.attachment?.originalFilename || "")) ? (
