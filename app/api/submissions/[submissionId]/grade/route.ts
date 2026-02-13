@@ -198,7 +198,7 @@ export async function POST(
                   type: "array",
                   items: {
                     type: "object",
-                    additionalProperties: true,
+                    additionalProperties: false,
                     properties: {
                       code: { type: "string" },
                       met: { type: "boolean" },
