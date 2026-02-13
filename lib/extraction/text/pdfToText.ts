@@ -2,6 +2,8 @@
  * PDF -> text using pdf-parse.
  * Kept in a dedicated module so parser logic can't accidentally change this layer.
  */
+import { recordOpenAiUsage } from "@/lib/openai/usageLog";
+
 export type Equation = {
   id: string;
   pageNumber: number;
@@ -452,6 +454,11 @@ async function openAiEquationFromPageImage(input: {
     });
     if (!res.ok) return { latex: null, confidence: 0 };
     const data: any = await res.json();
+    recordOpenAiUsage({
+      model,
+      op: "equation_from_page_image",
+      usage: data?.usage,
+    });
     const primary = String(data?.output_text || "").trim();
     const fromOutput = Array.isArray(data?.output)
       ? data.output

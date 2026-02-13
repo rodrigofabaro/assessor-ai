@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readOpenAiUsageHistory } from "@/lib/openai/usageLog";
 
 export const runtime = "nodejs";
 
@@ -7,6 +8,9 @@ const DEFAULT_WINDOW_DAYS = 30;
 
 type JsonValue = string | number | boolean | null | JsonObject | JsonValue[];
 type JsonObject = { [key: string]: JsonValue };
+type OpenAiFetchOk = { ok: true; status: number; json: JsonObject };
+type OpenAiFetchError = { ok: false; status: number; message: string };
+type OpenAiFetchResult = OpenAiFetchOk | OpenAiFetchError;
 
 function toNumber(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -32,27 +36,40 @@ function getErrorMessage(payload: unknown): string {
   return "Unknown error";
 }
 
-async function fetchOpenAi(apiKey: string, path: string) {
+function fromTextMessage(raw: string): string {
+  const cleaned = raw.replace(/\s+/g, " ").replace(/<[^>]+>/g, " ").trim();
+  if (!cleaned) return "Unknown error";
+  return cleaned.slice(0, 240);
+}
+
+async function fetchOpenAi(apiKey: string, path: string): Promise<OpenAiFetchOk | OpenAiFetchError> {
+  const orgId = String(process.env.OPENAI_ORG_ID || "").trim();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+  };
+  if (orgId) headers["OpenAI-Organization"] = orgId;
+
   const res = await fetch(`https://api.openai.com${path}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers,
     cache: "no-store",
   });
 
+  const raw = await res.text();
   let json: JsonObject | null = null;
   try {
-    json = (await res.json()) as JsonObject;
+    json = raw ? (JSON.parse(raw) as JsonObject) : null;
   } catch {
     json = null;
   }
 
   if (!res.ok) {
+    const parsed = getErrorMessage(json);
+    const message = parsed !== "Unknown error" ? parsed : fromTextMessage(raw);
     return {
       ok: false as const,
       status: res.status,
-      message: getErrorMessage(json),
+      message,
     };
   }
 
@@ -61,6 +78,10 @@ async function fetchOpenAi(apiKey: string, path: string) {
     status: res.status,
     json: json ?? {},
   };
+}
+
+function isFetchError(result: OpenAiFetchResult): result is OpenAiFetchError {
+  return result.ok === false;
 }
 
 function parseUsageTotals(payload: JsonObject) {
@@ -155,40 +176,41 @@ export async function GET() {
     limit: String(DEFAULT_WINDOW_DAYS),
   });
 
-  const [usageRes, costsRes, creditRes] = await Promise.all([
+  const [modelsRes, usageFetch, costsFetch, creditsFetch] = await Promise.all([
+    fetchOpenAi(apiKey, "/v1/models"),
     fetchOpenAi(apiKey, `/v1/organization/usage/completions?${qp.toString()}`),
     fetchOpenAi(apiKey, `/v1/organization/costs?${qp.toString()}`),
     fetchOpenAi(apiKey, "/v1/dashboard/billing/credit_grants"),
   ]);
 
   const usage =
-    usageRes.ok
+    !isFetchError(usageFetch)
       ? {
           available: true,
-          ...parseUsageTotals(usageRes.json),
+          ...parseUsageTotals(usageFetch.json),
         }
       : {
           available: false,
-          status: usageRes.status,
-          message: usageRes.message,
+          status: usageFetch.status,
+          message: usageFetch.message,
         };
 
   const costs =
-    costsRes.ok
+    !isFetchError(costsFetch)
       ? {
           available: true,
-          ...parseCostTotals(costsRes.json),
+          ...parseCostTotals(costsFetch.json),
         }
       : {
           available: false,
-          status: costsRes.status,
-          message: costsRes.message,
+          status: costsFetch.status,
+          message: costsFetch.message,
         };
 
   const credits =
-    creditRes.ok
+    !isFetchError(creditsFetch)
       ? (() => {
-          const totals = parseCreditTotals(creditRes.json);
+          const totals = parseCreditTotals(creditsFetch.json);
           return totals
             ? {
                 available: true as const,
@@ -202,19 +224,32 @@ export async function GET() {
         })()
       : {
           available: false as const,
-          status: creditRes.status,
-          message: creditRes.message,
+          status: creditsFetch.status,
+          message: creditsFetch.message,
         };
+
+  const needsAdminKeyForOrgMetrics =
+    (usageFetch.ok ? 200 : usageFetch.status) === 403 || (costsFetch.ok ? 200 : costsFetch.status) === 403;
+  const localUsage = readOpenAiUsageHistory(DEFAULT_WINDOW_DAYS);
 
   return NextResponse.json(
     {
       configured: true,
+      connection: {
+        reachable: modelsRes.ok,
+        status: modelsRes.status,
+        message: !isFetchError(modelsRes) ? "Connected to OpenAI API." : modelsRes.message,
+      },
       generatedAt: new Date().toISOString(),
       window: {
         startTime: start,
         endTime: now,
         days: DEFAULT_WINDOW_DAYS,
       },
+      hints: {
+        needsAdminKeyForOrgMetrics,
+      },
+      localUsage,
       usage,
       costs,
       credits,
