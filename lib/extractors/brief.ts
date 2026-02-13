@@ -1769,6 +1769,48 @@ export function extractBrief(
       .replace(/(\[\[EQ:[^\]]+\]\])\s+(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+  const stripEqDuplicateFollowupLine = (textValue: string, eqMap: Map<string, BriefEquation>) => {
+    const canonical = (s: string) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/\\theta/g, "θ")
+        .replace(/\\alpha/g, "α")
+        .replace(/\\beta/g, "β")
+        .replace(/\\sin/g, "sin")
+        .replace(/\\cos/g, "cos")
+        .replace(/\\tan/g, "tan")
+        .replace(/[{}\\]/g, "")
+        .replace(/[^\p{L}\p{N}()+\-*/=]/gu, "");
+    const looksEqLine = (s: string) =>
+      /[=()+\-*/^]/.test(s) || /\b(sin|cos|tan|log|ln)\b/i.test(s) || /[αβθ]/i.test(s);
+
+    const lines = String(textValue || "").split("\n");
+    const out: string[] = [];
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i] || "";
+      out.push(line);
+      const m = line.match(/^\s*\[\[EQ:([^\]]+)\]\]\s*$/);
+      if (!m) continue;
+      const eq = eqMap.get(String(m[1] || ""));
+      const latex = String(eq?.latex || "").trim();
+      if (!latex) continue;
+      let j = i + 1;
+      while (j < lines.length && !String(lines[j] || "").trim()) {
+        out.push(lines[j] || "");
+        j += 1;
+      }
+      if (j >= lines.length) continue;
+      const next = String(lines[j] || "").trim();
+      if (!next || !looksEqLine(next)) continue;
+      const nextCanon = canonical(next);
+      const latexCanon = canonical(latex);
+      // Remove exact and near-exact follow-up duplicates after an EQ token.
+      if (nextCanon && latexCanon && (nextCanon === latexCanon || nextCanon.endsWith(latexCanon) || latexCanon.endsWith(nextCanon))) {
+        i = j; // skip the duplicate line
+      }
+    }
+    return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  };
   const stripEquationNeighborNoise = (textValue: string, ids: string[]) => {
     let out = String(textValue || "");
     for (const id of ids) {
@@ -1887,6 +1929,14 @@ export function extractBrief(
         task.parts = task.parts.map((part) => ({
           ...part,
           text: stripEquationNeighborNoise(part?.text || "", idsArr),
+        }));
+      }
+      task.text = stripEqDuplicateFollowupLine(task.text || "", eqById);
+      task.prompt = task.text;
+      if (Array.isArray(task.parts) && task.parts.length) {
+        task.parts = task.parts.map((part) => ({
+          ...part,
+          text: stripEqDuplicateFollowupLine(part?.text || "", eqById),
         }));
       }
       task.text = pruneRedundantEqTokens(task.text || "", eqById);

@@ -89,7 +89,15 @@ function injectHeuristicMathTokens(input: string) {
     const inlineEq = compactMath.match(/\b([vVyYiIlL])\s*=\s*([A-Za-z0-9+\-^().\\{}_, ]{3,160})/);
     if (inlineEq) {
       const lhs = inlineEq[1];
-      const rhs = inlineEq[2]
+      const rawRhs = inlineEq[2];
+      const rhsWords = rawRhs.match(/[A-Za-z]{4,}/g) || [];
+      const narrativeHits = rhsWords.filter((w) =>
+        /^(the|then|number|characters|email|address|example|assuming|determine|approximate|value|values|state|year|birth|arrive|voltage|would)$/i.test(w)
+      ).length;
+      const looksNarrative = rhsWords.length >= 4 || narrativeHits >= 2;
+      if (looksNarrative) return compact;
+
+      const rhs = rawRhs
         // Recover common OCR-stacked exponents once newlines are flattened into spaces.
         // e.g. "t 3" -> "t^3", "(... ) 2" -> "(...)^2"
         .replace(/([A-Za-z])\s+(\d{1,2})\b/g, "$1^$2")
@@ -162,11 +170,13 @@ function EquationFallback({
   openPdfHref,
   canEditLatex,
   onSaveLatex,
+  suggestedLatex,
 }: {
   eq: Equation;
   openPdfHref?: string;
   canEditLatex?: boolean;
   onSaveLatex?: (equationId: string, latex: string) => Promise<void> | void;
+  suggestedLatex?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(eq.latex || "");
@@ -200,7 +210,41 @@ function EquationFallback({
             placeholder="Paste LaTeX"
             className="mt-2 block w-full rounded border border-zinc-300 px-2 py-1 text-xs"
           />
+          {suggestedLatex ? (
+            <span className="mt-2 block rounded border border-sky-200 bg-sky-50 p-2 text-[11px] text-sky-900">
+              Suggested: <code>{suggestedLatex}</code>
+            </span>
+          ) : null}
           <span className="mt-2 flex items-center gap-2">
+            {suggestedLatex ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setValue(suggestedLatex)}
+                className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-800 disabled:opacity-60"
+              >
+                Auto-fill
+              </button>
+            ) : null}
+            {suggestedLatex && onSaveLatex ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await onSaveLatex(eq.id, suggestedLatex);
+                    setValue(suggestedLatex);
+                    setOpen(false);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="rounded border border-sky-300 bg-sky-100 px-2 py-1 text-[11px] font-semibold text-sky-900 disabled:opacity-60"
+              >
+                Auto-save guess
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={saving || !value.trim()}
@@ -241,6 +285,47 @@ export default function InlineEquationText({
 }: Props) {
   const parts = useMemo(() => normalizeDisplayText(String(text || "")).split(TOKEN_RE), [text]);
   const out: React.ReactNode[] = [];
+
+  const normalizeSuggestedLatex = (raw: string) => {
+    return String(raw || "")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/−/g, "-")
+      .replace(/\blog_e\s*\(/gi, "\\log_{e}(")
+      .replace(/\be\^\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+      .replace(/\be\s*-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+      .replace(/\be-\s*([0-9]+(?:\.[0-9]+)?(?:\s*[A-Za-z]+)?)\b/gi, (_m, exp) => `e^{-${String(exp).replace(/\s+/g, "")}}`)
+      .replace(/\b(sin|cos|tan)\s*\(/gi, (_m, fn) => `\\${String(fn).toLowerCase()}(`)
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const guessLatexFromContext = (index: number) => {
+    const prev = String(parts[index - 1] || "");
+    const next = String(parts[index + 1] || "");
+    const context = `${prev}\n${next}`.replace(/\r/g, "\n");
+    const lines = context
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const line of lines) {
+      if (!/^[A-Za-z][A-Za-z0-9_]*\s*=/.test(line)) continue;
+      if (line.length > 160) continue;
+      return normalizeSuggestedLatex(line);
+    }
+    return "";
+  };
+
+  const hasInlineEquationContext = (index: number) => {
+    const prev = String(parts[index - 1] || "");
+    const next = String(parts[index + 1] || "");
+    const prevTrimEnd = prev.replace(/\s+$/g, "");
+    const nextTrimStart = next.replace(/^\s+/g, "");
+    const prevEndsWithLineBreak = /\n\s*$/.test(prev);
+    const nextStartsWithLineBreak = /^\s*\n/.test(next);
+    if (prevEndsWithLineBreak || nextStartsWithLineBreak) return false;
+    // Treat as inline when token is embedded in a sentence/phrase context.
+    return !!(prevTrimEnd || nextTrimStart);
+  };
 
   for (let i = 0; i < parts.length; i += 1) {
     const part = parts[i] || "";
@@ -284,6 +369,7 @@ export default function InlineEquationText({
     }
 
     const eq = equationsById[eqTokenId];
+    const inlineContext = hasInlineEquationContext(i);
     if (!eq) {
       out.push(
         <span key={`missing-${eqTokenId}`} className="rounded border border-amber-300 bg-amber-50 px-1 text-[10px] text-amber-900">
@@ -297,8 +383,12 @@ export default function InlineEquationText({
       out.push(
         <span
           key={`eq-${eq.id}`}
-          className="block max-w-full overflow-x-auto whitespace-nowrap align-middle py-1"
-          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex, true) }}
+          className={
+            (inlineContext
+              ? "inline-block max-w-full overflow-x-auto whitespace-nowrap align-middle py-0.5"
+              : "block max-w-full overflow-x-auto whitespace-nowrap align-middle py-1")
+          }
+          dangerouslySetInnerHTML={{ __html: renderKatex(eq.latex, !inlineContext) }}
         />
       );
       continue;
@@ -311,6 +401,7 @@ export default function InlineEquationText({
         openPdfHref={openPdfHref}
         canEditLatex={canEditLatex}
         onSaveLatex={onSaveLatex}
+        suggestedLatex={guessLatexFromContext(i) || undefined}
       />
     );
   }

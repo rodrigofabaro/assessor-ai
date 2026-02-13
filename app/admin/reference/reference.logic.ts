@@ -144,6 +144,12 @@ function parseTaskNumbersInput(raw: string): number[] {
       if (Number.isInteger(n) && n > 0) out.add(n);
       continue;
     }
+    // Support common variants like "3(b)", "3.b", "task3", "task-3a".
+    const leadingDigits = piece.match(/(\d+)/);
+    if (leadingDigits) {
+      const n = Number(leadingDigits[1]);
+      if (Number.isInteger(n) && n > 0) out.add(n);
+    }
   }
   return Array.from(out).sort((a, b) => a - b);
 }

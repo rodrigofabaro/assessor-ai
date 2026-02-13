@@ -247,6 +247,48 @@ function renderPdfTextBlocks(
     reflowWrappedLines?: boolean;
   }
 ) {
+  const stripDuplicateEqLineForDisplay = (rawText: string) => {
+    const canonical = (s: string) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/\\theta/g, "θ")
+        .replace(/\\alpha/g, "α")
+        .replace(/\\beta/g, "β")
+        .replace(/\\sin/g, "sin")
+        .replace(/\\cos/g, "cos")
+        .replace(/\\tan/g, "tan")
+        .replace(/[{}\\]/g, "")
+        .replace(/[^\p{L}\p{N}()+\-*/=]/gu, "");
+    const looksEqLine = (s: string) =>
+      /[=()+\-*/^]/.test(s) || /\b(sin|cos|tan|log|ln)\b/i.test(s) || /[αβθ]/i.test(s);
+
+    const lines = String(rawText || "").split("\n");
+    const out: string[] = [];
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i] || "";
+      out.push(line);
+      const m = line.match(/^\s*\[\[EQ:([^\]]+)\]\]\s*$/);
+      if (!m) continue;
+      const eq = options?.equationsById?.[m[1]];
+      const latex = String(eq?.latex || "").trim();
+      if (!latex) continue;
+      let j = i + 1;
+      while (j < lines.length && !String(lines[j] || "").trim()) {
+        out.push(lines[j] || "");
+        j += 1;
+      }
+      if (j >= lines.length) continue;
+      const next = String(lines[j] || "").trim();
+      if (!next || !looksEqLine(next)) continue;
+      const nextCanon = canonical(next);
+      const latexCanon = canonical(latex);
+      if (nextCanon && latexCanon && (nextCanon === latexCanon || nextCanon.endsWith(latexCanon) || latexCanon.endsWith(nextCanon))) {
+        i = j; // skip duplicate equation text line in display
+      }
+    }
+    return out.join("\n").replace(/\n{3,}/g, "\n\n");
+  };
+
   const normalizeEquationLatex = (raw: string) => {
     return String(raw || "")
       .replace(/[\u200B-\u200D\uFEFF]/g, "")
@@ -262,9 +304,16 @@ function renderPdfTextBlocks(
 
   const maybeRenderEquationLine = (content: string, lineKey: string) => {
     const t = String(content || "").trim();
+    const rhs = t.replace(/^[A-Za-z][A-Za-z0-9_]*\s*=\s*/, "");
+    const words = rhs.match(/[A-Za-z]{4,}/g) || [];
+    const narrativeWordCount = words.filter((w) =>
+      /^(the|then|number|characters|email|address|example|assuming|determine|approximate|value|values|state|year|birth|arrive|voltage|would)$/i.test(w)
+    ).length;
+    const looksNarrative = words.length >= 4 || narrativeWordCount >= 2;
     const isEqLike =
       /^[A-Za-z][A-Za-z0-9_]*\s*=/.test(t) &&
-      /[0-9^()+\-*/]|log_e|sin|cos|tan|e\^?/i.test(t);
+      /[0-9^()+\-*/]|log_e|sin|cos|tan|e\^?/i.test(t) &&
+      !looksNarrative;
     if (!isEqLike) return null;
     const latex = normalizeEquationLatex(t);
     return (
@@ -304,7 +353,8 @@ function renderPdfTextBlocks(
     return out.join("\n");
   };
 
-  const blocks = formatPdfTextToBlocks(text, { reflowWrappedLines: options?.reflowWrappedLines });
+  const cleanedText = stripDuplicateEqLineForDisplay(String(text || ""));
+  const blocks = formatPdfTextToBlocks(cleanedText, { reflowWrappedLines: options?.reflowWrappedLines });
 
   const renderLineWithTypography = (line: string, lineKey: string) => {
     const raw = String(line || "");
@@ -818,6 +868,18 @@ export function TaskCard({
     }
     return keys;
   }, [structuredParts]);
+  const partTextByKey = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const p of structuredParts) {
+      const pKey = String(p?.key || "").toLowerCase();
+      if (pKey) out[pKey] = String(p?.text || "");
+      for (const c of p?.children || []) {
+        const cKey = `${pKey}.${String(c?.key || "").toLowerCase()}`;
+        out[cKey] = String(c?.text || "");
+      }
+    }
+    return out;
+  }, [structuredParts]);
   const hasStructuredParts = structuredParts.length > 0;
   const firstTextSegmentIndex = useMemo(
     () => contentSegments.findIndex((segment) => segment.type === "text"),
@@ -913,6 +975,31 @@ export function TaskCard({
     } finally {
       setSavingTaskLatex(false);
     }
+  };
+
+  const autoFillTaskLatexEditor = () => {
+    const isEquationLike = (line: string) =>
+      /^[A-Za-z][A-Za-z0-9_]*\s*=/.test(line) && /[0-9^()+\-*/]|log_e|sin|cos|tan|e\^?/i.test(line);
+    const pickEquation = (raw: string) => {
+      const lines = String(raw || "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        if (line.includes("[[EQ:") || line.includes("[[IMG:")) continue;
+        if (isEquationLike(line)) return normalizeManualLatex(line);
+      }
+      return "";
+    };
+
+    const next: Record<string, string> = { ...taskLatexDraft };
+    for (const key of editablePartKeys) {
+      if (String(next[key] || "").trim()) continue;
+      const guessed = pickEquation(partTextByKey[key] || "");
+      if (guessed) next[key] = guessed;
+    }
+    setTaskLatexDraft(next);
   };
 
   return (
@@ -1220,6 +1307,16 @@ export function TaskCard({
               </button>
             </div>
             <div className="mt-3 max-h-[60vh] overflow-auto space-y-3">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={autoFillTaskLatexEditor}
+                  disabled={savingTaskLatex}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  Auto-fill from part text
+                </button>
+              </div>
               {editablePartKeys.length ? editablePartKeys.map((k) => (
                 <div key={`latex-${k}`} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
                   <div className="text-xs font-semibold text-zinc-700">Part {k}</div>
