@@ -760,9 +760,6 @@ export function TaskCard({
               {confidence === "OVERRIDDEN" ? "Overridden" : confidence === "HEURISTIC" ? "Warnings" : "Clean"}
             </Pill>
             <Pill cls="bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">{totalWords} words</Pill>
-            {warningItems.length > 0 && (
-              <Pill cls="bg-amber-50 text-amber-900 ring-1 ring-amber-200">Warnings</Pill>
-            )}
           </div>
           
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">

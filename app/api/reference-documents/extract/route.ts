@@ -53,6 +53,7 @@ export async function POST(req: Request) {
 
   const documentId = safeStr(body?.documentId || body?.id || body?.referenceDocumentId);
   const forceReextract = safeBool(body?.forceReextract || body?.forceReExtract || body?.force || body?.reextract);
+  const runOpenAiCleanup = body?.runOpenAiCleanup === true || body?.openAiCleanup === true;
   const reason = safeStr(body?.reason || body?.note || body?.message);
 
   if (!documentId) {
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
       type: doc.type,
       filePath: resolved.path,
       docTitleFallback: doc.title || doc.originalFilename || "",
+      runOpenAiCleanup,
     });
 
     const warnings = Array.isArray(result?.warnings) ? result.warnings : [];

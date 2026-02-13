@@ -14,6 +14,7 @@ export async function GET() {
   const model = readOpenAiModel();
   return NextResponse.json({
     model: model.model,
+    autoCleanupApproved: !!model.autoCleanupApproved,
     source: model.source,
     allowedModels: ALLOWED_MODELS,
   });
@@ -21,16 +22,17 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const body = (await req.json()) as { model?: string };
+    const body = (await req.json()) as { model?: string; autoCleanupApproved?: boolean };
     const model = String(body?.model || "").trim();
     if (!model) return NextResponse.json({ error: "Model is required." }, { status: 400 });
     if (!ALLOWED_MODELS.includes(model as (typeof ALLOWED_MODELS)[number])) {
       return NextResponse.json({ error: "Unsupported model." }, { status: 400 });
     }
-    const saved = writeOpenAiModel(model);
+    const saved = writeOpenAiModel(model, { autoCleanupApproved: !!body?.autoCleanupApproved });
     return NextResponse.json({
       ok: true,
       model: saved.model,
+      autoCleanupApproved: !!saved.autoCleanupApproved,
       updatedAt: saved.updatedAt,
     });
   } catch (error) {
@@ -38,4 +40,3 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

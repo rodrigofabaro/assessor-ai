@@ -555,12 +555,27 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setError(null);
     if (!selectedDoc) return;
 
+    let runOpenAiCleanup = false;
+    if (selectedDoc.type === "BRIEF") {
+      let defaultApproved = false;
+      try {
+        const cfg = await jsonFetch<any>("/api/admin/openai-model", { cache: "no-store" });
+        defaultApproved = !!cfg?.autoCleanupApproved;
+      } catch {
+        defaultApproved = false;
+      }
+      const prompt = defaultApproved
+        ? "OpenAI cleanup is enabled in settings.\n\nWould you like to proceed with OpenAI cleanup for warning tasks in this extraction?"
+        : "Would you like to proceed with OpenAI cleanup for warning tasks in this extraction?";
+      runOpenAiCleanup = window.confirm(prompt);
+    }
+
     setBusy("Extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id }),
+        body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
       await refreshAll({ keepSelection: true });
@@ -584,12 +599,27 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     const reason =
       window.prompt("Optional note for the audit trail (why are you re-extracting?)", "Fix extraction") || "";
 
+    let runOpenAiCleanup = false;
+    if (selectedDoc.type === "BRIEF") {
+      let defaultApproved = false;
+      try {
+        const cfg = await jsonFetch<any>("/api/admin/openai-model", { cache: "no-store" });
+        defaultApproved = !!cfg?.autoCleanupApproved;
+      } catch {
+        defaultApproved = false;
+      }
+      const prompt = defaultApproved
+        ? "OpenAI cleanup is enabled in settings.\n\nWould you like to proceed with OpenAI cleanup for warning tasks in this re-extraction?"
+        : "Would you like to proceed with OpenAI cleanup for warning tasks in this re-extraction?";
+      runOpenAiCleanup = window.confirm(prompt);
+    }
+
     setBusy("Re-extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason }),
+        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason, runOpenAiCleanup }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
       await refreshAll({ keepSelection: true });

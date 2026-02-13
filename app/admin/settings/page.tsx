@@ -65,6 +65,7 @@ type UsagePayload = {
 
 type ModelPayload = {
   model: string;
+  autoCleanupApproved?: boolean;
   source: "env" | "settings";
   allowedModels: string[];
 };
@@ -108,6 +109,7 @@ export default function AdminSettingsPage() {
   const [allowedModels, setAllowedModels] = useState<string[]>([]);
   const [savingModel, setSavingModel] = useState(false);
   const [modelMessage, setModelMessage] = useState<string>("");
+  const [autoCleanupApproved, setAutoCleanupApproved] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,6 +127,7 @@ export default function AdminSettingsPage() {
       if (modelRes.ok) {
         const modelJson = (await modelRes.json()) as ModelPayload;
         setAllowedModels(modelJson.allowedModels || []);
+        setAutoCleanupApproved(!!modelJson.autoCleanupApproved);
         if (!json.model && modelJson.model) setModel(modelJson.model);
       }
     } catch (e) {
@@ -157,7 +160,7 @@ export default function AdminSettingsPage() {
       const res = await fetch("/api/admin/openai-model", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model }),
+        body: JSON.stringify({ model, autoCleanupApproved }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) throw new Error(json.error || "Failed to save model");
@@ -168,7 +171,7 @@ export default function AdminSettingsPage() {
     } finally {
       setSavingModel(false);
     }
-  }, [load, model]);
+  }, [autoCleanupApproved, load, model]);
 
   return (
     <div className="grid gap-4">
@@ -255,6 +258,15 @@ export default function AdminSettingsPage() {
             {savingModel ? "Saving..." : "Save model"}
           </button>
         </div>
+        <label className="mt-3 inline-flex items-center gap-2 text-sm text-zinc-700">
+          <input
+            type="checkbox"
+            checked={autoCleanupApproved}
+            onChange={(e) => setAutoCleanupApproved(e.target.checked)}
+            className="h-4 w-4 rounded border-zinc-300"
+          />
+          Approve automatic OpenAI cleanup for warning tasks
+        </label>
         <p className="mt-2 text-xs text-zinc-500">
           Current: {data?.model || model || "unknown"} ({data?.modelSource || "env"})
         </p>

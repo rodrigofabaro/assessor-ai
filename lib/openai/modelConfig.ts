@@ -6,6 +6,7 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 
 type ModelConfig = {
   model: string;
+  autoCleanupApproved?: boolean;
   updatedAt: string;
 };
 
@@ -18,6 +19,7 @@ export function readOpenAiModel() {
     if (!fs.existsSync(FILE_PATH)) {
       return {
         model: getDefaultOpenAiModel(),
+        autoCleanupApproved: false,
         source: "env" as const,
       };
     }
@@ -27,29 +29,33 @@ export function readOpenAiModel() {
     if (!model) {
       return {
         model: getDefaultOpenAiModel(),
+        autoCleanupApproved: false,
         source: "env" as const,
       };
     }
     return {
       model,
+      autoCleanupApproved: !!parsed?.autoCleanupApproved,
       source: "settings" as const,
     };
   } catch {
     return {
       model: getDefaultOpenAiModel(),
+      autoCleanupApproved: false,
       source: "env" as const,
     };
   }
 }
 
-export function writeOpenAiModel(model: string) {
+export function writeOpenAiModel(model: string, options?: { autoCleanupApproved?: boolean }) {
   const clean = String(model || "").trim();
   if (!clean) throw new Error("Model is required.");
+  const prev = readOpenAiModel();
   const payload: ModelConfig = {
     model: clean,
+    autoCleanupApproved: typeof options?.autoCleanupApproved === "boolean" ? options.autoCleanupApproved : !!prev.autoCleanupApproved,
     updatedAt: new Date().toISOString(),
   };
   fs.writeFileSync(FILE_PATH, JSON.stringify(payload, null, 2), "utf8");
   return payload;
 }
-
