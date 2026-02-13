@@ -48,10 +48,10 @@ export default function TopNav() {
                 key={it.href}
                 href={it.href}
                 className={
-                  "inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-semibold transition " +
+                  "inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition " +
                   (active
-                    ? "bg-zinc-900 text-white shadow-sm"
-                    : "text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900")
+                    ? "border-zinc-300 bg-zinc-100 text-zinc-900"
+                    : "border-transparent text-zinc-700 hover:border-zinc-200 hover:bg-zinc-100 hover:text-zinc-900")
                 }
               >
                 {it.label}
@@ -70,15 +70,15 @@ export default function TopNav() {
                 <Link
                   key={it.href}
                   href={it.href}
-                  className={
-                    "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold transition " +
-                    (active
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900")
-                  }
-                >
-                  {it.label}
-                </Link>
+                className={
+                  "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold transition " +
+                  (active
+                    ? "border-zinc-300 bg-zinc-100 text-zinc-900"
+                    : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900")
+                }
+              >
+                {it.label}
+              </Link>
               );
             })}
           </div>
