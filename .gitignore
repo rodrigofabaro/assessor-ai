@@ -69,4 +69,4 @@ reference_uploads/
 !reference_uploads/briefs/
 !reference_uploads/briefs/**
 
-
+.openai-usage-log.jsonl
