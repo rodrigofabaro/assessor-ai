@@ -30,7 +30,7 @@ export default function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/85 backdrop-blur">
-      <div className={LANE + " grid grid-cols-[auto_1fr_auto] items-center gap-4 py-2.5"}>
+      <div className={LANE + " flex items-center justify-between gap-4 py-2.5"}>
         <Link href="/" className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-300 bg-zinc-100 text-sm font-bold text-zinc-900">
             AI
@@ -38,7 +38,7 @@ export default function TopNav() {
           <span className="text-base font-semibold tracking-tight">Assessor AI</span>
         </Link>
 
-        <nav className="flex items-center justify-center gap-5">
+        <div className="flex items-center justify-end gap-5">
           {MAIN_ITEMS.map((it) => {
             const active = isActive(pathname, it.href);
             return (
@@ -56,9 +56,6 @@ export default function TopNav() {
               </Link>
             );
           })}
-        </nav>
-
-        <div className="flex items-center justify-end gap-3">
           <Link
             href="/admin"
             className={
