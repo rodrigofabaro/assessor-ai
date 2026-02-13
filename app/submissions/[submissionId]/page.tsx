@@ -416,7 +416,7 @@ export default function SubmissionDetailPage() {
     !gradingBusy;
 
   return (
-    <main className="mx-auto max-w-7xl p-6">
+    <main className="py-2">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-xs font-semibold text-zinc-500">Submissions</div>
