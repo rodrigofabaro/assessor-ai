@@ -45,6 +45,11 @@ function safeIvRecords(x: any) {
     .filter((r) => r.id && r.academicYear);
 }
 
+function isBlankOrPlaceholderNotes(value: unknown) {
+  const n = String(value || "").trim();
+  return !n || /^evidence\s+upload$/i.test(n) || /^no\s+general\s+comments\.?$/i.test(n);
+}
+
 
 async function loadBriefDoc(briefId: string) {
   const brief = await prisma.assignmentBrief.findUnique({
@@ -133,7 +138,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
   };
 
   const nextRecords = [...existing];
-  nextRecords[idx] = { ...nextRecords[idx], attachment };
+  const current = nextRecords[idx];
+  const summaryVerifier = String(summary?.internalVerifierName || "").trim() || null;
+  const summaryDate = String(summary?.verificationDate || "").trim() || null;
+  const summaryComments = String(summary?.generalComments || "").trim() || null;
+  nextRecords[idx] = {
+    ...current,
+    verifierName: current.verifierName || summaryVerifier,
+    verificationDate: current.verificationDate || summaryDate,
+    notes: isBlankOrPlaceholderNotes(current.notes) ? summaryComments || current.notes : current.notes,
+    attachment,
+  };
   const nextMeta = { ...prev, ivRecords: nextRecords };
 
   await prisma.referenceDocument.update({

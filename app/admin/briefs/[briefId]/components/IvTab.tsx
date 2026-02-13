@@ -104,10 +104,15 @@ export function IvTab({ vm }: { vm: any }) {
                   String(r.verifierName || "").trim() ||
                   String(r.attachment?.summary?.internalVerifierName || "").trim() ||
                   "Not provided";
-                const verifiedDateDisplay = String(r.verificationDate || "").trim()
-                  ? formatAuditDate(r.verificationDate)
+                const verifiedDateRaw =
+                  String(r.verificationDate || "").trim() ||
+                  String(r.attachment?.summary?.verificationDate || "").trim();
+                const verifiedDateDisplay = verifiedDateRaw
+                  ? formatAuditDate(verifiedDateRaw)
                   : "Not provided";
-                const commentsDisplay = displayGeneralComments(r.notes);
+                const commentsDisplay = displayGeneralComments(
+                  String(r.notes || "").trim() || String(r.attachment?.summary?.generalComments || "").trim()
+                );
                 return (
                   <>
               <div className="flex flex-wrap items-start justify-between gap-3">
