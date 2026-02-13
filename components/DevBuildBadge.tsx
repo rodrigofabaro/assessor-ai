@@ -16,6 +16,10 @@ type BuildInfoError = {
   error: string;
 };
 
+function isBuildInfo(value: BuildInfo | BuildInfoError): value is BuildInfo {
+  return !("ok" in value && value.ok === false);
+}
+
 export default function DevBuildBadge() {
   const [data, setData] = useState<BuildInfo | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -30,7 +34,7 @@ export default function DevBuildBadge() {
         if (!res.ok) throw new Error("build-info unavailable");
         const json = (await res.json()) as BuildInfo | BuildInfoError;
         if (!cancelled) {
-          if ("ok" in json && json.ok === false) {
+          if (!isBuildInfo(json)) {
             setData(null);
             setApiError(json.error || "unknown error");
           } else {

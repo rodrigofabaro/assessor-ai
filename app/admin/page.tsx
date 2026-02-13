@@ -89,8 +89,8 @@ export default function AdminIndex() {
         <AdminCard
           title="System"
           desc="Check reference inboxes and lock state to keep audit readiness and QA confidence high."
-          href="/admin/reference"
-          cta="Open system"
+          href="/admin/settings"
+          cta="Open settings"
           tone="slate"
           icon="⚙️"
         />
