@@ -316,6 +316,9 @@ export function inferEquationLatex(lines: string[]) {
     .replace(/([A-Za-z])\s+([0-9])/g, "$1^$2")
     .trim();
   if (/[=]/.test(plain)) return { latex: plain, confidence: 0.76 };
+  if (/\b(sin|cos|tan|exp)\b/i.test(plain) || /∠/.test(plain)) {
+    return { latex: plain, confidence: 0.72 };
+  }
 
   return { latex: null, confidence: 0.35 };
 }

@@ -1177,24 +1177,28 @@ function extractBriefTasks(
         /Use\s+Graph\s+software\s+to\s+plot\s+the\s+two\s+voltage\s+signals/i.test(nextText);
       if (!hasPartBlock || !nextLooksLikeGraphTask) continue;
 
-      const splitMatch = currentText.match(/\n\s*PART\s*1\b/i);
-      if (!splitMatch || splitMatch.index == null) continue;
-      const splitAt = splitMatch.index + 1;
+      const signalStart = currentText.search(/\bThe\s+two\s+signals\s+below\s+are\s+sensed\s+by\s+a\s+signal\s+processor\b/i);
+      let splitAt = -1;
+      if (signalStart >= 0) {
+        splitAt = signalStart;
+      } else {
+        // Fallback: split at the second PART 1 marker when two task blocks are fused.
+        const part1Matches = Array.from(currentText.matchAll(/(?:^|\n)\s*PART\s*1\b/gi));
+        if (part1Matches.length >= 2 && typeof part1Matches[1].index === "number") {
+          splitAt = part1Matches[1].index;
+        }
+      }
+      if (splitAt < 0) continue;
       const before = currentText.slice(0, splitAt).trim();
-      const partTaskBody = currentText.slice(splitAt).trim();
+      let partTaskBody = currentText.slice(splitAt).trim();
+      if (!/^\s*PART\s*1\b/i.test(partTaskBody) && /\n\s*PART\s*2\b/i.test(partTaskBody)) {
+        partTaskBody = `PART 1\n${partTaskBody}`.replace(/\n{3,}/g, "\n\n").trim();
+      }
       if (!before || !partTaskBody) continue;
 
       current.text = before;
       current.prompt = before;
-      if (Array.isArray(current.parts)) {
-        current.parts = current.parts
-          .map((part) => {
-            const partText = String(part?.text || "");
-            const cut = partText.search(/\n\s*PART\s*1\b/i);
-            return cut >= 0 ? { ...part, text: partText.slice(0, cut).trim() } : part;
-          })
-          .filter((part) => String(part?.text || "").trim().length > 0);
-      }
+      current.parts = extractParts(before) || undefined;
 
       const newTaskNumber = Number(current.n) + 1;
       const newTask: BriefTask = {
@@ -1204,6 +1208,7 @@ function extractBriefTasks(
         text: partTaskBody,
         title: null,
         prompt: partTaskBody,
+        parts: extractParts(partTaskBody) || undefined,
         pages:
           Array.isArray(next.pages) && next.pages.length
             ? [...next.pages]
