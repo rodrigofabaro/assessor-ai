@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Pill } from "../../components/ui";
-import { tone } from "./briefStyles";
 import { uniqSortedCriteriaCodes } from "@/lib/extraction/utils/criteriaCodes";
 import { BriefCriteriaPanel } from "./BriefCriteriaPanel";
 
@@ -11,7 +9,7 @@ function dateEvidence(label: string, displayValue: any, isoValue?: any) {
     <div className="rounded-xl border border-zinc-200 p-3">
       <span className="text-zinc-500">{label}:</span>{" "}
       <span className="font-semibold text-zinc-900">{displayValue || "—"}</span>
-      <div className="mt-1 text-[11px] text-zinc-500">ISO: {isoValue || "—"}</div>
+      <div className="mt-1 text-[11px] text-zinc-500">Evidence (ISO): {isoValue || "—"}</div>
     </div>
   );
 }
@@ -44,25 +42,15 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
 
   const safeHeader = safeExtracted?.header || null;
   const specCriteria = useMemo(() => flattenSpecCriteria(vm.mappedSpecDoc), [vm.mappedSpecDoc]);
-  const ivStatus = vm.ivRecords?.[0]?.outcome || "MISSING";
-  const readiness = vm.readiness || "ATTN";
-  const readinessReason = vm.readinessReason || "";
 
   return (
     <div className="grid gap-4">
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Brief overview</h2>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Pill cls={ivStatus === "MISSING" ? tone("warn") : tone("ok")}>IV: {ivStatus === "MISSING" ? "MISSING" : "OK"}</Pill>
-          <Pill cls={readiness === "READY" ? tone("ok") : readiness === "BLOCKED" ? tone("bad") : tone("warn")}>
-            <span title={readinessReason}>READINESS: {readiness}</span>
-          </Pill>
-          {!safeExtracted ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
-          {safeExtracted && criteriaCodes.length === 0 ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
-        </div>
-
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
+        <div className="mt-3 grid gap-3 md:grid-cols-3 text-sm">
+          {dateEvidence("Verification date", safeHeader?.verificationDate || header?.verificationDate, safeHeader?.verificationDateIso)}
+          {dateEvidence("Issue date", safeHeader?.issueDate || header?.issueDate, safeHeader?.issueDateIso)}
+          {dateEvidence("Final submission date", safeHeader?.finalSubmissionDate || header?.finalSubmissionDate, safeHeader?.finalSubmissionDateIso)}
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Qualification:</span> <span className="font-semibold text-zinc-900">{safeHeader?.qualification || "—"}</span></div>
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Unit number and title:</span> <span className="font-semibold text-zinc-900">{safeHeader?.unitNumberAndTitle || "—"}</span></div>
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment title:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignmentTitle || "—"}</span></div>
@@ -71,9 +59,6 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Unit code (Pearson):</span> <span className="font-semibold text-zinc-900">{safeHeader?.unitCode || "—"}</span></div>
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignment || "—"}</span></div>
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Internal verifier:</span> <span className="font-semibold text-zinc-900">{safeHeader?.internalVerifier || "—"}</span></div>
-          {dateEvidence("Verification date", safeHeader?.verificationDate || header?.verificationDate, safeHeader?.verificationDateIso)}
-          {dateEvidence("Issue date", safeHeader?.issueDate || header?.issueDate, safeHeader?.issueDateIso)}
-          {dateEvidence("Final submission date", safeHeader?.finalSubmissionDate || header?.finalSubmissionDate, safeHeader?.finalSubmissionDateIso)}
         </div>
       </section>
 
