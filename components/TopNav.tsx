@@ -17,7 +17,6 @@ const ADMIN_ITEMS: AdminItem[] = [
   { label: "Specs", href: "/admin/specs" },
   { label: "Briefs", href: "/admin/briefs" },
   { label: "Students", href: "/admin/students" },
-  { label: "Reference", href: "/admin/reference" },
 ];
 
 function isActive(pathname: string, href: string) {
