@@ -15,9 +15,16 @@ type UsageTotals = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  estimatedCostUsd: number;
 };
 
 const LOG_FILE = path.join(process.cwd(), ".openai-usage-log.jsonl");
+const PRICES_USD_PER_1M: Record<string, { input: number; output: number }> = {
+  "gpt-4o-mini": { input: 0.15, output: 0.6 },
+  "gpt-4.1-mini": { input: 0.4, output: 1.6 },
+  "gpt-4o": { input: 5, output: 15 },
+  "gpt-5-mini": { input: 0.25, output: 2 },
+};
 
 function toInt(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);
@@ -26,6 +33,14 @@ function toInt(value: unknown): number {
 
 function dayKeyFromTs(ts: number): string {
   return new Date(ts * 1000).toISOString().slice(0, 10);
+}
+
+function estimateUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const pricing = PRICES_USD_PER_1M[String(model || "").trim()];
+  if (!pricing) return 0;
+  const inCost = (toInt(inputTokens) / 1_000_000) * pricing.input;
+  const outCost = (toInt(outputTokens) / 1_000_000) * pricing.output;
+  return inCost + outCost;
 }
 
 export function recordOpenAiUsage(input: {
@@ -55,12 +70,18 @@ export function recordOpenAiUsage(input: {
 export function readOpenAiUsageHistory(days: number) {
   const now = Math.floor(Date.now() / 1000);
   const start = now - Math.max(1, days) * 24 * 60 * 60;
-  const totals: UsageTotals = { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+  const totals: UsageTotals = { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, estimatedCostUsd: 0 };
   const byDay = new Map<string, UsageTotals>();
+  const recentEvents: Array<UsageLogEvent & { estimatedCostUsd: number }> = [];
 
   try {
     if (!fs.existsSync(LOG_FILE)) {
-      return { available: false as const, totals, days: [] as Array<{ date: string } & UsageTotals> };
+      return {
+        available: false as const,
+        totals,
+        days: [] as Array<{ date: string } & UsageTotals>,
+        recentEvents: [] as Array<UsageLogEvent & { estimatedCostUsd: number }>,
+      };
     }
 
     const raw = fs.readFileSync(LOG_FILE, "utf8");
@@ -78,23 +99,47 @@ export function readOpenAiUsageHistory(days: number) {
       totals.inputTokens += toInt(row.inputTokens);
       totals.outputTokens += toInt(row.outputTokens);
       totals.totalTokens += toInt(row.totalTokens);
+      totals.estimatedCostUsd += estimateUsd(row.model, row.inputTokens, row.outputTokens);
 
       const key = dayKeyFromTs(row.ts);
-      const day = byDay.get(key) || { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+      const day = byDay.get(key) || { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, estimatedCostUsd: 0 };
       day.requests += 1;
       day.inputTokens += toInt(row.inputTokens);
       day.outputTokens += toInt(row.outputTokens);
       day.totalTokens += toInt(row.totalTokens);
+      day.estimatedCostUsd += estimateUsd(row.model, row.inputTokens, row.outputTokens);
       byDay.set(key, day);
+
+      recentEvents.push({
+        ...row,
+        estimatedCostUsd: estimateUsd(row.model, row.inputTokens, row.outputTokens),
+      });
     }
 
     const daysOut = Array.from(byDay.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, agg]) => ({ date, ...agg }));
 
-    return { available: true as const, totals, days: daysOut };
+    const roundedTotals = {
+      ...totals,
+      estimatedCostUsd: Math.round((totals.estimatedCostUsd + Number.EPSILON) * 10000) / 10000,
+    };
+    const roundedDays = daysOut.map((d) => ({
+      ...d,
+      estimatedCostUsd: Math.round((d.estimatedCostUsd + Number.EPSILON) * 10000) / 10000,
+    }));
+    const topRecent = recentEvents
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 50)
+      .map((e) => ({ ...e, estimatedCostUsd: Math.round((e.estimatedCostUsd + Number.EPSILON) * 100000) / 100000 }));
+
+    return { available: true as const, totals: roundedTotals, days: roundedDays, recentEvents: topRecent };
   } catch {
-    return { available: false as const, totals, days: [] as Array<{ date: string } & UsageTotals> };
+    return {
+      available: false as const,
+      totals,
+      days: [] as Array<{ date: string } & UsageTotals>,
+      recentEvents: [] as Array<UsageLogEvent & { estimatedCostUsd: number }>,
+    };
   }
 }
-

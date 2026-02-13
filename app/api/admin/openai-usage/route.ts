@@ -16,7 +16,8 @@ type OpenAiFetchResult = OpenAiFetchOk | OpenAiFetchError;
 function toNumber(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
-    const parsed = Number(value);
+    const cleaned = value.replace(/[^0-9.+-]/g, "");
+    const parsed = Number(cleaned);
     if (Number.isFinite(parsed)) return parsed;
   }
   return 0;
@@ -43,12 +44,13 @@ function fromTextMessage(raw: string): string {
   return cleaned.slice(0, 240);
 }
 
-async function fetchOpenAi(apiKey: string, path: string): Promise<OpenAiFetchOk | OpenAiFetchError> {
+async function fetchOpenAi(apiKey: string, path: string, opts?: { useOrgHeader?: boolean }): Promise<OpenAiFetchOk | OpenAiFetchError> {
   const orgId = String(process.env.OPENAI_ORG_ID || "").trim();
+  const useOrgHeader = opts?.useOrgHeader !== false;
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
   };
-  if (orgId) headers["OpenAI-Organization"] = orgId;
+  if (useOrgHeader && orgId) headers["OpenAI-Organization"] = orgId;
 
   const res = await fetch(`https://api.openai.com${path}`, {
     method: "GET",
@@ -90,16 +92,51 @@ function parseUsageTotals(payload: JsonObject) {
   let inputTokens = 0;
   let outputTokens = 0;
   let totalTokens = 0;
+  let bucketCount = 0;
+  let nonEmptyBucketCount = 0;
 
   const buckets = toArray(payload.data);
+  bucketCount = buckets.length;
+  const addUsageRow = (rowLike: unknown) => {
+    if (!rowLike || typeof rowLike !== "object") return;
+    const rec = rowLike as Record<string, unknown>;
+    requests +=
+      toNumber(rec.num_model_requests) ||
+      toNumber(rec.requests) ||
+      toNumber(rec.request_count) ||
+      toNumber(rec.num_requests);
+    inputTokens +=
+      toNumber(rec.input_tokens) +
+      toNumber(rec.input_text_tokens) +
+      toNumber(rec.input_audio_tokens) +
+      toNumber(rec.input_cached_tokens) +
+      toNumber(rec.prompt_tokens);
+    outputTokens +=
+      toNumber(rec.output_tokens) +
+      toNumber(rec.output_text_tokens) +
+      toNumber(rec.output_audio_tokens) +
+      toNumber(rec.completion_tokens);
+    totalTokens += toNumber(rec.total_tokens);
+  };
   for (const bucket of buckets) {
-    const rows = toArray(bucket.results);
-    for (const row of rows) {
-      requests += toNumber(row.num_model_requests);
-      inputTokens += toNumber(row.input_tokens);
-      outputTokens += toNumber(row.output_tokens);
-      totalTokens += toNumber(row.total_tokens);
+    const rows = [
+      ...toArray(bucket.results),
+      ...toArray((bucket as Record<string, unknown>).result),
+      ...toArray((bucket as Record<string, unknown>).usage),
+    ];
+    if (rows.length) nonEmptyBucketCount += 1;
+    if (!rows.length) {
+      // Some payloads place counters directly on each bucket row.
+      addUsageRow(bucket);
+      continue;
     }
+    for (const row of rows) {
+      addUsageRow(row);
+    }
+  }
+  // Top-level fallback
+  if (!requests && !inputTokens && !outputTokens && !totalTokens) {
+    addUsageRow(payload);
   }
 
   if (!totalTokens) totalTokens = inputTokens + outputTokens;
@@ -109,39 +146,115 @@ function parseUsageTotals(payload: JsonObject) {
     inputTokens,
     outputTokens,
     totalTokens,
+    bucketCount,
+    nonEmptyBucketCount,
   };
+}
+
+function mergeUsageTotals(
+  ...items: Array<{ requests: number; inputTokens: number; outputTokens: number; totalTokens: number; bucketCount: number; nonEmptyBucketCount: number }>
+) {
+  const merged = items.reduce(
+    (acc, cur) => ({
+      requests: acc.requests + toNumber(cur.requests),
+      inputTokens: acc.inputTokens + toNumber(cur.inputTokens),
+      outputTokens: acc.outputTokens + toNumber(cur.outputTokens),
+      totalTokens: acc.totalTokens + toNumber(cur.totalTokens),
+      bucketCount: acc.bucketCount + toNumber(cur.bucketCount),
+      nonEmptyBucketCount: acc.nonEmptyBucketCount + toNumber(cur.nonEmptyBucketCount),
+    }),
+    { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, bucketCount: 0, nonEmptyBucketCount: 0 }
+  );
+  if (!merged.totalTokens) merged.totalTokens = merged.inputTokens + merged.outputTokens;
+  return merged;
 }
 
 function parseCostTotals(payload: JsonObject) {
   let amount = 0;
   let currency = "usd";
-
-  const buckets = toArray(payload.data);
-  for (const bucket of buckets) {
-    const rows = toArray(bucket.results);
-    for (const row of rows) {
-      const amountObj = row.amount;
-      if (amountObj && typeof amountObj === "object" && !Array.isArray(amountObj)) {
-        const amountRecord = amountObj as Record<string, unknown>;
-        amount += toNumber(amountRecord.value);
-        if (typeof amountRecord.currency === "string" && amountRecord.currency.trim()) {
-          currency = amountRecord.currency.toLowerCase();
-        }
-      } else {
-        amount += toNumber((row as Record<string, unknown>).amount_value);
+  let bucketCount = 0;
+  let nonEmptyBucketCount = 0;
+  const collectAmounts = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const item of node) collectAmounts(item);
+      return;
+    }
+    const rec = node as Record<string, unknown>;
+    // canonical amount object
+    if (typeof rec.value !== "undefined" && Number.isFinite(Number(rec.value))) {
+      const v = toNumber(rec.value);
+      if (v) amount += v;
+      if (typeof rec.currency === "string" && rec.currency.trim()) {
+        currency = rec.currency.toLowerCase();
       }
     }
-  }
+    // common alternates
+    const altKeys = ["amount_value", "cost", "total_cost", "amount", "total_amount"];
+    for (const k of altKeys) {
+      const val = rec[k];
+      if (typeof val === "number" || typeof val === "string") {
+        const n = toNumber(val);
+        if (n) amount += n;
+      }
+    }
+    for (const val of Object.values(rec)) collectAmounts(val);
+  };
 
-  return { amount, currency };
+  const addCostRow = (rowLike: unknown) => {
+    if (!rowLike || typeof rowLike !== "object") return;
+    const row = rowLike as Record<string, unknown>;
+    const amountObj = row.amount;
+    if (amountObj && typeof amountObj === "object" && !Array.isArray(amountObj)) {
+      const amountRecord = amountObj as Record<string, unknown>;
+      const v = toNumber(amountRecord.value);
+      if (v) amount += v;
+      if (typeof amountRecord.currency === "string" && amountRecord.currency.trim()) {
+        currency = amountRecord.currency.toLowerCase();
+      }
+    } else {
+      amount +=
+        toNumber(row.amount_value) +
+        toNumber(row.cost) +
+        toNumber(row.total_cost) +
+        toNumber(row.amount) +
+        toNumber(row.total_amount);
+    }
+    collectAmounts(row);
+  };
+
+  const buckets = toArray(payload.data);
+  bucketCount = buckets.length;
+  for (const bucket of buckets) {
+    const rows = [
+      ...toArray(bucket.results),
+      ...toArray((bucket as Record<string, unknown>).result),
+      ...toArray((bucket as Record<string, unknown>).costs),
+    ];
+    if (rows.length) nonEmptyBucketCount += 1;
+    if (!rows.length) {
+      addCostRow(bucket);
+      continue;
+    }
+    for (const row of rows) {
+      addCostRow(row);
+    }
+  }
+  if (!amount) addCostRow(payload);
+
+  return { amount, currency, bucketCount, nonEmptyBucketCount };
 }
 
 export async function GET() {
-  const apiKey = String(
-    process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_ADMIN_API_KEY || process.env.OPENAI_ADMIN || process.env.OPENAI_API_KEY || ""
-  )
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
+  const keySources = [
+    ["OPENAI_ADMIN_KEY", process.env.OPENAI_ADMIN_KEY],
+    ["OPENAI_ADMIN_API_KEY", process.env.OPENAI_ADMIN_API_KEY],
+    ["OPENAI_ADMIN", process.env.OPENAI_ADMIN],
+    ["OPENAI_API_KEY", process.env.OPENAI_API_KEY],
+  ] as const;
+  const activePair = keySources.find(([, v]) => String(v || "").trim()) || ["", ""] as const;
+  const activeKeyName = activePair[0];
+  const apiKey = String(activePair[1] || "").trim().replace(/^['"]|['"]$/g, "");
   if (!apiKey) {
     return NextResponse.json(
       {
@@ -164,57 +277,124 @@ export async function GET() {
     limit: String(DEFAULT_WINDOW_DAYS),
   });
 
-  const [modelsRes, usageFetch, costsFetch] = await Promise.all([
+  const orgId = String(process.env.OPENAI_ORG_ID || "").trim();
+  const useOrgHeader = !!orgId;
+  const [modelsRes, usageCompletionsFetch, usageResponsesFetch, costsFetch] = await Promise.all([
     fetchOpenAi(apiKey, "/v1/models"),
-    fetchOpenAi(apiKey, `/v1/organization/usage/completions?${qp.toString()}`),
-    fetchOpenAi(apiKey, `/v1/organization/costs?${qp.toString()}`),
+    fetchOpenAi(apiKey, `/v1/organization/usage/completions?${qp.toString()}`, { useOrgHeader }),
+    fetchOpenAi(apiKey, `/v1/organization/usage/responses?${qp.toString()}`, { useOrgHeader }),
+    fetchOpenAi(apiKey, `/v1/organization/costs?${qp.toString()}`, { useOrgHeader }),
   ]);
 
-  const usage =
-    !isFetchError(usageFetch)
-      ? {
-          available: true,
-          ...parseUsageTotals(usageFetch.json),
-        }
-      : {
-          available: false,
-          status: usageFetch.status,
-          message: usageFetch.message,
-        };
+  let usageCompletions = !isFetchError(usageCompletionsFetch)
+    ? parseUsageTotals(usageCompletionsFetch.json)
+    : { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, bucketCount: 0, nonEmptyBucketCount: 0 };
+  let usageResponses = !isFetchError(usageResponsesFetch)
+    ? parseUsageTotals(usageResponsesFetch.json)
+    : { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, bucketCount: 0, nonEmptyBucketCount: 0 };
 
-  const costs =
+  const usageAvailablePrimary = !isFetchError(usageCompletionsFetch) || !isFetchError(usageResponsesFetch);
+  let usage = usageAvailablePrimary
+    ? {
+        available: true as const,
+        ...mergeUsageTotals(usageCompletions, usageResponses),
+      }
+    : {
+        available: false as const,
+        status: usageCompletionsFetch.status,
+        message: usageCompletionsFetch.message,
+      };
+
+  let costs =
     !isFetchError(costsFetch)
       ? {
-          available: true,
+          available: true as const,
           ...parseCostTotals(costsFetch.json),
         }
       : {
-          available: false,
+          available: false as const,
           status: costsFetch.status,
           message: costsFetch.message,
         };
 
   const needsAdminKeyForOrgMetrics =
-    (usageFetch.ok ? 200 : usageFetch.status) === 403 || (costsFetch.ok ? 200 : costsFetch.status) === 403;
+    (usageCompletionsFetch.ok ? 200 : usageCompletionsFetch.status) === 403 ||
+    (usageResponsesFetch.ok ? 200 : usageResponsesFetch.status) === 403 ||
+    (costsFetch.ok ? 200 : costsFetch.status) === 403;
   const localUsage = readOpenAiUsageHistory(DEFAULT_WINDOW_DAYS);
+  // If org-scoped calls return zeros, retry without OpenAI-Organization header.
+  if (useOrgHeader && usage.available && costs.available && usage.totalTokens === 0 && costs.amount === 0) {
+    const [fallbackUsageCompletionsFetch, fallbackUsageResponsesFetch, fallbackCostsFetch] = await Promise.all([
+      fetchOpenAi(apiKey, `/v1/organization/usage/completions?${qp.toString()}`, { useOrgHeader: false }),
+      fetchOpenAi(apiKey, `/v1/organization/usage/responses?${qp.toString()}`, { useOrgHeader: false }),
+      fetchOpenAi(apiKey, `/v1/organization/costs?${qp.toString()}`, { useOrgHeader: false }),
+    ]);
+
+    if (!isFetchError(fallbackUsageCompletionsFetch)) {
+      usageCompletions = parseUsageTotals(fallbackUsageCompletionsFetch.json);
+    }
+    if (!isFetchError(fallbackUsageResponsesFetch)) {
+      usageResponses = parseUsageTotals(fallbackUsageResponsesFetch.json);
+    }
+    const fallbackUsage = mergeUsageTotals(usageCompletions, usageResponses);
+    if (fallbackUsage.totalTokens > 0 || fallbackUsage.requests > 0) {
+      usage = { available: true as const, ...fallbackUsage };
+    }
+
+    if (!isFetchError(fallbackCostsFetch)) {
+      const fallbackCosts = parseCostTotals(fallbackCostsFetch.json);
+      if (fallbackCosts.amount > 0) {
+        costs = { available: true as const, ...fallbackCosts };
+      }
+    }
+  }
+
+  const usageLooksEmptyFromOrg =
+    usage.available && usage.bucketCount > 0 && usage.nonEmptyBucketCount === 0 && usage.totalTokens === 0 && usage.requests === 0;
+  const costsLookEmptyFromOrg = costs.available && costs.bucketCount > 0 && costs.nonEmptyBucketCount === 0 && costs.amount === 0;
+  if (usageLooksEmptyFromOrg) {
+    usage = {
+      available: false as const,
+      status: 200,
+      message: "No organization usage rows returned for this time window/scope.",
+    };
+  }
+  if (costsLookEmptyFromOrg) {
+    costs = {
+      available: false as const,
+      status: 200,
+      message: "No organization cost rows returned for this time window/scope.",
+    };
+  }
   const modelCfg = readOpenAiModel();
   const usingAdminKey = !!String(process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_ADMIN_API_KEY || process.env.OPENAI_ADMIN || "").trim();
-  const reachable = !isFetchError(modelsRes) || !isFetchError(usageFetch) || !isFetchError(costsFetch);
+  const reachable =
+    !isFetchError(modelsRes) ||
+    !isFetchError(usageCompletionsFetch) ||
+    !isFetchError(usageResponsesFetch) ||
+    !isFetchError(costsFetch);
+  const connectionStatus =
+    (!isFetchError(modelsRes) && modelsRes.status) ||
+    (!isFetchError(usageCompletionsFetch) && usageCompletionsFetch.status) ||
+    (!isFetchError(usageResponsesFetch) && usageResponsesFetch.status) ||
+    (!isFetchError(costsFetch) && costsFetch.status) ||
+    modelsRes.status;
   const connectionMessage = !isFetchError(modelsRes)
     ? "Connected to OpenAI API."
-    : !isFetchError(usageFetch) || !isFetchError(costsFetch)
+    : !isFetchError(usageCompletionsFetch) || !isFetchError(usageResponsesFetch) || !isFetchError(costsFetch)
       ? "Connected via organization metrics endpoints."
-      : modelsRes.message;
+      : (!isFetchError(usageResponsesFetch) ? "Connected via responses usage endpoint." : modelsRes.message);
 
   return NextResponse.json(
     {
       configured: true,
       keyType: usingAdminKey ? "admin" : "standard",
+      keySource: activeKeyName || undefined,
       model: modelCfg.model,
       modelSource: modelCfg.source,
       connection: {
         reachable,
-        status: modelsRes.status,
+        status: connectionStatus,
         message: connectionMessage,
       },
       generatedAt: new Date().toISOString(),
@@ -225,10 +405,19 @@ export async function GET() {
       },
       hints: {
         needsAdminKeyForOrgMetrics,
+        orgMetricsReturnedEmptyRows: usageLooksEmptyFromOrg || costsLookEmptyFromOrg,
       },
       localUsage,
       usage,
       costs,
+      debug:
+        process.env.NODE_ENV !== "production"
+          ? {
+              keyFingerprint: apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : null,
+              orgHeaderApplied: useOrgHeader,
+              orgId: orgId || null,
+            }
+          : undefined,
     },
     {
       headers: { "Cache-Control": "no-store" },

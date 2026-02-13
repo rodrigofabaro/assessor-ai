@@ -50,6 +50,7 @@ type UsagePayload = {
       inputTokens: number;
       outputTokens: number;
       totalTokens: number;
+      estimatedCostUsd?: number;
     };
     days: Array<{
       date: string;
@@ -57,6 +58,16 @@ type UsagePayload = {
       inputTokens: number;
       outputTokens: number;
       totalTokens: number;
+      estimatedCostUsd?: number;
+    }>;
+    recentEvents?: Array<{
+      ts: number;
+      model: string;
+      op: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd?: number;
     }>;
   };
   usage?: EndpointOkUsage | EndpointError;
@@ -151,7 +162,13 @@ export default function AdminSettingsPage() {
   const localUsageTotal = data?.localUsage?.available ? formatNumber(data.localUsage.totals.totalTokens) : "Unavailable";
   const effectiveUsageTotal = data?.usage && data.usage.available ? usageTotal : localUsageTotal;
   const usageSource = data?.usage && data.usage.available ? "OpenAI org metrics" : data?.localUsage?.available ? "Local app telemetry" : "No usage data";
-  const costTotal = data?.costs && data.costs.available ? formatMoney(data.costs.amount, data.costs.currency) : "Unavailable";
+  const localEstimatedCost = typeof data?.localUsage?.totals?.estimatedCostUsd === "number" ? data.localUsage.totals.estimatedCostUsd : 0;
+  const costTotal =
+    data?.costs && data.costs.available
+      ? formatMoney(data.costs.amount, data.costs.currency)
+      : localEstimatedCost > 0
+        ? `${formatMoney(localEstimatedCost, "usd")} (local estimate)`
+        : "Unavailable";
   const saveModel = useCallback(async () => {
     if (!model) return;
     setSavingModel(true);
@@ -232,6 +249,9 @@ export default function AdminSettingsPage() {
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{costTotal}</div>
           <p className="mt-1 text-sm text-zinc-700">{windowLabel}</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            {data?.costs && data.costs.available ? "OpenAI org metrics" : localEstimatedCost > 0 ? "Local telemetry estimate" : "No cost data"}
+          </p>
         </article>
       </section>
 
@@ -346,6 +366,42 @@ export default function AdminSettingsPage() {
           <p className="mt-2 text-sm text-zinc-600">
             No local historical entries yet. History populates after OpenAI-backed operations run in this app.
           </p>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">Recent OpenAI logs</h2>
+        {!loading && data?.localUsage?.available && (data.localUsage.recentEvents || []).length > 0 ? (
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-zinc-600">
+                  <th className="px-2 py-1 font-semibold">Time</th>
+                  <th className="px-2 py-1 font-semibold">Operation</th>
+                  <th className="px-2 py-1 font-semibold">Model</th>
+                  <th className="px-2 py-1 font-semibold">Input</th>
+                  <th className="px-2 py-1 font-semibold">Output</th>
+                  <th className="px-2 py-1 font-semibold">Total</th>
+                  <th className="px-2 py-1 font-semibold">Est. cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.localUsage.recentEvents || []).slice(0, 25).map((evt, i) => (
+                  <tr key={`${evt.ts}-${evt.op}-${i}`} className="border-t border-zinc-200 text-zinc-700">
+                    <td className="px-2 py-1">{new Date(evt.ts * 1000).toLocaleString()}</td>
+                    <td className="px-2 py-1">{evt.op}</td>
+                    <td className="px-2 py-1">{evt.model}</td>
+                    <td className="px-2 py-1">{formatNumber(evt.inputTokens)}</td>
+                    <td className="px-2 py-1">{formatNumber(evt.outputTokens)}</td>
+                    <td className="px-2 py-1">{formatNumber(evt.totalTokens)}</td>
+                    <td className="px-2 py-1">{evt.estimatedCostUsd ? formatMoney(evt.estimatedCostUsd, "usd") : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-600">No local OpenAI logs yet.</p>
         )}
       </section>
 
