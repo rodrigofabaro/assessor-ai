@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
+import { computeBriefReadiness, type BriefReadiness } from "@/lib/briefs/readiness";
 
 export type Unit = {
   id: string;
@@ -64,7 +65,6 @@ export type ReferenceDocumentUsage = {
 };
 
 export type IvOutcome = "APPROVED" | "CHANGES_REQUIRED" | "REJECTED";
-export type BriefReadiness = "READY" | "ATTN" | "BLOCKED";
 
 export type IvRecord = {
   id: string;
@@ -157,24 +157,6 @@ function inferAcademicYear(linkedDoc: ReferenceDocument | null | undefined): str
   if (fromHeader) return fromHeader;
   const y = new Date().getFullYear();
   return `${y}-${String(y + 1).slice(2)}`;
-}
-
-function computeReadiness(row: {
-  briefLocked?: string | null;
-  unitLocked?: string | null;
-  linkedDoc?: ReferenceDocument | null;
-  headerYear?: string | null;
-  ivForYear?: IvRecord | null;
-}): { readiness: BriefReadiness; reason: string } {
-  if (!row.briefLocked) return { readiness: "BLOCKED", reason: "Brief is not locked." };
-  if (!row.linkedDoc) return { readiness: "BLOCKED", reason: "No PDF linked to this brief." };
-  if (!row.linkedDoc.lockedAt) return { readiness: "ATTN", reason: "PDF is linked but not locked." };
-  if (!row.unitLocked) return { readiness: "ATTN", reason: "Unit spec is not locked yet." };
-  if (!row.headerYear) return { readiness: "ATTN", reason: "Academic year not extracted from PDF header." };
-  if (!row.ivForYear) return { readiness: "ATTN", reason: `No IV record found for academic year ${row.headerYear}.` };
-  if (row.ivForYear.outcome === "REJECTED") return { readiness: "BLOCKED", reason: "IV outcome is REJECTED." };
-  if (row.ivForYear.outcome === "CHANGES_REQUIRED") return { readiness: "ATTN", reason: "IV outcome is CHANGES REQUIRED." };
-  return { readiness: "READY", reason: "Ready for grading (locked spec + locked brief + IV approved)." };
 }
 
 export function useBriefDetail(briefId: string) {
@@ -358,12 +340,13 @@ export function useBriefDetail(briefId: string) {
   }, [ivRecords, headerYear]);
   const readinessState = useMemo(
     () =>
-      computeReadiness({
+      computeBriefReadiness({
         briefLocked: brief?.lockedAt,
         unitLocked: brief?.unit?.lockedAt || null,
-        linkedDoc,
+        hasLinkedDoc: !!linkedDoc,
+        linkedDocLocked: linkedDoc?.lockedAt || null,
         headerYear,
-        ivForYear,
+        ivForYearOutcome: ivForYear?.outcome || null,
       }),
     [brief?.lockedAt, brief?.unit?.lockedAt, linkedDoc, headerYear, ivForYear]
   );

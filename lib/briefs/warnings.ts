@@ -65,12 +65,23 @@ function hasResolvedReferencedEquations(task: BriefTaskLike, equationsById?: Rec
   return ids.every((id) => isResolvedEquation(equationsById?.[id]));
 }
 
+function hasPendingTaskEquationReviews(task: BriefTaskLike, equationsById?: Record<string, any>): boolean {
+  if (Array.isArray(task?.equations) && (task.equations as Array<any>).length > 0) {
+    return (task.equations as Array<any>).some((eq) => !isResolvedEquation(eq));
+  }
+  const ids = referencedEquationIds(task);
+  if (!ids.length) return false;
+  return ids.some((id) => !isResolvedEquation(equationsById?.[id]));
+}
+
 export function computeEffectiveTaskWarnings(task: BriefTaskLike, options?: WarningOptions): string[] {
   const raw = rawWarnings(task);
+  const hasPendingReviews = hasPendingTaskEquationReviews(task, options?.equationsById);
   const resolved =
     hasResolvedTaskEquations(task) ||
     hasResolvedReferencedEquations(task, options?.equationsById) ||
-    hasManualTaskLatexOverride(task, options?.taskLatexOverrides);
+    hasManualTaskLatexOverride(task, options?.taskLatexOverrides) ||
+    !hasPendingReviews;
 
   return raw
     .filter((w) => !/openai math cleanup applied/i.test(w))
@@ -95,4 +106,3 @@ export function computeEffectiveTaskConfidence(
   if (base === "HEURISTIC" && warnings.length === 0) return "CLEAN";
   return base;
 }
-

@@ -38,6 +38,9 @@ export function BriefHeader({ vm, onBack, children }: { vm: any; onBack: () => v
             </Pill>
             {hasExtracted && criteriaCount === 0 ? <Pill cls={tone("warn")}>NO CODES</Pill> : null}
           </div>
+          <div className="mt-2 text-xs text-zinc-600">
+            <span className="font-semibold text-zinc-700">Reason:</span> {vm.readinessReason || "—"}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">

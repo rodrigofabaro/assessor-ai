@@ -28,6 +28,24 @@ function flattenSpecCriteria(specDoc: any): Array<{ acCode: string; description?
   return out;
 }
 
+function detectBriefIssue(extracted: any): string | null {
+  const headerIssue = String(extracted?.header?.issue || extracted?.header?.issueLabel || "").trim();
+  if (headerIssue) return headerIssue;
+
+  const sources = [
+    String(extracted?.preview || ""),
+    String(extracted?.text || ""),
+  ];
+  for (const src of sources) {
+    if (!src.trim()) continue;
+    const full = src.match(/\bIssue\s*\d+\s*-\s*\d{4}\s*\/\s*\d{2}\b/i);
+    if (full?.[0]) return full[0].replace(/\s+/g, " ").trim();
+    const simple = src.match(/\bIssue\s*\d+\b/i);
+    if (simple?.[0]) return simple[0].replace(/\s+/g, " ").trim();
+  }
+  return null;
+}
+
 export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
   const extracted = vm.linkedDoc?.extractedJson ?? null;
   const header = extracted?.header || null;
@@ -41,6 +59,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
   ]);
 
   const safeHeader = safeExtracted?.header || null;
+  const issueLabel = detectBriefIssue(safeExtracted);
   const specCriteria = useMemo(() => flattenSpecCriteria(vm.mappedSpecDoc), [vm.mappedSpecDoc]);
 
   return (
@@ -59,6 +78,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Unit code (Pearson):</span> <span className="font-semibold text-zinc-900">{safeHeader?.unitCode || "—"}</span></div>
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Assignment:</span> <span className="font-semibold text-zinc-900">{safeHeader?.assignment || "—"}</span></div>
           <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Internal verifier:</span> <span className="font-semibold text-zinc-900">{safeHeader?.internalVerifier || "—"}</span></div>
+          <div className="rounded-xl border border-zinc-200 p-3"><span className="text-zinc-500">Issue:</span> <span className="font-semibold text-zinc-900">{issueLabel || "—"}</span></div>
         </div>
       </section>
 
