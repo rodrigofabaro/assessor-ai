@@ -554,30 +554,39 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   async function extractSelected() {
     setError(null);
     if (!selectedDoc) return;
-
-    let runOpenAiCleanup = false;
-    if (selectedDoc.type === "BRIEF") {
-      let defaultApproved = false;
-      try {
-        const cfg = await jsonFetch<any>("/api/admin/openai-model", { cache: "no-store" });
-        defaultApproved = !!cfg?.autoCleanupApproved;
-      } catch {
-        defaultApproved = false;
-      }
-      const prompt = defaultApproved
-        ? "OpenAI cleanup is enabled in settings.\n\nWould you like to proceed with OpenAI cleanup for warning tasks in this extraction?"
-        : "Would you like to proceed with OpenAI cleanup for warning tasks in this extraction?";
-      runOpenAiCleanup = window.confirm(prompt);
-    }
+    const shouldOfferCleanup = (extractedJson: any) => {
+      const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+      return tasks.some((task: any) => {
+        const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).toLowerCase()) : [];
+        return ws.some((w: string) => w.includes("math layout: broken line wraps") || w.includes("equation quality: low-confidence"));
+      });
+    };
 
     setBusy("Extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup }),
+        body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: false }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
+
+      if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson)) {
+        const ok = window.confirm(
+          "Extraction found warning patterns in task math layout.\n\nWould you like to run OpenAI cleanup now?"
+        );
+        if (ok) {
+          const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: true }),
+          });
+          if (cleanupRes?.document) applyUpdatedDocument(cleanupRes.document);
+          notifyToast("success", "Extraction complete with OpenAI cleanup.");
+          await refreshAll({ keepSelection: true });
+          return;
+        }
+      }
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Extraction complete.");
     } catch (e: any) {
@@ -598,30 +607,39 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     const reason =
       window.prompt("Optional note for the audit trail (why are you re-extracting?)", "Fix extraction") || "";
-
-    let runOpenAiCleanup = false;
-    if (selectedDoc.type === "BRIEF") {
-      let defaultApproved = false;
-      try {
-        const cfg = await jsonFetch<any>("/api/admin/openai-model", { cache: "no-store" });
-        defaultApproved = !!cfg?.autoCleanupApproved;
-      } catch {
-        defaultApproved = false;
-      }
-      const prompt = defaultApproved
-        ? "OpenAI cleanup is enabled in settings.\n\nWould you like to proceed with OpenAI cleanup for warning tasks in this re-extraction?"
-        : "Would you like to proceed with OpenAI cleanup for warning tasks in this re-extraction?";
-      runOpenAiCleanup = window.confirm(prompt);
-    }
+    const shouldOfferCleanup = (extractedJson: any) => {
+      const tasks = Array.isArray(extractedJson?.tasks) ? extractedJson.tasks : [];
+      return tasks.some((task: any) => {
+        const ws = Array.isArray(task?.warnings) ? task.warnings.map((w: any) => String(w).toLowerCase()) : [];
+        return ws.some((w: string) => w.includes("math layout: broken line wraps") || w.includes("equation quality: low-confidence"));
+      });
+    };
 
     setBusy("Re-extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason, runOpenAiCleanup }),
+        body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason, runOpenAiCleanup: false }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
+
+      if (selectedDoc.type === "BRIEF" && shouldOfferCleanup(res?.extractedJson)) {
+        const ok = window.confirm(
+          "Re-extraction found warning patterns in task math layout.\n\nWould you like to run OpenAI cleanup now?"
+        );
+        if (ok) {
+          const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ documentId: selectedDoc.id, forceReextract: true, reason, runOpenAiCleanup: true }),
+          });
+          if (cleanupRes?.document) applyUpdatedDocument(cleanupRes.document);
+          notifyToast("success", "Re-extraction complete with OpenAI cleanup.");
+          await refreshAll({ keepSelection: true });
+          return;
+        }
+      }
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Re-extraction complete.");
     } catch (e: any) {
