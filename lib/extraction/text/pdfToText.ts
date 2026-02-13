@@ -10,6 +10,7 @@ export type Equation = {
   latexSource: "heuristic" | "manual" | null;
   confidence: number;
   needsReview: boolean;
+  anchorText?: string | null;
 };
 
 type PositionedItem = {
@@ -27,6 +28,7 @@ type LineInfo = {
 };
 
 const LINE_Y_TOLERANCE = 1.6;
+const dynamicImport = new Function("s", "return import(s)") as (s: string) => Promise<any>;
 
 function normalizeMathUnicode(input: string) {
   let out = String(input || "")
@@ -350,6 +352,165 @@ function isNonFormulaMathBlock(joined: string) {
   return false;
 }
 
+function median(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function looksEquationGapContext(prevText: string, nextText: string) {
+  const prev = normalizeMathUnicode(prevText || "").replace(/\s+/g, " ").trim();
+  const next = normalizeMathUnicode(nextText || "").replace(/\s+/g, " ").trim();
+  if (!prev || !next) return false;
+  if (/[=:;]|\.{3}|…$/.test(prev)) return true;
+  if (/\b(described by|given by|following form)\b/i.test(prev)) return true;
+  if (looksMathLike(next) || /\bwhere\b.*=/.test(next)) return true;
+  return false;
+}
+
+function isPotentialMissingEquationCueLine(text: string) {
+  const s = normalizeMathUnicode(text || "").replace(/\s+/g, " ").trim();
+  if (!s) return false;
+  if (/^[a-z]\)\s*$/i.test(s)) return false;
+  if (isSectionHeaderLine(s) || isAiasPolicyLine(s)) return false;
+  return /(?:\.{3}|…|[:;])\s*$/.test(s);
+}
+
+function looksInstructionOrMathLine(text: string) {
+  const s = normalizeMathUnicode(text || "").replace(/\s+/g, " ").trim();
+  if (!s) return false;
+  if (looksMathLike(s)) return true;
+  return /^(where|find|make|determine|express|calculate)\b/i.test(s);
+}
+
+async function renderPdfPagePngDataUrl(buf: Buffer, pageNumber: number, scale = 2): Promise<string | null> {
+  try {
+    const pdfjsMod = await dynamicImport("pdfjs-dist/legacy/build/pdf.mjs");
+    const pdfjs: any = (pdfjsMod as any).default ?? (pdfjsMod as any);
+    const canvasMod: any = await dynamicImport("@napi-rs/canvas");
+    const createCanvas =
+      canvasMod?.createCanvas ??
+      canvasMod?.default?.createCanvas ??
+      null;
+    if (typeof createCanvas !== "function") return null;
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(buf),
+      disableWorker: true,
+      useSystemFonts: true,
+    });
+    const doc = await loadingTask.promise;
+    const page = await doc.getPage(pageNumber);
+    const viewport = page.getViewport({ scale });
+    const canvas = createCanvas(Math.max(1, Math.floor(viewport.width)), Math.max(1, Math.floor(viewport.height)));
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx as any, viewport }).promise;
+    const png = canvas.toBuffer("image/png");
+    return `data:image/png;base64,${Buffer.from(png).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+async function openAiEquationFromPageImage(input: {
+  pageImageDataUrl: string;
+  anchorText?: string | null;
+}): Promise<{ latex: string | null; confidence: number }> {
+  const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
+  if (!apiKey) return { latex: null, confidence: 0 };
+  const model = process.env.OPENAI_EQUATION_MODEL || "gpt-4.1-mini";
+  const anchor = (input.anchorText || "").trim();
+  const prompt = [
+    "Extract the mathematical equation from this assignment page and return only strict JSON.",
+    'JSON schema: {"latex":"<LaTeX or empty string>","confidence":<0..1>}',
+    "If no equation can be determined, return latex as empty string and low confidence.",
+    anchor ? `Equation appears after this nearby text: "${anchor}"` : "Extract the most likely missing equation near the task cue.",
+    "Do not include markdown fences."
+  ].join("\n");
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        max_output_tokens: 220,
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: prompt },
+              { type: "input_image", image_url: input.pageImageDataUrl },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return { latex: null, confidence: 0 };
+    const data: any = await res.json();
+    const primary = String(data?.output_text || "").trim();
+    const fromOutput = Array.isArray(data?.output)
+      ? data.output
+          .flatMap((msg: any) => (Array.isArray(msg?.content) ? msg.content : []))
+          .map((c: any) => String(c?.text || ""))
+          .join("\n")
+          .trim()
+      : "";
+    const text = (primary || fromOutput || "").trim();
+    if (!text) return { latex: null, confidence: 0 };
+    const deFenced = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+    const jsonLike = deFenced.match(/\{[\s\S]*\}/)?.[0] || "";
+    if (!jsonLike) return { latex: null, confidence: 0 };
+    const parsed = JSON.parse(jsonLike);
+    const latex = String(parsed?.latex || "").trim();
+    const confidence = Math.max(0, Math.min(1, Number(parsed?.confidence || 0)));
+    return { latex: latex || null, confidence };
+  } catch {
+    return { latex: null, confidence: 0 };
+  }
+}
+
+async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equation[]): Promise<Equation[]> {
+  const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
+  if (!apiKey) return equations;
+  const unresolved = equations.filter((eq) => !eq.latex && eq.needsReview);
+  if (!unresolved.length) return equations;
+
+  const pageImageCache = new Map<number, string | null>();
+  const out = [...equations];
+  for (let i = 0; i < out.length; i += 1) {
+    const eq = out[i];
+    if (!eq || eq.latex || !eq.needsReview) continue;
+    const pageNo = Number(eq.pageNumber || 0);
+    if (!pageNo) continue;
+    if (!pageImageCache.has(pageNo)) {
+      pageImageCache.set(pageNo, await renderPdfPagePngDataUrl(buf, pageNo, 2));
+    }
+    const img = pageImageCache.get(pageNo);
+    if (!img) continue;
+    const guessed = await openAiEquationFromPageImage({
+      pageImageDataUrl: img,
+      anchorText: eq.anchorText || null,
+    });
+    if (!guessed.latex) continue;
+    out[i] = {
+      ...eq,
+      latex: guessed.latex,
+      latexSource: "heuristic",
+      confidence: Math.max(eq.confidence || 0, guessed.confidence || 0.55),
+      needsReview: (guessed.confidence || 0) < 0.78,
+    };
+  }
+  return out;
+}
+
 export async function pdfToText(
   buf: Buffer
 ): Promise<{ text: string; pageCount: number; equations: Equation[] }> {
@@ -431,11 +592,67 @@ export async function pdfToText(
       else mergedBlocks.push(block);
     }
 
+    // Layout fallback: detect likely image-equation slots between text lines.
+    const inEquationBlock = new Array(lines.length).fill(false);
+    for (const block of mergedBlocks) {
+      for (let i = Math.max(0, block.start); i < Math.min(lines.length, block.end); i += 1) inEquationBlock[i] = true;
+    }
+    const baselineGaps: number[] = [];
+    for (let i = 0; i < lines.length - 1; i += 1) {
+      if (inEquationBlock[i] || inEquationBlock[i + 1]) continue;
+      const a = normalizeMathUnicode(lines[i].text || "").trim();
+      const b = normalizeMathUnicode(lines[i + 1].text || "").trim();
+      if (!a || !b) continue;
+      if (isPartMarkerLine(a) || isPartMarkerLine(b)) continue;
+      if (isAiasPolicyLine(a) || isAiasPolicyLine(b)) continue;
+      if (isSectionHeaderLine(a) || isSectionHeaderLine(b)) continue;
+      const dy = Math.abs((lines[i].bbox?.y ?? 0) - (lines[i + 1].bbox?.y ?? 0));
+      if (dy > 0 && dy < 80) baselineGaps.push(dy);
+    }
+    const baseGap = median(baselineGaps);
+    const gapThreshold = Math.max(16, baseGap * 2.4);
+    const eqSlotAfterLine = new Map<number, { bbox: { x: number; y: number; w: number; h: number } }>();
+    for (let i = 0; i < lines.length - 1; i += 1) {
+      if (inEquationBlock[i] || inEquationBlock[i + 1]) continue;
+      const prevText = normalizeMathUnicode(lines[i].text || "").trim();
+      const nextText = normalizeMathUnicode(lines[i + 1].text || "").trim();
+      if (!prevText || !nextText) continue;
+      if (isPartMarkerLine(prevText) || isPartMarkerLine(nextText)) continue;
+      if (isAiasPolicyLine(prevText) || isAiasPolicyLine(nextText)) continue;
+      if (isSectionHeaderLine(prevText) || isSectionHeaderLine(nextText)) continue;
+      if (!looksEquationGapContext(prevText, nextText)) continue;
+      const dy = Math.abs((lines[i].bbox?.y ?? 0) - (lines[i + 1].bbox?.y ?? 0));
+      if (dy < gapThreshold || dy > 220) continue;
+      const top = Math.min(lines[i].bbox.y, lines[i + 1].bbox.y);
+      const bottom = Math.max(lines[i].bbox.y + lines[i].bbox.h, lines[i + 1].bbox.y + lines[i + 1].bbox.h);
+      const x = Math.min(lines[i].bbox.x, lines[i + 1].bbox.x);
+      const x2 = Math.max(lines[i].bbox.x + lines[i].bbox.w, lines[i + 1].bbox.x + lines[i + 1].bbox.w);
+      const bbox = { x, y: top, w: Math.max(0, x2 - x), h: Math.max(0, bottom - top) };
+      eqSlotAfterLine.set(i, { bbox });
+    }
+
     const linesOut: string[] = [];
     let cursor = 0;
     let pageEqCounter = 1;
     for (const block of mergedBlocks) {
-      for (let i = cursor; i < block.start; i += 1) linesOut.push(lines[i].text);
+      for (let i = cursor; i < block.start; i += 1) {
+        linesOut.push(lines[i].text);
+        const slot = eqSlotAfterLine.get(i);
+        if (slot) {
+          const id = `p${pageNumber}-eq${pageEqCounter++}`;
+          equations.push({
+            id,
+            pageNumber,
+            bbox: slot.bbox,
+            latex: null,
+            latexSource: null,
+            confidence: 0.2,
+            needsReview: true,
+            anchorText: lines[i]?.text || null,
+          });
+          linesOut.push(`[[EQ:${id}]]`);
+        }
+      }
 
       const blockLines = lines.slice(block.start, block.end);
       const blockLineTexts = blockLines.map((line) => line.text);
@@ -457,6 +674,7 @@ export async function pdfToText(
           latexSource: "heuristic",
           confidence: 0.9,
           needsReview: false,
+          anchorText: null,
         });
         linesOut.push(`[[EQ:${id}]]`);
         cursor = block.end;
@@ -501,13 +719,68 @@ export async function pdfToText(
         latexSource: latex ? "heuristic" : null,
         confidence,
         needsReview,
+        anchorText: null,
       });
       linesOut.push(`[[EQ:${id}]]`);
       cursor = block.end;
     }
-    for (let i = cursor; i < lines.length; i += 1) linesOut.push(lines[i].text);
+    for (let i = cursor; i < lines.length; i += 1) {
+      linesOut.push(lines[i].text);
+      const slot = eqSlotAfterLine.get(i);
+      if (slot) {
+        const id = `p${pageNumber}-eq${pageEqCounter++}`;
+        equations.push({
+          id,
+          pageNumber,
+          bbox: slot.bbox,
+          latex: null,
+          latexSource: null,
+          confidence: 0.2,
+          needsReview: true,
+          anchorText: lines[i]?.text || null,
+        });
+        linesOut.push(`[[EQ:${id}]]`);
+      }
+    }
 
-    const text = linesOut.join("\n");
+    // Secondary fallback: cue-based insertion when an equation is likely image-only.
+    const finalLines: string[] = [];
+    for (let i = 0; i < linesOut.length; i += 1) {
+      const current = String(linesOut[i] || "");
+      finalLines.push(current);
+      if (!isPotentialMissingEquationCueLine(current)) continue;
+
+      let nextContent = "";
+      let hasEquationNearby = false;
+      let looked = 0;
+      for (let j = i + 1; j < linesOut.length && looked < 5; j += 1) {
+        const probe = String(linesOut[j] || "").trim();
+        if (!probe) continue;
+        looked += 1;
+        if (/\[\[EQ:p\d+-eq\d+\]\]/i.test(probe)) {
+          hasEquationNearby = true;
+          break;
+        }
+        if (isPartMarkerLine(probe)) break;
+        if (!nextContent) nextContent = probe;
+      }
+      if (hasEquationNearby || !looksInstructionOrMathLine(nextContent)) continue;
+
+      const id = `p${pageNumber}-eq${pageEqCounter++}`;
+      equations.push({
+        id,
+        pageNumber,
+        bbox: { x: 0, y: 0, w: 0, h: 0 },
+        latex: null,
+        latexSource: null,
+        confidence: 0.2,
+        needsReview: true,
+        anchorText: current || null,
+      });
+      finalLines.push(`[[EQ:${id}]]`);
+    }
+
+    const text = finalLines.join("\n");
     pages.push(text);
     return text;
   };
@@ -516,6 +789,10 @@ export async function pdfToText(
   const pageCount = Number(parsed?.numpages || 0);
   const rawText = (parsed?.text || "").toString();
   const text = (pages.length ? pages.join("\f") : rawText).trim();
-
-  return { text, pageCount, equations };
+  const resolvedEquations = await resolveMissingEquationLatexWithOpenAi(buf, equations);
+  const publicEquations = resolvedEquations.map((eq) => {
+    const { anchorText, ...rest } = eq as any;
+    return rest as Equation;
+  });
+  return { text, pageCount, equations: publicEquations };
 }

@@ -243,7 +243,7 @@ export default function InlineEquationText({
       continue;
     }
 
-    if (eq.latex && !eq.needsReview) {
+    if (eq.latex) {
       out.push(
         <span
           key={`eq-${eq.id}`}
