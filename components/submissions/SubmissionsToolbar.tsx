@@ -8,6 +8,11 @@ import { IconButton } from "./IconButton";
 export function SubmissionsToolbar({
   busy,
   refresh,
+  batchBusy,
+  visibleCount,
+  failedVisibleCount,
+  onBatchGradeVisible,
+  onRetryFailed,
 
   unlinkedOnly,
   setUnlinkedOnly,
@@ -28,6 +33,11 @@ export function SubmissionsToolbar({
 }: {
   busy: boolean;
   refresh: () => void;
+  batchBusy: boolean;
+  visibleCount: number;
+  failedVisibleCount: number;
+  onBatchGradeVisible: () => void;
+  onRetryFailed: () => void;
 
   unlinkedOnly: boolean;
   setUnlinkedOnly: (v: boolean) => void;
@@ -129,6 +139,34 @@ export function SubmissionsToolbar({
           <div className="text-xs text-zinc-500 hidden sm:block">
             Tip: resolve unlinked rows first, then run grading.
           </div>
+          <button
+            type="button"
+            onClick={onBatchGradeVisible}
+            disabled={batchBusy || visibleCount === 0}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy || visibleCount === 0
+                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                : "bg-sky-700 text-white hover:bg-sky-800"
+            )}
+            title="Grade all visible submissions"
+          >
+            {batchBusy ? "Queueing..." : `Grade visible (${visibleCount})`}
+          </button>
+          <button
+            type="button"
+            onClick={onRetryFailed}
+            disabled={batchBusy || failedVisibleCount === 0}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy || failedVisibleCount === 0
+                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                : "bg-amber-600 text-white hover:bg-amber-700"
+            )}
+            title="Retry failed submissions in current view"
+          >
+            {`Retry failed (${failedVisibleCount})`}
+          </button>
           <IconButton title="Refresh" onClick={refresh} disabled={busy}>
             ↻ <span>Refresh</span>
           </IconButton>

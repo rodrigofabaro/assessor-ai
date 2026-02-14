@@ -9,6 +9,17 @@ import { SubmissionsToolbar } from "@/components/submissions/SubmissionsToolbar"
 import { SubmissionsTable } from "@/components/submissions/SubmissionsTable";
 import { ResolveDrawer } from "@/components/submissions/ResolveDrawer";
 import { cx } from "@/lib/submissions/utils";
+import { jsonFetch } from "@/lib/http";
+
+type BatchGradeResponse = {
+  summary?: {
+    requested: number;
+    targeted: number;
+    skipped: number;
+    succeeded: number;
+    failed: number;
+  };
+};
 
 export default function SubmissionsPage() {
   const {
@@ -16,6 +27,7 @@ export default function SubmissionsPage() {
     err,
     msg,
     setErr,
+    setMsg,
     refresh,
 
     unlinkedOnly,
@@ -37,6 +49,7 @@ export default function SubmissionsPage() {
   } = useSubmissionsList();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   // Resolve drawer state lives here; drawer owns its internal state.
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -50,6 +63,7 @@ export default function SubmissionsPage() {
   }, {});
   const unlinkedCount = flatRows.filter((s) => !s.studentId).length;
   const exportReady = flatRows.filter((s) => isReadyToUpload(s)).length;
+  const failedVisibleCount = flatRows.filter((s) => String(s.status || "").toUpperCase() === "FAILED").length;
 
   async function onCopySummary(s: SubmissionRow) {
     try {
@@ -69,6 +83,47 @@ export default function SubmissionsPage() {
   async function onLinked() {
     setResolveOpen(false);
     await refresh();
+  }
+
+  async function runBatchGrade(submissionIds: string[], retryFailedOnly = false) {
+    if (!submissionIds.length) return;
+    setBatchBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await jsonFetch<BatchGradeResponse>("/api/submissions/batch-grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionIds,
+          retryFailedOnly,
+          forceRetry: retryFailedOnly,
+          concurrency: 1,
+        }),
+      });
+      const s = res.summary;
+      await refresh();
+      if (s) {
+        const label = retryFailedOnly ? "Retry batch complete" : "Batch grading complete";
+        setMsg(`${label}: ${s.succeeded} succeeded, ${s.failed} failed, ${s.skipped} skipped.`);
+      }
+    } catch (e: any) {
+      setErr(e?.message || "Batch grading failed.");
+    } finally {
+      setBatchBusy(false);
+    }
+  }
+
+  function onBatchGradeVisible() {
+    const ids = flatRows.map((s) => s.id);
+    runBatchGrade(ids, false);
+  }
+
+  function onRetryFailed() {
+    const ids = flatRows
+      .filter((s) => String(s.status || "").toUpperCase() === "FAILED")
+      .map((s) => s.id);
+    runBatchGrade(ids, true);
   }
 
   return (
@@ -123,6 +178,11 @@ export default function SubmissionsPage() {
       <SubmissionsToolbar
         busy={busy}
         refresh={refresh}
+        batchBusy={batchBusy}
+        visibleCount={flatRows.length}
+        failedVisibleCount={failedVisibleCount}
+        onBatchGradeVisible={onBatchGradeVisible}
+        onRetryFailed={onRetryFailed}
         unlinkedOnly={unlinkedOnly}
         setUnlinkedOnly={setUnlinkedOnly}
         readyOnly={readyOnly}
