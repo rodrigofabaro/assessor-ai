@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { apiError, makeRequestId } from "@/lib/api/errors";
 
 /**
  * UTILS & CONSTANTS
@@ -216,16 +217,26 @@ export async function POST(
   _req: Request,
   { params }: { params: { submissionId: string } }
 ) {
+  const requestId = makeRequestId();
   const { submissionId } = params;
   const warnings: string[] = [];
+  try {
 
   const existing = await prisma.submission.findUnique({
     where: { id: submissionId },
     include: { student: true, assignment: true },
   });
 
-  if (!existing)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) {
+    return apiError({
+      status: 404,
+      code: "TRIAGE_SUBMISSION_NOT_FOUND",
+      userMessage: "Submission not found.",
+      route: "/api/submissions/[submissionId]/triage",
+      requestId,
+      details: { submissionId },
+    });
+  }
 
   const fromText = extractSignalsFromText(existing.extractedText || "");
   const fromFile = extractSignalsFromFilename(existing.filename);
@@ -372,20 +383,35 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({
-    submission: result,
-    triage: {
-      unitCode,
-      assignmentRef,
-      studentName: studentNameDetected ? norm(studentNameDetected) : null,
-      email,
-      warnings,
-      detection: {
-        found: !!(email || studentNameDetected),
-        linked: !!resolvedStudentId,
-        source: nameSource ?? (email ? "email" : null),
+    return NextResponse.json(
+      {
+        submission: result,
+        triage: {
+          unitCode,
+          assignmentRef,
+          studentName: studentNameDetected ? norm(studentNameDetected) : null,
+          email,
+          warnings,
+          detection: {
+            found: !!(email || studentNameDetected),
+            linked: !!resolvedStudentId,
+            source: nameSource ?? (email ? "email" : null),
+          },
+          sampleLines: fromText.sampleLines,
+        },
+        requestId,
       },
-      sampleLines: fromText.sampleLines,
-    },
-  });
+      { headers: { "x-request-id": requestId } }
+    );
+  } catch (e: any) {
+    return apiError({
+      status: 500,
+      code: "TRIAGE_FAILED",
+      userMessage: "Triage failed.",
+      route: "/api/submissions/[submissionId]/triage",
+      requestId,
+      details: { submissionId },
+      cause: e,
+    });
+  }
 }

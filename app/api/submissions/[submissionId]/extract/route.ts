@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extractFile } from "@/lib/extraction";
 import { randomUUID } from "crypto";
+import { apiError, makeRequestId } from "@/lib/api/errors";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 
@@ -32,10 +33,17 @@ export async function POST(
   request: Request,
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
+  const requestId = makeRequestId();
   const { submissionId } = await ctx.params;
 
   if (!submissionId) {
-    return NextResponse.json({ error: "Missing submissionId" }, { status: 400 });
+    return apiError({
+      status: 400,
+      code: "EXTRACT_MISSING_SUBMISSION_ID",
+      userMessage: "Missing submission id.",
+      route: "/api/submissions/[submissionId]/extract",
+      requestId,
+    });
   }
 
   const submission = await prisma.submission.findUnique({
@@ -49,7 +57,14 @@ export async function POST(
   });
 
   if (!submission) {
-    return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+    return apiError({
+      status: 404,
+      code: "EXTRACT_SUBMISSION_NOT_FOUND",
+      userMessage: "Submission not found.",
+      route: "/api/submissions/[submissionId]/extract",
+      requestId,
+      details: { submissionId },
+    });
   }
 
   const runId = randomUUID();
@@ -166,7 +181,8 @@ export async function POST(
       status: finalRunStatus,
       isScanned: finalIsScanned,
       extractedChars: combinedText.length,
-    });
+      requestId,
+    }, { headers: { "x-request-id": requestId } });
   } catch (e: any) {
     const finishedAt = new Date();
     const msg = String(e?.message || e);
@@ -187,6 +203,14 @@ export async function POST(
       }),
     ]);
 
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiError({
+      status: 500,
+      code: "EXTRACT_FAILED",
+      userMessage: "Extraction failed.",
+      route: "/api/submissions/[submissionId]/extract",
+      requestId,
+      details: { submissionId, runId },
+      cause: msg,
+    });
   }
 }

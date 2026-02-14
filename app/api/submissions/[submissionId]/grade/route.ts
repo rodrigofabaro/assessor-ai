@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readGradingConfig } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
+import { apiError, makeRequestId } from "@/lib/api/errors";
 
 export const runtime = "nodejs";
 
@@ -16,10 +17,6 @@ function getApiKey() {
   )
     .trim()
     .replace(/^['"]|['"]$/g, "");
-}
-
-function toJsonResponseError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
 }
 
 function extractOutputText(responseJson: any): string {
@@ -63,8 +60,17 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
+  const requestId = makeRequestId();
   const { submissionId } = await ctx.params;
-  if (!submissionId) return toJsonResponseError("Missing submission id.");
+  if (!submissionId) {
+    return apiError({
+      status: 400,
+      code: "GRADE_MISSING_SUBMISSION_ID",
+      userMessage: "Missing submission id.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+    });
+  }
 
   const body = (await req.json().catch(() => ({}))) as {
     tone?: string;
@@ -73,7 +79,15 @@ export async function POST(
   };
 
   const apiKey = getApiKey();
-  if (!apiKey) return toJsonResponseError("OPENAI_API_KEY is not configured.", 500);
+  if (!apiKey) {
+    return apiError({
+      status: 500,
+      code: "GRADE_OPENAI_KEY_MISSING",
+      userMessage: "OpenAI API key is not configured.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+    });
+  }
 
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
@@ -104,20 +118,57 @@ export async function POST(
       student: true,
     },
   });
-  if (!submission) return toJsonResponseError("Submission not found.", 404);
+  if (!submission) {
+    return apiError({
+      status: 404,
+      code: "GRADE_SUBMISSION_NOT_FOUND",
+      userMessage: "Submission not found.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
+  }
   if (!submission.extractedText || submission.extractedText.trim().length < 100) {
-    return toJsonResponseError("Submission extraction is missing or too short. Run extraction first.", 422);
+    return apiError({
+      status: 422,
+      code: "GRADE_EXTRACTION_MISSING",
+      userMessage: "Submission extraction is missing or too short. Run extraction first.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
   }
   if (!submission.assignment || !submission.assignment.assignmentBrief) {
-    return toJsonResponseError("Submission is not linked to a mapped assignment brief.", 422);
+    return apiError({
+      status: 422,
+      code: "GRADE_ASSIGNMENT_BINDING_MISSING",
+      userMessage: "Submission is not linked to a mapped assignment brief.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
   }
 
   const brief = submission.assignment.assignmentBrief;
   if (!brief.lockedAt) {
-    return toJsonResponseError("Assignment brief is not locked. Lock references before grading.", 422);
+    return apiError({
+      status: 422,
+      code: "GRADE_BRIEF_NOT_LOCKED",
+      userMessage: "Assignment brief is not locked. Lock references before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId, briefId: brief.id },
+    });
   }
   if (!brief.unit?.lockedAt) {
-    return toJsonResponseError("Unit spec is not locked. Lock references before grading.", 422);
+    return apiError({
+      status: 422,
+      code: "GRADE_SPEC_NOT_LOCKED",
+      userMessage: "Unit spec is not locked. Lock references before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId, unitId: brief.unit?.id },
+    });
   }
 
   const cfg = readGradingConfig().config;
@@ -271,21 +322,33 @@ export async function POST(
       data: { status: "DONE" },
     });
 
-    return NextResponse.json({
-      ok: true,
-      assessment: {
-        id: assessment.id,
-        overallGrade: assessment.overallGrade,
-        feedbackText: assessment.feedbackText,
-        annotatedPdfPath: assessment.annotatedPdfPath,
-        createdAt: assessment.createdAt,
+    return NextResponse.json(
+      {
+        ok: true,
+        assessment: {
+          id: assessment.id,
+          overallGrade: assessment.overallGrade,
+          feedbackText: assessment.feedbackText,
+          annotatedPdfPath: assessment.annotatedPdfPath,
+          createdAt: assessment.createdAt,
+        },
+        requestId,
       },
-    });
+      { headers: { "x-request-id": requestId } }
+    );
   } catch (e: any) {
     await prisma.submission.update({
       where: { id: submission.id },
       data: { status: "FAILED" },
     });
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return apiError({
+      status: 500,
+      code: "GRADE_FAILED",
+      userMessage: "Grading failed.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+      cause: e,
+    });
   }
 }
