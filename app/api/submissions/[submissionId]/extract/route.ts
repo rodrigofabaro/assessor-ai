@@ -35,6 +35,8 @@ export async function POST(
 ) {
   const requestId = makeRequestId();
   const { submissionId } = await ctx.params;
+  const { searchParams } = new URL(request.url);
+  const force = ["1", "true", "yes"].includes(String(searchParams.get("force") || "").toLowerCase());
 
   if (!submissionId) {
     return apiError({
@@ -53,6 +55,12 @@ export async function POST(
       filename: true,
       storagePath: true,
       status: true,
+      extractedText: true,
+      extractionRuns: {
+        orderBy: { startedAt: "desc" },
+        take: 1,
+        select: { id: true, status: true, startedAt: true, finishedAt: true },
+      },
     },
   });
 
@@ -67,27 +75,81 @@ export async function POST(
     });
   }
 
+  const latestRun = submission.extractionRuns?.[0] ?? null;
+
+  // Idempotency guard #1: if extraction is already running, do not create another run.
+  if (!force && (submission.status === "EXTRACTING" || latestRun?.status === "RUNNING")) {
+    return NextResponse.json(
+      {
+        ok: true,
+        skipped: true,
+        reason: "already-running",
+        runId: latestRun?.id || null,
+        requestId,
+      },
+      { headers: { "x-request-id": requestId } }
+    );
+  }
+
+  // Idempotency guard #2: if extraction already completed and text exists, avoid duplicate reruns unless forced.
+  if (
+    !force &&
+    latestRun &&
+    (latestRun.status === "DONE" || latestRun.status === "NEEDS_OCR") &&
+    String(submission.extractedText || "").trim().length >= MIN_MEANINGFUL_TEXT_CHARS
+  ) {
+    return NextResponse.json(
+      {
+        ok: true,
+        skipped: true,
+        reason: "already-extracted",
+        runId: latestRun.id,
+        status: latestRun.status,
+        requestId,
+      },
+      { headers: { "x-request-id": requestId } }
+    );
+  }
+
   const runId = randomUUID();
   const startedAt = new Date();
 
-  // Atomic "start run" + move submission to EXTRACTING
-  await prisma.$transaction([
-    prisma.submissionExtractionRun.create({
-      data: {
-        id: runId,
-        status: "RUNNING",
-        isScanned: false,
-        overallConfidence: 0,
-        engineVersion: "extract-v2",
-        startedAt,
-        submissionId,
-      },
-    }),
-    prisma.submission.update({
+  // Acquire extraction lock to prevent duplicate parallel runs.
+  if (!force) {
+    const lock = await prisma.submission.updateMany({
+      where: { id: submissionId, status: { not: "EXTRACTING" } },
+      data: { status: "EXTRACTING" },
+    });
+    if (lock.count === 0) {
+      return NextResponse.json(
+        {
+          ok: true,
+          skipped: true,
+          reason: "already-running",
+          runId: latestRun?.id || null,
+          requestId,
+        },
+        { headers: { "x-request-id": requestId } }
+      );
+    }
+  } else {
+    await prisma.submission.update({
       where: { id: submissionId },
       data: { status: "EXTRACTING" },
-    }),
-  ]);
+    });
+  }
+
+  await prisma.submissionExtractionRun.create({
+    data: {
+      id: runId,
+      status: "RUNNING",
+      isScanned: false,
+      overallConfidence: 0,
+      engineVersion: "extract-v2",
+      startedAt,
+      submissionId,
+    },
+  });
 
   try {
     const res = await extractFile(submission.storagePath, submission.filename);
