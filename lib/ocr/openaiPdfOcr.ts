@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { createCanvas } from "@napi-rs/canvas";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 
 type OcrPage = {
@@ -75,6 +74,9 @@ function extractOutputText(responseJson: any): string {
 
 async function renderPdfPageToPng(pdfPathAbs: string, pageNumber: number) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const nodeRequire = eval("require") as NodeRequire;
+  const canvasModule = nodeRequire("@napi-rs/canvas") as { createCanvas: (w: number, h: number) => any };
+  const createCanvas = canvasModule.createCanvas;
   const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
   if (pdfjs?.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();

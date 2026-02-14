@@ -27,8 +27,8 @@ const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 const TASK_REF_RE = /\b(Task\s+(\d+)(?:\s+Part\s+([A-Za-z0-9]+))?)\b/g;
 
-function normalizeLatexForRender(latex: string, displayMode: boolean) {
-  let out = String(latex || "")
+function normalizeLatexForRender(latex: string) {
+  const out = String(latex || "")
     // Normalize common Unicode subscript variables to ASCII identifiers for downstream matching/splitting.
     .replace(/([A-Za-z])₀/g, "$1_0")
     .replace(/([A-Za-z])₁/g, "$1_1")
@@ -47,7 +47,7 @@ function normalizeLatexForRender(latex: string, displayMode: boolean) {
 }
 
 function renderKatex(latex: string, displayMode = true) {
-  return katex.renderToString(normalizeLatexForRender(latex, displayMode), {
+  return katex.renderToString(normalizeLatexForRender(latex), {
     throwOnError: false,
     displayMode,
     output: "html",

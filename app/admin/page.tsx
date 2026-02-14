@@ -55,8 +55,6 @@ function AdminCard({
 }
 
 export default async function AdminIndex() {
-  const now = Date.now();
-
   const metricsPromise = Promise.all([
     prisma.referenceDocument.count({
       where: {
@@ -159,8 +157,15 @@ export default async function AdminIndex() {
     },
   ];
 
-  function minsAgo(ts: Date) {
-    return Math.max(0, Math.round((now - new Date(ts).getTime()) / 60000));
+  function formatUpdated(ts: Date) {
+    const date = new Date(ts);
+    return date.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   function statusTone(status: string) {
@@ -250,7 +255,7 @@ export default async function AdminIndex() {
                   </div>
                   <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(doc.status)}>{doc.status}</span>
                 </div>
-                <div className="mt-1 text-xs text-zinc-600">Updated {minsAgo(doc.updatedAt)}m ago</div>
+                <div className="mt-1 text-xs text-zinc-600">Updated {formatUpdated(doc.updatedAt)}</div>
               </Link>
             ))}
 
@@ -264,7 +269,7 @@ export default async function AdminIndex() {
                   <div className="truncate font-medium text-zinc-900">Submission: {sub.filename}</div>
                   <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(sub.status)}>{sub.status}</span>
                 </div>
-                <div className="mt-1 text-xs text-zinc-600">Updated {minsAgo(sub.updatedAt)}m ago</div>
+                <div className="mt-1 text-xs text-zinc-600">Updated {formatUpdated(sub.updatedAt)}</div>
               </Link>
             ))}
           </div>

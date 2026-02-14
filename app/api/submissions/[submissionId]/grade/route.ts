@@ -4,6 +4,8 @@ import { readGradingConfig } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { apiError, makeRequestId } from "@/lib/api/errors";
+import { validateGradeDecision } from "@/lib/grading/decisionValidation";
+import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 
 export const runtime = "nodejs";
 
@@ -48,12 +50,6 @@ function parseModelJson(text: string) {
       return null;
     }
   }
-}
-
-function normalizeGrade(raw: unknown): string {
-  const s = String(raw || "").trim().toUpperCase();
-  if (["PASS", "MERIT", "DISTINCTION", "REFER"].includes(s)) return s;
-  return "REFER";
 }
 
 export async function POST(
@@ -117,6 +113,17 @@ export async function POST(
         },
       },
       student: true,
+      extractionRuns: {
+        orderBy: { startedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          overallConfidence: true,
+          pageCount: true,
+          warnings: true,
+        },
+      },
     },
   });
   if (!submission) {
@@ -137,6 +144,26 @@ export async function POST(
       route: "/api/submissions/[submissionId]/grade",
       requestId,
       details: { submissionId },
+    });
+  }
+  const extractionGate = evaluateExtractionReadiness({
+    submissionStatus: submission.status,
+    extractedText: submission.extractedText,
+    latestRun: submission.extractionRuns?.[0] || null,
+  });
+  if (!extractionGate.ok) {
+    return apiError({
+      status: 422,
+      code: "GRADE_EXTRACTION_NOT_READY",
+      userMessage: "Extraction quality gate failed. Review extraction/OCR before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: {
+        submissionId,
+        blockers: extractionGate.blockers,
+        warnings: extractionGate.warnings,
+        metrics: extractionGate.metrics,
+      },
     });
   }
   if (!submission.assignment || !submission.assignment.assignmentBrief) {
@@ -195,6 +222,7 @@ export async function POST(
             description: c.description,
           }))
         );
+  const criteriaCodes = Array.from(new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean)));
 
   const rubricAttachment = (brief.briefDocument?.sourceMeta as any)?.rubricAttachment || null;
   const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
@@ -204,7 +232,11 @@ export async function POST(
     `Tone: ${tone}. Strictness: ${strictness}.`,
     "Grade using only these grades: PASS, MERIT, DISTINCTION, REFER.",
     "Return STRICT JSON with keys:",
-    "{ overallGrade, feedbackSummary, feedbackBullets[], criterionChecks:[{code, met, comment}], confidence }",
+    "{ overallGrade, feedbackSummary, feedbackBullets[], criterionChecks:[{code, met, comment, evidence:[{page, quote}]}], confidence }",
+    "Rules:",
+    "- Include one criterionChecks item for every criteria code provided.",
+    "- code must exactly match the provided criteria code.",
+    "- evidence must include at least one quote with a numeric page number.",
     "",
     "Assignment context:",
     `Unit: ${brief.unit.unitCode} ${brief.unit.unitTitle}`,
@@ -255,8 +287,20 @@ export async function POST(
                       code: { type: "string" },
                       met: { type: "boolean" },
                       comment: { type: "string" },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            page: { type: "number" },
+                            quote: { type: "string" },
+                          },
+                          required: ["page", "quote"],
+                        },
+                      },
                     },
-                    required: ["code", "met", "comment"],
+                    required: ["code", "met", "comment", "evidence"],
                   },
                 },
                 confidence: { type: "number" },
@@ -285,10 +329,15 @@ export async function POST(
 
     const outputText = extractOutputText(json);
     const parsed = parseModelJson(outputText) || {};
-    const overallGrade = normalizeGrade(parsed?.overallGrade);
-    const feedbackSummary = String(parsed?.feedbackSummary || "").trim();
-    const feedbackBulletsRaw = Array.isArray(parsed?.feedbackBullets) ? parsed.feedbackBullets : [];
-    const feedbackBullets = feedbackBulletsRaw.map((x: any) => String(x || "").trim()).filter(Boolean).slice(0, cfg.maxFeedbackBullets);
+    const validated = validateGradeDecision(parsed, criteriaCodes);
+    if ("errors" in validated) {
+      const errorText = validated.errors.join(" | ");
+      throw new Error(`Model output failed schema validation: ${errorText}`);
+    }
+
+    const overallGrade = validated.data.overallGrade;
+    const feedbackSummary = validated.data.feedbackSummary;
+    const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
     const feedbackText = [feedbackSummary, ...feedbackBullets.map((b: string) => `- ${b}`)].filter(Boolean).join("\n");
 
     const marked = await createMarkedPdf(submission.storagePath, {
@@ -318,8 +367,9 @@ export async function POST(
           rubricAttachment,
           promptChars: prompt.length,
           criteriaCount: criteria.length,
-          response: parsed,
+          response: validated.data,
           usage,
+          extractionGate,
         } as any,
       },
     });
