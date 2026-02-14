@@ -358,6 +358,8 @@ export async function POST(
       data: {
         studentId: resolvedStudentId || undefined,
         assignmentId: resolvedAssignmentId || undefined,
+        studentLinkedAt: resolvedStudentId ? new Date() : undefined,
+        studentLinkedBy: resolvedStudentId ? "triage-auto" : undefined,
       },
       include: {
         student: true,
@@ -381,6 +383,26 @@ export async function POST(
           : ""
       } but no unique student record could be linked.`
     );
+  }
+
+  if (resolvedStudentId && resolvedStudentId !== existing.studentId) {
+    await prisma.submissionAuditEvent.create({
+      data: {
+        submissionId,
+        type: "STUDENT_LINKED",
+        actor: "triage-auto",
+        meta: {
+          source: "triage",
+          previousStudentId: existing.studentId,
+          studentId: resolvedStudentId,
+          detection: {
+            email,
+            studentName: studentNameDetected ? norm(studentNameDetected) : null,
+            nameSource,
+          },
+        },
+      },
+    });
   }
 
     return NextResponse.json(

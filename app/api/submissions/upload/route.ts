@@ -33,6 +33,7 @@ export async function POST(req: Request) {
 
     const studentId = getOptionalId(formData.get("studentId"));
     const assignmentId = getOptionalId(formData.get("assignmentId"));
+    const actor = getOptionalId(formData.get("actor")) || "upload";
 
     const files = formData.getAll("files").filter((x): x is File => x instanceof File);
 
@@ -83,8 +84,24 @@ export async function POST(req: Request) {
           status: "UPLOADED",
           studentId,
           assignmentId,
+          studentLinkedAt: studentId ? new Date() : null,
+          studentLinkedBy: studentId ? actor : null,
         },
       });
+
+      if (studentId) {
+        await prisma.submissionAuditEvent.create({
+          data: {
+            submissionId: submission.id,
+            type: "STUDENT_LINKED",
+            actor,
+            meta: {
+              source: "upload",
+              studentId,
+            },
+          },
+        });
+      }
 
       created.push(submission);
     }

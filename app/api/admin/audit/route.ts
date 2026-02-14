@@ -169,6 +169,7 @@ export async function GET(req: Request) {
 
   for (const a of assessments) {
     const grade = String(a.overallGrade || "—");
+    const result = (a.resultJson || {}) as Record<string, any>;
     const summary = `${a.submission.filename} · grade ${grade}`;
     events.push({
       id: `grade-${a.id}`,
@@ -177,6 +178,7 @@ export async function GET(req: Request) {
       severity: "info",
       title: "Grading completed",
       summary,
+      actor: "ai-grader",
       entityKind: "submission",
       entityId: a.submissionId,
       entityLabel: a.submission.filename,
@@ -185,6 +187,11 @@ export async function GET(req: Request) {
         overallGrade: a.overallGrade,
         hasFeedback: !!String(a.feedbackText || "").trim(),
         hasMarkedPdf: !!String(a.annotatedPdfPath || "").trim(),
+        requestId: result.requestId || null,
+        gradingTimeline: result.gradingTimeline || null,
+        tone: result.tone || null,
+        strictness: result.strictness || null,
+        model: result.model || null,
       },
     });
   }
@@ -262,4 +269,3 @@ export async function GET(req: Request) {
     generatedAt: new Date().toISOString(),
   });
 }
-

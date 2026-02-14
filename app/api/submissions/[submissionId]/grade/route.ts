@@ -61,6 +61,7 @@ export async function POST(
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const requestId = makeRequestId();
+  const gradingStartedAt = new Date();
   const { submissionId } = await ctx.params;
   if (!submissionId) {
     return apiError({
@@ -305,11 +306,17 @@ export async function POST(
         feedbackText: feedbackText || "No feedback generated.",
         annotatedPdfPath: marked.storagePath,
         resultJson: {
+          requestId,
+          gradingTimeline: {
+            startedAt: gradingStartedAt.toISOString(),
+            completedAt: new Date().toISOString(),
+          },
           model: cfg.model,
           tone,
           strictness,
           useRubric,
           rubricAttachment,
+          promptChars: prompt.length,
           criteriaCount: criteria.length,
           response: parsed,
           usage,
