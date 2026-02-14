@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { extractFile } from "@/lib/extraction";
 import { randomUUID } from "crypto";
 import { apiError, makeRequestId } from "@/lib/api/errors";
+import { ocrPdfWithOpenAi } from "@/lib/ocr/openaiPdfOcr";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 
@@ -169,8 +170,39 @@ export async function POST(
             },
           ];
 
-    const combinedText = combinePageText(pages as any);
-    const hasMeaningfulText = combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS;
+    let finalPages = pages as any[];
+    let combinedText = combinePageText(finalPages as any);
+    let hasMeaningfulText = combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS;
+    const ocrMeta: Record<string, unknown> = {
+      attempted: false,
+      succeeded: false,
+      model: null,
+      warnings: [] as string[],
+    };
+
+    // OCR fallback for scanned/low-text PDFs.
+    if (!hasMeaningfulText && String(res.kind || "").toUpperCase() === "PDF") {
+      ocrMeta.attempted = true;
+      const ocr = await ocrPdfWithOpenAi({
+        pdfPath: submission.storagePath,
+        requestId,
+      });
+      ocrMeta.model = ocr.model || null;
+      ocrMeta.warnings = ocr.warnings || [];
+      if (ocr.ok && ocr.combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS) {
+        ocrMeta.succeeded = true;
+        finalPages = ocr.pages.map((p) => ({
+          pageNumber: p.pageNumber,
+          text: p.text,
+          confidence: p.confidence,
+          width: p.width ?? null,
+          height: p.height ?? null,
+          tokens: null,
+        }));
+        combinedText = combinePageText(finalPages as any);
+        hasMeaningfulText = combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS;
+      }
+    }
 
     // Derived truth beats heuristic flags
     const finalIsScanned = !hasMeaningfulText;
@@ -182,11 +214,12 @@ export async function POST(
     const finalOverallConfidence = finalIsScanned ? 0 : Math.max(rawOverall, 0.7);
 
     const finishedAt = new Date();
+    const mergedWarnings = [...(res.warnings || []), ...((ocrMeta.warnings as string[]) || [])];
 
     // Save pages + finalize run + update submission atomically
     await prisma.$transaction([
       prisma.extractedPage.createMany({
-        data: pages.map((p: any) => ({
+        data: finalPages.map((p: any) => ({
           id: randomUUID(),
           extractionRunId: runId,
           pageNumber: Number(p.pageNumber ?? 1),
@@ -204,11 +237,12 @@ export async function POST(
           status: finalRunStatus,
           isScanned: finalIsScanned,
           overallConfidence: finalOverallConfidence,
-          pageCount: pages.length,
-          warnings: (res.warnings ?? null) as any,
+          pageCount: finalPages.length,
+          warnings: (mergedWarnings.length ? mergedWarnings : null) as any,
           sourceMeta: {
             kind: res.kind,
             detectedMime: res.detectedMime ?? null,
+            ocr: ocrMeta,
 
             // breadcrumbs for QA/debugging
             derivedTextChars: combinedText.length,
@@ -276,3 +310,4 @@ export async function POST(
     });
   }
 }
+
