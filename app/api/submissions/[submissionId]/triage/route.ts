@@ -315,11 +315,23 @@ export async function POST(
     }
   }
 
-  // Resolve / create Assignment in a transaction with submission update
-  let resolvedAssignmentId: string | null = null;
+  // Resolve / create Assignment in a transaction with submission update.
+  // Guard: never overwrite an assignment that is already linked on upload/manual flow.
+  let resolvedAssignmentId: string | null = existing.assignmentId || null;
 
   const result = await prisma.$transaction(async (tx) => {
-    if (unitCode && assignmentRef) {
+    if (existing.assignmentId) {
+      if (
+        unitCode &&
+        assignmentRef &&
+        (existing.assignment?.unitCode !== unitCode ||
+          existing.assignment?.assignmentRef !== assignmentRef)
+      ) {
+        warnings.push(
+          `Detected ${unitCode} ${assignmentRef} from submission signals, but kept existing linked assignment ${existing.assignment?.unitCode || "?"} ${existing.assignment?.assignmentRef || "?"}.`
+        );
+      }
+    } else if (unitCode && assignmentRef) {
       const found = await tx.assignment.findFirst({
         where: { unitCode, assignmentRef },
         select: { id: true },
