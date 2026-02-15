@@ -62,3 +62,44 @@ Then inspect:
 - `Get-Content .dev-startup.log`
 
 Keep only short, relevant snippets in issue/PR notes.
+
+## 5) App is slow locally (high CPU, sluggish reloads)
+
+Symptom:
+- UI feels slow even on localhost.
+- `node` CPU is high while idle.
+- Lots of background requests to `/api/dev/build-info`.
+
+Common cause in this repo:
+- In development, `DevBuildBadge` polls build info.
+- Build info endpoint runs git commands (`git status --porcelain`, `git rev-parse ...`).
+- With many untracked temp files and multiple open tabs, this creates constant disk/CPU load.
+
+Checks:
+- Confirm repeated build-info calls in browser network tab.
+- Measure git status cost:
+  - `Measure-Command { git status --porcelain | Out-Null }`
+- Check for heavy local temp folders:
+  - `.tmp-iv-docx/`
+  - `.tmp-mock-submissions/`
+  - large `.tmp-*` artifacts
+
+Fixes already applied:
+1. Dev badge polling reduced and visibility-aware.
+- Poll interval changed from 2s to 15s.
+- Polling pauses when tab is hidden.
+2. Build-info route now caches git-derived payload for 30s in memory.
+3. Local temp/debug artifacts added to `.gitignore`:
+- `.tmp-iv-docx/`
+- `.tmp-mock-submissions/`
+- `.codex-dev.log`
+- `.codex-dev.err`
+
+If still slow:
+1. Close duplicate browser tabs on the app.
+2. Kill orphaned `next dev`/`node` processes and restart:
+- `Get-Process node`
+- `Stop-Process -Id <PID>`
+- `pnpm dev`
+3. Run a clean dev boot once:
+- `pnpm run dev:clean`

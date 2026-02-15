@@ -3,6 +3,19 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+const BUILD_INFO_CACHE_TTL_MS = 30000;
+
+type BuildInfoPayload = {
+  branch: string;
+  commit: string;
+  dirty: boolean;
+  changedFilesCount: number;
+  changedFiles: string[];
+  timestamp: number;
+};
+
+let cachedBuildInfo: BuildInfoPayload | null = null;
+
 function runGit(args: string[]): string {
   return execFileSync("git", args, {
     cwd: process.cwd(),
@@ -17,6 +30,15 @@ export async function GET() {
   }
 
   try {
+    const now = Date.now();
+    if (cachedBuildInfo && now - cachedBuildInfo.timestamp < BUILD_INFO_CACHE_TTL_MS) {
+      return NextResponse.json(cachedBuildInfo, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      });
+    }
+
     const branch = runGit(["rev-parse", "--abbrev-ref", "HEAD"]);
     const commit = runGit(["rev-parse", "--short", "HEAD"]);
     const statusOutput = runGit(["status", "--porcelain"]);
@@ -24,15 +46,18 @@ export async function GET() {
       ? statusOutput.split("\n").map((line) => line.trim()).filter(Boolean)
       : [];
 
+    const payload: BuildInfoPayload = {
+      branch,
+      commit,
+      dirty: changedFiles.length > 0,
+      changedFilesCount: changedFiles.length,
+      changedFiles: changedFiles.slice(0, 20),
+      timestamp: now,
+    };
+    cachedBuildInfo = payload;
+
     return NextResponse.json(
-      {
-        branch,
-        commit,
-        dirty: changedFiles.length > 0,
-        changedFilesCount: changedFiles.length,
-        changedFiles: changedFiles.slice(0, 20),
-        timestamp: Date.now(),
-      },
+      payload,
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

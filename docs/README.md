@@ -12,6 +12,7 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you’re generating Exam Board outputs: **`standards/exam-board-mode.md`**
 - If you’re running repo health checks: **`operations/integrity-checks.md`**
 - If local server startup fails: **`operations/local-dev-troubleshooting.md`**
+- If local dev feels slow: **`operations/local-dev-troubleshooting.md`** (see section 5)
 - If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
 - Roadmap tracker: **`Milestones.md`**
 

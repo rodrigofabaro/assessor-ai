@@ -73,3 +73,7 @@ reference_uploads/
 .openai-model.json
 .tmp-screens/
 .tmp-*.json
+.tmp-iv-docx/
+.tmp-mock-submissions/
+.codex-dev.log
+.codex-dev.err

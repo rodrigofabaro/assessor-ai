@@ -27,6 +27,9 @@ export default function DevBuildBadge() {
 
   useEffect(() => {
     let cancelled = false;
+    let intervalId: number | null = null;
+
+    const POLL_MS = 15000;
 
     const fetchBuildInfo = async () => {
       try {
@@ -48,12 +51,31 @@ export default function DevBuildBadge() {
       }
     };
 
-    fetchBuildInfo();
-    const intervalId = window.setInterval(fetchBuildInfo, 2000);
+    const startPolling = () => {
+      if (intervalId !== null) window.clearInterval(intervalId);
+      fetchBuildInfo();
+      intervalId = window.setInterval(fetchBuildInfo, POLL_MS);
+    };
+
+    const onVisibilityChange = () => {
+      // Skip polling in hidden tabs to avoid redundant git work.
+      if (document.hidden) {
+        if (intervalId !== null) {
+          window.clearInterval(intervalId);
+          intervalId = null;
+        }
+        return;
+      }
+      startPolling();
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
+      if (intervalId !== null) window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
