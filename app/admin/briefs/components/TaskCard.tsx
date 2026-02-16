@@ -488,6 +488,7 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
 
   const topLevel: StructuredPart[] = [];
   const byKey = new Map<string, StructuredPart>();
+  let currentParentKey: string | null = null;
 
   const ensurePart = (letterKey: string) => {
     let existing = byKey.get(letterKey);
@@ -508,15 +509,26 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
     if (letterMatch) {
       const parent = ensurePart(letterMatch[1]);
       if (text) parent.text = text;
+      currentParentKey = letterMatch[1];
       continue;
     }
 
-    const nestedMatch = key.match(/^([a-z])\.([ivxlcdm]+)$/i);
+    const nestedMatch = key.match(/^([a-z])\.([ivxlcdm]+|\d+)$/i);
     if (nestedMatch) {
       const parentKey = nestedMatch[1].toLowerCase();
-      const romanKey = nestedMatch[2].toLowerCase();
+      const childKey = nestedMatch[2].toLowerCase();
       const parent = ensurePart(parentKey);
-      if (text) parent.children.push({ key: romanKey, text });
+      if (text) parent.children.push({ key: childKey, text });
+      currentParentKey = parentKey;
+      continue;
+    }
+
+    // Many briefs emit flat numeric parts after letter headers (a, 1, 2, b, 1, 2).
+    // Attach these to the most recently seen letter parent so sub-questions render.
+    const implicitChildMatch = key.match(/^(\d+|[ivxlcdm]+)$/i);
+    if (implicitChildMatch && currentParentKey) {
+      const parent = ensurePart(currentParentKey);
+      if (text) parent.children.push({ key, text });
     }
   }
 
