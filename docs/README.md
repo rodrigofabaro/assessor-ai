@@ -13,7 +13,6 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you’re running repo health checks: **`operations/integrity-checks.md`**
 - If local server startup fails: **`operations/local-dev-troubleshooting.md`**
 - If you operate the submission queue UI: **`operations/submissions-workspace-guide.md`**
-- If local dev feels slow: **`operations/local-dev-troubleshooting.md`** (see section 5)
 - If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
 - Roadmap tracker: **`Milestones.md`**
 
@@ -33,7 +32,9 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - Typical: `http://localhost:3000`
 - If port 3000 is already in use, Next.js will choose another port (for example `http://localhost:3001`).
 
-## Recent updates (2026-02-13)
+## Recent updates
+
+### 2026-02-13
 
 - Admin dashboard **System** card now routes to `/admin/settings`.
 - Added OpenAI settings page with:

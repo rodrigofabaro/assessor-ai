@@ -80,7 +80,7 @@ This page is designed as the "queue board" between upload and final marked outpu
 
 ## Recommended UI Improvements For A More Automated Version
 
-## 1) Replace Generic List With Queue Lanes
+### 1) Replace generic list with queue lanes
 
 Add top-level lanes:
 
@@ -91,7 +91,7 @@ Add top-level lanes:
 
 Each row should carry a deterministic "automation state" from backend rules.
 
-## 2) Add Automation Policy Panel
+### 2) Add automation policy panel
 
 Introduce policy toggles:
 
@@ -102,13 +102,13 @@ Introduce policy toggles:
 
 Show policy version + last changed by for audit.
 
-## 3) Event-Driven Updates
+### 3) Event-driven updates
 
 - WebSocket/SSE for status transitions
 - Inline progress chips (extracting, assessing, retry queued)
 - Remove reliance on manual refresh
 
-## 4) Exception Inbox
+### 4) Exception inbox
 
 Dedicated tab for exceptions:
 
@@ -119,20 +119,20 @@ Dedicated tab for exceptions:
 
 Each exception should have recommended resolution actions and one-click deep links.
 
-## 5) Safer Batch Operations
+### 5) Safer batch operations
 
 - Preview list before execution (who will be graded and why)
 - Dry-run mode for batch actions
 - Per-row reason for skipped items
 - Cancel/pause queue controls
 
-## 6) Better Time/Ownership Controls
+### 6) Better time/ownership controls
 
 - Assignee field (owner of row)
 - "Time in current state"
 - Aging heatmap + escalation badge
 
-## 7) Export Automation
+### 7) Export automation
 
 - Convert `Copy summary` into first-class export jobs
 - One-click package generation and status tracking

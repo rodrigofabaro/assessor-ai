@@ -5,14 +5,14 @@ Operational documentation lives in `docs/README.md`.
 ## Quick start
 
 1. Check tooling:
-- `node -v`
-- `pnpm -v`
+   - `node -v`
+   - `pnpm -v`
 
 2. Install dependencies:
-- `pnpm install`
+   - `pnpm install`
 
 3. Run the dev server:
-- `pnpm dev`
+   - `pnpm dev`
 
 If port `3000` is already in use, Next.js will start on another port (for example `3001`).
 
@@ -22,6 +22,8 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Local startup troubleshooting: `docs/operations/local-dev-troubleshooting.md`
 - Integrity checks: `docs/operations/integrity-checks.md`
 - Codex workflow: `docs/codex/README.md`
+- Submission operations: `docs/operations/submissions-workspace-guide.md`
+- OpenAI settings operations: `docs/operations/openai-settings.md`
 
 ## Common commands
 
