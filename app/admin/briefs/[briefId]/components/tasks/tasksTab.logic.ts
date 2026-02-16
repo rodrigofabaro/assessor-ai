@@ -69,7 +69,7 @@ export function mergeOverrideTasks(extracted: any[], overrides: any[]) {
     }));
   }
 
-  return extracted.map((task: any, index: number) => {
+  return extracted.map((task: any) => {
     const taskN = normalizeTaskNumber(task?.n);
     const override = taskN !== null
       ? overrides.find((o: any) => normalizeTaskNumber(o?.n) === taskN) ?? null

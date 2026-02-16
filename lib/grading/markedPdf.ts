@@ -17,7 +17,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const first = pdf.getPages()[0];
-  const { width, height } = first.getSize();
+  const { width } = first.getSize();
 
   const margin = 24;
   const boxW = Math.min(380, width - margin * 2);
@@ -92,4 +92,3 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     absolutePath: outPath,
   };
 }
-

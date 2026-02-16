@@ -1095,7 +1095,7 @@ function extractBriefTasks(
   }
 
   const selectedHeadings: Array<{ index: number; n: number; title?: string | null; page: number; score: number }> = [];
-  for (const [n, group] of candidatesByNumber.entries()) {
+  for (const [, group] of candidatesByNumber.entries()) {
     // Prefer the earliest heading when scores tie; later repeats are usually page-header duplicates.
     const best = [...group].sort((a, b) => b.score - a.score || a.index - b.index)[0];
     selectedHeadings.push(best);

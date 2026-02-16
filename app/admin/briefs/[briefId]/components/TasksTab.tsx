@@ -19,10 +19,15 @@ export function TasksTab({
   const linkedDoc = vm.linkedDoc;
   const tasksOverride = vm.tasksOverride;
   const linkedId: string | null = linkedDoc?.id ?? null;
-  const extractedEquations = Array.isArray(linkedDoc?.extractedJson?.equations) ? linkedDoc.extractedJson.equations : [];
-  const equationLatexOverrides = linkedDoc?.sourceMeta?.equationLatexOverrides || {};
-  const taskLatexOverrides = linkedDoc?.sourceMeta?.taskLatexOverrides || {};
+  const taskLatexOverrides = useMemo(
+    () => linkedDoc?.sourceMeta?.taskLatexOverrides || {},
+    [linkedDoc?.sourceMeta?.taskLatexOverrides]
+  );
   const equationsById = useMemo(() => {
+    const extractedEquations = Array.isArray(linkedDoc?.extractedJson?.equations)
+      ? linkedDoc.extractedJson.equations
+      : [];
+    const equationLatexOverrides = linkedDoc?.sourceMeta?.equationLatexOverrides || {};
     const map: Record<string, any> = {};
     for (const eq of extractedEquations) {
       if (!eq?.id) continue;
@@ -40,7 +45,7 @@ export function TasksTab({
       }
     }
     return map;
-  }, [equationLatexOverrides, extractedEquations]);
+  }, [linkedDoc]);
 
   const extracted = useMemo(() => getExtractedTasks(linkedDoc), [linkedDoc]);
   const warnings = useMemo(() => getWarnings(linkedDoc), [linkedDoc]);

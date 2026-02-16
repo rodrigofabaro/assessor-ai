@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
-import { computeBriefReadiness, type BriefReadiness } from "@/lib/briefs/readiness";
+import { computeBriefReadiness } from "@/lib/briefs/readiness";
 
 export type Unit = {
   id: string;

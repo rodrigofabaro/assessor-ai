@@ -836,8 +836,9 @@ export async function pdfToText(
   const text = (pages.length ? pages.join("\f") : rawText).trim();
   const resolvedEquations = await resolveMissingEquationLatexWithOpenAi(buf, equations);
   const publicEquations = resolvedEquations.map((eq) => {
-    const { anchorText, ...rest } = eq as any;
-    return rest as Equation;
+    const copy = { ...(eq as any) };
+    delete copy.anchorText;
+    return copy as Equation;
   });
   return { text, pageCount, equations: publicEquations };
 }
