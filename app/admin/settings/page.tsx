@@ -81,6 +81,14 @@ type ModelPayload = {
   allowedModels: string[];
 };
 
+type GradingConfigPayload = {
+  model: string;
+  tone: "supportive" | "professional" | "strict";
+  strictness: "lenient" | "balanced" | "strict";
+  useRubricIfAvailable: boolean;
+  maxFeedbackBullets: number;
+};
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
 }
@@ -113,6 +121,7 @@ function isEndpointError(value: AnyEndpoint): value is EndpointError {
 }
 
 export default function AdminSettingsPage() {
+  const [tab, setTab] = useState<"ai" | "grading">("ai");
   const [data, setData] = useState<UsagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +130,9 @@ export default function AdminSettingsPage() {
   const [savingModel, setSavingModel] = useState(false);
   const [modelMessage, setModelMessage] = useState<string>("");
   const [autoCleanupApproved, setAutoCleanupApproved] = useState(false);
+  const [gradingCfg, setGradingCfg] = useState<GradingConfigPayload | null>(null);
+  const [gradingSaving, setGradingSaving] = useState(false);
+  const [gradingMsg, setGradingMsg] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -140,6 +152,12 @@ export default function AdminSettingsPage() {
         setAllowedModels(modelJson.allowedModels || []);
         setAutoCleanupApproved(!!modelJson.autoCleanupApproved);
         if (!json.model && modelJson.model) setModel(modelJson.model);
+      }
+
+      const gradingRes = await fetch("/api/admin/grading-config", { method: "GET", cache: "no-store" });
+      if (gradingRes.ok) {
+        const gradingJson = (await gradingRes.json()) as GradingConfigPayload;
+        setGradingCfg(gradingJson);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
@@ -190,13 +208,34 @@ export default function AdminSettingsPage() {
     }
   }, [autoCleanupApproved, load, model]);
 
+  const saveGradingConfig = useCallback(async () => {
+    if (!gradingCfg) return;
+    setGradingSaving(true);
+    setGradingMsg("");
+    try {
+      const res = await fetch("/api/admin/grading-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(gradingCfg),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error || "Failed to save grading config.");
+      setGradingMsg("Grading config saved.");
+      await load();
+    } catch (e) {
+      setGradingMsg(e instanceof Error ? e.message : "Failed to save grading config.");
+    } finally {
+      setGradingSaving(false);
+    }
+  }, [gradingCfg, load]);
+
   return (
     <div className="grid gap-4">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-zinc-900">System settings</h1>
-            <p className="mt-1 text-sm text-zinc-700">OpenAI connectivity, usage metrics, and spend visibility.</p>
+            <p className="mt-1 text-sm text-zinc-700">Separate controls for AI telemetry and grading behavior.</p>
           </div>
           <button
             onClick={load}
@@ -206,8 +245,32 @@ export default function AdminSettingsPage() {
             {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
+        <div className="mt-4 inline-flex rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+          <button
+            type="button"
+            onClick={() => setTab("ai")}
+            className={
+              "rounded-lg px-3 py-1.5 text-sm font-semibold transition " +
+              (tab === "ai" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")
+            }
+          >
+            AI Usage
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("grading")}
+            className={
+              "rounded-lg px-3 py-1.5 text-sm font-semibold transition " +
+              (tab === "grading" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")
+            }
+          >
+            Grading
+          </button>
+        </div>
       </section>
 
+      {tab === "ai" ? (
+      <>
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
@@ -422,6 +485,88 @@ export default function AdminSettingsPage() {
       </section>
 
       {data?.generatedAt ? <p className="text-xs text-zinc-500">Last updated: {new Date(data.generatedAt).toLocaleString()}</p> : null}
+      </>
+      ) : null}
+
+      {tab === "grading" ? (
+      <>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
+        <p className="mt-1 text-sm text-zinc-600">Controls default tone/strictness/rubric behavior when tutors run grading.</p>
+        {gradingCfg ? (
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-zinc-700">
+              Tone
+              <select
+                value={gradingCfg.tone}
+                onChange={(e) => setGradingCfg((v) => (v ? { ...v, tone: e.target.value as any } : v))}
+                className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+              >
+                <option value="supportive">Supportive</option>
+                <option value="professional">Professional</option>
+                <option value="strict">Strict</option>
+              </select>
+            </label>
+            <label className="text-sm text-zinc-700">
+              Strictness
+              <select
+                value={gradingCfg.strictness}
+                onChange={(e) => setGradingCfg((v) => (v ? { ...v, strictness: e.target.value as any } : v))}
+                className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+              >
+                <option value="lenient">Lenient</option>
+                <option value="balanced">Balanced</option>
+                <option value="strict">Strict</option>
+              </select>
+            </label>
+            <label className="text-sm text-zinc-700">
+              Feedback bullets
+              <input
+                type="number"
+                min={3}
+                max={12}
+                value={gradingCfg.maxFeedbackBullets}
+                onChange={(e) =>
+                  setGradingCfg((v) => (v ? { ...v, maxFeedbackBullets: Math.max(3, Math.min(12, Number(e.target.value || 6))) } : v))
+                }
+                className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+              />
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={gradingCfg.useRubricIfAvailable}
+                onChange={(e) => setGradingCfg((v) => (v ? { ...v, useRubricIfAvailable: e.target.checked } : v))}
+                className="h-4 w-4 rounded border-zinc-300"
+              />
+              Use rubric when attached to brief
+            </label>
+            <div className="md:col-span-2">
+              <button
+                onClick={saveGradingConfig}
+                disabled={gradingSaving}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+              >
+                {gradingSaving ? "Saving..." : "Save grading defaults"}
+              </button>
+              {gradingMsg ? <p className="mt-2 text-xs text-zinc-600">{gradingMsg}</p> : null}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-600">Loading grading settings…</p>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">What this affects</h2>
+        <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
+          <li>Tutor-facing tone and strictness defaults on submission grading runs.</li>
+          <li>Whether rubric hints are included when a rubric is attached to the locked brief.</li>
+          <li>Maximum number of feedback bullets saved into audit output and marked PDF overlay.</li>
+        </ul>
+      </section>
+      </>
+      ) : null}
     </div>
   );
 }

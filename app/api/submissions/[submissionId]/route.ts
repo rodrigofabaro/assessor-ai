@@ -18,7 +18,9 @@ export async function GET(
           id: true,
           createdAt: true,
           overallGrade: true,
+          feedbackText: true,
           annotatedPdfPath: true,
+          resultJson: true,
         },
       },
       extractionRuns: {

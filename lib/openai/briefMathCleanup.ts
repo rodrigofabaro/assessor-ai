@@ -214,26 +214,6 @@ function collectEquationTokenIds(task: BriefTask) {
   return tokenIds;
 }
 
-function collectEquationTokenIdsFromFields(value: {
-  text?: string;
-  prompt?: string;
-  parts?: Array<{ key: string; text: string }>;
-}) {
-  const tokenIds = new Set<string>();
-  const collect = (srcValue: unknown) => {
-    const src = String(srcValue || "");
-    const re = /\[\[EQ:([^\]]+)\]\]/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(src))) {
-      if (m[1]) tokenIds.add(m[1]);
-    }
-  };
-  collect(value.text);
-  collect(value.prompt);
-  for (const part of value.parts || []) collect(part?.text);
-  return tokenIds;
-}
-
 function collectProtectedTokenIds(value: {
   text?: string;
   prompt?: string;

@@ -1,0 +1,211 @@
+{
+  "ranAt": "2026-02-15T23:14:37.947Z",
+  "assignment4002A1": {
+    "id": "490e3d09-6ac2-43b7-9aa6-3058f417a605",
+    "title": "Unit 4002 - Engineering Mathematics - Assignment 1"
+  },
+  "scenarios": [
+    {
+      "scenario": "S1_valid_pdf_with_assignment",
+      "upload": {
+        "status": 200,
+        "requestId": "0a4d0ada-2124-4482-a570-1fd1bd2ab6ac",
+        "createdCount": 1,
+        "createdIds": [
+          "22e4ee80-d8b7-48b9-99f7-91970a452e9f"
+        ],
+        "createdFilenames": [
+          "Jane Doe 4002 A1.pdf"
+        ]
+      },
+      "submissions": [
+        {
+          "id": "22e4ee80-d8b7-48b9-99f7-91970a452e9f",
+          "filename": "Jane Doe 4002 A1.pdf",
+          "extract": {
+            "status": 200,
+            "requestId": "0178c342-b889-4d7b-ab01-10199e9f212f",
+            "body": {
+              "ok": true,
+              "skipped": true,
+              "reason": "already-extracted",
+              "runId": "f0c6ee56-364e-4080-aa1a-138e86da5c7e",
+              "status": "DONE",
+              "requestId": "0178c342-b889-4d7b-ab01-10199e9f212f"
+            },
+            "stableStatus": "EXTRACTED",
+            "latestRunStatus": "DONE",
+            "extractedChars": 10632
+          },
+          "triage": {
+            "status": 200,
+            "requestId": "c5f6285b-add3-4bc8-8fab-587575be8386",
+            "warnings": [
+              "Identified name \"NO AI\" but no unique student record could be linked."
+            ],
+            "unitCode": "4002",
+            "assignmentRef": "A2",
+            "linkedAssignmentId": "fc1a2342-fb7f-4fd8-8478-96576882040a",
+            "linkedStudentId": null
+          },
+          "grade": {
+            "status": 422,
+            "requestId": "d8b2f860-7bbd-4124-8994-401ad3d46f6d",
+            "code": null,
+            "body": {
+              "error": "Submission is not linked to a mapped assignment brief.",
+              "code": "GRADE_ASSIGNMENT_BINDING_MISSING",
+              "requestId": "d8b2f860-7bbd-4124-8994-401ad3d46f6d",
+              "details": {
+                "submissionId": "22e4ee80-d8b7-48b9-99f7-91970a452e9f"
+              }
+            }
+          },
+          "final": {
+            "status": "EXTRACTED",
+            "assignmentId": "fc1a2342-fb7f-4fd8-8478-96576882040a",
+            "studentId": null,
+            "extractedChars": 10632,
+            "latestExtractionRunStatus": "DONE",
+            "assessments": []
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "S2_image_only_pdf_with_assignment",
+      "upload": {
+        "status": 200,
+        "requestId": "fff4b193-5eb6-4f26-b000-ee1b33ca2334",
+        "createdCount": 1,
+        "createdIds": [
+          "9abbd3eb-9bb0-4060-aaae-e9b69fcf9c90"
+        ],
+        "createdFilenames": [
+          "Scanned ImageOnly 4002 A1.pdf"
+        ]
+      },
+      "submissions": [
+        {
+          "id": "9abbd3eb-9bb0-4060-aaae-e9b69fcf9c90",
+          "filename": "Scanned ImageOnly 4002 A1.pdf",
+          "extract": {
+            "status": 200,
+            "requestId": "7928f0d3-9a05-4898-b4e7-b5bcb8e5cf9a",
+            "body": {
+              "ok": true,
+              "runId": "519ca6a1-298d-4658-b725-d263384ea35f",
+              "status": "NEEDS_OCR",
+              "isScanned": true,
+              "extractedChars": 0,
+              "requestId": "7928f0d3-9a05-4898-b4e7-b5bcb8e5cf9a"
+            },
+            "stableStatus": "NEEDS_OCR",
+            "latestRunStatus": "NEEDS_OCR",
+            "extractedChars": 0
+          },
+          "triage": {
+            "status": 200,
+            "requestId": "189c2dd0-8127-4031-ba48-ab5d9291c1be",
+            "warnings": [
+              "Missing/short document text; using filename signals where possible.",
+              "Identified name \"Scanned Imageonly\" but no unique student record could be linked."
+            ],
+            "unitCode": "4002",
+            "assignmentRef": "A1",
+            "linkedAssignmentId": "490e3d09-6ac2-43b7-9aa6-3058f417a605",
+            "linkedStudentId": null
+          },
+          "grade": {
+            "status": 422,
+            "requestId": "42c6939d-158e-465d-9698-6dc4c6479285",
+            "code": null,
+            "body": {
+              "error": "Submission extraction is missing or too short. Run extraction first.",
+              "code": "GRADE_EXTRACTION_MISSING",
+              "requestId": "42c6939d-158e-465d-9698-6dc4c6479285",
+              "details": {
+                "submissionId": "9abbd3eb-9bb0-4060-aaae-e9b69fcf9c90"
+              }
+            }
+          },
+          "final": {
+            "status": "NEEDS_OCR",
+            "assignmentId": "490e3d09-6ac2-43b7-9aa6-3058f417a605",
+            "studentId": null,
+            "extractedChars": 0,
+            "latestExtractionRunStatus": "NEEDS_OCR",
+            "assessments": []
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "S3_mixed_valid_pdf_plus_invalid_txt_no_assignment",
+      "upload": {
+        "status": 200,
+        "requestId": "34eefb41-2c92-4d5f-a85b-497dc804a8b0",
+        "createdCount": 1,
+        "createdIds": [
+          "a25803a5-ce11-4313-8f30-de9b8f7c79d8"
+        ],
+        "createdFilenames": [
+          "No AssignmentId 4002 A1.pdf"
+        ]
+      },
+      "submissions": [
+        {
+          "id": "a25803a5-ce11-4313-8f30-de9b8f7c79d8",
+          "filename": "No AssignmentId 4002 A1.pdf",
+          "extract": {
+            "status": 200,
+            "requestId": "ef9f26cb-b762-498b-a2fd-e3d414edaa13",
+            "body": {
+              "ok": true,
+              "skipped": true,
+              "reason": "already-extracted",
+              "runId": "8eca6b6d-183a-4ab6-9d2e-32dd5f2cd979",
+              "status": "DONE",
+              "requestId": "ef9f26cb-b762-498b-a2fd-e3d414edaa13"
+            },
+            "stableStatus": "EXTRACTED",
+            "latestRunStatus": "DONE",
+            "extractedChars": 10632
+          },
+          "triage": {
+            "status": 200,
+            "requestId": "d73e448a-4375-46d5-bf30-36bda4b46f47",
+            "warnings": [
+              "Identified name \"NO AI\" but no unique student record could be linked."
+            ],
+            "unitCode": "4002",
+            "assignmentRef": "A2",
+            "linkedAssignmentId": "fc1a2342-fb7f-4fd8-8478-96576882040a",
+            "linkedStudentId": null
+          },
+          "grade": {
+            "status": 422,
+            "requestId": "062989d6-401f-4116-b20a-a71723630f3e",
+            "code": null,
+            "body": {
+              "error": "Submission is not linked to a mapped assignment brief.",
+              "code": "GRADE_ASSIGNMENT_BINDING_MISSING",
+              "requestId": "062989d6-401f-4116-b20a-a71723630f3e",
+              "details": {
+                "submissionId": "a25803a5-ce11-4313-8f30-de9b8f7c79d8"
+              }
+            }
+          },
+          "final": {
+            "status": "EXTRACTED",
+            "assignmentId": "fc1a2342-fb7f-4fd8-8478-96576882040a",
+            "studentId": null,
+            "extractedChars": 10632,
+            "latestExtractionRunStatus": "DONE",
+            "assessments": []
+          }
+        }
+      ]
+    }
+  ]
+}

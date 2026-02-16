@@ -29,7 +29,6 @@ function parsePartsFromPartBlocks(text: string) {
   for (let i = 0; i < starts.length; i += 1) {
     const cur = starts[i];
     const next = starts[i + 1];
-    const markerLen = (`PART ${cur.n}\n`).length;
     const start = cur.idx + (src.slice(cur.idx).startsWith("\n") ? 1 : 0);
     const markerPos = src.indexOf("\n", start);
     if (markerPos < 0) continue;

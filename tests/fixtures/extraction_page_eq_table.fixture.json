@@ -1,0 +1,17 @@
+{
+  "tasks": [
+    {
+      "n": 1,
+      "pages": [3],
+      "text": "PART 1\nSignal model is:\n[[EQ:p3-eq1]]\nUse the equation to compute the current at t=0.7s.\nSample 1 2 3 4 5 6\nPower (+dBm) 10 11 12 13 14 15"
+    }
+  ],
+  "equations": [
+    {
+      "id": "p3-eq1",
+      "pageNumber": 3,
+      "latex": "i = \\frac{E}{R} e^{-\\frac{t}{RC}}",
+      "confidence": 0.99
+    }
+  ]
+}

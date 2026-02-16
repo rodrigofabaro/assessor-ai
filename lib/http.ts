@@ -32,8 +32,19 @@ export async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> 
   }
 
   if (!res.ok) {
-    const detail = safeSnippet(rawText);
-    const message = `[${res.status}] ${url}${detail ? ` — ${detail}` : ""}`;
+    let message = "";
+    if (isJson && data && typeof data === "object") {
+      const payload = data as Record<string, any>;
+      const userError = String(payload.error || payload.message || "").trim();
+      const code = String(payload.code || "").trim();
+      const requestId = String(payload.requestId || "").trim();
+      const ref = requestId ? ` (ref: ${requestId})` : "";
+      const codeText = code ? ` [${code}]` : "";
+      message = `[${res.status}] ${url}${codeText}${userError ? ` — ${userError}${ref}` : ref}`;
+    } else {
+      const detail = safeSnippet(rawText);
+      message = `[${res.status}] ${url}${detail ? ` — ${detail}` : ""}`;
+    }
     if (isMutation(opts?.method)) {
       notifyToast("error", message);
     }

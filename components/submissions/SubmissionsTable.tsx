@@ -43,13 +43,13 @@ export function SubmissionsTable({
             <table className="min-w-full border-separate border-spacing-0">
               <thead>
                 <tr className="text-left text-xs font-semibold text-zinc-700">
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3">File</th>
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3">Student</th>
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3">Assignment</th>
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3">Status</th>
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3">Next action</th>
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3">Uploaded</th>
-                  <th className="border-b border-zinc-200 bg-white px-4 py-3 text-right">Actions</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">File</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Student</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Assignment</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Status</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Next action</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
+                  <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -57,7 +57,7 @@ export function SubmissionsTable({
                   const ready = isReadyToUpload(s);
 
                   return (
-                    <tr key={s.id} className="text-sm">
+                    <tr key={s.id} className="text-sm transition hover:bg-zinc-50/70">
                       <td className="border-b border-zinc-100 px-4 py-3 font-medium text-zinc-900">
                         <Link className="underline underline-offset-4 hover:opacity-80" href={`/submissions/${s.id}`}>
                           {s.filename}

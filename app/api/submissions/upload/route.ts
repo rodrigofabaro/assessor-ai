@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import fssync from "fs";
 import path from "path";
 import type { Submission } from "@prisma/client";
+import { apiError, makeRequestId } from "@/lib/api/errors";
 
 const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
 
@@ -26,16 +27,24 @@ async function ensureDir(dir: string) {
 }
 
 export async function POST(req: Request) {
+  const requestId = makeRequestId();
   try {
     const formData = await req.formData();
 
     const studentId = getOptionalId(formData.get("studentId"));
     const assignmentId = getOptionalId(formData.get("assignmentId"));
+    const actor = getOptionalId(formData.get("actor")) || "upload";
 
     const files = formData.getAll("files").filter((x): x is File => x instanceof File);
 
     if (!files.length) {
-      return NextResponse.json({ error: "Missing files" }, { status: 400 });
+      return apiError({
+        status: 400,
+        code: "UPLOAD_MISSING_FILES",
+        userMessage: "No files were provided.",
+        route: "/api/submissions/upload",
+        requestId,
+      });
     }
 
     const uploadDir = path.join(process.cwd(), "uploads");
@@ -43,7 +52,16 @@ export async function POST(req: Request) {
 
     const validFiles = files.filter((f) => isAllowedFile(f.name));
     if (!validFiles.length) {
-      return NextResponse.json({ error: "No valid files (PDF/DOCX) provided" }, { status: 400 });
+      return apiError({
+        status: 400,
+        code: "UPLOAD_INVALID_FILE_TYPE",
+        userMessage: "Only PDF and DOCX files are supported.",
+        route: "/api/submissions/upload",
+        requestId,
+        details: {
+          provided: files.map((f) => f.name),
+        },
+      });
     }
 
     const created: Submission[] = [];
@@ -66,8 +84,24 @@ export async function POST(req: Request) {
           status: "UPLOADED",
           studentId,
           assignmentId,
+          studentLinkedAt: studentId ? new Date() : null,
+          studentLinkedBy: studentId ? actor : null,
         },
       });
+
+      if (studentId) {
+        await prisma.submissionAuditEvent.create({
+          data: {
+            submissionId: submission.id,
+            type: "STUDENT_LINKED",
+            actor,
+            meta: {
+              source: "upload",
+              studentId,
+            },
+          },
+        });
+      }
 
       created.push(submission);
     }
@@ -82,9 +116,18 @@ export async function POST(req: Request) {
       )
     );
 
-    return NextResponse.json({ submissions: created, extraction: { triggered: true } });
+    return NextResponse.json(
+      { submissions: created, extraction: { triggered: true }, requestId },
+      { headers: { "x-request-id": requestId } }
+    );
   } catch (err) {
-    console.error("UPLOAD_ERROR:", err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return apiError({
+      status: 500,
+      code: "UPLOAD_FAILED",
+      userMessage: "Upload failed. Please try again.",
+      route: "/api/submissions/upload",
+      requestId,
+      cause: err,
+    });
   }
 }

@@ -11,8 +11,26 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you’re working with Codex: **`codex/README.md`** (rules + task template)
 - If you’re generating Exam Board outputs: **`standards/exam-board-mode.md`**
 - If you’re running repo health checks: **`operations/integrity-checks.md`**
+- If local server startup fails: **`operations/local-dev-troubleshooting.md`**
+- If local dev feels slow: **`operations/local-dev-troubleshooting.md`** (see section 5)
 - If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
 - Roadmap tracker: **`Milestones.md`**
+
+## Quick start (local)
+
+1) Confirm Node + pnpm are available in the current shell.
+- `node -v`
+- `pnpm -v`
+
+2) Install dependencies.
+- `pnpm install`
+
+3) Start the app.
+- `pnpm dev`
+
+4) Open the URL shown in terminal output.
+- Typical: `http://localhost:3000`
+- If port 3000 is already in use, Next.js will choose another port (for example `http://localhost:3001`).
 
 ## Recent updates (2026-02-13)
 

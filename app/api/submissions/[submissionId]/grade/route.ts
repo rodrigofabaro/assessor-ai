@@ -1,0 +1,411 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { readGradingConfig } from "@/lib/grading/config";
+import { createMarkedPdf } from "@/lib/grading/markedPdf";
+import { recordOpenAiUsage } from "@/lib/openai/usageLog";
+import { apiError, makeRequestId } from "@/lib/api/errors";
+import { validateGradeDecision } from "@/lib/grading/decisionValidation";
+import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
+
+export const runtime = "nodejs";
+
+function getApiKey() {
+  return String(
+    process.env.OPENAI_API_KEY ||
+      process.env.OPENAI_ADMIN_KEY ||
+      process.env.OPENAI_ADMIN_API_KEY ||
+      process.env.OPENAI_ADMIN ||
+      ""
+  )
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
+}
+
+function extractOutputText(responseJson: any): string {
+  const direct = String(responseJson?.output_text || "").trim();
+  if (direct) return direct;
+  const out = Array.isArray(responseJson?.output) ? responseJson.output : [];
+  const parts: string[] = [];
+  for (const block of out) {
+    const content = Array.isArray(block?.content) ? block.content : [];
+    for (const c of content) {
+      const txt = String(c?.text || c?.output_text || "").trim();
+      if (txt) parts.push(txt);
+    }
+  }
+  return parts.join("\n").trim();
+}
+
+function parseModelJson(text: string) {
+  const src = String(text || "").trim();
+  if (!src) return null;
+  try {
+    return JSON.parse(src);
+  } catch {
+    const m = src.match(/\{[\s\S]*\}$/);
+    if (!m) return null;
+    try {
+      return JSON.parse(m[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ submissionId: string }> }
+) {
+  const requestId = makeRequestId();
+  const gradingStartedAt = new Date();
+  const { submissionId } = await ctx.params;
+  if (!submissionId) {
+    return apiError({
+      status: 400,
+      code: "GRADE_MISSING_SUBMISSION_ID",
+      userMessage: "Missing submission id.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+    });
+  }
+
+  const body = (await req.json().catch(() => ({}))) as {
+    tone?: string;
+    strictness?: string;
+    useRubricIfAvailable?: boolean;
+  };
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return apiError({
+      status: 500,
+      code: "GRADE_OPENAI_KEY_MISSING",
+      userMessage: "OpenAI API key is not configured.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+    });
+  }
+
+  const submission = await prisma.submission.findUnique({
+    where: { id: submissionId },
+    include: {
+      assignment: {
+        include: {
+          assignmentBrief: {
+            include: {
+              unit: {
+                include: {
+                  learningOutcomes: {
+                    include: { criteria: true },
+                  },
+                },
+              },
+              briefDocument: true,
+              criteriaMaps: {
+                include: {
+                  assessmentCriterion: {
+                    include: { learningOutcome: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      student: true,
+      extractionRuns: {
+        orderBy: { startedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          overallConfidence: true,
+          pageCount: true,
+          warnings: true,
+        },
+      },
+    },
+  });
+  if (!submission) {
+    return apiError({
+      status: 404,
+      code: "GRADE_SUBMISSION_NOT_FOUND",
+      userMessage: "Submission not found.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
+  }
+  if (!submission.extractedText || submission.extractedText.trim().length < 100) {
+    return apiError({
+      status: 422,
+      code: "GRADE_EXTRACTION_MISSING",
+      userMessage: "Submission extraction is missing or too short. Run extraction first.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
+  }
+  const extractionGate = evaluateExtractionReadiness({
+    submissionStatus: submission.status,
+    extractedText: submission.extractedText,
+    latestRun: submission.extractionRuns?.[0] || null,
+  });
+  if (!extractionGate.ok) {
+    return apiError({
+      status: 422,
+      code: "GRADE_EXTRACTION_NOT_READY",
+      userMessage: "Extraction quality gate failed. Review extraction/OCR before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: {
+        submissionId,
+        blockers: extractionGate.blockers,
+        warnings: extractionGate.warnings,
+        metrics: extractionGate.metrics,
+      },
+    });
+  }
+  if (!submission.assignment || !submission.assignment.assignmentBrief) {
+    return apiError({
+      status: 422,
+      code: "GRADE_ASSIGNMENT_BINDING_MISSING",
+      userMessage: "Submission is not linked to a mapped assignment brief.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
+  }
+
+  const brief = submission.assignment.assignmentBrief;
+  if (!brief.lockedAt) {
+    return apiError({
+      status: 422,
+      code: "GRADE_BRIEF_NOT_LOCKED",
+      userMessage: "Assignment brief is not locked. Lock references before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId, briefId: brief.id },
+    });
+  }
+  if (!brief.unit?.lockedAt) {
+    return apiError({
+      status: 422,
+      code: "GRADE_SPEC_NOT_LOCKED",
+      userMessage: "Unit spec is not locked. Lock references before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId, unitId: brief.unit?.id },
+    });
+  }
+
+  const cfg = readGradingConfig().config;
+  const tone = String(body.tone || cfg.tone || "professional");
+  const strictness = String(body.strictness || cfg.strictness || "balanced");
+  const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
+
+  const criteriaFromMap = brief.criteriaMaps.map((m) => ({
+    code: m.assessmentCriterion.acCode,
+    band: m.assessmentCriterion.gradeBand,
+    lo: m.assessmentCriterion.learningOutcome?.loCode || "",
+    description: m.assessmentCriterion.description,
+  }));
+
+  const criteria =
+    criteriaFromMap.length > 0
+      ? criteriaFromMap
+      : brief.unit.learningOutcomes.flatMap((lo) =>
+          lo.criteria.map((c) => ({
+            code: c.acCode,
+            band: c.gradeBand,
+            lo: lo.loCode,
+            description: c.description,
+          }))
+        );
+  const criteriaCodes = Array.from(new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean)));
+
+  const rubricAttachment = (brief.briefDocument?.sourceMeta as any)?.rubricAttachment || null;
+  const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
+
+  const prompt = [
+    "You are an engineering assignment assessor.",
+    `Tone: ${tone}. Strictness: ${strictness}.`,
+    "Grade using only these grades: PASS, MERIT, DISTINCTION, REFER.",
+    "Return STRICT JSON with keys:",
+    "{ overallGrade, feedbackSummary, feedbackBullets[], criterionChecks:[{code, met, comment, evidence:[{page, quote}]}], confidence }",
+    "Rules:",
+    "- Include one criterionChecks item for every criteria code provided.",
+    "- code must exactly match the provided criteria code.",
+    "- evidence must include at least one quote with a numeric page number.",
+    "",
+    "Assignment context:",
+    `Unit: ${brief.unit.unitCode} ${brief.unit.unitTitle}`,
+    `Assignment code: ${brief.assignmentCode}`,
+    rubricHint,
+    "",
+    "Criteria:",
+    JSON.stringify(criteria.slice(0, 120), null, 2),
+    "",
+    "Student submission extracted text:",
+    submission.extractedText.slice(0, 28000),
+  ].join("\n");
+
+  await prisma.submission.update({
+    where: { id: submission.id },
+    data: { status: "ASSESSING" },
+  });
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        input: prompt,
+        temperature: 0.2,
+        max_output_tokens: 1400,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "grading_result",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                overallGrade: { type: "string" },
+                feedbackSummary: { type: "string" },
+                feedbackBullets: { type: "array", items: { type: "string" } },
+                criterionChecks: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      code: { type: "string" },
+                      met: { type: "boolean" },
+                      comment: { type: "string" },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            page: { type: "number" },
+                            quote: { type: "string" },
+                          },
+                          required: ["page", "quote"],
+                        },
+                      },
+                    },
+                    required: ["code", "met", "comment", "evidence"],
+                  },
+                },
+                confidence: { type: "number" },
+              },
+              required: ["overallGrade", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
+            },
+          },
+        },
+      }),
+    });
+
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = String(json?.error?.message || `OpenAI error (${response.status})`);
+      throw new Error(message);
+    }
+
+    const usage = json?.usage || null;
+    if (usage) {
+      recordOpenAiUsage({
+        model: cfg.model,
+        op: "submission_grade",
+        usage,
+      });
+    }
+
+    const outputText = extractOutputText(json);
+    const parsed = parseModelJson(outputText) || {};
+    const validated = validateGradeDecision(parsed, criteriaCodes);
+    if ("errors" in validated) {
+      const errorText = validated.errors.join(" | ");
+      throw new Error(`Model output failed schema validation: ${errorText}`);
+    }
+
+    const overallGrade = validated.data.overallGrade;
+    const feedbackSummary = validated.data.feedbackSummary;
+    const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
+    const feedbackText = [feedbackSummary, ...feedbackBullets.map((b: string) => `- ${b}`)].filter(Boolean).join("\n");
+
+    const marked = await createMarkedPdf(submission.storagePath, {
+      submissionId: submission.id,
+      overallGrade,
+      feedbackBullets: feedbackBullets.length ? feedbackBullets : [feedbackSummary || "Feedback generated."],
+      tone,
+      strictness,
+    });
+
+    const assessment = await prisma.assessment.create({
+      data: {
+        submissionId: submission.id,
+        overallGrade,
+        feedbackText: feedbackText || "No feedback generated.",
+        annotatedPdfPath: marked.storagePath,
+        resultJson: {
+          requestId,
+          gradingTimeline: {
+            startedAt: gradingStartedAt.toISOString(),
+            completedAt: new Date().toISOString(),
+          },
+          model: cfg.model,
+          tone,
+          strictness,
+          useRubric,
+          rubricAttachment,
+          promptChars: prompt.length,
+          criteriaCount: criteria.length,
+          response: validated.data,
+          usage,
+          extractionGate,
+        } as any,
+      },
+    });
+
+    await prisma.submission.update({
+      where: { id: submission.id },
+      data: { status: "DONE" },
+    });
+
+    return NextResponse.json(
+      {
+        ok: true,
+        assessment: {
+          id: assessment.id,
+          overallGrade: assessment.overallGrade,
+          feedbackText: assessment.feedbackText,
+          annotatedPdfPath: assessment.annotatedPdfPath,
+          createdAt: assessment.createdAt,
+        },
+        requestId,
+      },
+      { headers: { "x-request-id": requestId } }
+    );
+  } catch (e: any) {
+    await prisma.submission.update({
+      where: { id: submission.id },
+      data: { status: "FAILED" },
+    });
+    return apiError({
+      status: 500,
+      code: "GRADE_FAILED",
+      userMessage: "Grading failed.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+      cause: e,
+    });
+  }
+}

@@ -45,7 +45,9 @@ type Submission = {
     id: string;
     createdAt: string;
     overallGrade: string | null;
+    feedbackText?: string | null;
     annotatedPdfPath: string | null;
+    resultJson?: any;
   }>;
 };
 
@@ -66,6 +68,14 @@ type TriageInfo = {
     hasAssignmentBrief: boolean;
     missing: string[];
   };
+};
+
+type GradingConfig = {
+  model: string;
+  tone: "supportive" | "professional" | "strict";
+  strictness: "lenient" | "balanced" | "strict";
+  useRubricIfAvailable: boolean;
+  maxFeedbackBullets: number;
 };
 
 type StudentSearchResult = {
@@ -124,6 +134,11 @@ export default function SubmissionDetailPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [gradingBusy, setGradingBusy] = useState(false);
+  const [gradingCfg, setGradingCfg] = useState<GradingConfig | null>(null);
+  const [tone, setTone] = useState<GradingConfig["tone"]>("professional");
+  const [strictness, setStrictness] = useState<GradingConfig["strictness"]>("balanced");
+  const [useRubric, setUseRubric] = useState(true);
 
   // Auto-run extraction once for freshly uploaded submissions.
   const autoStartedRef = useRef(false);
@@ -168,16 +183,23 @@ export default function SubmissionDetailPage() {
     const assignmentLinked = !!submission?.assignment;
     const extractionComplete = latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR";
     const gradeGenerated = !!latestAssessment?.overallGrade;
+    const feedbackGenerated = !!String(latestAssessment?.feedbackText || "").trim();
     const markedPdfGenerated = !!latestAssessment?.annotatedPdfPath;
 
-    // Marked PDF will arrive in Phase 5. Until then, we treat it as optional.
-    const readyToUpload = studentLinked && assignmentLinked && extractionComplete && gradeGenerated;
+    const readyToUpload =
+      studentLinked &&
+      assignmentLinked &&
+      extractionComplete &&
+      gradeGenerated &&
+      feedbackGenerated &&
+      markedPdfGenerated;
 
     return {
       studentLinked,
       assignmentLinked,
       extractionComplete,
       gradeGenerated,
+      feedbackGenerated,
       markedPdfGenerated,
       readyToUpload,
     };
@@ -203,6 +225,26 @@ export default function SubmissionDetailPage() {
     refresh().catch((e) => setErr(e?.message || String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCfg() {
+      try {
+        const res = await jsonFetch<GradingConfig>("/api/admin/grading-config", { cache: "no-store" });
+        if (cancelled) return;
+        setGradingCfg(res);
+        setTone(res.tone);
+        setStrictness(res.strictness);
+        setUseRubric(!!res.useRubricIfAvailable);
+      } catch {
+        // keep defaults
+      }
+    }
+    loadCfg();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!submissionId) return;
@@ -241,6 +283,33 @@ export default function SubmissionDetailPage() {
       setErr(e?.message || String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runGrading() {
+    if (!submissionId) return;
+    setGradingBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await jsonFetch<any>(`/api/submissions/${submissionId}/grade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tone,
+          strictness,
+          useRubricIfAvailable: useRubric,
+        }),
+      });
+      await refresh();
+      setMsg(`Grading complete: ${String(res?.assessment?.overallGrade || "done")}`);
+      notifyToast("success", "Grading complete.");
+    } catch (e: any) {
+      const message = e?.message || "Grading failed.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setGradingBusy(false);
     }
   }
 
@@ -339,9 +408,15 @@ export default function SubmissionDetailPage() {
   }
 
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
+  const markedPdfUrl = submissionId ? `/api/submissions/${submissionId}/marked-file?t=${Date.now()}` : "";
+  const canRunGrading =
+    !!submission?.student &&
+    !!submission?.assignment &&
+    (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
+    !gradingBusy;
 
   return (
-    <main className="mx-auto max-w-7xl p-6">
+    <main className="py-2">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-xs font-semibold text-zinc-500">Submissions</div>
@@ -370,6 +445,19 @@ export default function SubmissionDetailPage() {
             )}
           >
             {busy || submission?.status === "EXTRACTING" ? "Processing…" : "Run extraction"}
+          </button>
+          <button
+            type="button"
+            onClick={runGrading}
+            disabled={!canRunGrading}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm",
+              canRunGrading
+                ? "bg-sky-700 text-white hover:bg-sky-800"
+                : "cursor-not-allowed bg-zinc-300 text-zinc-700"
+            )}
+          >
+            {gradingBusy ? "Grading…" : "Run grading"}
           </button>
         </div>
       </div>
@@ -457,16 +545,22 @@ export default function SubmissionDetailPage() {
                 </span>
               </li>
               <li className="flex items-center justify-between gap-3">
+                <span className="text-zinc-700">Feedback generated</span>
+                <span className={cx("font-semibold", checklist.feedbackGenerated ? "text-emerald-700" : "text-zinc-400")}>
+                  {checklist.feedbackGenerated ? "Yes" : "No"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
                 <span className="text-zinc-700">Marked PDF</span>
                 <span className={cx("font-semibold", checklist.markedPdfGenerated ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.markedPdfGenerated ? "Yes" : "Later"}
+                  {checklist.markedPdfGenerated ? "Yes" : "No"}
                 </span>
               </li>
             </ul>
 
             {!checklist.readyToUpload ? (
               <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
-                Tip: this panel is deliberately strict about the basics. Marked PDFs will become a required item once Phase 5 lands.
+                Tip: export is enabled only when student/assignment, extraction, grade, feedback, and marked PDF are all present.
               </div>
             ) : null}
           </div>
@@ -695,6 +789,82 @@ export default function SubmissionDetailPage() {
               </label>
             </div>
             <div className="mt-3 text-xs text-zinc-500">We’ll store timestamps + model/prompt versions so you can defend every decision.</div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold text-zinc-500">Grading config</div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <label className="text-sm text-zinc-700">
+                Tone
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value as any)}
+                  className="mt-1 h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                >
+                  <option value="supportive">Supportive</option>
+                  <option value="professional">Professional</option>
+                  <option value="strict">Strict</option>
+                </select>
+              </label>
+              <label className="text-sm text-zinc-700">
+                Strictness
+                <select
+                  value={strictness}
+                  onChange={(e) => setStrictness(e.target.value as any)}
+                  className="mt-1 h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                >
+                  <option value="lenient">Lenient</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="strict">Strict</option>
+                </select>
+              </label>
+            </div>
+            <label className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-zinc-300"
+                checked={useRubric}
+                onChange={(e) => setUseRubric(e.target.checked)}
+              />
+              Use rubric when linked to this brief
+            </label>
+            <div className="mt-2 text-xs text-zinc-500">Model: {gradingCfg?.model || "default"} · Feedback bullets: {gradingCfg?.maxFeedbackBullets ?? 6}</div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold text-zinc-500">Audit & outputs</div>
+            <div className="mt-2 grid gap-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-700">Latest grade</span>
+                <span className="font-semibold text-zinc-900">{latestAssessment?.overallGrade || "—"}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+                >
+                  Original PDF
+                </a>
+                <a
+                  href={markedPdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cx(
+                    "rounded-lg border px-3 py-1.5 text-xs font-semibold",
+                    latestAssessment?.annotatedPdfPath
+                      ? "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                      : "pointer-events-none border-zinc-200 bg-zinc-100 text-zinc-400"
+                  )}
+                >
+                  Marked PDF
+                </a>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
+                {latestAssessment?.feedbackText || "No feedback generated yet."}
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -1,0 +1,49 @@
+{
+  "submissionId": "25183ccc-bf08-41c6-b63f-b2cce478443b",
+  "student": {
+    "name": "Mock Student U4001",
+    "email": "mock.student+u4001a1@assessor.local",
+    "id": "cmlliyoft0000tfv49ys5sf6q"
+  },
+  "assignment": {
+    "briefId": "be12aa92-be2b-434c-9f54-d5bc7ce34b5c",
+    "assignmentRef": "A1",
+    "unitCode": "4001",
+    "title": "Unit 4001 - Engineering Design - Assignment 1",
+    "id": "c0b7ad4f-14fa-4665-842d-89de5713b4f2"
+  },
+  "status": "DONE",
+  "extraction": {
+    "runs": 2,
+    "latestStatus": "DONE",
+    "latestConfidence": 0.95,
+    "chars": 1103
+  },
+  "assessment": {
+    "tone": "professional",
+    "model": "gpt-4o-mini",
+    "feedbackText": "The submission demonstrates a solid understanding of engineering design principles and effectively meets several key criteria. However, there are areas for improvement, particularly in the evaluation and justification of design choices.\n- The design specification is well-structured and aligns with the brief.\n- Stakeholder requirements are adequately addressed, but further detail could enhance clarity.\n- The project schedule is clear, though the planning techniques could be more thoroughly evaluated.\n- The technical report is comprehensive, yet it lacks a critical assessment of compliance and risk management.\n- Communication strategies are presented, but reflection on their effectiveness is limited.",
+    "createdAt": "2026-02-13T23:37:28.106Z",
+    "strictness": "balanced",
+    "criteriaCount": 18,
+    "id": "b3e16ea7-76a0-40c1-bf98-eead41041c16",
+    "annotatedPdfPath": "submission_marked\\25183ccc-bf08-41c6-b63f-b2cce478443b-1771025848086.pdf",
+    "overallGrade": "MERIT",
+    "usage": {
+      "input_tokens": 1272,
+      "total_tokens": 1981,
+      "output_tokens": 709,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    }
+  },
+  "artifactPaths": {
+    "originalPdf": "C:\\Users\\rodri\\Website\\assessor-ai\\webapp\\.tmp-mock-submissions\\cycle-output\\submission-original.pdf",
+    "markedPdf": "C:\\Users\\rodri\\Website\\assessor-ai\\webapp\\.tmp-mock-submissions\\cycle-output\\submission-marked.pdf",
+    "auditJson": "C:\\Users\\rodri\\Website\\assessor-ai\\webapp\\.tmp-mock-submissions\\cycle-output\\submission-audit.json"
+  }
+}
