@@ -5,6 +5,7 @@
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { defaultEquationFallbackPolicy, pickEquationFallbackCandidates } from "@/lib/extraction/brief/aiFallback";
+import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
 export type Equation = {
   id: string;
@@ -424,14 +425,8 @@ async function openAiEquationFromPageImage(input: {
   anchorText?: string | null;
 }): Promise<{ latex: string | null; confidence: number }> {
   const apiKey = String(
-    process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_ADMIN_KEY ||
-      process.env.OPENAI_ADMIN_API_KEY ||
-      process.env.OPENAI_ADMIN ||
-      ""
-  )
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
+    resolveOpenAiApiKey("preferStandard").apiKey || ""
+  );
   if (!apiKey) return { latex: null, confidence: 0 };
   const model = readOpenAiModel().model;
   const anchor = (input.anchorText || "").trim();
@@ -444,13 +439,13 @@ async function openAiEquationFromPageImage(input: {
   ].join("\n");
 
   try {
-    const res = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const res = await fetchOpenAiJson(
+      "/v1/responses",
+      apiKey,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
         model,
         temperature: 0,
         max_output_tokens: 220,
@@ -464,9 +459,14 @@ async function openAiEquationFromPageImage(input: {
           },
         ],
       }),
-    });
+      },
+      {
+        timeoutMs: Number(process.env.OPENAI_EQ_TIMEOUT_MS || 25000),
+        retries: Number(process.env.OPENAI_EQ_RETRIES || 1),
+      }
+    );
     if (!res.ok) return { latex: null, confidence: 0 };
-    const data: any = await res.json();
+    const data: any = res.json;
     recordOpenAiUsage({
       model,
       op: "equation_from_page_image",
@@ -503,14 +503,8 @@ async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equ
   if (!policy.enabled) return equations;
 
   const apiKey = String(
-    process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_ADMIN_KEY ||
-      process.env.OPENAI_ADMIN_API_KEY ||
-      process.env.OPENAI_ADMIN ||
-      ""
-  )
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
+    resolveOpenAiApiKey("preferStandard").apiKey || ""
+  );
   if (!apiKey) return equations;
   const candidateIds = pickEquationFallbackCandidates(equations, policy);
   if (!candidateIds.size) return equations;

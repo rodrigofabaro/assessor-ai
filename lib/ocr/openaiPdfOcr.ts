@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
+import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
 type OcrPage = {
   pageNumber: number;
@@ -19,18 +20,6 @@ export type OpenAiPdfOcrResult = {
   model?: string;
   requestId?: string;
 };
-
-function getApiKey() {
-  return String(
-    process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_ADMIN_KEY ||
-      process.env.OPENAI_ADMIN_API_KEY ||
-      process.env.OPENAI_ADMIN ||
-      ""
-  )
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
-}
 
 function getModel() {
   return String(process.env.OPENAI_OCR_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
@@ -102,13 +91,13 @@ async function ocrOnePageWithOpenAi(args: {
   pageNumber: number;
   pngBase64: string;
 }) {
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${args.apiKey}`,
-    },
-    body: JSON.stringify({
+  const response = await fetchOpenAiJson(
+    "/v1/responses",
+    args.apiKey,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
       model: args.model,
       input: [
         {
@@ -126,15 +115,17 @@ async function ocrOnePageWithOpenAi(args: {
           ],
         },
       ],
-      max_output_tokens: 1800,
+      max_output_tokens: Number(process.env.OPENAI_OCR_MAX_OUTPUT_TOKENS || 1200),
     }),
-  });
+    },
+    {
+      timeoutMs: Number(process.env.OPENAI_OCR_TIMEOUT_MS || 45000),
+      retries: Number(process.env.OPENAI_OCR_RETRIES || 2),
+    }
+  );
 
-  const json = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const msg = String(json?.error?.message || `OpenAI OCR failed (${response.status})`);
-    throw new Error(msg);
-  }
+  if (!response.ok) throw new Error(response.message);
+  const json = response.json;
 
   const usage = json?.usage || null;
   if (usage) {
@@ -153,7 +144,7 @@ export async function ocrPdfWithOpenAi(input: {
   requestId: string;
 }): Promise<OpenAiPdfOcrResult> {
   const warnings: string[] = [];
-  const apiKey = getApiKey();
+  const { apiKey } = resolveOpenAiApiKey("preferStandard");
   const model = getModel();
   if (!apiKey) {
     return {
