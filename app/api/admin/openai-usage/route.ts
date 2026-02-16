@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readOpenAiUsageHistory } from "@/lib/openai/usageLog";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { resolveOpenAiApiKey } from "@/lib/openai/client";
 
 export const runtime = "nodejs";
 
@@ -246,15 +247,17 @@ function parseCostTotals(payload: JsonObject) {
 }
 
 export async function GET() {
-  const keySources = [
-    ["OPENAI_ADMIN_KEY", process.env.OPENAI_ADMIN_KEY],
-    ["OPENAI_ADMIN_API_KEY", process.env.OPENAI_ADMIN_API_KEY],
-    ["OPENAI_ADMIN", process.env.OPENAI_ADMIN],
-    ["OPENAI_API_KEY", process.env.OPENAI_API_KEY],
-  ] as const;
-  const activePair = keySources.find(([, v]) => String(v || "").trim()) || ["", ""] as const;
-  const activeKeyName = activePair[0];
-  const apiKey = String(activePair[1] || "").trim().replace(/^['"]|['"]$/g, "");
+  const { apiKey, keyType } = resolveOpenAiApiKey("preferAdmin");
+  const activeKeyName =
+    keyType === "admin"
+      ? String(process.env.OPENAI_ADMIN_KEY || "").trim()
+        ? "OPENAI_ADMIN_KEY"
+        : String(process.env.OPENAI_ADMIN_API_KEY || "").trim()
+          ? "OPENAI_ADMIN_API_KEY"
+          : "OPENAI_ADMIN"
+      : keyType === "standard"
+        ? "OPENAI_API_KEY"
+        : "";
   if (!apiKey) {
     return NextResponse.json(
       {
@@ -367,7 +370,7 @@ export async function GET() {
     };
   }
   const modelCfg = readOpenAiModel();
-  const usingAdminKey = !!String(process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_ADMIN_API_KEY || process.env.OPENAI_ADMIN || "").trim();
+  const usingAdminKey = keyType === "admin";
   const reachable =
     !isFetchError(modelsRes) ||
     !isFetchError(usageCompletionsFetch) ||

@@ -2,10 +2,494 @@
 > assessor-ai-webapp@0.1.0 dev C:\Users\rodri\Website\assessor-ai\webapp
 > next dev
 
- ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
-   ▲ Next.js 15.5.12
-   - Local:        http://localhost:3001
-   - Network:      http://192.168.1.191:3001
+   Ôû▓ Next.js 15.5.12
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.191:3000
    - Environments: .env
 
- ✓ Starting...
+ Ô£ô Starting...
+ Ô£ô Ready in 2.3s
+ Ôùï Compiling / ...
+ Ô£ô Compiled / in 8.6s (641 modules)
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ReferenceDocument"."id" FROM "public"."ReferenceDocument" WHERE "public"."ReferenceDocument"."type" = CAST($1::text AS "public"."ReferenceDocumentType") OFFSET $2) AS "sub"
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."Submission"."id" FROM "public"."Submission" WHERE 1=1 OFFSET $1) AS "sub"
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ReferenceDocument"."id" FROM "public"."ReferenceDocument" WHERE "public"."ReferenceDocument"."type" = CAST($1::text AS "public"."ReferenceDocumentType") OFFSET $2) AS "sub"
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ReferenceDocument"."id" FROM "public"."ReferenceDocument" WHERE ("public"."ReferenceDocument"."type" IN (CAST($1::text AS "public"."ReferenceDocumentType"),CAST($2::text AS "public"."ReferenceDocumentType")) AND "public"."ReferenceDocument"."lockedAt" IS NOT NULL) OFFSET $3) AS "sub"
+ GET / 200 in 11503ms
+ Ôùï Compiling /api/dev/build-info ...
+ Ô£ô Compiled /api/dev/build-info in 2.7s (662 modules)
+ GET /api/dev/build-info 200 in 3657ms
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."Submission"."id" FROM "public"."Submission" WHERE 1=1 OFFSET $1) AS "sub"
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ReferenceDocument"."id" FROM "public"."ReferenceDocument" WHERE "public"."ReferenceDocument"."type" = CAST($1::text AS "public"."ReferenceDocumentType") OFFSET $2) AS "sub"
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ReferenceDocument"."id" FROM "public"."ReferenceDocument" WHERE "public"."ReferenceDocument"."type" = CAST($1::text AS "public"."ReferenceDocumentType") OFFSET $2) AS "sub"
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ReferenceDocument"."id" FROM "public"."ReferenceDocument" WHERE ("public"."ReferenceDocument"."type" IN (CAST($1::text AS "public"."ReferenceDocumentType"),CAST($2::text AS "public"."ReferenceDocumentType")) AND "public"."ReferenceDocument"."lockedAt" IS NOT NULL) OFFSET $3) AS "sub"
+ GET / 200 in 1521ms
+ GET /api/dev/build-info 200 in 80ms
+ Ôùï Compiling /submissions ...
+ Ô£ô Compiled /submissions in 2.1s (677 modules)
+ GET /submissions 200 in 2760ms
+ Ôùï Compiling /api/submissions ...
+ Ô£ô Compiled /api/submissions in 2.1s (679 modules)
+prisma:query SELECT 1
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+ GET /api/submissions 200 in 2720ms
+ GET /api/submissions 200 in 2723ms
+ GET /submissions 200 in 2214ms
+ GET /api/dev/build-info 200 in 285ms
+ GET /api/dev/build-info 200 in 79ms
+ GET /api/dev/build-info 200 in 93ms
+ GET /api/dev/build-info 200 in 269ms
+ GET /api/dev/build-info 200 in 73ms
+ GET /api/dev/build-info 200 in 534ms
+ Ô£ô Compiled in 1986ms (691 modules)
+ GET /submissions 200 in 565ms
+ GET /api/dev/build-info 200 in 382ms
+ GET /api/dev/build-info 200 in 105ms
+ GET /api/dev/build-info 200 in 88ms
+ Ôùï Compiling /api/submissions/[submissionId]/triage ...
+ Ô£ô Compiled /api/submissions/[submissionId]/triage in 2.5s (695 modules)
+ GET /submissions 200 in 636ms
+Error: Route "/api/submissions/[submissionId]/triage" used `params.submissionId`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at POST (app\api\submissions\[submissionId]\triage\route.ts:221:11)
+  219 | ) {
+  220 |   const requestId = makeRequestId();
+> 221 |   const { submissionId } = params;
+      |           ^
+  222 |   const warnings: string[] = [];
+  223 |   try {
+  224 |
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Student"."id" FROM "public"."Student" WHERE "public"."Student"."fullName" ILIKE $1 LIMIT $2 OFFSET $3
+prisma:query BEGIN
+prisma:query UPDATE "public"."Submission" SET "assignmentId" = $1, "updatedAt" = $2 WHERE ("public"."Submission"."id" = $3 AND 1=1) RETURNING "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy"
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy" FROM "public"."Submission" WHERE "public"."Submission"."id" = $1 LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."isScanned", "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."engineVersion", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."sourceMeta", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."error", "public"."SubmissionExtractionRun"."startedAt", "public"."SubmissionExtractionRun"."finishedAt", "public"."SubmissionExtractionRun"."updatedAt", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $2
+prisma:query SELECT "public"."ExtractedPage"."id", "public"."ExtractedPage"."pageNumber", "public"."ExtractedPage"."text", "public"."ExtractedPage"."confidence", "public"."ExtractedPage"."width", "public"."ExtractedPage"."height", "public"."ExtractedPage"."tokens", "public"."ExtractedPage"."extractionRunId" FROM "public"."ExtractedPage" WHERE "public"."ExtractedPage"."extractionRunId" IN ($1) ORDER BY "public"."ExtractedPage"."pageNumber" ASC OFFSET $2
+prisma:query COMMIT
+ POST /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/triage 200 in 4480ms
+ Ôùï Compiling /api/students ...
+ Ô£ô Compiled /api/students in 2.2s (683 modules)
+ GET /api/dev/build-info 200 in 2029ms
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE ("public"."Student"."fullName" ILIKE $1 OR "public"."Student"."email" ILIKE $2 OR "public"."Student"."externalRef" ILIKE $3) ORDER BY "public"."Student"."createdAt" DESC LIMIT $4 OFFSET $5
+ GET /api/students?query=NO%20AI 200 in 2752ms
+ GET /api/dev/build-info 200 in 73ms
+ GET /api/dev/build-info 200 in 99ms
+ GET /api/dev/build-info 200 in 252ms
+ GET /api/dev/build-info 200 in 101ms
+ GET /api/dev/build-info 200 in 82ms
+ GET /api/dev/build-info 200 in 254ms
+ GET /api/dev/build-info 200 in 74ms
+ GET /api/dev/build-info 200 in 245ms
+ GET /api/dev/build-info 200 in 90ms
+ Ô£ô Compiled in 1165ms (259 modules)
+ Ô£ô Compiled in 738ms (259 modules)
+ GET /submissions 200 in 1149ms
+ GET /submissions 200 in 157ms
+ Ô£ô Compiled in 860ms (259 modules)
+ GET /api/dev/build-info 200 in 401ms
+ GET /submissions 200 in 397ms
+ GET /api/dev/build-info 200 in 76ms
+ GET /api/dev/build-info 200 in 76ms
+ GET /api/dev/build-info 200 in 253ms
+ GET /api/dev/build-info 200 in 84ms
+ GET /api/dev/build-info 200 in 262ms
+ GET /api/dev/build-info 200 in 85ms
+ GET /api/dev/build-info 200 in 82ms
+ GET /api/dev/build-info 200 in 256ms
+ GET /api/dev/build-info 200 in 85ms
+ Ô£ô Compiled in 1029ms (259 modules)
+ Ô£ô Compiled in 750ms (259 modules)
+ GET /submissions 200 in 894ms
+ GET /submissions 200 in 138ms
+ GET /api/dev/build-info 200 in 88ms
+ Ô£ô Compiled in 838ms (259 modules)
+ GET /submissions 200 in 145ms
+ Ô£ô Compiled in 725ms (259 modules)
+ GET /submissions 200 in 142ms
+ GET /api/dev/build-info 200 in 230ms
+ ÔÜá Fast Refresh had to perform a full reload due to a runtime error.
+ Ô£ô Compiled in 1585ms (693 modules)
+ GET /submissions 200 in 2158ms
+ GET /api/dev/build-info 200 in 377ms
+ Ôùï Compiling /api/submissions ...
+ ÔÜá Fast Refresh had to perform a full reload due to a runtime error.
+ Ô£ô Compiled /api/submissions in 2.8s (696 modules)
+ Ô¿» TypeError: Cannot read properties of undefined (reading 'length')
+    at SubmissionsTable (components\submissions\SubmissionsTable.tsx:23:17)
+  21 |   copiedId: string | null;
+  22 | }) {
+> 23 |   if (dayGroups.length === 0) {
+     |                 ^
+  24 |     return (
+  25 |       <div className="px-4 py-10 text-sm text-zinc-600">
+  26 |         {unlinkedOnly ? "No unlinked submissions." : "No submissions yet."} {
+  digest: '2728095539'
+}
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+ GET /api/submissions 200 in 4452ms
+ GET /submissions 500 in 2179ms
+ Ô£ô Compiled in 1487ms (696 modules)
+ ÔÜá Fast Refresh had to perform a full reload due to a runtime error.
+ GET /submissions 200 in 922ms
+ GET /api/dev/build-info 200 in 359ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+ GET /api/submissions 200 in 427ms
+ GET /api/dev/build-info 200 in 71ms
+ GET /api/dev/build-info 200 in 76ms
+ GET /api/dev/build-info 200 in 285ms
+ GET /api/dev/build-info 200 in 89ms
+ GET /api/dev/build-info 200 in 89ms
+ GET /api/dev/build-info 200 in 247ms
+ GET /api/dev/build-info 200 in 94ms
+ GET /api/dev/build-info 200 in 285ms
+ GET /api/dev/build-info 200 in 95ms
+ GET /api/dev/build-info 200 in 262ms
+ GET /api/dev/build-info 200 in 99ms
+ GET /api/dev/build-info 200 in 94ms
+ GET /api/dev/build-info 200 in 249ms
+ Ô£ô Compiled in 1936ms (693 modules)
+ GET /submissions 200 in 528ms
+ Ô£ô Compiled in 1451ms (693 modules)
+ GET /submissions 200 in 411ms
+ GET /api/dev/build-info 200 in 262ms
+ Ô£ô Compiled in 1224ms (693 modules)
+ GET /submissions 200 in 276ms
+ GET /api/dev/build-info 200 in 438ms
+ GET /api/dev/build-info 200 in 115ms
+ GET /api/dev/build-info 200 in 270ms
+ GET /api/dev/build-info 200 in 88ms
+ Ô£ô Compiled in 1779ms (693 modules)
+ GET /submissions 200 in 852ms
+ GET /api/dev/build-info 200 in 305ms
+ Ô£ô Compiled in 1571ms (693 modules)
+ GET /submissions 200 in 304ms
+ GET /api/dev/build-info 200 in 321ms
+ GET /api/dev/build-info 200 in 109ms
+ GET /api/dev/build-info 200 in 72ms
+ GET /api/dev/build-info 200 in 240ms
+ GET /api/dev/build-info 200 in 92ms
+ GET /api/dev/build-info 200 in 276ms
+ GET /api/dev/build-info 200 in 90ms
+ Ôùï Compiling /submissions/[submissionId] ...
+ Ô£ô Compiled /submissions/[submissionId] in 2.4s (686 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 3771ms
+ Ôùï Compiling /api/submissions/[submissionId] ...
+ Ô£ô Compiled /api/submissions/[submissionId] in 3.4s (697 modules)
+ GET /api/admin/grading-config 200 in 3799ms
+ GET /api/admin/grading-config 200 in 3795ms
+ GET /api/dev/build-info 200 in 2283ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771252956322 200 in 4029ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE "public"."Submission"."id" IN ($1,$2,$3) OFFSET $4
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771252960158 200 in 453ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy" FROM "public"."Submission" WHERE "public"."Submission"."id" IN ($1,$2) OFFSET $3
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."createdAt", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."resultJson", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $2
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."isScanned", "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."engineVersion", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."sourceMeta", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."error", "public"."SubmissionExtractionRun"."startedAt", "public"."SubmissionExtractionRun"."finishedAt", "public"."SubmissionExtractionRun"."updatedAt", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $2
+prisma:query SELECT "public"."ExtractedPage"."id", "public"."ExtractedPage"."pageNumber", "public"."ExtractedPage"."text", "public"."ExtractedPage"."confidence", "public"."ExtractedPage"."width", "public"."ExtractedPage"."height", "public"."ExtractedPage"."tokens", "public"."ExtractedPage"."extractionRunId" FROM "public"."ExtractedPage" WHERE "public"."ExtractedPage"."extractionRunId" IN ($1) ORDER BY "public"."ExtractedPage"."pageNumber" ASC OFFSET $2
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771252956318 200 in 4587ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771252956319 200 in 4587ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771252960974 200 in 90ms
+ GET /api/dev/build-info 200 in 89ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771252960158 200 in 112ms
+ GET /api/dev/build-info 200 in 192ms
+ GET /api/dev/build-info 200 in 288ms
+ Ô£ô Compiled in 1880ms (711 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 479ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253008978 200 in 133ms
+ Ô£ô Compiled in 1951ms (711 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 862ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253013924 200 in 162ms
+ GET /api/dev/build-info 200 in 285ms
+ Ô£ô Compiled in 1693ms (711 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 291ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253021162 200 in 122ms
+ GET /api/dev/build-info 200 in 261ms
+ GET /api/dev/build-info 200 in 78ms
+ GET /api/dev/build-info 200 in 261ms
+ GET /api/dev/build-info 200 in 91ms
+ GET /api/dev/build-info 200 in 90ms
+ GET /api/dev/build-info 200 in 269ms
+ GET /api/dev/build-info 200 in 114ms
+ GET /api/dev/build-info 200 in 261ms
+ GET /api/dev/build-info 200 in 95ms
+ GET /api/dev/build-info 200 in 94ms
+ GET /api/dev/build-info 200 in 301ms
+ GET /api/dev/build-info 200 in 96ms
+ GET /api/dev/build-info 200 in 267ms
+ GET /api/dev/build-info 200 in 97ms
+ GET /api/dev/build-info 200 in 274ms
+ Ô£ô Compiled in 2.3s (700 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 584ms
+ Ô£ô Compiled /api/submissions/[submissionId]/file in 347ms (441 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253251808 200 in 653ms
+ Ô£ô Compiled in 878ms (262 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 434ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253253970 200 in 95ms
+ Ô£ô Compiled in 779ms (262 modules)
+ GET /api/dev/build-info 200 in 442ms
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 512ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253258598 200 in 97ms
+ Ô£ô Compiled in 2.2s (703 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 455ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253267812 200 in 261ms
+ GET /api/dev/build-info 200 in 339ms
+ GET /api/dev/build-info 200 in 90ms
+ GET /api/dev/build-info 200 in 289ms
+ GET /api/dev/build-info 200 in 106ms
+ GET /api/dev/build-info 200 in 96ms
+ GET /api/dev/build-info 200 in 274ms
+ GET /api/dev/build-info 200 in 99ms
+ GET /api/dev/build-info 200 in 263ms
+ GET /api/dev/build-info 200 in 98ms
+ GET /api/dev/build-info 200 in 89ms
+ Ô£ô Compiled in 2.7s (700 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 440ms
+ Ô£ô Compiled /api/submissions/[submissionId]/file in 417ms (441 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253416983 200 in 723ms
+ GET /api/dev/build-info 200 in 280ms
+ Ôùï Compiling /admin/settings ...
+ Ô£ô Compiled /admin/settings in 3.8s (711 modules)
+ GET /api/dev/build-info 200 in 2690ms
+ GET /admin/settings 200 in 5849ms
+ GET /api/dev/build-info 200 in 108ms
+ Ôùï Compiling /api/admin/openai-usage ...
+ Ô£ô Compiled /api/admin/openai-usage in 1861ms (703 modules)
+ GET /submissions 200 in 357ms
+ Ôùï Compiling /api/submissions ...
+ Ô£ô Compiled /api/submissions in 1155ms (456 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+ GET /api/submissions 200 in 1476ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+ GET /api/submissions 200 in 1739ms
+ GET /submissions 200 in 498ms
+ GET /api/admin/openai-usage 200 in 9747ms
+ Ôùï Compiling /api/admin/openai-model ...
+ Ô£ô Compiled /api/admin/openai-model in 1211ms (708 modules)
+ GET /api/admin/openai-model 200 in 1537ms
+ Ôùï Compiling /api/admin/grading-config ...
+ Ô£ô Compiled /api/admin/grading-config in 1135ms (461 modules)
+ GET /api/admin/grading-config 200 in 1378ms
+ GET /api/dev/build-info 200 in 282ms
+ Ô£ô Compiled in 2.1s (725 modules)
+ GET /submissions 200 in 294ms
+ GET /api/dev/build-info 200 in 287ms
+ Ô£ô Compiled in 1652ms (725 modules)
+ GET /submissions 200 in 289ms
+ Ô£ô Compiled in 1220ms (722 modules)
+ GET /submissions 200 in 278ms
+ GET /api/dev/build-info 200 in 270ms
+ Ô£ô Compiled in 1307ms (722 modules)
+ GET /submissions 200 in 258ms
+ GET /api/dev/build-info 200 in 300ms
+ GET /api/dev/build-info 200 in 78ms
+ GET /api/dev/build-info 200 in 273ms
+ GET /api/dev/build-info 200 in 99ms
+ GET /api/dev/build-info 200 in 83ms
+ GET /api/dev/build-info 200 in 249ms
+ Ô£ô Compiled in 2.5s (708 modules)
+ GET /submissions 200 in 471ms
+ GET /api/dev/build-info 200 in 297ms
+ GET /api/dev/build-info 200 in 71ms
+ Ô£ô Compiled in 1470ms (708 modules)
+ GET /submissions 200 in 378ms
+ GET /api/dev/build-info 200 in 290ms
+ GET /api/dev/build-info 200 in 79ms
+ GET /api/dev/build-info 200 in 79ms
+ GET /api/dev/build-info 200 in 239ms
+ GET /api/dev/build-info 200 in 85ms
+ Ô£ô Compiled in 2s (708 modules)
+ GET /submissions 200 in 414ms
+ GET /api/dev/build-info 200 in 246ms
+ GET /api/dev/build-info 200 in 75ms
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 218ms
+ Ôùï Compiling /api/submissions/[submissionId]/file ...
+ Ô£ô Compiled /api/submissions/[submissionId]/file in 598ms (450 modules)
+ Ô£ô Compiled (455 modules)
+ GET /api/admin/grading-config 200 in 2436ms
+ GET /api/admin/grading-config 200 in 2434ms
+ GET /api/dev/build-info 200 in 2478ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy" FROM "public"."Submission" WHERE "public"."Submission"."id" IN ($1,$2) OFFSET $3
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."createdAt", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."resultJson", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $2
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."isScanned", "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."engineVersion", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."sourceMeta", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."error", "public"."SubmissionExtractionRun"."startedAt", "public"."SubmissionExtractionRun"."finishedAt", "public"."SubmissionExtractionRun"."updatedAt", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $2
+prisma:query SELECT "public"."ExtractedPage"."id", "public"."ExtractedPage"."pageNumber", "public"."ExtractedPage"."text", "public"."ExtractedPage"."confidence", "public"."ExtractedPage"."width", "public"."ExtractedPage"."height", "public"."ExtractedPage"."tokens", "public"."ExtractedPage"."extractionRunId" FROM "public"."ExtractedPage" WHERE "public"."ExtractedPage"."extractionRunId" IN ($1) ORDER BY "public"."ExtractedPage"."pageNumber" ASC OFFSET $2
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771253728024 200 in 2756ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771253728025 200 in 2750ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253728029 200 in 2751ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253730840 200 in 74ms
+ GET /api/dev/build-info 200 in 76ms
+ GET /api/dev/build-info 200 in 105ms
+ GET /api/dev/build-info 200 in 236ms
+ GET /api/dev/build-info 200 in 100ms
+ GET /api/dev/build-info 200 in 235ms
+ Ô£ô Compiled in 2.3s (708 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 647ms
+ Ôùï Compiling /api/submissions/[submissionId]/file ...
+ Ô£ô Compiled /api/submissions/[submissionId]/file in 589ms (450 modules)
+ Ô£ô Compiled (455 modules)
+ GET /api/admin/grading-config 200 in 1855ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253811407 200 in 1078ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."createdAt", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."resultJson", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $2
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."isScanned", "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."engineVersion", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."sourceMeta", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."error", "public"."SubmissionExtractionRun"."startedAt", "public"."SubmissionExtractionRun"."finishedAt", "public"."SubmissionExtractionRun"."updatedAt", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $2
+prisma:query SELECT "public"."ExtractedPage"."id", "public"."ExtractedPage"."pageNumber", "public"."ExtractedPage"."text", "public"."ExtractedPage"."confidence", "public"."ExtractedPage"."width", "public"."ExtractedPage"."height", "public"."ExtractedPage"."tokens", "public"."ExtractedPage"."extractionRunId" FROM "public"."ExtractedPage" WHERE "public"."ExtractedPage"."extractionRunId" IN ($1) ORDER BY "public"."ExtractedPage"."pageNumber" ASC OFFSET $2
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771253810847 200 in 1884ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE "public"."Submission"."id" IN ($1,$2) OFFSET $3
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771253812798 200 in 90ms
+ GET /api/dev/build-info 200 in 249ms
+ GET /api/dev/build-info 200 in 85ms
+ GET /api/dev/build-info 200 in 244ms
+ GET /api/dev/build-info 200 in 79ms
+ GET /api/dev/build-info 200 in 276ms
+ GET /api/dev/build-info 200 in 76ms
+ GET /api/dev/build-info 200 in 278ms
+ GET /api/dev/build-info 200 in 93ms
+ GET /api/dev/build-info 200 in 78ms
+ GET /api/dev/build-info 200 in 259ms
+ GET /api/dev/build-info 200 in 105ms
+ GET /api/dev/build-info 200 in 92ms
+ GET /api/dev/build-info 200 in 248ms
+ GET /api/dev/build-info 200 in 90ms
+ Ô£ô Compiled in 1148ms (264 modules)
+ Ô£ô Compiled in 709ms (264 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 955ms
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 140ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254021516 200 in 106ms
+ Ô£ô Compiled in 875ms (264 modules)
+ GET /api/dev/build-info 200 in 372ms
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 205ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254029373 200 in 90ms
+ Ô£ô Compiled in 1693ms (711 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 413ms
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254040028 200 in 131ms
+ GET /api/dev/build-info 200 in 270ms
+ GET /submissions 200 in 392ms
+ Ôùï Compiling /api/submissions ...
+ Ô£ô Compiled /api/submissions in 2.9s (716 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $8
+ GET /api/submissions 200 in 3172ms
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $8
+ GET /api/submissions 200 in 3182ms
+ GET /submissions 200 in 408ms
+ Ô£ô Compiled in 920ms (264 modules)
+ GET /submissions 200 in 213ms
+ GET /api/dev/build-info 200 in 255ms
+ Ô£ô Compiled in 1876ms (716 modules)
+ GET /submissions 200 in 431ms
+ Ô£ô Compiled in 1361ms (716 modules)
+ GET /submissions 200 in 365ms
+ GET /api/dev/build-info 200 in 286ms
+ GET /api/dev/build-info 200 in 91ms
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 192ms
+ Ôùï Compiling /api/submissions/[submissionId] ...
+ Ô£ô Compiled /api/submissions/[submissionId] in 1160ms (458 modules)
+ Ô£ô Compiled (460 modules)
+prisma:query SELECT 1
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/admin/grading-config 200 in 2580ms
+ GET /api/admin/grading-config 200 in 2567ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy" FROM "public"."Submission" WHERE "public"."Submission"."id" IN ($1,$2) OFFSET $3
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."createdAt", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."resultJson", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $2
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."isScanned", "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."engineVersion", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."sourceMeta", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."error", "public"."SubmissionExtractionRun"."startedAt", "public"."SubmissionExtractionRun"."finishedAt", "public"."SubmissionExtractionRun"."updatedAt", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $2
+prisma:query SELECT "public"."ExtractedPage"."id", "public"."ExtractedPage"."pageNumber", "public"."ExtractedPage"."text", "public"."ExtractedPage"."confidence", "public"."ExtractedPage"."width", "public"."ExtractedPage"."height", "public"."ExtractedPage"."tokens", "public"."ExtractedPage"."extractionRunId" FROM "public"."ExtractedPage" WHERE "public"."ExtractedPage"."extractionRunId" IN ($1) ORDER BY "public"."ExtractedPage"."pageNumber" ASC OFFSET $2
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254093803 200 in 2593ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771254093798 200 in 2612ms
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c?t=1771254093799 200 in 2612ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254096489 200 in 60ms
+ GET /api/dev/build-info 200 in 244ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."filename", "public"."Submission"."storedFilename", "public"."Submission"."storagePath", "public"."Submission"."mimeType", "public"."Submission"."sizeBytes", "public"."Submission"."sourceLastModifiedAt", "public"."Submission"."status"::text, "public"."Submission"."uploadedAt", "public"."Submission"."updatedAt", "public"."Submission"."studentId", "public"."Submission"."assignmentId", "public"."Submission"."extractedText", "public"."Submission"."extractedTextHash", "public"."Submission"."extractionVersion", "public"."Submission"."studentLinkedAt", "public"."Submission"."studentLinkedBy", COALESCE("aggr_selection_0_SubmissionExtractionRun"."_aggr_count_extractionRuns", 0) AS "_aggr_count_extractionRuns", COALESCE("aggr_selection_1_Assessment"."_aggr_count_assessments", 0) AS "_aggr_count_assessments" FROM "public"."Submission" LEFT JOIN (SELECT "public"."SubmissionExtractionRun"."submissionId", COUNT(*) AS "_aggr_count_extractionRuns" FROM "public"."SubmissionExtractionRun" WHERE 1=1 GROUP BY "public"."SubmissionExtractionRun"."submissionId") AS "aggr_selection_0_SubmissionExtractionRun" ON ("public"."Submission"."id" = "aggr_selection_0_SubmissionExtractionRun"."submissionId") LEFT JOIN (SELECT "public"."Assessment"."submissionId", COUNT(*) AS "_aggr_count_assessments" FROM "public"."Assessment" WHERE 1=1 GROUP BY "public"."Assessment"."submissionId") AS "aggr_selection_1_Assessment" ON ("public"."Submission"."id" = "aggr_selection_1_Assessment"."submissionId") WHERE 1=1 ORDER BY "public"."Submission"."uploadedAt" DESC OFFSET $1
+prisma:query SELECT "public"."Student"."id", "public"."Student"."fullName", "public"."Student"."email", "public"."Student"."externalRef", "public"."Student"."courseName", "public"."Student"."registrationDate", "public"."Student"."createdAt", "public"."Student"."updatedAt" FROM "public"."Student" WHERE "public"."Student"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Assignment"."id", "public"."Assignment"."unitCode", "public"."Assignment"."title", "public"."Assignment"."assignmentRef", "public"."Assignment"."createdAt", "public"."Assignment"."updatedAt", "public"."Assignment"."isPlaceholder", "public"."Assignment"."triageConfidence", "public"."Assignment"."triageSignals", "public"."Assignment"."createdFromFilename", "public"."Assignment"."bindingStatus", "public"."Assignment"."bindingLockedBy", "public"."Assignment"."bindingLockedAt", "public"."Assignment"."assignmentBriefId" FROM "public"."Assignment" WHERE "public"."Assignment"."id" IN ($1,$2,$3) OFFSET $4
+prisma:query SELECT "public"."Assessment"."id", "public"."Assessment"."overallGrade", "public"."Assessment"."feedbackText", "public"."Assessment"."annotatedPdfPath", "public"."Assessment"."createdAt", "public"."Assessment"."submissionId" FROM "public"."Assessment" WHERE "public"."Assessment"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."Assessment"."createdAt" DESC OFFSET $8
+prisma:query SELECT "public"."SubmissionExtractionRun"."id", "public"."SubmissionExtractionRun"."status"::text, "public"."SubmissionExtractionRun"."overallConfidence", "public"."SubmissionExtractionRun"."pageCount", "public"."SubmissionExtractionRun"."warnings", "public"."SubmissionExtractionRun"."submissionId" FROM "public"."SubmissionExtractionRun" WHERE "public"."SubmissionExtractionRun"."submissionId" IN ($1,$2,$3,$4,$5,$6,$7) ORDER BY "public"."SubmissionExtractionRun"."startedAt" DESC OFFSET $8
+ GET /api/submissions 200 in 115ms
+ GET /api/dev/build-info 200 in 76ms
+ GET /api/dev/build-info 200 in 273ms
+ GET /api/dev/build-info 200 in 89ms
+ GET /api/dev/build-info 200 in 94ms
+ GET /api/dev/build-info 200 in 252ms
+ GET /api/dev/build-info 200 in 103ms
+ GET /api/dev/build-info 200 in 257ms
+ GET /api/dev/build-info 200 in 96ms
+ GET /api/dev/build-info 200 in 77ms
+ GET /api/dev/build-info 200 in 264ms
+ GET /api/dev/build-info 200 in 87ms
+ GET /api/dev/build-info 200 in 79ms
+ GET /api/dev/build-info 200 in 250ms
+ GET /api/dev/build-info 200 in 568ms
+ Ô£ô Compiled in 1413ms (264 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 327ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254314339 200 in 239ms
+ Ô£ô Compiled in 855ms (264 modules)
+ Ô£ô Compiled in 790ms (264 modules)
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 768ms
+ GET /submissions/116bc96a-f5ae-46db-b70d-482c3271490c 200 in 136ms
+prisma:query SELECT "public"."Submission"."id", "public"."Submission"."storagePath", "public"."Submission"."filename" FROM "public"."Submission" WHERE ("public"."Submission"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/submissions/116bc96a-f5ae-46db-b70d-482c3271490c/file?t=1771254322808 200 in 98ms
+ GET /api/dev/build-info 200 in 69ms
+ GET /api/dev/build-info 200 in 242ms
+ GET /api/dev/build-info 200 in 86ms
+ GET /api/dev/build-info 200 in 83ms
+[?25h

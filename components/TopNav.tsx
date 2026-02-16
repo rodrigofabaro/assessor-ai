@@ -30,8 +30,8 @@ export default function TopNav() {
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/85 backdrop-blur">
-      <div className={LANE + " flex items-center justify-between gap-4 py-2.5"}>
+    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur">
+      <div className={LANE + " flex items-center justify-between gap-3 py-2.5"}>
         <Link href="/" className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-300 bg-zinc-100 text-sm font-bold text-zinc-900">
             AI
@@ -39,7 +39,7 @@ export default function TopNav() {
           <span className="text-base font-semibold tracking-tight">Assessor AI</span>
         </Link>
 
-        <div className="flex items-center justify-end gap-5">
+        <div className="flex items-center justify-end gap-3 sm:gap-5">
           {MAIN_ITEMS.map((it) => {
             const active = isActive(pathname, it.href);
             return (
@@ -47,7 +47,7 @@ export default function TopNav() {
                 key={it.href}
                 href={it.href}
                 className={
-                  "inline-flex h-9 items-center justify-center border-b-2 px-0 text-sm font-semibold transition " +
+                  "hidden h-9 items-center justify-center border-b-2 px-0 text-sm font-semibold transition sm:inline-flex " +
                   (active
                     ? "border-zinc-900 text-zinc-900"
                     : "border-transparent text-zinc-600 hover:border-zinc-300 hover:text-zinc-900")
@@ -94,6 +94,21 @@ export default function TopNav() {
       {isAdminRoute ? (
         <div className="border-t border-zinc-200 bg-zinc-50/80 md:hidden">
           <div className={LANE + " flex items-center gap-2 overflow-x-auto py-1.5"}>
+            {MAIN_ITEMS.map((it) => {
+              const active = isActive(pathname, it.href);
+              return (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  className={
+                    "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
+                    (active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
+                  }
+                >
+                  {it.label}
+                </Link>
+              );
+            })}
             {ADMIN_ITEMS.map((it) => {
               const active = isActive(pathname, it.href);
               return (

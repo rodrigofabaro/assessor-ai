@@ -1,5 +1,6 @@
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
+import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
 type BriefTask = {
   n?: number;
@@ -74,12 +75,7 @@ function localMathRepair(text: string) {
 }
 
 function pickApiKey() {
-  const apiKey = String(process.env.OPENAI_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
-  if (apiKey) return apiKey;
-  const admin = String(process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_ADMIN_API_KEY || process.env.OPENAI_ADMIN || "")
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
-  return admin || "";
+  return resolveOpenAiApiKey("preferStandard").apiKey;
 }
 
 function parseJsonObject(raw: string) {
@@ -141,16 +137,16 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
   ].join("\n");
 
   try {
-    const res = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const res = await fetchOpenAiJson(
+      "/v1/responses",
+      apiKey,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
         model,
         temperature: 0,
-        max_output_tokens: 1400,
+        max_output_tokens: Number(process.env.OPENAI_CLEANUP_MAX_OUTPUT_TOKENS || 900),
         input: [
           {
             role: "user",
@@ -158,10 +154,15 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
           },
         ],
       }),
-    });
+      },
+      {
+        timeoutMs: Number(process.env.OPENAI_CLEANUP_TIMEOUT_MS || 30000),
+        retries: Number(process.env.OPENAI_CLEANUP_RETRIES || 1),
+      }
+    );
 
-    const raw = await res.text();
-    if (!res.ok) return { ok: false as const, reason: `OpenAI ${res.status}` };
+    if (!res.ok) return { ok: false as const, reason: `OpenAI ${res.status}: ${res.message}` };
+    const raw = JSON.stringify(res.json || {});
 
     let data: any = null;
     try {

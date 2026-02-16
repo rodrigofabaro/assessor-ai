@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const FILE_PATH = path.join(process.cwd(), ".openai-model.json");
-const DEFAULT_MODEL = "gpt-4.1-mini";
+const DEFAULT_MODEL = "gpt-4o-mini";
 
 type ModelConfig = {
   model: string;
@@ -11,7 +11,7 @@ type ModelConfig = {
 };
 
 export function getDefaultOpenAiModel() {
-  return String(process.env.OPENAI_EQUATION_MODEL || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  return String(process.env.OPENAI_EQUATION_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
 }
 
 export function readOpenAiModel() {

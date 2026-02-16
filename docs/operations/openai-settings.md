@@ -1,6 +1,6 @@
 # OpenAI Settings Operations
 
-This page documents the OpenAI admin settings now available at:
+This document covers OpenAI operations settings available at:
 
 - `/admin/settings`
 
@@ -8,15 +8,15 @@ This page documents the OpenAI admin settings now available at:
 
 1. OpenAI key status
 - Detects whether the app is using an admin key or standard key.
-- Key priority used by settings usage endpoint:
+- Key resolution order used by the usage endpoint:
   - `OPENAI_ADMIN_KEY`
   - `OPENAI_ADMIN_API_KEY`
   - `OPENAI_ADMIN`
-  - fallback `OPENAI_API_KEY`
+  - fallback: `OPENAI_API_KEY`
 
 2. Connectivity
 - Checks API reachability.
-- Treats connection as healthy when organization usage/cost endpoints are reachable, even if `/v1/models` is blocked by scope.
+- Treats connectivity as healthy when org usage/cost endpoints are reachable, even if `/v1/models` is blocked by scope.
 
 3. Usage and spend
 - Shows organization usage metrics (tokens/requests) when permitted.
@@ -25,7 +25,7 @@ This page documents the OpenAI admin settings now available at:
 
 4. Historical fallback
 - When org usage scope is missing, the app shows local telemetry history gathered from real app calls.
-- Local telemetry file:
+- Local telemetry file path:
   - `.openai-usage-log.jsonl`
 
 5. Agent model selector
@@ -63,7 +63,7 @@ Usage records are appended by:
 
 2. Models endpoint
 - May require `api.model.read`.
-- If this is missing but usage/cost works, settings still reports reachable connection.
+- If this scope is missing but usage/cost works, settings still reports a reachable connection.
 
 ## Current UI behavior summary
 
@@ -79,4 +79,3 @@ Usage records are appended by:
 - Historical usage table
 - Endpoint diagnostics
 - Agent model dropdown
-

@@ -6,20 +6,10 @@ import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { validateGradeDecision } from "@/lib/grading/decisionValidation";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
 export const runtime = "nodejs";
-
-function getApiKey() {
-  return String(
-    process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_ADMIN_KEY ||
-      process.env.OPENAI_ADMIN_API_KEY ||
-      process.env.OPENAI_ADMIN ||
-      ""
-  )
-    .trim()
-    .replace(/^['"]|['"]$/g, "");
-}
 
 function extractOutputText(responseJson: any): string {
   const direct = String(responseJson?.output_text || "").trim();
@@ -73,9 +63,11 @@ export async function POST(
     tone?: string;
     strictness?: string;
     useRubricIfAvailable?: boolean;
+    actor?: string;
   };
+  const actor = await getCurrentAuditActor(body?.actor);
 
-  const apiKey = getApiKey();
+  const { apiKey } = resolveOpenAiApiKey("preferStandard");
   if (!apiKey) {
     return apiError({
       status: 500,
@@ -227,6 +219,9 @@ export async function POST(
   const rubricAttachment = (brief.briefDocument?.sourceMeta as any)?.rubricAttachment || null;
   const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
 
+  const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
+  const maxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
+
   const prompt = [
     "You are an engineering assignment assessor.",
     `Tone: ${tone}. Strictness: ${strictness}.`,
@@ -247,7 +242,7 @@ export async function POST(
     JSON.stringify(criteria.slice(0, 120), null, 2),
     "",
     "Student submission extracted text:",
-    submission.extractedText.slice(0, 28000),
+    submission.extractedText.slice(0, inputCharLimit),
   ].join("\n");
 
   await prisma.submission.update({
@@ -256,17 +251,17 @@ export async function POST(
   });
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+    const response = await fetchOpenAiJson(
+      "/v1/responses",
+      apiKey,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
         model: cfg.model,
         input: prompt,
         temperature: 0.2,
-        max_output_tokens: 1400,
+        max_output_tokens: maxOutputTokens,
         text: {
           format: {
             type: "json_schema",
@@ -310,13 +305,15 @@ export async function POST(
           },
         },
       }),
-    });
+      },
+      {
+        timeoutMs: Number(process.env.OPENAI_GRADE_TIMEOUT_MS || 60000),
+        retries: Number(process.env.OPENAI_GRADE_RETRIES || 2),
+      }
+    );
 
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = String(json?.error?.message || `OpenAI error (${response.status})`);
-      throw new Error(message);
-    }
+    if (!response.ok) throw new Error(response.message);
+    const json = response.json;
 
     const usage = json?.usage || null;
     if (usage) {
@@ -360,6 +357,7 @@ export async function POST(
             startedAt: gradingStartedAt.toISOString(),
             completedAt: new Date().toISOString(),
           },
+          gradedBy: actor,
           model: cfg.model,
           tone,
           strictness,
@@ -388,6 +386,7 @@ export async function POST(
           feedbackText: assessment.feedbackText,
           annotatedPdfPath: assessment.annotatedPdfPath,
           createdAt: assessment.createdAt,
+          gradedBy: actor,
         },
         requestId,
       },

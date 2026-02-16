@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { Timeframe } from "@/lib/submissions/useSubmissionsList";
+import type { LaneFilter, Timeframe } from "@/lib/submissions/useSubmissionsList";
 import { cx } from "@/lib/submissions/utils";
 import { IconButton } from "./IconButton";
 
@@ -10,7 +10,12 @@ export function SubmissionsToolbar({
   refresh,
   batchBusy,
   visibleCount,
+  autoReadyCount,
+  needsHumanCount,
+  blockedCount,
+  completedCount,
   failedVisibleCount,
+  onBatchGradeAutoReady,
   onBatchGradeVisible,
   onRetryFailed,
 
@@ -28,6 +33,8 @@ export function SubmissionsToolbar({
 
   statusFilter,
   setStatusFilter,
+  laneFilter,
+  setLaneFilter,
 
   statuses,
 }: {
@@ -35,7 +42,12 @@ export function SubmissionsToolbar({
   refresh: () => void;
   batchBusy: boolean;
   visibleCount: number;
+  autoReadyCount: number;
+  needsHumanCount: number;
+  blockedCount: number;
+  completedCount: number;
   failedVisibleCount: number;
+  onBatchGradeAutoReady: () => void;
   onBatchGradeVisible: () => void;
   onRetryFailed: () => void;
 
@@ -53,6 +65,9 @@ export function SubmissionsToolbar({
 
   statusFilter: string;
   setStatusFilter: (v: string) => void;
+
+  laneFilter: LaneFilter;
+  setLaneFilter: (v: LaneFilter) => void;
 
   statuses: string[];
 }) {
@@ -133,12 +148,39 @@ export function SubmissionsToolbar({
               </option>
             ))}
           </select>
+
+          <select
+            value={laneFilter}
+            onChange={(e) => setLaneFilter(e.target.value as LaneFilter)}
+            className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+            aria-label="Filter by lane"
+          >
+            <option value="ALL">All lanes</option>
+            <option value="AUTO_READY">Auto-Ready</option>
+            <option value="NEEDS_HUMAN">Needs Human</option>
+            <option value="BLOCKED">Blocked</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-xs text-zinc-500 hidden sm:block">
-            Tip: resolve unlinked rows first, then run grading.
+          <div className="text-xs text-zinc-500 hidden lg:block">
+            Lanes: auto-ready {autoReadyCount} · needs human {needsHumanCount} · blocked {blockedCount} · completed {completedCount}
           </div>
+          <button
+            type="button"
+            onClick={onBatchGradeAutoReady}
+            disabled={batchBusy || autoReadyCount === 0}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy || autoReadyCount === 0
+                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                : "bg-emerald-700 text-white hover:bg-emerald-800"
+            )}
+            title="Grade only automation-ready submissions"
+          >
+            {batchBusy ? "Queueing..." : `Grade auto-ready (${autoReadyCount})`}
+          </button>
           <button
             type="button"
             onClick={onBatchGradeVisible}
