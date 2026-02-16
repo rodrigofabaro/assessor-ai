@@ -689,17 +689,25 @@ export default function AdminSettingsPage() {
                 </option>
               ))}
           </select>
-          <button
-            onClick={saveAppConfig}
-            disabled={appSaving || !appCfg}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
-          >
-            {appSaving ? "Saving..." : "Save actor setting"}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              onClick={saveAppConfig}
+              disabled={appSaving || !appCfg}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              {appSaving ? "Saving..." : "Save actor setting"}
+            </button>
+            <Link
+              href="/admin/users"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
+            >
+              Manage users
+            </Link>
+          </div>
         </div>
 
         <p className="mt-2 text-xs text-zinc-500">
-          Need to add or edit users? Go to <Link className="underline" href="/admin/users">Admin → Users</Link>.
+          Need to add or edit users? Use the <span className="font-medium text-zinc-700">Manage users</span> button.
         </p>
       </section>
 

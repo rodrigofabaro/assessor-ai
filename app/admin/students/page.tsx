@@ -87,6 +87,7 @@ function Icon({ name }: { name: "user" | "upload" | "edit" | "trash" | "filter" 
 export default function AdminStudentsPage() {
   const [query, setQuery] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
+  const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -116,19 +117,25 @@ export default function AdminStudentsPage() {
   const showResults = query.trim().length > 0;
 
   async function refresh() {
+    setSearching(true);
     setErr("");
     setMsg("");
     const q = query.trim();
     if (!q) {
       // Calm-by-default: don’t dump the whole database at first glance.
       setStudents([]);
+      setSearching(false);
       return;
     }
 
-    const url = `/api/students?query=${encodeURIComponent(q)}`;
-    const list = await jsonFetch<any>(url, { cache: "no-store" });
-    const arr: Student[] = Array.isArray(list) ? list : Array.isArray(list?.students) ? list.students : [];
-    setStudents(arr);
+    try {
+      const url = `/api/students?query=${encodeURIComponent(q)}`;
+      const list = await jsonFetch<any>(url, { cache: "no-store" });
+      const arr: Student[] = Array.isArray(list) ? list : Array.isArray(list?.students) ? list.students : [];
+      setStudents(arr);
+    } finally {
+      setSearching(false);
+    }
   }
 
   useEffect(() => {
@@ -276,10 +283,10 @@ export default function AdminStudentsPage() {
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
           >
             <Icon name="filter" />
-            Tools
+            Student tools
           </button>
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
             href="/submissions/new"
           >
             Upload submission
@@ -299,14 +306,21 @@ export default function AdminStudentsPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  refresh().catch((error) => setErr(error?.message || String(error)));
+                }
+              }}
               placeholder="Search name, email, AB number, course…"
               className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
             />
             <button
               onClick={() => refresh().catch((e) => setErr(e?.message || String(e)))}
+              disabled={searching}
               className="h-10 shrink-0 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
             >
-              Search
+              {searching ? "Searching..." : "Search"}
             </button>
             <button
               type="button"
@@ -343,6 +357,11 @@ export default function AdminStudentsPage() {
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto">
+            <div className="mb-3 text-xs text-zinc-600">
+              {searching
+                ? "Searching..."
+                : `${filtered.length} result${filtered.length === 1 ? "" : "s"} for "${query.trim()}"`}
+            </div>
             <table className="min-w-full border-separate border-spacing-0">
               <thead>
                 <tr className="text-left text-xs font-semibold text-zinc-700">

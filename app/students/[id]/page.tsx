@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import PageContainer from "@/components/PageContainer";
 
 
 type StudentSummary = {
@@ -23,6 +22,14 @@ function fmtDate(v: string | null) {
   if (!v) return "—";
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
+
+function statusTone(status: string) {
+  const s = (status || "").toLowerCase();
+  if (s.includes("graded") || s.includes("done") || s.includes("complete")) return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (s.includes("fail") || s.includes("error")) return "border-red-200 bg-red-50 text-red-800";
+  if (s.includes("review") || s.includes("pending") || s.includes("queue")) return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-zinc-200 bg-zinc-100 text-zinc-700";
 }
 
 export default async function StudentPage({
@@ -134,141 +141,166 @@ export default async function StudentPage({
   const statusBadges = Object.entries(summary.byStatus ?? {}).sort((a, b) => b[1] - a[1]);
 
   return (
-    <PageContainer>
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="text-xs opacity-70">Student profile</div>
-          <h1 className="text-2xl font-semibold">{student.fullName ?? "Unnamed student"}</h1>
-          <div className="mt-1 text-sm opacity-80">
-            <span>ID: {student.id}</span>
-            {student.externalRef ? <span> · AB: {student.externalRef}</span> : null}
-            {student.courseName ? <span> · Course: {student.courseName}</span> : null}
-          </div>
-          <div className="mt-1 text-sm opacity-80">{student.email ? <span>{student.email}</span> : <span>No email</span>}</div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Link className="rounded-md border px-3 py-2 text-sm hover:opacity-80" href={`/submissions/new?studentId=${encodeURIComponent(student.id)}`}>
-            Upload submission
-          </Link>
-          <Link className="rounded-md border px-3 py-2 text-sm hover:opacity-80" href={`/submissions?studentId=${encodeURIComponent(student.id)}`}>
-            All submissions
-          </Link>
-          <Link className="rounded-md border px-3 py-2 text-sm hover:opacity-80" href={`/admin/students`}>
-            Edit student
-          </Link>
-        </div>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg border p-4 md:col-span-1">
-          <h2 className="text-sm font-semibold opacity-80">Snapshot</h2>
-          <div className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <span className="opacity-70">Total submissions</span>
-              <span className="font-medium">{summary.totalSubmissions}</span>
+      <div className="w-full py-6">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Student profile</div>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">{student.fullName ?? "Unnamed student"}</h1>
+              <div className="mt-1 break-all text-sm text-zinc-700">
+                <span>ID: {student.id}</span>
+                {student.externalRef ? <span> · AB: {student.externalRef}</span> : null}
+                {student.courseName ? <span> · Course: {student.courseName}</span> : null}
+              </div>
+              <div className="mt-1 text-sm text-zinc-600">{student.email ? <span>{student.email}</span> : <span>No email</span>}</div>
             </div>
-            <div className="flex justify-between gap-3">
-              <span className="opacity-70">Last submission</span>
-              <span className="font-medium">{fmtDate(summary.lastSubmissionAt)}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span className="opacity-70">Last grade</span>
-              <span className="font-medium">{summary.lastOverallGrade ?? "—"}</span>
-            </div>
-          </div>
 
-          <div className="mt-4">
-            <h3 className="text-sm font-semibold opacity-80">Statuses</h3>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {statusBadges.length ? (
-                statusBadges.map(([k, v]) => (
-                  <span key={k} className="rounded-full border px-2 py-1 text-xs">
-                    {k}: <span className="font-semibold">{v}</span>
-                  </span>
-                ))
-              ) : (
-                <span className="text-sm opacity-70">No submissions yet.</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border p-4 md:col-span-2">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-sm font-semibold opacity-80">Submissions</h2>
-
-            <form className="flex flex-wrap gap-2 text-sm" action={`/students/${student.id}`}>
-              <input type="hidden" name="take" value={takeStr} />
-              <input className="rounded-md border px-2 py-1" name="assignmentId" placeholder="Assignment ID" defaultValue={activeAssignmentId} />
-              <input className="rounded-md border px-2 py-1" name="status" placeholder="Status" defaultValue={activeStatus} />
-              <button className="rounded-md border px-3 py-1 hover:opacity-80" type="submit">
-                Filter
-              </button>
-              <Link className="rounded-md border px-3 py-1 hover:opacity-80" href={`/students/${student.id}`}>
-                Reset
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+              <Link
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 sm:flex-none"
+                href={`/submissions/new?studentId=${encodeURIComponent(student.id)}`}
+              >
+                Upload submission
               </Link>
-            </form>
+              <Link
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:flex-none"
+                href={`/submissions?studentId=${encodeURIComponent(student.id)}`}
+              >
+                All submissions
+              </Link>
+              <Link
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:flex-none"
+                href="/admin/students"
+              >
+                Manage student
+              </Link>
+            </div>
           </div>
+        </section>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="py-2 pr-4">Uploaded</th>
-                  <th className="py-2 pr-4">Assignment</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Grade</th>
-                  <th className="py-2 pr-0">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length ? (
-                  items.map((s) => (
-                    <tr key={s.id} className="border-b">
-                      <td className="py-2 pr-4">{new Date(s.uploadedAt).toLocaleString()}</td>
-                      <td className="py-2 pr-4">{s.assignmentTitle ?? s.assignmentId ?? "—"}</td>
-                      <td className="py-2 pr-4">
-                        <span className="rounded-full border px-2 py-1 text-xs">{s.status}</span>
-                      </td>
-                      <td className="py-2 pr-4">{s.overallGrade ?? "—"}</td>
-                      <td className="py-2 pr-0">
-                        <Link className="underline hover:opacity-80" href={`/submissions/${s.id}`}>
-                          Open
-                        </Link>
-                      </td>
-                    </tr>
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:col-span-1">
+            <h2 className="text-sm font-semibold text-zinc-900">Snapshot</h2>
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-zinc-600">Total submissions</span>
+                <span className="font-medium text-zinc-900">{summary.totalSubmissions}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-zinc-600">Last submission</span>
+                <span className="font-medium text-zinc-900">{fmtDate(summary.lastSubmissionAt)}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-zinc-600">Last grade</span>
+                <span className="font-medium text-zinc-900">{summary.lastOverallGrade ?? "—"}</span>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-zinc-900">Statuses</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {statusBadges.length ? (
+                  statusBadges.map(([k, v]) => (
+                    <span key={k} className={["rounded-full border px-2 py-1 text-xs font-medium", statusTone(k)].join(" ")}>
+                      {k}: <span className="font-semibold">{v}</span>
+                    </span>
                   ))
                 ) : (
-                  <tr>
-                    <td className="py-6 opacity-70" colSpan={5}>
-                      No submissions match these filters.
-                    </td>
-                  </tr>
+                  <span className="text-sm text-zinc-600">No submissions yet.</span>
                 )}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
 
-          {nextCursor ? (
-            <div className="mt-4">
-              <Link
-                className="rounded-md border px-3 py-2 text-sm hover:opacity-80"
-                href={`/students/${student.id}?${new URLSearchParams({
-                  ...(activeAssignmentId ? { assignmentId: activeAssignmentId } : {}),
-                  ...(activeStatus ? { status: activeStatus } : {}),
-                  take: takeStr,
-                  cursor: nextCursor,
-                }).toString()}`}
-              >
-                Load more
-              </Link>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:col-span-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-sm font-semibold text-zinc-900">Submissions</h2>
+
+              <form className="flex w-full flex-wrap gap-2 text-sm sm:w-auto sm:justify-end" action={`/students/${student.id}`}>
+                <input type="hidden" name="take" value={takeStr} />
+                <input
+                  className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm text-zinc-900 sm:w-48"
+                  name="assignmentId"
+                  placeholder="Assignment ID"
+                  defaultValue={activeAssignmentId}
+                />
+                <input
+                  className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm text-zinc-900 sm:w-40"
+                  name="status"
+                  placeholder="Status"
+                  defaultValue={activeStatus}
+                />
+                <button className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto" type="submit">
+                  Apply filters
+                </button>
+                <Link
+                  className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:w-auto"
+                  href={`/students/${student.id}`}
+                >
+                  Reset
+                </Link>
+              </form>
             </div>
-          ) : null}
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-semibold text-zinc-700">
+                    <th className="border-b border-zinc-200 bg-white px-3 py-3">Uploaded</th>
+                    <th className="border-b border-zinc-200 bg-white px-3 py-3">Assignment</th>
+                    <th className="border-b border-zinc-200 bg-white px-3 py-3">Status</th>
+                    <th className="border-b border-zinc-200 bg-white px-3 py-3">Grade</th>
+                    <th className="border-b border-zinc-200 bg-white px-3 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length ? (
+                    items.map((s) => (
+                      <tr key={s.id} className="text-zinc-800">
+                        <td className="border-b border-zinc-100 px-3 py-3">{new Date(s.uploadedAt).toLocaleString()}</td>
+                        <td className="border-b border-zinc-100 px-3 py-3">{s.assignmentTitle ?? s.assignmentId ?? "—"}</td>
+                        <td className="border-b border-zinc-100 px-3 py-3">
+                          <span className={["rounded-full border px-2 py-1 text-xs font-medium", statusTone(s.status)].join(" ")}>{s.status}</span>
+                        </td>
+                        <td className="border-b border-zinc-100 px-3 py-3">{s.overallGrade ?? "—"}</td>
+                        <td className="border-b border-zinc-100 px-3 py-3">
+                          <Link
+                            className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
+                            href={`/submissions/${s.id}`}
+                          >
+                            Open
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-3 py-8 text-center text-sm text-zinc-600" colSpan={5}>
+                        No submissions match these filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {nextCursor ? (
+              <div className="mt-4">
+                <Link
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+                  href={`/students/${student.id}?${new URLSearchParams({
+                    ...(activeAssignmentId ? { assignmentId: activeAssignmentId } : {}),
+                    ...(activeStatus ? { status: activeStatus } : {}),
+                    take: takeStr,
+                    cursor: nextCursor,
+                  }).toString()}`}
+                >
+                  Load more
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-    </div>
-    </PageContainer>
   );
 }
