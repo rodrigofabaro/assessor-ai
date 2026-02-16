@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { Timeframe } from "@/lib/submissions/useSubmissionsList";
+import type { LaneFilter, Timeframe } from "@/lib/submissions/useSubmissionsList";
 import { cx } from "@/lib/submissions/utils";
 import { IconButton } from "./IconButton";
 
@@ -33,6 +33,8 @@ export function SubmissionsToolbar({
 
   statusFilter,
   setStatusFilter,
+  laneFilter,
+  setLaneFilter,
 
   statuses,
 }: {
@@ -63,6 +65,9 @@ export function SubmissionsToolbar({
 
   statusFilter: string;
   setStatusFilter: (v: string) => void;
+
+  laneFilter: LaneFilter;
+  setLaneFilter: (v: LaneFilter) => void;
 
   statuses: string[];
 }) {
@@ -142,6 +147,19 @@ export function SubmissionsToolbar({
                 {st}
               </option>
             ))}
+          </select>
+
+          <select
+            value={laneFilter}
+            onChange={(e) => setLaneFilter(e.target.value as LaneFilter)}
+            className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+            aria-label="Filter by lane"
+          >
+            <option value="ALL">All lanes</option>
+            <option value="AUTO_READY">Auto-Ready</option>
+            <option value="NEEDS_HUMAN">Needs Human</option>
+            <option value="BLOCKED">Blocked</option>
+            <option value="COMPLETED">Completed</option>
           </select>
         </div>
 

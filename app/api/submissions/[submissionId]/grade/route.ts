@@ -6,6 +6,7 @@ import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { validateGradeDecision } from "@/lib/grading/decisionValidation";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 export const runtime = "nodejs";
 
@@ -73,7 +74,9 @@ export async function POST(
     tone?: string;
     strictness?: string;
     useRubricIfAvailable?: boolean;
+    actor?: string;
   };
+  const actor = await getCurrentAuditActor(body?.actor);
 
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -360,6 +363,7 @@ export async function POST(
             startedAt: gradingStartedAt.toISOString(),
             completedAt: new Date().toISOString(),
           },
+          gradedBy: actor,
           model: cfg.model,
           tone,
           strictness,
@@ -388,6 +392,7 @@ export async function POST(
           feedbackText: assessment.feedbackText,
           annotatedPdfPath: assessment.annotatedPdfPath,
           createdAt: assessment.createdAt,
+          gradedBy: actor,
         },
         requestId,
       },

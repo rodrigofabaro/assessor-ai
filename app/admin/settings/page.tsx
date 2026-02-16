@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 type EndpointOkUsage = {
   available: true;
@@ -89,6 +91,21 @@ type GradingConfigPayload = {
   maxFeedbackBullets: number;
 };
 
+type AppUser = {
+  id: string;
+  fullName: string;
+  email?: string | null;
+  role: string;
+  isActive: boolean;
+};
+
+type AppConfigPayload = {
+  id: number;
+  activeAuditUserId?: string | null;
+  faviconUpdatedAt?: string | null;
+  activeAuditUser?: AppUser | null;
+};
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
 }
@@ -121,7 +138,7 @@ function isEndpointError(value: AnyEndpoint): value is EndpointError {
 }
 
 export default function AdminSettingsPage() {
-  const [tab, setTab] = useState<"ai" | "grading">("ai");
+  const [tab, setTab] = useState<"ai" | "grading" | "app">("ai");
   const [data, setData] = useState<UsagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +150,12 @@ export default function AdminSettingsPage() {
   const [gradingCfg, setGradingCfg] = useState<GradingConfigPayload | null>(null);
   const [gradingSaving, setGradingSaving] = useState(false);
   const [gradingMsg, setGradingMsg] = useState("");
+  const [appCfg, setAppCfg] = useState<AppConfigPayload | null>(null);
+  const [appUsers, setAppUsers] = useState<AppUser[]>([]);
+  const [appSaving, setAppSaving] = useState(false);
+  const [appMsg, setAppMsg] = useState("");
+  const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [faviconBusy, setFaviconBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -158,6 +181,19 @@ export default function AdminSettingsPage() {
       if (gradingRes.ok) {
         const gradingJson = (await gradingRes.json()) as GradingConfigPayload;
         setGradingCfg(gradingJson);
+      }
+
+      const [appCfgRes, appUsersRes] = await Promise.all([
+        fetch("/api/admin/app-config", { method: "GET", cache: "no-store" }),
+        fetch("/api/admin/users", { method: "GET", cache: "no-store" }),
+      ]);
+      if (appCfgRes.ok) {
+        const appCfgJson = (await appCfgRes.json()) as AppConfigPayload;
+        setAppCfg(appCfgJson);
+      }
+      if (appUsersRes.ok) {
+        const usersJson = (await appUsersRes.json()) as { users?: AppUser[] };
+        setAppUsers(Array.isArray(usersJson.users) ? usersJson.users : []);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
@@ -229,6 +265,52 @@ export default function AdminSettingsPage() {
     }
   }, [gradingCfg, load]);
 
+  const saveAppConfig = useCallback(async () => {
+    if (!appCfg) return;
+    setAppSaving(true);
+    setAppMsg("");
+    try {
+      const res = await fetch("/api/admin/app-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activeAuditUserId: appCfg.activeAuditUserId || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error || "Failed to save app config.");
+      setAppMsg("App settings saved.");
+      await load();
+    } catch (e) {
+      setAppMsg(e instanceof Error ? e.message : "Failed to save app config.");
+    } finally {
+      setAppSaving(false);
+    }
+  }, [appCfg, load]);
+
+  const uploadFavicon = useCallback(async () => {
+    if (!faviconFile) return;
+    setFaviconBusy(true);
+    setAppMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", faviconFile);
+      const res = await fetch("/api/admin/favicon", {
+        method: "POST",
+        body: fd,
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error || "Failed to upload favicon.");
+      setAppMsg("Favicon uploaded. Hard refresh may be required.");
+      setFaviconFile(null);
+      await load();
+    } catch (e) {
+      setAppMsg(e instanceof Error ? e.message : "Failed to upload favicon.");
+    } finally {
+      setFaviconBusy(false);
+    }
+  }, [faviconFile, load]);
+
   return (
     <div className="grid gap-4">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -265,6 +347,16 @@ export default function AdminSettingsPage() {
             }
           >
             Grading
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("app")}
+            className={
+              "rounded-lg px-3 py-1.5 text-sm font-semibold transition " +
+              (tab === "app" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")
+            }
+          >
+            App
           </button>
         </div>
       </section>
@@ -564,6 +656,83 @@ export default function AdminSettingsPage() {
           <li>Whether rubric hints are included when a rubric is attached to the locked brief.</li>
           <li>Maximum number of feedback bullets saved into audit output and marked PDF overlay.</li>
         </ul>
+      </section>
+      </>
+      ) : null}
+
+      {tab === "app" ? (
+      <>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Choose who appears as actor in upload/link/grading audit records when no explicit actor is provided.
+        </p>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
+          <select
+            value={appCfg?.activeAuditUserId || ""}
+            onChange={(e) =>
+              setAppCfg((v) =>
+                v
+                  ? { ...v, activeAuditUserId: e.target.value || null }
+                  : v
+              )
+            }
+            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+          >
+            <option value="">system (no active user)</option>
+            {appUsers
+              .filter((u) => u.isActive)
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.fullName} {u.role ? `(${u.role})` : ""}
+                </option>
+              ))}
+          </select>
+          <button
+            onClick={saveAppConfig}
+            disabled={appSaving || !appCfg}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+          >
+            {appSaving ? "Saving..." : "Save actor setting"}
+          </button>
+        </div>
+
+        <p className="mt-2 text-xs text-zinc-500">
+          Need to add or edit users? Go to <Link className="underline" href="/admin/users">Admin → Users</Link>.
+        </p>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">Branding: favicon</h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Upload an icon used by browser tabs (`/favicon.ico`). Supported: ICO/PNG/SVG (max 2MB).
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <input
+            type="file"
+            accept=".ico,image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml"
+            onChange={(e) => setFaviconFile(e.target.files?.[0] || null)}
+            className="block text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border file:border-zinc-200 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-zinc-900 hover:file:bg-zinc-50"
+          />
+          <button
+            onClick={uploadFavicon}
+            disabled={!faviconFile || faviconBusy}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+          >
+            {faviconBusy ? "Uploading..." : "Upload favicon"}
+          </button>
+        </div>
+
+        <p className="mt-2 text-xs text-zinc-500">
+          Last updated: {appCfg?.faviconUpdatedAt ? new Date(appCfg.faviconUpdatedAt).toLocaleString() : "Never"}
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Preview:
+          <Image src="/favicon.ico" alt="Current favicon" width={16} height={16} className="ml-2 inline-block align-middle" />
+        </p>
+        {appMsg ? <p className="mt-2 text-xs text-zinc-600">{appMsg}</p> : null}
       </section>
       </>
       ) : null}

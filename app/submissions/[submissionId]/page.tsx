@@ -350,7 +350,7 @@ export default function SubmissionDetailPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studentId, actor: "Rodrigo" }),
+          body: JSON.stringify({ studentId }),
         }
       );
       setSubmission(res.submission);
@@ -373,7 +373,7 @@ export default function SubmissionDetailPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ actor: "Rodrigo" }),
+          body: JSON.stringify({}),
         }
       );
       setSubmission(res.submission);
@@ -472,6 +472,39 @@ export default function SubmissionDetailPage() {
           {err || msg}
         </div>
       )}
+
+      <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Student</div>
+          <div className="mt-1 text-sm font-semibold text-zinc-900">
+            {submission?.student?.fullName || "Unlinked"}
+          </div>
+          <div className="mt-1 text-xs text-zinc-600">{submission?.student?.email || "No email"}</div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Assignment</div>
+          <div className="mt-1 text-sm font-semibold text-zinc-900">
+            {submission?.assignment
+              ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim()
+              : "Unassigned"}
+          </div>
+          <div className="mt-1 text-xs text-zinc-600">{submission?.assignment?.title || "No assignment linked"}</div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Extraction</div>
+          <div className="mt-1 text-sm font-semibold text-zinc-900">{latestRun?.status || "Not started"}</div>
+          <div className="mt-1 text-xs text-zinc-600">
+            {latestRun ? `Confidence ${Math.round((latestRun.overallConfidence || 0) * 100)}%` : "Run extraction to continue"}
+          </div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Grade</div>
+          <div className="mt-1 text-sm font-semibold text-zinc-900">{latestAssessment?.overallGrade || "Pending"}</div>
+          <div className="mt-1 text-xs text-zinc-600">
+            {latestAssessment?.annotatedPdfPath ? "Marked PDF available" : "No marked PDF yet"}
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         {/* LEFT: PDF */}
@@ -773,25 +806,6 @@ export default function SubmissionDetailPage() {
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-sm font-semibold">Totara upload checklist</div>
-            <div className="mt-2 text-sm text-zinc-600">
-              This will light up once grading is enabled.
-            </div>
-            <div className="mt-3 grid gap-2 text-sm">
-              <label className="flex items-center gap-2 text-zinc-700">
-                <input type="checkbox" className="h-4 w-4 rounded border-zinc-300" disabled /> Marked PDF ready
-              </label>
-              <label className="flex items-center gap-2 text-zinc-700">
-                <input type="checkbox" className="h-4 w-4 rounded border-zinc-300" disabled /> Feedback ready
-              </label>
-              <label className="flex items-center gap-2 text-zinc-700">
-                <input type="checkbox" className="h-4 w-4 rounded border-zinc-300" disabled /> Overall grade ready
-              </label>
-            </div>
-            <div className="mt-3 text-xs text-zinc-500">We’ll store timestamps + model/prompt versions so you can defend every decision.</div>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold text-zinc-500">Grading config</div>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <label className="text-sm text-zinc-700">
@@ -837,6 +851,10 @@ export default function SubmissionDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Latest grade</span>
                 <span className="font-semibold text-zinc-900">{latestAssessment?.overallGrade || "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-700">Graded by</span>
+                <span className="font-semibold text-zinc-900">{String(latestAssessment?.resultJson?.gradedBy || "—")}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <a

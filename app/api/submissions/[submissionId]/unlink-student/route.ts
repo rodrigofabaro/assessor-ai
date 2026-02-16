@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 export async function POST(req: Request, ctx: { params: Promise<{ submissionId: string }> }) {
   const { submissionId } = await ctx.params;
   const body = await req.json().catch(() => ({}));
 
-  const actor = String(body?.actor || "Rodrigo");
+  const actor = await getCurrentAuditActor(body?.actor);
 
   const sub = await prisma.submission.findUnique({ where: { id: submissionId }, select: { studentId: true } });
   if (!sub) return NextResponse.json({ error: "Submission not found" }, { status: 404 });

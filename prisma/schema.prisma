@@ -71,6 +71,28 @@ model Student {
   submissions         Submission[]
 }
 
+model AppUser {
+  id        String   @id @default(cuid())
+  fullName  String
+  email     String?  @unique
+  role      String   @default("ADMIN")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activeInConfigs AppConfig[]
+}
+
+model AppConfig {
+  id                Int      @id @default(1)
+  activeAuditUserId String?
+  faviconUpdatedAt  DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  activeAuditUser AppUser? @relation(fields: [activeAuditUserId], references: [id])
+}
+
 
 model Assignment {
   id            String   @id @default(uuid())

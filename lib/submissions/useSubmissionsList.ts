@@ -9,6 +9,7 @@ import { deriveAutomationState } from "./automation";
 
 export type Timeframe = "today" | "week" | "all";
 export type LaneKey = "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED";
+export type LaneFilter = LaneKey | "ALL";
 
 type LaneMeta = {
   key: LaneKey;
@@ -39,6 +40,7 @@ export function useSubmissionsList() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
+  const [laneFilter, setLaneFilter] = useState<LaneFilter>("ALL");
 
   async function refresh() {
     setBusy(true);
@@ -83,14 +85,34 @@ export function useSubmissionsList() {
 
     const byReady = readyOnly ? byStatus.filter((s) => isReadyToUpload(s)) : byStatus;
 
-    if (timeframe === "all") return byReady;
+    const byLane =
+      laneFilter === "ALL"
+        ? byReady
+        : byReady.filter((row) => {
+            const key = (row.automationState ||
+              deriveAutomationState({
+                status: row.status,
+                studentId: row.studentId,
+                assignmentId: row.assignmentId,
+                extractedText: row.extractedText,
+                _count: row._count,
+                grade: row.grade,
+                overallGrade: row.overallGrade,
+                feedback: row.feedback,
+                markedPdfPath: row.markedPdfPath,
+                extractionQuality: row.extractionQuality,
+              }).state) as LaneKey;
+            return key === laneFilter;
+          });
+
+    if (timeframe === "all") return byLane;
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const endOfToday = startOfToday + 24 * 60 * 60 * 1000;
 
     if (timeframe === "today") {
-      return byReady.filter((s) => {
+      return byLane.filter((s) => {
         const t = new Date(s.uploadedAt).getTime();
         return !Number.isNaN(t) && t >= startOfToday && t < endOfToday;
       });
@@ -102,11 +124,11 @@ export function useSubmissionsList() {
     const startOfWeek = startOfToday - offsetToMonday * 24 * 60 * 60 * 1000;
     const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000;
 
-    return byReady.filter((s) => {
+    return byLane.filter((s) => {
       const t = new Date(s.uploadedAt).getTime();
       return !Number.isNaN(t) && t >= startOfWeek && t < endOfWeek;
     });
-  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly]);
+  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly, laneFilter]);
 
   const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
 
@@ -126,6 +148,7 @@ export function useSubmissionsList() {
           overallGrade: row.overallGrade,
           feedback: row.feedback,
           markedPdfPath: row.markedPdfPath,
+          extractionQuality: row.extractionQuality,
         }).state) as LaneKey;
       byLane.get(key)?.push(row);
     }
@@ -161,6 +184,8 @@ export function useSubmissionsList() {
     setQuery,
     statusFilter,
     setStatusFilter,
+    laneFilter,
+    setLaneFilter,
     readyOnly,
     setReadyOnly,
 

@@ -43,6 +43,8 @@ export default function SubmissionsPage() {
 
     statusFilter,
     setStatusFilter,
+    laneFilter,
+    setLaneFilter,
 
     statuses,
     laneGroups,
@@ -201,6 +203,7 @@ export default function SubmissionsPage() {
         </div>
       )}
 
+      <div className="space-y-3">
       <SubmissionsToolbar
         busy={busy}
         refresh={refresh}
@@ -224,10 +227,12 @@ export default function SubmissionsPage() {
         setQuery={setQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        laneFilter={laneFilter}
+        setLaneFilter={setLaneFilter}
         statuses={statuses}
       />
 
-      <section className="mt-4 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <SubmissionsTable
           laneGroups={laneGroups}
           batchBusy={batchBusy}
@@ -239,6 +244,7 @@ export default function SubmissionsPage() {
           copiedId={copiedId}
         />
       </section>
+      </div>
 
       <ResolveDrawer
         open={resolveOpen}

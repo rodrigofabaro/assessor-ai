@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 export async function POST(req: Request, ctx: { params: Promise<{ submissionId: string }> }) {
   const { submissionId } = await ctx.params;
   const body = await req.json().catch(() => ({}));
 
   const studentId = String(body?.studentId || "");
-  const actor = String(body?.actor || "Rodrigo"); // later: auth user
+  const actor = await getCurrentAuditActor(body?.actor);
 
   if (!studentId) return NextResponse.json({ error: "studentId is required" }, { status: 400 });
 

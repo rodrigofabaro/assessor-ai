@@ -6,6 +6,7 @@ import fssync from "fs";
 import path from "path";
 import type { Submission } from "@prisma/client";
 import { apiError, makeRequestId } from "@/lib/api/errors";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
 
     const studentId = getOptionalId(formData.get("studentId"));
     const assignmentId = getOptionalId(formData.get("assignmentId"));
-    const actor = getOptionalId(formData.get("actor")) || "upload";
+    const actor = await getCurrentAuditActor(getOptionalId(formData.get("actor")));
 
     const files = formData.getAll("files").filter((x): x is File => x instanceof File);
 
