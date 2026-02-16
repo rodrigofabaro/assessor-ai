@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deriveAutomationState } from "@/lib/submissions/automation";
 
 export async function GET() {
   const rows = await prisma.submission.findMany({
@@ -28,6 +29,18 @@ export async function GET() {
 
   const submissions = rows.map((s) => {
     const latest = s.assessments?.[0] || null;
+    const automation = deriveAutomationState({
+      status: s.status,
+      studentId: s.studentId,
+      assignmentId: s.assignmentId,
+      extractedText: s.extractedText,
+      _count: s._count,
+      grade: latest?.overallGrade || null,
+      overallGrade: latest?.overallGrade || null,
+      feedback: latest?.feedbackText || null,
+      markedPdfPath: latest?.annotatedPdfPath || null,
+    });
+
     return {
       ...s,
       grade: latest?.overallGrade || null,
@@ -35,6 +48,8 @@ export async function GET() {
       feedback: latest?.feedbackText || null,
       markedPdfPath: latest?.annotatedPdfPath || null,
       gradedAt: latest?.createdAt || null,
+      automationState: automation.state,
+      automationReason: automation.reason,
     };
   });
 

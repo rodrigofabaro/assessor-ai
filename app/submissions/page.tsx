@@ -45,7 +45,7 @@ export default function SubmissionsPage() {
     setStatusFilter,
 
     statuses,
-    dayGroups,
+    laneGroups,
   } = useSubmissionsList();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export default function SubmissionsPage() {
   const [resolveOpen, setResolveOpen] = useState(false);
   const [resolveId, setResolveId] = useState<string | null>(null);
 
-  const flatRows = dayGroups.flatMap(([, rows]) => rows);
+  const flatRows = laneGroups.flatMap((lane) => lane.rows);
   const byStatus = flatRows.reduce<Record<string, number>>((acc, row) => {
     const k = String(row.status || "UNKNOWN").toUpperCase();
     acc[k] = (acc[k] || 0) + 1;
@@ -198,7 +198,7 @@ export default function SubmissionsPage() {
 
       <section className="mt-4 rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <SubmissionsTable
-          dayGroups={dayGroups}
+          laneGroups={laneGroups}
           unlinkedOnly={unlinkedOnly}
           onOpenResolve={onOpenResolve}
           onCopySummary={onCopySummary}

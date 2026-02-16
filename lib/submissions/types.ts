@@ -29,6 +29,8 @@ export type SubmissionRow = {
   markedPdfPath?: string | null;
   gradedAt?: string | null;
   updatedAt?: string | null;
+  automationState?: "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED" | null;
+  automationReason?: string | null;
 };
 
 export type TriageResponse = {

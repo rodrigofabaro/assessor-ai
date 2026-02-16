@@ -5,8 +5,28 @@ import { isReadyToUpload } from "@/lib/submissionReady";
 import { jsonFetch } from "./api";
 import type { SubmissionRow } from "./types";
 import { groupByDay } from "./logic";
+import { deriveAutomationState } from "./automation";
 
 export type Timeframe = "today" | "week" | "all";
+export type LaneKey = "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED";
+
+type LaneMeta = {
+  key: LaneKey;
+  label: string;
+  description: string;
+};
+
+export type LaneGroup = LaneMeta & {
+  rows: SubmissionRow[];
+  dayGroups: Array<[string, SubmissionRow[]]>;
+};
+
+const LANE_ORDER: LaneMeta[] = [
+  { key: "AUTO_READY", label: "Auto-Ready", description: "Can run automatically without operator intervention." },
+  { key: "NEEDS_HUMAN", label: "Needs Human", description: "Needs a manual decision or missing linkage." },
+  { key: "BLOCKED", label: "Blocked", description: "Hard blockers such as OCR/failure must be resolved first." },
+  { key: "COMPLETED", label: "Completed", description: "Assessment complete and outputs available." },
+];
 
 export function useSubmissionsList() {
   const [items, setItems] = useState<SubmissionRow[]>([]);
@@ -15,7 +35,7 @@ export function useSubmissionsList() {
   const [msg, setMsg] = useState<string>("");
 
   const [unlinkedOnly, setUnlinkedOnly] = useState(false);
-  const [timeframe, setTimeframe] = useState<Timeframe>("today");
+  const [timeframe, setTimeframe] = useState<Timeframe>("all");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
@@ -90,6 +110,36 @@ export function useSubmissionsList() {
 
   const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
 
+  const laneGroups = useMemo<LaneGroup[]>(() => {
+    const byLane = new Map<LaneKey, SubmissionRow[]>();
+    for (const lane of LANE_ORDER) byLane.set(lane.key, []);
+
+    for (const row of filtered) {
+      const key = (row.automationState ||
+        deriveAutomationState({
+          status: row.status,
+          studentId: row.studentId,
+          assignmentId: row.assignmentId,
+          extractedText: row.extractedText,
+          _count: row._count,
+          grade: row.grade,
+          overallGrade: row.overallGrade,
+          feedback: row.feedback,
+          markedPdfPath: row.markedPdfPath,
+        }).state) as LaneKey;
+      byLane.get(key)?.push(row);
+    }
+
+    return LANE_ORDER.map((lane) => {
+      const rows = byLane.get(lane.key) || [];
+      return {
+        ...lane,
+        rows,
+        dayGroups: groupByDay(rows),
+      };
+    });
+  }, [filtered]);
+
   return {
     items,
     setItems,
@@ -117,5 +167,6 @@ export function useSubmissionsList() {
     statuses,
     filtered,
     dayGroups,
+    laneGroups,
   };
 }
