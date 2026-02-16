@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { buildCopySummary } from "@/lib/submissionReady";
 import { isReadyToUpload } from "@/lib/submissionReady";
-import { useSubmissionsList } from "@/lib/submissions/useSubmissionsList";
+import { useSubmissionsList, type LaneKey } from "@/lib/submissions/useSubmissionsList";
 import type { SubmissionRow } from "@/lib/submissions/types";
 import { SubmissionsToolbar } from "@/components/submissions/SubmissionsToolbar";
 import { SubmissionsTable } from "@/components/submissions/SubmissionsTable";
@@ -56,6 +56,10 @@ export default function SubmissionsPage() {
   const [resolveId, setResolveId] = useState<string | null>(null);
 
   const flatRows = laneGroups.flatMap((lane) => lane.rows);
+  const autoReadyCount = laneGroups.find((lane) => lane.key === "AUTO_READY")?.rows.length || 0;
+  const needsHumanCount = laneGroups.find((lane) => lane.key === "NEEDS_HUMAN")?.rows.length || 0;
+  const blockedCount = laneGroups.find((lane) => lane.key === "BLOCKED")?.rows.length || 0;
+  const completedCount = laneGroups.find((lane) => lane.key === "COMPLETED")?.rows.length || 0;
   const byStatus = flatRows.reduce<Record<string, number>>((acc, row) => {
     const k = String(row.status || "UNKNOWN").toUpperCase();
     acc[k] = (acc[k] || 0) + 1;
@@ -126,6 +130,28 @@ export default function SubmissionsPage() {
     runBatchGrade(ids, true);
   }
 
+  function onBatchGradeAutoReady() {
+    const ids =
+      laneGroups
+        .find((lane) => lane.key === "AUTO_READY")
+        ?.rows.map((s) => s.id) || [];
+    runBatchGrade(ids, false);
+  }
+
+  function onBatchGradeLane(laneKey: LaneKey) {
+    const ids = laneGroups.find((lane) => lane.key === laneKey)?.rows.map((s) => s.id) || [];
+    runBatchGrade(ids, false);
+  }
+
+  function onRetryFailedLane(laneKey: LaneKey) {
+    const ids =
+      laneGroups
+        .find((lane) => lane.key === laneKey)
+        ?.rows.filter((s) => String(s.status || "").toUpperCase() === "FAILED")
+        .map((s) => s.id) || [];
+    runBatchGrade(ids, true);
+  }
+
   return (
     <main className="py-2">
       <div className="mb-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -180,7 +206,12 @@ export default function SubmissionsPage() {
         refresh={refresh}
         batchBusy={batchBusy}
         visibleCount={flatRows.length}
+        autoReadyCount={autoReadyCount}
+        needsHumanCount={needsHumanCount}
+        blockedCount={blockedCount}
+        completedCount={completedCount}
         failedVisibleCount={failedVisibleCount}
+        onBatchGradeAutoReady={onBatchGradeAutoReady}
         onBatchGradeVisible={onBatchGradeVisible}
         onRetryFailed={onRetryFailed}
         unlinkedOnly={unlinkedOnly}
@@ -199,7 +230,10 @@ export default function SubmissionsPage() {
       <section className="mt-4 rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <SubmissionsTable
           laneGroups={laneGroups}
+          batchBusy={batchBusy}
           unlinkedOnly={unlinkedOnly}
+          onBatchGradeLane={onBatchGradeLane}
+          onRetryFailedLane={onRetryFailedLane}
           onOpenResolve={onOpenResolve}
           onCopySummary={onCopySummary}
           copiedId={copiedId}

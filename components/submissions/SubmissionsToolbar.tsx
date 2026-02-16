@@ -10,7 +10,12 @@ export function SubmissionsToolbar({
   refresh,
   batchBusy,
   visibleCount,
+  autoReadyCount,
+  needsHumanCount,
+  blockedCount,
+  completedCount,
   failedVisibleCount,
+  onBatchGradeAutoReady,
   onBatchGradeVisible,
   onRetryFailed,
 
@@ -35,7 +40,12 @@ export function SubmissionsToolbar({
   refresh: () => void;
   batchBusy: boolean;
   visibleCount: number;
+  autoReadyCount: number;
+  needsHumanCount: number;
+  blockedCount: number;
+  completedCount: number;
   failedVisibleCount: number;
+  onBatchGradeAutoReady: () => void;
   onBatchGradeVisible: () => void;
   onRetryFailed: () => void;
 
@@ -136,9 +146,23 @@ export function SubmissionsToolbar({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-xs text-zinc-500 hidden sm:block">
-            Tip: resolve unlinked rows first, then run grading.
+          <div className="text-xs text-zinc-500 hidden lg:block">
+            Lanes: auto-ready {autoReadyCount} · needs human {needsHumanCount} · blocked {blockedCount} · completed {completedCount}
           </div>
+          <button
+            type="button"
+            onClick={onBatchGradeAutoReady}
+            disabled={batchBusy || autoReadyCount === 0}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy || autoReadyCount === 0
+                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                : "bg-emerald-700 text-white hover:bg-emerald-800"
+            )}
+            title="Grade only automation-ready submissions"
+          >
+            {batchBusy ? "Queueing..." : `Grade auto-ready (${autoReadyCount})`}
+          </button>
           <button
             type="button"
             onClick={onBatchGradeVisible}

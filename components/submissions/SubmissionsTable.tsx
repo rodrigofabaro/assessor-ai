@@ -1,26 +1,51 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { isReadyToUpload } from "@/lib/submissionReady";
 import type { SubmissionRow } from "@/lib/submissions/types";
 import { deriveNextAction } from "@/lib/submissions/logic";
 import { safeDate, cx } from "@/lib/submissions/utils";
-import type { LaneGroup } from "@/lib/submissions/useSubmissionsList";
+import type { LaneGroup, LaneKey } from "@/lib/submissions/useSubmissionsList";
 import { ActionPill, StatusPill } from "./Pills";
 
 export function SubmissionsTable({
   laneGroups,
+  batchBusy,
   unlinkedOnly,
+  onBatchGradeLane,
+  onRetryFailedLane,
   onOpenResolve,
   onCopySummary,
   copiedId,
 }: {
   laneGroups: LaneGroup[];
+  batchBusy: boolean;
   unlinkedOnly: boolean;
+  onBatchGradeLane: (laneKey: LaneKey) => void;
+  onRetryFailedLane: (laneKey: LaneKey) => void;
   onOpenResolve: (submissionId: string) => void;
   onCopySummary: (s: SubmissionRow) => void;
   copiedId: string | null;
 }) {
+  const [collapsed, setCollapsed] = useState<Record<LaneKey, boolean>>({
+    AUTO_READY: false,
+    NEEDS_HUMAN: false,
+    BLOCKED: false,
+    COMPLETED: false,
+  });
+
+  const failedByLane = useMemo(() => {
+    const out = new Map<LaneKey, number>();
+    for (const lane of laneGroups) {
+      out.set(
+        lane.key,
+        lane.rows.filter((r) => String(r.status || "").toUpperCase() === "FAILED").length
+      );
+    }
+    return out;
+  }, [laneGroups]);
+
   const totalRows = laneGroups.reduce((acc, lane) => acc + lane.rows.length, 0);
 
   if (totalRows === 0) {
@@ -38,18 +63,66 @@ export function SubmissionsTable({
           <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-zinc-900">{lane.label}</div>
-              <div className="text-xs text-zinc-500">
-                {lane.rows.length} submission{lane.rows.length === 1 ? "" : "s"}
+              <div className="flex items-center gap-2">
+                {lane.key === "AUTO_READY" ? (
+                  <button
+                    type="button"
+                    onClick={() => onBatchGradeLane(lane.key)}
+                    disabled={batchBusy || lane.rows.length === 0}
+                    className={cx(
+                      "rounded-lg px-2.5 py-1 text-xs font-semibold",
+                      batchBusy || lane.rows.length === 0
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                        : "bg-emerald-700 text-white hover:bg-emerald-800"
+                    )}
+                    title="Grade this lane"
+                  >
+                    Grade lane
+                  </button>
+                ) : null}
+                {lane.key === "BLOCKED" ? (
+                  <button
+                    type="button"
+                    onClick={() => onRetryFailedLane(lane.key)}
+                    disabled={batchBusy || (failedByLane.get(lane.key) || 0) === 0}
+                    className={cx(
+                      "rounded-lg px-2.5 py-1 text-xs font-semibold",
+                      batchBusy || (failedByLane.get(lane.key) || 0) === 0
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                        : "bg-amber-600 text-white hover:bg-amber-700"
+                    )}
+                    title="Retry failed rows in this lane"
+                  >
+                    Retry failed ({failedByLane.get(lane.key) || 0})
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsed((prev) => ({ ...prev, [lane.key]: !prev[lane.key] }))
+                  }
+                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100"
+                  title={collapsed[lane.key] ? "Expand lane" : "Collapse lane"}
+                >
+                  {collapsed[lane.key] ? "Expand" : "Collapse"}
+                </button>
+                <div className="text-xs text-zinc-500">
+                  {lane.rows.length} submission{lane.rows.length === 1 ? "" : "s"}
+                </div>
               </div>
             </div>
             <div className="mt-1 text-xs text-zinc-600">{lane.description}</div>
           </div>
+          {collapsed[lane.key] ? (
+            <div className="px-4 py-3 text-sm text-zinc-500">Lane collapsed.</div>
+          ) : null}
 
-          {lane.dayGroups.length === 0 ? (
+          {!collapsed[lane.key] && lane.dayGroups.length === 0 ? (
             <div className="px-4 py-4 text-sm text-zinc-500">No rows in this lane.</div>
           ) : null}
 
-          {lane.dayGroups.map(([day, rows]) => (
+          {!collapsed[lane.key] &&
+            lane.dayGroups.map(([day, rows]) => (
             <div key={`${lane.key}-${day}`}>
               <div className="flex items-center justify-between gap-3 bg-white px-4 py-2">
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{day}</div>
@@ -108,7 +181,14 @@ export function SubmissionsTable({
                           <td className="border-b border-zinc-100 px-4 py-3">
                             {(() => {
                               const a = deriveNextAction(s);
-                              return <ActionPill tone={a.tone}>{a.label}</ActionPill>;
+                              return (
+                                <div>
+                                  <ActionPill tone={a.tone}>{a.label}</ActionPill>
+                                  {s.automationReason ? (
+                                    <div className="mt-1 text-xs text-zinc-500">{s.automationReason}</div>
+                                  ) : null}
+                                </div>
+                              );
                             })()}
                           </td>
 
