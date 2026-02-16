@@ -7,12 +7,19 @@ import type { ParsedSpec } from "./types";
 
 export const SPEC_PARSER_VERSION = "spec-v2";
 
+function stripPlaceholders(text: string) {
+  return String(text || "")
+    .replace(/\[\[(?:EQ|IMG):[^\]]+\]\]/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+\n/g, "\n\n");
+}
+
 /**
  * Parse a Pearson Unit Descriptor PDF text into structured LOs + ACs.
  * Pure function: input text -> output JSON. No DB. No filesystem.
  */
 export function parseSpec(text: string, docTitleFallback: string): ParsedSpec {
-  const t = text || "";
+  const t = stripPlaceholders(text || "");
 
   const issueLabel = parseIssueLabel(t);
 

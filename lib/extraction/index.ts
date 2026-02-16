@@ -7,6 +7,13 @@ import { cleanupBriefTasksMathWithOpenAi } from "@/lib/openai/briefMathCleanup";
 
 export type ExtractWarning = string;
 
+function stripEquationPlaceholders(text: string) {
+  return String(text || "")
+    .replace(/\[\[EQ:[^\]]+\]\]/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+\n/g, "\n\n");
+}
+
 export async function extractReferenceDocument(args: {
   type: string;
   filePath: string;
@@ -21,7 +28,7 @@ export async function extractReferenceDocument(args: {
   if (args.type === "SPEC") {
     // Today we only need PDFs for specs; DOCX spec support can be added as a separate extractor.
     const parsed = await pdfToText(buf);
-    text = parsed.text;
+    text = stripEquationPlaceholders(parsed.text);
     pageCount = parsed.pageCount;
   } else {
     // For non-spec docs, just return preview-compatible extraction for now.

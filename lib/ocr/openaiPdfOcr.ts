@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
+import { localVisionJson, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
 
 type OcrPage = {
   pageNumber: number;
@@ -139,6 +140,27 @@ async function ocrOnePageWithOpenAi(args: {
   return normalizeText(extractOutputText(json));
 }
 
+async function ocrOnePageWithLocal(args: {
+  pageNumber: number;
+  pngBase64: string;
+}) {
+  const prompt = [
+    "Extract all readable text from this assignment page.",
+    'Return strict JSON: {"text":"..."}',
+    "Keep meaningful line breaks. Do not summarize.",
+  ].join("\n");
+  const local = await localVisionJson("ocr", prompt, `data:image/png;base64,${args.pngBase64}`, {
+    timeoutMs: Number(process.env.AI_LOCAL_OCR_TIMEOUT_MS || process.env.AI_LOCAL_TIMEOUT_MS || 30000),
+  });
+  if (!local.ok) throw new Error(local.message || "Local OCR failed");
+  const localParsed = "parsed" in local ? local.parsed : null;
+  const localText = "text" in local ? local.text : "";
+  const text =
+    String((localParsed as any)?.text || "").trim() ||
+    String((localText || "")).trim();
+  return normalizeText(text);
+}
+
 export async function ocrPdfWithOpenAi(input: {
   pdfPath: string;
   requestId: string;
@@ -146,7 +168,7 @@ export async function ocrPdfWithOpenAi(input: {
   const warnings: string[] = [];
   const { apiKey } = resolveOpenAiApiKey("preferStandard");
   const model = getModel();
-  if (!apiKey) {
+  if (!apiKey && !shouldTryLocal("ocr")) {
     return {
       ok: false,
       pages: [],
@@ -169,13 +191,25 @@ export async function ocrPdfWithOpenAi(input: {
     for (let p = 1; p <= targetPages; p += 1) {
       const rendered = p === 1 ? first : await renderPdfPageToPng(pdfPathAbs, p);
       const pngBase64 = rendered.png.toString("base64");
-      const text = await ocrOnePageWithOpenAi({
-        apiKey,
-        model,
-        requestId: input.requestId,
-        pageNumber: p,
-        pngBase64,
-      });
+      let text = "";
+      let localErr = "";
+      if (shouldTryLocal("ocr")) {
+        try {
+          text = await ocrOnePageWithLocal({ pageNumber: p, pngBase64 });
+        } catch (e: any) {
+          localErr = String(e?.message || "Local OCR failed.");
+        }
+      }
+      if (!text && shouldTryOpenAi("ocr") && apiKey) {
+        text = await ocrOnePageWithOpenAi({
+          apiKey,
+          model,
+          requestId: input.requestId,
+          pageNumber: p,
+          pngBase64,
+        });
+      }
+      if (!text && localErr) warnings.push(`Local OCR fallback used: ${localErr}`);
       pages.push({
         pageNumber: p,
         text,

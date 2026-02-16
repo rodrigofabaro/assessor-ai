@@ -1,5 +1,14 @@
 "use client";
 
+function stripEquationTokens(text: string) {
+  return String(text || "")
+    .replace(/\[\[EQ:[^\]]+\]\]/g, "")
+    .replace(/\[\[IMG:[^\]]+\]\]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+\n/g, "\n\n")
+    .trim();
+}
+
 function gradePill(band: any): { cls: string; text: string } {
   const b = String(band || "").toUpperCase().trim();
 
@@ -99,7 +108,9 @@ function CriteriaColumn({
                 ) : null}
               </div>
 
-              <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">{c.description}</div>
+              <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
+                {stripEquationTokens(c.description)}
+              </div>
             </div>
           ))
         ) : (
@@ -124,7 +135,9 @@ export function LoCriteriaGrid({ learningOutcomes }: { learningOutcomes: any[] }
                 <div className="mt-1 h-8 w-1 rounded-full bg-zinc-900" />
                 <div>
                   <div className="text-sm font-semibold">Learning Outcome {lo.loCode}</div>
-                  <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words">{lo.description}</div>
+                  <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words">
+                    {stripEquationTokens(lo.description)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -144,7 +157,7 @@ export function LoCriteriaGrid({ learningOutcomes }: { learningOutcomes: any[] }
                       <div key={c.id || c.acCode} className="rounded-xl border border-amber-200 bg-white p-3">
                         <div className="text-sm font-semibold text-amber-900">{c.acCode || "—"}</div>
                         <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
-                          {c.description}
+                          {stripEquationTokens(c.description)}
                         </div>
                       </div>
                     ))}
