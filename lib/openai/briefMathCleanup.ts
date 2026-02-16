@@ -1,6 +1,7 @@
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
+import { localJsonText, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
 
 type BriefTask = {
   n?: number;
@@ -114,10 +115,6 @@ function extractResponseText(data: any, raw: string) {
 }
 
 async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: string; latex: string | null }>) {
-  const apiKey = pickApiKey();
-  if (!apiKey) return { ok: false as const, reason: "OPENAI_API_KEY missing" };
-
-  const model = readOpenAiModel().model;
   const prompt = [
     "You are fixing OCR-broken engineering math task text.",
     "Return strict JSON only.",
@@ -135,6 +132,40 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
     "",
     `Known equations JSON:\n${JSON.stringify(equations)}`,
   ].join("\n");
+
+  const parseCleanup = (parsed: any) => {
+    if (!parsed || typeof parsed !== "object") return null;
+    const nextText = String(parsed.text || "").trim();
+    const nextParts = Array.isArray(parsed.parts)
+      ? parsed.parts
+          .map((p: any) => ({ key: String(p?.key || "").trim(), text: String(p?.text || "").trim() }))
+          .filter((p: any) => p.key)
+      : [];
+    if (!nextText) return null;
+    return {
+      text: nextText,
+      parts: nextParts.length ? nextParts : undefined,
+    };
+  };
+
+  if (shouldTryLocal("cleanup")) {
+    const local = await localJsonText("cleanup", prompt, {
+      timeoutMs: Number(process.env.AI_LOCAL_CLEANUP_TIMEOUT_MS || process.env.AI_LOCAL_TIMEOUT_MS || 25000),
+    });
+    if (local.ok) {
+      const localParsed = "parsed" in local ? local.parsed : null;
+      const localText = "text" in local ? local.text : "";
+      const parsed = parseCleanup(localParsed || parseJsonObject(localText || ""));
+      if (parsed) return { ok: true as const, ...parsed };
+    }
+    if (!shouldTryOpenAi("cleanup")) {
+      return { ok: false as const, reason: local.message || "Local cleanup failed" };
+    }
+  }
+
+  const apiKey = pickApiKey();
+  if (!apiKey) return { ok: false as const, reason: "OPENAI_API_KEY missing" };
+  const model = readOpenAiModel().model;
 
   try {
     const res = await fetchOpenAiJson(
@@ -178,22 +209,9 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
       });
     }
     const outputText = extractResponseText(data, raw);
-    const parsed = parseJsonObject(outputText);
-    if (!parsed || typeof parsed !== "object") return { ok: false as const, reason: "Invalid cleanup JSON" };
-
-    const nextText = String(parsed.text || "").trim();
-    const nextParts = Array.isArray(parsed.parts)
-      ? parsed.parts
-          .map((p: any) => ({ key: String(p?.key || "").trim(), text: String(p?.text || "").trim() }))
-          .filter((p: any) => p.key)
-      : [];
-
-    if (!nextText) return { ok: false as const, reason: "Empty cleanup output" };
-    return {
-      ok: true as const,
-      text: nextText,
-      parts: nextParts.length ? nextParts : undefined,
-    };
+    const parsed = parseCleanup(parseJsonObject(outputText));
+    if (!parsed) return { ok: false as const, reason: "Invalid cleanup JSON" };
+    return { ok: true as const, ...parsed };
   } catch {
     return { ok: false as const, reason: "OpenAI request failed" };
   }

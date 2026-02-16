@@ -6,6 +6,7 @@ import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { defaultEquationFallbackPolicy, pickEquationFallbackCandidates } from "@/lib/extraction/brief/aiFallback";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
+import { localVisionJson, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
 
 export type Equation = {
   id: string;
@@ -424,19 +425,34 @@ async function openAiEquationFromPageImage(input: {
   pageImageDataUrl: string;
   anchorText?: string | null;
 }): Promise<{ latex: string | null; confidence: number }> {
+  const prompt = [
+    "Extract the mathematical equation from this assignment page and return only strict JSON.",
+    'JSON schema: {"latex":"<LaTeX or empty string>","confidence":<0..1>}',
+    "If no equation can be determined, return latex as empty string and low confidence.",
+    (input.anchorText || "").trim()
+      ? `Equation appears after this nearby text: "${(input.anchorText || "").trim()}"`
+      : "Extract the most likely missing equation near the task cue.",
+    "Do not include markdown fences."
+  ].join("\n");
+
+  if (shouldTryLocal("equation")) {
+    const local = await localVisionJson("equation", prompt, input.pageImageDataUrl, {
+      timeoutMs: Number(process.env.AI_LOCAL_EQUATION_TIMEOUT_MS || process.env.AI_LOCAL_TIMEOUT_MS || 25000),
+    });
+    if (local.ok) {
+      const parsed = ("parsed" in local ? local.parsed : {}) as any;
+      const latex = String(parsed?.latex || "").trim();
+      const confidence = Math.max(0, Math.min(1, Number(parsed?.confidence || 0)));
+      if (latex) return { latex, confidence: confidence || 0.7 };
+    }
+    if (!shouldTryOpenAi("equation")) return { latex: null, confidence: 0 };
+  }
+
   const apiKey = String(
     resolveOpenAiApiKey("preferStandard").apiKey || ""
   );
   if (!apiKey) return { latex: null, confidence: 0 };
   const model = readOpenAiModel().model;
-  const anchor = (input.anchorText || "").trim();
-  const prompt = [
-    "Extract the mathematical equation from this assignment page and return only strict JSON.",
-    'JSON schema: {"latex":"<LaTeX or empty string>","confidence":<0..1>}',
-    "If no equation can be determined, return latex as empty string and low confidence.",
-    anchor ? `Equation appears after this nearby text: "${anchor}"` : "Extract the most likely missing equation near the task cue.",
-    "Do not include markdown fences."
-  ].join("\n");
 
   try {
     const res = await fetchOpenAiJson(
@@ -505,7 +521,7 @@ async function resolveMissingEquationLatexWithOpenAi(buf: Buffer, equations: Equ
   const apiKey = String(
     resolveOpenAiApiKey("preferStandard").apiKey || ""
   );
-  if (!apiKey) return equations;
+  if (!apiKey && !shouldTryLocal("equation")) return equations;
   const candidateIds = pickEquationFallbackCandidates(equations, policy);
   if (!candidateIds.size) return equations;
   const matchesAnchorSemantics = (latex: string, anchor: string | null | undefined) => {
