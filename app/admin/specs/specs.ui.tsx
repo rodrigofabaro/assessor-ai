@@ -52,7 +52,7 @@ export function SpecList(props: {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-zinc-900">Units list</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">Specification list</h2>
         <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700">
           {props.counts.shown}/{props.counts.total}
         </span>
@@ -83,7 +83,7 @@ export function SpecList(props: {
 
       <div className="mt-3 grid max-h-[60vh] gap-2 overflow-auto pr-1">
         {props.documents.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No specs yet. Upload a spec to begin.</div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No specifications found. Upload a PDF to begin.</div>
         ) : (
           props.documents.map((d) => {
             const active = props.selectedDocId === d.id;
@@ -109,7 +109,7 @@ export function SpecList(props: {
                 </div>
                 <div className="mt-2 text-sm font-semibold">{title}</div>
                 <div className="mt-1 text-xs text-zinc-500">
-                  {issueLabel ? issueLabel : "Issue —"}
+                  {issueLabel ? issueLabel : "Issue not set"}
                 </div>
                 <div className="mt-2 text-[11px] text-zinc-500">
                   Uploaded {new Date(d.uploadedAt).toLocaleDateString()}
@@ -169,15 +169,15 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
 export function SpecViewer({ selectedDoc, learningOutcomes }: { selectedDoc: ReferenceDocument | null; learningOutcomes: any[] }) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
-      <h2 className="text-sm font-semibold">Spec viewer</h2>
+      <h2 className="text-sm font-semibold">Specification preview</h2>
       {!selectedDoc ? (
-        <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">Select a unit to view extracted LO/AC.</div>
+        <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">Select a specification to view extracted learning outcomes and criteria.</div>
       ) : learningOutcomes.length ? (
         <div className="mt-3 max-h-[68vh] overflow-auto pr-1">
           <LoCriteriaGrid learningOutcomes={learningOutcomes} />
         </div>
       ) : (
-        <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No extracted structure yet. Click Extract to generate LO/AC.</div>
+        <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No extracted structure available. Run Extract to generate learning outcomes and criteria.</div>
       )}
     </article>
   );
