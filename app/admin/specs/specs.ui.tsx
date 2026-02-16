@@ -51,7 +51,12 @@ export function SpecList(props: {
 }) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-sm font-semibold">Units list</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-zinc-900">Units list</h2>
+        <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700">
+          {props.counts.shown}/{props.counts.total}
+        </span>
+      </div>
       <div className="mt-3 grid gap-2">
         <input
           value={props.q}
@@ -90,15 +95,24 @@ export function SpecList(props: {
                 type="button"
                 onClick={() => props.onSelect(d.id)}
                 className={
-                  "rounded-xl border p-3 text-left " +
-                  (active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white hover:bg-zinc-50")
+                  "rounded-xl border p-3 text-left transition " +
+                  (active
+                    ? "border-zinc-300 bg-zinc-50 text-zinc-900 ring-1 ring-zinc-200"
+                    : "border-zinc-200 bg-white hover:bg-zinc-50")
                 }
               >
-                <StatusPill status={d.status} />
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <StatusPill status={d.status} />
+                  <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
+                    v{d.version}
+                  </span>
+                </div>
                 <div className="mt-2 text-sm font-semibold">{title}</div>
-                <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-500")}>v{d.version}</div>
-                <div className={"mt-1 text-xs " + (active ? "text-zinc-200" : "text-zinc-500")}>
+                <div className="mt-1 text-xs text-zinc-500">
                   {issueLabel ? issueLabel : "Issue —"}
+                </div>
+                <div className="mt-2 text-[11px] text-zinc-500">
+                  Uploaded {new Date(d.uploadedAt).toLocaleDateString()}
                 </div>
               </button>
             );
@@ -112,6 +126,10 @@ export function SpecList(props: {
 export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc: ReferenceDocument | null; learningOutcomes: any[] }) {
   const issue = formatIssueLabel(pickIssueLabel(selectedDoc)) || "—";
   const { unitCodeQualifier } = pickUnitIdentity(selectedDoc);
+  const criteriaCount = learningOutcomes.reduce(
+    (acc, lo) => acc + (Array.isArray(lo?.criteria) ? lo.criteria.length : 0),
+    0
+  );
 
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
@@ -138,6 +156,9 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
           </div>
           <div>
             <span className="text-zinc-500">LO count:</span> <span className="font-semibold text-zinc-900">{learningOutcomes.length}</span>
+          </div>
+          <div>
+            <span className="text-zinc-500">Criteria count:</span> <span className="font-semibold text-zinc-900">{criteriaCount}</span>
           </div>
         </div>
       )}
