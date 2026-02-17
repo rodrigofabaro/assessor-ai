@@ -7,6 +7,7 @@ import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
 import InlineEquationText from "./InlineEquationText";
 import { convertWordLinearToLatex } from "@/lib/math/wordLinearToLatex";
 import { computeEffectiveTaskConfidence, computeEffectiveTaskWarnings, isTaskAiCorrected } from "@/lib/briefs/warnings";
+import { notifyToast } from "@/lib/ui/toast";
 
 // --- Types ---
 
@@ -588,6 +589,18 @@ function parseLabelValueRows(text: string): ChartDatum[] {
   return out;
 }
 
+function stripEquationTokensForFailureTable(text: string) {
+  const src = String(text || "");
+  const isFailureTable =
+    /\bfailure reason\b/i.test(src) &&
+    /\bnumber of chips\b/i.test(src);
+  if (!isFailureTable) return src;
+  return src
+    .replace(/\[\[EQ:[^\]]+\]\]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function deriveLabelHints(text: string): string[] {
   const fromRows = parseLabelValueRows(text).map((r) => String(r.label || "").trim()).filter(Boolean);
   if (fromRows.length) return Array.from(new Set(fromRows)).slice(0, 20);
@@ -739,6 +752,17 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
       const instructionText = [part.text, ...part.children.map((c) => c.text)].join("\n");
       addSpecsFor(part.key, inferChartTitle(part), part.text, instructionText);
     }
+
+    // Strong guard for mixed Task 2 layouts:
+    // when part "b" is clearly the failure-rate table block, keep charts on part "a" only.
+    const partB = parts.find((p) => String(p?.key || "").toLowerCase() === "b");
+    const bText = String(partB?.text || "");
+    const bIsFailureTable =
+      /\bfailure reason\b/i.test(bText) &&
+      /\bnumber of chips\b/i.test(bText);
+    if (bIsFailureTable) {
+      return specs.filter((s) => String(s?.partKey || "").toLowerCase() !== "b");
+    }
   } else {
     addSpecsFor("task", "Task Data", fallbackBodyText, fallbackBodyText);
   }
@@ -881,6 +905,7 @@ function renderStructuredParts(
     chartsByPart?: Record<string, TaskChartSpec[]>;
     onRecoverChart?: (spec: TaskChartSpec) => Promise<void> | void;
     recoveringChartIds?: Set<string>;
+    chartRecoveryErrors?: Record<string, string>;
     suppressInlineSamplePowerTable?: boolean;
     samplePowerTableBlock?: StructuredTableBlock | null;
     reflowWrappedLines?: boolean;
@@ -906,10 +931,12 @@ function renderStructuredParts(
                 ? stripInlineSamplePowerTable(part.text)
                 : part.text;
               if (!cleanPartText) return null;
+              const sanitizedPartText = stripEquationTokensForFailureTable(cleanPartText);
+              if (!sanitizedPartText) return null;
               return (
                 <div>
                   {renderPdfTextBlocks(
-                    cleanPartText,
+                    sanitizedPartText,
                     `${keyPrefix}-parttext-${part.key}-${partIndex}`,
                     { ...options, reflowWrappedLines: options?.reflowWrappedLines }
                   )}
@@ -925,14 +952,19 @@ function renderStructuredParts(
                 <div key={`${keyPrefix}-chart-wrap-${spec.id}`} className="space-y-2">
                   <ChartPreview spec={spec} openPdfHref={options?.openPdfHref} />
                   {spec.pending ? (
-                    <button
-                      type="button"
-                      onClick={() => options?.onRecoverChart?.(spec)}
-                      disabled={!options?.onRecoverChart || !!options?.recoveringChartIds?.has(spec.id)}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-                    >
-                      {options?.recoveringChartIds?.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => options?.onRecoverChart?.(spec)}
+                        disabled={!options?.onRecoverChart || !!options?.recoveringChartIds?.has(spec.id)}
+                        className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                      >
+                        {options?.recoveringChartIds?.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
+                      </button>
+                      {options?.chartRecoveryErrors?.[spec.id] ? (
+                        <div className="text-[11px] text-rose-700">{options.chartRecoveryErrors[spec.id]}</div>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               ))}
@@ -992,8 +1024,10 @@ function renderStructuredParts(
                         ? stripInlineSamplePowerTable(child.text)
                         : child.text;
                       if (!cleanChildText) return null;
+                      const sanitizedChildText = stripEquationTokensForFailureTable(cleanChildText);
+                      if (!sanitizedChildText) return null;
                       return renderPdfTextBlocks(
-                        cleanChildText,
+                        sanitizedChildText,
                         `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
                         { ...options, reflowWrappedLines: options?.reflowWrappedLines }
                       );
@@ -1106,6 +1140,7 @@ export function TaskCard({
   const [taskLatexInputMode, setTaskLatexInputMode] = useState<"latex" | "word">("latex");
   const [chartOverrides, setChartOverrides] = useState<Record<string, { data: ChartDatum[]; confidence: number; pending: false; note?: string }>>({});
   const [recoveringChartIds, setRecoveringChartIds] = useState<Set<string>>(new Set());
+  const [chartRecoveryErrors, setChartRecoveryErrors] = useState<Record<string, string>>({});
   const attemptedChartRecoveryRef = useRef<Set<string>>(new Set());
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
@@ -1284,6 +1319,11 @@ export function TaskCard({
     if (recoveringChartIds.has(spec.id)) return;
 
     setRecoveringChartIds((prev) => new Set(prev).add(spec.id));
+    setChartRecoveryErrors((prev) => {
+      const next = { ...prev };
+      delete next[spec.id];
+      return next;
+    });
     try {
       const pageGuess = Number((Array.isArray(task?.pages) ? task.pages[0] : 1) || 1);
       const partKey = String(spec.partKey || "").toLowerCase();
@@ -1293,18 +1333,27 @@ export function TaskCard({
         .filter(([k]) => String(k || "").toLowerCase() !== partKey)
         .flatMap(([, v]) => deriveLabelHints(String(v || "")))
         .slice(0, 40);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 65000);
       const res = await fetch(`/api/reference-documents/${documentId}/chart-recover`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pageNumber: pageGuess, anchorText, expectedLabels, avoidLabels }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json().catch(() => ({}));
       const points = Array.isArray(data?.points)
         ? data.points
             .map((p: any) => ({ label: String(p?.label || "").trim(), value: Number(p?.value) }))
             .filter((p: any) => p.label && Number.isFinite(p.value))
         : [];
-      if (!res.ok || points.length < 2) return;
+      if (!res.ok || points.length < 2) {
+        const msg = String(data?.message || data?.error || "AI could not extract graph values from this page.");
+        setChartRecoveryErrors((prev) => ({ ...prev, [spec.id]: msg }));
+        notifyToast("error", msg);
+        return;
+      }
 
       const provider = String(data?.provider || "ai").toLowerCase();
       const baseConfidence = Number(data?.confidence || 0);
@@ -1338,6 +1387,14 @@ export function TaskCard({
           note: `Recovered from PDF image (${provider}).`,
         },
       }));
+      notifyToast("success", `Recovered ${points.length} graph values via ${provider}.`);
+    } catch (e: any) {
+      const msg =
+        e?.name === "AbortError"
+          ? "AI graph recovery timed out. Try again or narrow to the exact graph page."
+          : String(e?.message || "AI graph recovery failed.");
+      setChartRecoveryErrors((prev) => ({ ...prev, [spec.id]: msg }));
+      notifyToast("error", msg);
     } finally {
       setRecoveringChartIds((prev) => {
         const next = new Set(prev);
@@ -1701,6 +1758,7 @@ export function TaskCard({
                                 chartsByPart,
                                 onRecoverChart: recoverChartData,
                                 recoveringChartIds,
+                                chartRecoveryErrors,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1735,6 +1793,7 @@ export function TaskCard({
                                 chartsByPart,
                                 onRecoverChart: recoverChartData,
                                 recoveringChartIds,
+                                chartRecoveryErrors,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1801,14 +1860,19 @@ export function TaskCard({
                     <div key={`unplaced-${spec.id}`} className="space-y-2">
                       <ChartPreview spec={spec} openPdfHref={openPdfHref} />
                       {spec.pending ? (
-                        <button
-                          type="button"
-                          onClick={() => recoverChartData(spec)}
-                          disabled={recoveringChartIds.has(spec.id)}
-                          className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-                        >
-                          {recoveringChartIds.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
-                        </button>
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => recoverChartData(spec)}
+                            disabled={recoveringChartIds.has(spec.id)}
+                            className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                          >
+                            {recoveringChartIds.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
+                          </button>
+                          {chartRecoveryErrors[spec.id] ? (
+                            <div className="text-[11px] text-rose-700">{chartRecoveryErrors[spec.id]}</div>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   ))}
