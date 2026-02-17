@@ -484,8 +484,6 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             briefUnitId={rx.briefUnitId}
             setBriefUnitId={rx.setBriefUnitId}
             criteria={rx.criteriaForSelectedUnit as unknown as Criterion[]}
-            mapSelected={rx.mapSelected}
-            setMapSelected={rx.setMapSelected}
             assignmentCodeInput={rx.assignmentCodeInput}
             setAssignmentCodeInput={rx.setAssignmentCodeInput}
           />
