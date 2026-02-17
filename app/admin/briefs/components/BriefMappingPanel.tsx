@@ -23,6 +23,21 @@ function normCode(s: any) {
   return String(s || "").trim().toUpperCase();
 }
 
+function bandRank(input: string) {
+  const up = String(input || "").toUpperCase();
+  if (up === "PASS" || up.startsWith("P")) return 1;
+  if (up === "MERIT" || up.startsWith("M")) return 2;
+  if (up === "DISTINCTION" || up.startsWith("D")) return 3;
+  return 9;
+}
+
+function sortByBandThenCode(a: { gradeBand?: string; acCode?: string }, b: { gradeBand?: string; acCode?: string }) {
+  const ar = bandRank(String(a.gradeBand || a.acCode || ""));
+  const br = bandRank(String(b.gradeBand || b.acCode || ""));
+  if (ar !== br) return ar - br;
+  return normCode(a.acCode).localeCompare(normCode(b.acCode));
+}
+
 export default function BriefMappingPanel({
   draft,
   units,
@@ -36,6 +51,10 @@ export default function BriefMappingPanel({
 }: Props) {
   const kind = draft?.kind || "";
   const detectedCodes: string[] = (draft?.detectedCriterionCodes || []).map((x: any) => normCode(x));
+  const detectedCodesSorted = useMemo(
+    () => [...detectedCodes].sort((a, b) => sortByBandThenCode({ acCode: a }, { acCode: b })),
+    [detectedCodes]
+  );
   const unitGuess = draft?.unitCodeGuess ? String(draft.unitCodeGuess) : "";
 
   const [critQ, setCritQ] = useState("");
@@ -70,23 +89,8 @@ export default function BriefMappingPanel({
       });
     }
 
-    // Sort: selected first, then detected, then band, then code
-    const bandRank: Record<string, number> = { PASS: 1, MERIT: 2, DISTINCTION: 3 };
-    list.sort((a: any, b: any) => {
-      const aSel = !!mapSelected?.[normCode(a.acCode)];
-      const bSel = !!mapSelected?.[normCode(b.acCode)];
-      if (aSel !== bSel) return aSel ? -1 : 1;
-
-      const aDet = detectedCodes.includes(normCode(a.acCode));
-      const bDet = detectedCodes.includes(normCode(b.acCode));
-      if (aDet !== bDet) return aDet ? -1 : 1;
-
-      const ar = bandRank[String(a.gradeBand || "").toUpperCase()] || 9;
-      const br = bandRank[String(b.gradeBand || "").toUpperCase()] || 9;
-      if (ar !== br) return ar - br;
-
-      return normCode(a.acCode).localeCompare(normCode(b.acCode));
-    });
+    // Always display criteria in P -> M -> D sequence.
+    list.sort((a: any, b: any) => sortByBandThenCode(a, b));
 
     return list;
   }, [criteria, critQ, view, band, mapSelected, detectedCodes]);
@@ -114,7 +118,7 @@ export default function BriefMappingPanel({
     return Array.from(groups.entries())
       .map(([loCode, items]) => ({
         loCode,
-        items: items.sort((a, b) => normCode(a.acCode).localeCompare(normCode(b.acCode))),
+        items: items.sort((a, b) => sortByBandThenCode(a, b)),
       }))
       .sort((a, b) => a.loCode.localeCompare(b.loCode));
   }, [filteredCriteria]);
@@ -147,6 +151,9 @@ export default function BriefMappingPanel({
           <div className="text-sm font-semibold text-zinc-900">Mapping</div>
           <div className="mt-0.5 text-xs text-zinc-600">
             Link this brief to a locked unit spec, then confirm which criteria codes this brief actually targets.
+          </div>
+          <div className="mt-1 text-xs text-zinc-500">
+            Manual selection is optional. If nothing is selected, lock uses auto-detected criteria.
           </div>
         </div>
 
@@ -221,7 +228,7 @@ export default function BriefMappingPanel({
           <div>
             <div className="font-semibold text-zinc-900">Criteria mapping</div>
             <p className="mt-1 text-sm text-zinc-700 break-words">
-              Detected codes: <span className="font-semibold">{detectedCodes.length ? detectedCodes.join(", ") : "(none)"}</span>
+              Detected codes: <span className="font-semibold">{detectedCodesSorted.length ? detectedCodesSorted.join(", ") : "(none)"}</span>
             </p>
           </div>
 
@@ -242,7 +249,7 @@ export default function BriefMappingPanel({
                 onClick={() => setView("all")}
                 className={cx(
                   "h-8 rounded-lg px-3 text-xs font-semibold",
-                  view === "all" ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"
+                  view === "all" ? "bg-emerald-600 text-white" : "text-zinc-700 hover:bg-zinc-50"
                 )}
               >
                 All unit criteria
@@ -319,7 +326,7 @@ export default function BriefMappingPanel({
                               className={cx(
                                 "flex items-start gap-3 rounded-2xl border p-3 text-sm transition",
                                 checked
-                                  ? "border-zinc-900 bg-zinc-900 text-white"
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-950"
                                   : suggested
                                   ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-50"
                                   : "border-zinc-200 bg-white hover:bg-zinc-50"
@@ -339,11 +346,11 @@ export default function BriefMappingPanel({
                               />
 
                               <div className="min-w-0 flex-1">
-                                <div className={cx("flex flex-wrap items-center gap-2", checked ? "text-white" : "text-zinc-900")}>
+                                <div className={cx("flex flex-wrap items-center gap-2", checked ? "text-emerald-900" : "text-zinc-900")}>
                                   <span
                                     className={cx(
                                       "rounded-lg border px-2 py-0.5 text-xs font-bold",
-                                      checked ? "border-white/30 bg-white/10" : "border-zinc-200 bg-white"
+                                      checked ? "border-emerald-300 bg-emerald-100 text-emerald-900" : "border-zinc-200 bg-white"
                                     )}
                                   >
                                     {c.acCode}
@@ -360,7 +367,7 @@ export default function BriefMappingPanel({
                                       className={cx(
                                         "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
                                         checked
-                                          ? "border-emerald-200/40 bg-emerald-200/10 text-emerald-200"
+                                          ? "border-emerald-300 bg-emerald-100 text-emerald-900"
                                           : "border-emerald-200 bg-emerald-100 text-emerald-900"
                                       )}
                                     >
@@ -369,13 +376,13 @@ export default function BriefMappingPanel({
                                   ) : null}
 
                                   {checked ? (
-                                    <span className="rounded-full border border-white/25 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white">
+                                    <span className="rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
                                       Selected
                                     </span>
                                   ) : null}
                                 </div>
 
-                                <div className={cx("mt-1 text-xs leading-relaxed", checked ? "text-zinc-200" : "text-zinc-700")}>
+                                <div className={cx("mt-1 text-xs leading-relaxed", checked ? "text-emerald-900" : "text-zinc-700")}>
                                   {c.description}
                                 </div>
                               </div>
@@ -397,7 +404,7 @@ export default function BriefMappingPanel({
         </p>
 
         <p className="mt-2 text-xs text-zinc-500">
-          Lock stores the selected criteria mapping and binds this brief PDF to the chosen locked unit spec.
+          Lock binds this brief PDF to the chosen locked unit spec and stores either your selected mapping or the auto-detected codes.
         </p>
       </div>
     </div>
