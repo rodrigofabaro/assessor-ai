@@ -922,6 +922,35 @@ function ChartPreview({ spec, openPdfHref }: { spec: TaskChartSpec; openPdfHref?
   );
 }
 
+function renderStructuredTableBlock(block: StructuredTableBlock, key: string) {
+  return (
+    <div key={key} className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
+      <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
+        <thead className="bg-zinc-100">
+          <tr>
+            {block.headers.map((header: string, idx: number) => (
+              <th key={`${key}-h-${idx}`} className="border border-zinc-300 px-3 py-2 font-semibold">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {block.rows.map((row: string[], rowIdx: number) => (
+            <tr key={`${key}-r-${rowIdx}`}>
+              {row.map((cell: string, cellIdx: number) => (
+                <td key={`${key}-c-${rowIdx}-${cellIdx}`} className="border border-zinc-300 px-3 py-2 align-top">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function renderStructuredParts(
   parts: StructuredPart[],
   keyPrefix: string,
@@ -962,6 +991,33 @@ function renderStructuredParts(
               if (!cleanPartText) return null;
               const sanitizedPartText = stripEquationTokensForFailureTable(cleanPartText);
               if (!sanitizedPartText) return null;
+
+              const partKeyLower = String(part?.key || "").toLowerCase();
+              const isFailureTablePart =
+                partKeyLower === "b" &&
+                /\bfailure reason\b/i.test(sanitizedPartText) &&
+                /\bnumber of chips\b/i.test(sanitizedPartText);
+              if (isFailureTablePart) {
+                const partBlocks = detectTableBlocks({ text: sanitizedPartText } as any).filter(
+                  (b): b is StructuredTableBlock => b?.kind === "TABLE"
+                );
+                const primary = partBlocks[0] || null;
+                if (primary) {
+                  const lines = sanitizedPartText.split("\n");
+                  const startLine = Math.max(0, Number(primary.range?.startLine || 0));
+                  const endLine = Math.max(startLine, Number(primary.range?.endLine || startLine));
+                  const before = lines.slice(0, startLine).join("\n").trim();
+                  const after = lines.slice(endLine).join("\n").trim();
+                  return (
+                    <div className="space-y-3">
+                      {before ? renderPdfTextBlocks(before, `${keyPrefix}-parttext-before-${part.key}-${partIndex}`, { ...options, reflowWrappedLines: options?.reflowWrappedLines }) : null}
+                      {renderStructuredTableBlock(primary, `${keyPrefix}-parttable-${part.key}-${partIndex}`)}
+                      {after ? renderPdfTextBlocks(after, `${keyPrefix}-parttext-after-${part.key}-${partIndex}`, { ...options, reflowWrappedLines: options?.reflowWrappedLines }) : null}
+                    </div>
+                  );
+                }
+              }
+
               return (
                 <div>
                   {renderPdfTextBlocks(
