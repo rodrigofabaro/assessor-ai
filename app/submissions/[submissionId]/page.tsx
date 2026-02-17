@@ -23,6 +23,7 @@ type ExtractionRun = {
   finishedAt?: string | null;
   warnings?: any[] | null;
   error?: string | null;
+  sourceMeta?: any;
   pages: ExtractedPage[];
 };
 
@@ -187,6 +188,10 @@ export default function SubmissionDetailPage() {
   );
 
   const active = pagesSorted[Math.min(Math.max(activePage, 0), Math.max(pagesSorted.length - 1, 0))];
+  const coverMeta = useMemo(() => {
+    const c = latestRun?.sourceMeta?.coverMetadata;
+    return c && typeof c === "object" ? c : null;
+  }, [latestRun]);
 
   const latestAssessment = useMemo(() => {
     const a = submission?.assessments ?? [];
@@ -853,6 +858,38 @@ export default function SubmissionDetailPage() {
                           <li key={i}>{w}</li>
                         ))}
                       </ul>
+                    </div>
+                  ) : null}
+
+                  {coverMeta ? (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide">Cover Metadata</div>
+                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                        <div>
+                          <span className="font-semibold">Student:</span>{" "}
+                          {String(coverMeta?.studentName?.value || "—")}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Student ID:</span>{" "}
+                          {String(coverMeta?.studentId?.value || "—")}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Unit:</span>{" "}
+                          {String(coverMeta?.unitCode?.value || "—")}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Assignment:</span>{" "}
+                          {String(coverMeta?.assignmentCode?.value || "—")}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Submission Date:</span>{" "}
+                          {String(coverMeta?.submissionDate?.value || "—")}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Confidence:</span>{" "}
+                          {Number(coverMeta?.confidence || 0).toFixed(2)}
+                        </div>
+                      </div>
                     </div>
                   ) : null}
 

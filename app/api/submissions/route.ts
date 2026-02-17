@@ -33,6 +33,7 @@ export async function GET() {
           overallConfidence: true,
           pageCount: true,
           warnings: true,
+          sourceMeta: true,
         },
       },
     },
@@ -50,6 +51,7 @@ export async function GET() {
             overallConfidence: latestRun.overallConfidence,
             pageCount: latestRun.pageCount,
             warnings: latestRun.warnings,
+            sourceMeta: latestRun.sourceMeta,
           }
         : null,
     });
