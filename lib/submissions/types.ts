@@ -33,6 +33,8 @@ export type SubmissionRow = {
   automationReason?: string | null;
   automationExceptionCode?: string | null;
   automationRecommendedAction?: string | null;
+  extractionMode?: "COVER_ONLY" | "FULL" | null;
+  coverReady?: boolean | null;
   extractionQuality?: {
     score: number;
     band: "HIGH" | "MEDIUM" | "LOW";

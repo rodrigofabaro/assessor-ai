@@ -180,6 +180,16 @@ export function SubmissionsTable({
                               <div className="flex flex-wrap items-center gap-2">
                                 <StatusPill>{s.status}</StatusPill>
                                 <ActionPill tone={a.tone}>{a.label}</ActionPill>
+                                {s.extractionMode ? (
+                                  <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
+                                    {s.extractionMode}
+                                  </span>
+                                ) : null}
+                                {s.coverReady ? (
+                                  <span className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-700">
+                                    COVER_READY
+                                  </span>
+                                ) : null}
                                 {typeof s.extractionQuality?.score === "number" ? (
                                   <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
                                     Q{Math.round(s.extractionQuality.score)} · {s.extractionQuality.band}
