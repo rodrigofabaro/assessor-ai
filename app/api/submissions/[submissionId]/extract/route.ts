@@ -161,7 +161,7 @@ export async function POST(
 
   try {
     const res = await extractFile(submission.storagePath, submission.filename);
-    const coverOnlyMode = envBool("SUBMISSION_EXTRACT_COVER_ONLY", false);
+    const coverOnlyMode = envBool("SUBMISSION_EXTRACT_COVER_ONLY", true);
     const coverPageLimit = Math.max(1, Math.min(3, Number(process.env.SUBMISSION_EXTRACT_COVER_PAGE_LIMIT || 2)));
 
     // Ensure we always have at least one page for UI consistency
