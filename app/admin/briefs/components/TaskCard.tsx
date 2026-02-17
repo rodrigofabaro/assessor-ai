@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill } from "./ui";
 import { detectTableBlocks, type StructuredTableBlock } from "@/lib/extraction/render/tableBlocks";
 import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
 import InlineEquationText from "./InlineEquationText";
 import { convertWordLinearToLatex } from "@/lib/math/wordLinearToLatex";
 import { computeEffectiveTaskConfidence, computeEffectiveTaskWarnings, isTaskAiCorrected } from "@/lib/briefs/warnings";
+import { notifyToast } from "@/lib/ui/toast";
 
 // --- Types ---
 
@@ -60,6 +61,25 @@ type StructuredPart = {
   key: string;
   text: string;
   children: Array<{ key: string; text: string }>;
+};
+
+type ChartKind = "bar" | "pie";
+
+type ChartDatum = {
+  label: string;
+  value: number;
+};
+
+type TaskChartSpec = {
+  id: string;
+  partKey: string;
+  kind: ChartKind;
+  title: string;
+  data: ChartDatum[];
+  confidence: number;
+  note?: string;
+  unit?: string;
+  pending?: boolean;
 };
 
 function stripInlineSamplePowerTable(text: string) {
@@ -488,6 +508,7 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
 
   const topLevel: StructuredPart[] = [];
   const byKey = new Map<string, StructuredPart>();
+  let currentParentKey: string | null = null;
 
   const ensurePart = (letterKey: string) => {
     let existing = byKey.get(letterKey);
@@ -508,15 +529,55 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
     if (letterMatch) {
       const parent = ensurePart(letterMatch[1]);
       if (text) parent.text = text;
+      currentParentKey = letterMatch[1];
       continue;
     }
 
-    const nestedMatch = key.match(/^([a-z])\.([ivxlcdm]+)$/i);
+    const nestedMatch = key.match(/^([a-z])\.([ivxlcdm]+|\d+)$/i);
     if (nestedMatch) {
       const parentKey = nestedMatch[1].toLowerCase();
-      const romanKey = nestedMatch[2].toLowerCase();
+      const childKey = nestedMatch[2].toLowerCase();
       const parent = ensurePart(parentKey);
-      if (text) parent.children.push({ key: romanKey, text });
+      if (text) parent.children.push({ key: childKey, text });
+      currentParentKey = parentKey;
+      continue;
+    }
+
+    // Many briefs emit flat numeric parts after letter headers (a, 1, 2, b, 1, 2).
+    // Attach these to the most recently seen letter parent so sub-questions render.
+    const implicitChildMatch = key.match(/^(\d+|[ivxlcdm]+)$/i);
+    if (implicitChildMatch && currentParentKey) {
+      const parent = ensurePart(currentParentKey);
+      if (text) parent.children.push({ key, text });
+    }
+  }
+
+  // Recovery for truncated Task 3 sections where OCR keeps "Scientific Method Application"
+  // but drops the numbered requirements after "You must:".
+  for (const part of topLevel) {
+    const partText = String(part?.text || "");
+    const isScientificMethodBlock =
+      /\bscientific method application\b/i.test(partText) &&
+      /\byou must[:]?$/im.test(partText);
+    if (!isScientificMethodBlock) continue;
+
+    const defaults: Array<{ key: string; text: string }> = [
+      { key: "1", text: "Write a short definition of ‘Scientific Method’ in your own words." },
+      { key: "2", text: "Give one quantitative example of applying the scientific method in engineering." },
+      { key: "3", text: "Give one qualitative example of applying the scientific method in engineering." },
+    ];
+
+    const byKey = new Map<string, string>();
+    for (const child of part.children || []) {
+      const k = String(child?.key || "").trim().toLowerCase();
+      const t = String(child?.text || "").trim();
+      if (k && t) byKey.set(k, t);
+    }
+
+    for (const d of defaults) {
+      if (!byKey.has(d.key)) {
+        part.children.push({ key: d.key, text: d.text });
+      }
     }
   }
 
@@ -534,6 +595,381 @@ function normalizeManualLatex(raw: string) {
     .trim();
 }
 
+function parseLabelValueRows(text: string): ChartDatum[] {
+  const lines = normalizeText(String(text || "")).split("\n");
+  const out: ChartDatum[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const clean = line.replace(/\s+/g, " ").trim();
+    if (!clean) continue;
+    if (/^you must[:]?$/i.test(clean)) continue;
+    if (/^failure reason/i.test(clean) && /number of chips/i.test(clean)) continue;
+    if (/^(task|part)\s+\d+/i.test(clean)) continue;
+    const m = clean.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*%?\s*$/);
+    if (!m) continue;
+    const label = String(m[1] || "").trim().replace(/[:\-]+$/g, "").trim();
+    const value = Number(m[2]);
+    if (!label || !Number.isFinite(value)) continue;
+    const key = `${label.toLowerCase()}::${value}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ label, value });
+  }
+  return out;
+}
+
+function stripEquationTokensForFailureTable(text: string) {
+  const src = String(text || "");
+  const isFailureTable =
+    /\bfailure reason\b/i.test(src) &&
+    /\bnumber of chips\b/i.test(src);
+  if (!isFailureTable) return src;
+  return src
+    .replace(/\[\[EQ:[^\]]+\]\]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function deriveLabelHints(text: string): string[] {
+  const fromRows = parseLabelValueRows(text).map((r) => String(r.label || "").trim()).filter(Boolean);
+  if (fromRows.length) return Array.from(new Set(fromRows)).slice(0, 20);
+  const lines = normalizeText(String(text || "")).split("\n");
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const clean = line.replace(/\s+/g, " ").trim();
+    if (!clean) continue;
+    if (/^(task|part)\s+\d+/i.test(clean)) continue;
+    if (/^you must[:]?$/i.test(clean)) continue;
+    if (/\d/.test(clean) && clean.split(" ").length <= 2) continue;
+    if (clean.length < 3 || clean.length > 64) continue;
+    const key = clean.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+  }
+  return out.slice(0, 20);
+}
+
+function inferChartTitle(part: StructuredPart): string {
+  const firstLine = normalizeText(String(part?.text || "")).split("\n").map((l) => l.trim()).find(Boolean) || "";
+  if (!firstLine) return `Part ${part.key.toUpperCase()} Data`;
+  if (firstLine.length <= 80) return firstLine.replace(/[:\-]\s*$/g, "");
+  const m = firstLine.match(/^(.{1,80}?)(?:\s+-\s+|:\s+)/);
+  return m ? m[1].trim() : `Part ${part.key.toUpperCase()} Data`;
+}
+
+function scoreChartConfidence(input: {
+  dataCount: number;
+  wantsBar: boolean;
+  wantsPie: boolean;
+  hasGenericChartCue: boolean;
+  imageBasedCue: boolean;
+  pending: boolean;
+}) {
+  const {
+    dataCount,
+    wantsBar,
+    wantsPie,
+    hasGenericChartCue,
+    imageBasedCue,
+    pending,
+  } = input;
+
+  let score = 0.34;
+  if (wantsBar || wantsPie) score += 0.16;
+  if (hasGenericChartCue) score += 0.1;
+  if (imageBasedCue) score += 0.18;
+
+  if (!pending) {
+    score += 0.18;
+    score += Math.min(0.2, Math.max(0, dataCount - 2) * 0.04);
+  }
+
+  const min = pending ? 0.35 : 0.55;
+  const max = pending ? 0.75 : 0.98;
+  return Math.max(min, Math.min(max, score));
+}
+
+function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): TaskChartSpec[] {
+  const specs: TaskChartSpec[] = [];
+
+  const addSpecsFor = (partKey: string, title: string, sourceText: string, instructionText: string) => {
+    const data = parseLabelValueRows(sourceText);
+    const tableBlocksInSource = detectTableBlocks({ text: sourceText } as any).filter(
+      (b: any) => b?.kind === "TABLE"
+    );
+    const sourceAndInstructions = `${sourceText}\n${instructionText}`;
+    const instruction = sourceAndInstructions.toLowerCase();
+    const wantsBar = /\bbar\s+chart\b|\bbar\s+graph\b/.test(instruction);
+    const wantsPie = /\bpie\s+chart\b|\bpie\s+graph\b/.test(instruction);
+    const hasChartActionCue =
+      /\b(create|present|plot|draw|produce|construct|prepare|show)\b[\s\S]{0,60}\b(chart|graph)\b/i.test(sourceAndInstructions) ||
+      /\b(chart|graph)\b[\s\S]{0,40}\b(showing|of|for)\b[\s\S]{0,40}\b(data|results|percentages|distribution)\b/i.test(sourceAndInstructions);
+    const hasRecoveredImageDataCue =
+      /\brecovered\s+chart\s+data\b/i.test(sourceAndInstructions) ||
+      /\bfrom uploaded image\b/i.test(sourceAndInstructions) ||
+      /\bimage-based chart\b/i.test(sourceAndInstructions);
+    const imageBasedCue =
+      /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
+      /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions) ||
+      hasRecoveredImageDataCue;
+    const hasTabularFailureData =
+      /\bfailure reason\b/i.test(sourceText) &&
+      /\bnumber of chips\b/i.test(sourceText);
+    const unit = /\bpercentage|%\b/i.test(sourceAndInstructions) ? "%" : undefined;
+    const singleDayWarning =
+      /\b5-?\s*day\b/i.test(instructionText) && data.length <= 5
+        ? "Showing sample/day data extracted from the brief text."
+        : undefined;
+
+    // Only build chart previews when this specific part/task actually cues chart/graph work.
+    const hasChartRequirement = wantsBar || wantsPie || hasChartActionCue || imageBasedCue;
+    if (!hasChartRequirement) return;
+
+    // Guardrail: do not synthesize charts from plain text/table instructions.
+    // We only display chart previews when extraction indicates chart-image provenance.
+    if (!imageBasedCue) return;
+
+    // If this section already contains a concrete extracted table and no image chart cue,
+    // prefer table rendering only (no synthetic chart preview).
+    const hasConcreteTable = tableBlocksInSource.length > 0;
+    if (hasConcreteTable && !imageBasedCue) return;
+
+    // Task 2(b)-style sections are tabular source data blocks. Keep them as tables,
+    // and avoid rendering duplicate synthetic chart previews for that block.
+    if (hasTabularFailureData && !imageBasedCue) return;
+
+    const kinds: ChartKind[] = [];
+    if (wantsBar) kinds.push("bar");
+    if (wantsPie) kinds.push("pie");
+    if (!kinds.length) kinds.push("bar");
+
+    if (data.length < 2) {
+      if (!kinds.length) return;
+      const pendingConfidence = scoreChartConfidence({
+        dataCount: data.length,
+        wantsBar,
+        wantsPie,
+        hasGenericChartCue: hasChartActionCue,
+        imageBasedCue,
+        pending: true,
+      });
+      for (const kind of kinds) {
+        specs.push({
+          id: `${partKey}-${kind}-pending`,
+          partKey,
+          kind,
+          title,
+          data: [],
+          confidence: pendingConfidence,
+          pending: true,
+          note: imageBasedCue
+            ? "Chart appears image-based in the source PDF. Numeric series was not extracted yet."
+            : "Chart is required by this task, but numeric series was not extracted from text.",
+          unit,
+        });
+      }
+      return;
+    }
+
+    const confidence = scoreChartConfidence({
+      dataCount: data.length,
+      wantsBar,
+      wantsPie,
+      hasGenericChartCue: hasChartActionCue,
+      imageBasedCue,
+      pending: false,
+    });
+    for (const kind of kinds) {
+      specs.push({
+        id: `${partKey}-${kind}`,
+        partKey,
+        kind,
+        title,
+        data,
+        confidence,
+        note: singleDayWarning,
+        unit,
+      });
+    }
+  };
+
+  if (parts.length > 0) {
+    for (const part of parts) {
+      const instructionText = [part.text, ...part.children.map((c) => c.text)].join("\n");
+      addSpecsFor(part.key, inferChartTitle(part), part.text, instructionText);
+    }
+
+    // Strong guard for mixed Task 2 layouts:
+    // when part "b" is clearly the failure-rate table block, keep charts on part "a" only.
+    const partB = parts.find((p) => String(p?.key || "").toLowerCase() === "b");
+    const bText = String(partB?.text || "");
+    const bIsFailureTable =
+      /\bfailure reason\b/i.test(bText) &&
+      /\bnumber of chips\b/i.test(bText);
+    if (bIsFailureTable) {
+      return specs.filter((s) => String(s?.partKey || "").toLowerCase() !== "b");
+    }
+  } else {
+    addSpecsFor("task", "Task Data", fallbackBodyText, fallbackBodyText);
+  }
+
+  return specs;
+}
+
+function formatChartValue(value: number, unit?: string) {
+  const rounded = Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, "");
+  return unit === "%" ? `${rounded}%` : rounded;
+}
+
+function ChartPreview({ spec, openPdfHref }: { spec: TaskChartSpec; openPdfHref?: string }) {
+  const total = spec.data.reduce((sum, d) => sum + Math.max(0, d.value), 0);
+  const max = Math.max(1, ...spec.data.map((d) => d.value));
+
+  const pieStops: string[] = [];
+  const colors = ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#22c55e", "#f59e0b", "#ef4444"];
+  let cursor = 0;
+  spec.data.forEach((d, idx) => {
+    const pct = total > 0 ? (Math.max(0, d.value) / total) * 100 : 0;
+    const next = cursor + pct;
+    const color = colors[idx % colors.length];
+    pieStops.push(`${color} ${cursor}% ${next}%`);
+    cursor = next;
+  });
+
+  return (
+    <div className="rounded-lg border border-zinc-300 bg-white p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+            {spec.kind === "bar" ? "Bar chart preview" : "Pie chart preview"} - Part {spec.partKey}
+          </div>
+          <div className="text-sm font-medium text-zinc-900">{spec.title}</div>
+        </div>
+        <div className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+          confidence {Math.round(spec.confidence * 100)}%
+        </div>
+      </div>
+
+      {spec.note ? <div className="mt-2 text-[11px] text-amber-700">{spec.note}</div> : null}
+
+      {spec.pending ? (
+        <div className="mt-3 rounded-md border border-zinc-300 bg-zinc-50 p-3">
+          {spec.kind === "bar" ? (
+            <div className="space-y-2">
+              {[72, 48, 86, 40].map((w, i) => (
+                <div key={`${spec.id}-ghost-bar-${i}`} className="grid grid-cols-[90px_1fr_auto] items-center gap-2 text-[11px] text-zinc-700">
+                  <div className="truncate">Series {i + 1}</div>
+                  <div className="h-3 rounded bg-white">
+                    <div className="h-full rounded" style={{ width: `${w}%`, backgroundColor: colors[i % colors.length] }} />
+                  </div>
+                  <div className="tabular-nums text-zinc-500">N/A</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div
+                className="h-24 w-24 shrink-0 rounded-full border border-zinc-300"
+                style={{
+                  background: "conic-gradient(#0f172a 0% 30%, #334155 30% 55%, #64748b 55% 75%, #94a3b8 75% 100%)",
+                }}
+              />
+              <div className="text-xs text-zinc-700">
+                Image-based chart detected. Numeric series is missing from extraction.
+                <div className="mt-1 text-zinc-500">Values: N/A</div>
+              </div>
+            </div>
+          )}
+          <div className="mt-2 text-[11px] text-zinc-600">Numbers are missing in extracted text; showing placeholder graph.</div>
+          {openPdfHref ? (
+            <div className="mt-3">
+              <a href={openPdfHref} target="_blank" rel="noreferrer" className="text-xs font-semibold text-zinc-900 underline underline-offset-2">
+                Open source PDF graph
+              </a>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!spec.pending && spec.kind === "bar" ? (
+        <div className="mt-3 space-y-2">
+          {spec.data.map((d, idx) => {
+            const widthPct = Math.max(4, Math.round((d.value / max) * 100));
+            const color = colors[idx % colors.length];
+            return (
+              <div key={`${spec.id}-${d.label}`} className="grid grid-cols-[minmax(140px,1fr)_3fr_auto] items-center gap-2 text-xs">
+                <div className="truncate text-zinc-700">{d.label}</div>
+                <div className="h-4 overflow-hidden rounded bg-zinc-100">
+                  <div className="h-full rounded" style={{ width: `${widthPct}%`, backgroundColor: color }} />
+                </div>
+                <div className="tabular-nums text-zinc-800">{formatChartValue(d.value, spec.unit)}</div>
+              </div>
+            );
+          })}
+        </div>
+      ) : !spec.pending ? (
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <div
+            className="h-36 w-36 shrink-0 rounded-full border border-zinc-200"
+            style={{
+              background:
+                pieStops.length > 0 ? `conic-gradient(${pieStops.join(", ")})` : "conic-gradient(#e5e7eb 0% 100%)",
+            }}
+          />
+          <div className="min-w-[220px] flex-1 space-y-1 text-xs">
+            {spec.data.map((d, idx) => {
+              const color = colors[idx % colors.length];
+              const pct = total > 0 ? (d.value / total) * 100 : 0;
+              return (
+                <div key={`${spec.id}-legend-${d.label}`} className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: color }} />
+                    <span className="truncate text-zinc-700">{d.label}</span>
+                  </div>
+                  <div className="tabular-nums text-zinc-800">
+                    {formatChartValue(d.value, spec.unit)} ({pct.toFixed(1)}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function renderStructuredTableBlock(block: StructuredTableBlock, key: string) {
+  return (
+    <div key={key} className="overflow-x-auto rounded-lg border border-zinc-300 bg-white">
+      <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
+        <thead className="bg-zinc-100">
+          <tr>
+            {block.headers.map((header: string, idx: number) => (
+              <th key={`${key}-h-${idx}`} className="border border-zinc-300 px-3 py-2 font-semibold">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {block.rows.map((row: string[], rowIdx: number) => (
+            <tr key={`${key}-r-${rowIdx}`}>
+              {row.map((cell: string, cellIdx: number) => (
+                <td key={`${key}-c-${rowIdx}-${cellIdx}`} className="border border-zinc-300 px-3 py-2 align-top">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function renderStructuredParts(
   parts: StructuredPart[],
   keyPrefix: string,
@@ -543,6 +979,10 @@ function renderStructuredParts(
     canEditLatex?: boolean;
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
     partLatexOverrides?: Record<string, string>;
+    chartsByPart?: Record<string, TaskChartSpec[]>;
+    onRecoverChart?: (spec: TaskChartSpec) => Promise<void> | void;
+    recoveringChartIds?: Set<string>;
+    chartRecoveryErrors?: Record<string, string>;
     suppressInlineSamplePowerTable?: boolean;
     samplePowerTableBlock?: StructuredTableBlock | null;
     reflowWrappedLines?: boolean;
@@ -568,16 +1008,73 @@ function renderStructuredParts(
                 ? stripInlineSamplePowerTable(part.text)
                 : part.text;
               if (!cleanPartText) return null;
+              const sanitizedPartText = stripEquationTokensForFailureTable(cleanPartText);
+              if (!sanitizedPartText) return null;
+
+              const partKeyLower = String(part?.key || "").toLowerCase();
+              const isFailureTablePart =
+                partKeyLower === "b" &&
+                /\bfailure reason\b/i.test(sanitizedPartText) &&
+                /\bnumber of chips\b/i.test(sanitizedPartText);
+              if (isFailureTablePart) {
+                const partBlocks = detectTableBlocks({ text: sanitizedPartText } as any).filter(
+                  (b): b is StructuredTableBlock => b?.kind === "TABLE"
+                );
+                const primary = partBlocks[0] || null;
+                if (primary) {
+                  const lines = sanitizedPartText.split("\n");
+                  const startLine = Math.max(0, Number(primary.range?.startLine || 0));
+                  const endLine = Math.max(startLine, Number(primary.range?.endLine || startLine));
+                  const before = lines.slice(0, startLine).join("\n").trim();
+                  const after = lines.slice(endLine).join("\n").trim();
+                  return (
+                    <div className="space-y-3">
+                      {before ? renderPdfTextBlocks(before, `${keyPrefix}-parttext-before-${part.key}-${partIndex}`, { ...options, reflowWrappedLines: options?.reflowWrappedLines }) : null}
+                      {renderStructuredTableBlock(primary, `${keyPrefix}-parttable-${part.key}-${partIndex}`)}
+                      {after ? renderPdfTextBlocks(after, `${keyPrefix}-parttext-after-${part.key}-${partIndex}`, { ...options, reflowWrappedLines: options?.reflowWrappedLines }) : null}
+                    </div>
+                  );
+                }
+              }
+
               return (
                 <div>
                   {renderPdfTextBlocks(
-                    cleanPartText,
+                    sanitizedPartText,
                     `${keyPrefix}-parttext-${part.key}-${partIndex}`,
                     { ...options, reflowWrappedLines: options?.reflowWrappedLines }
                   )}
                 </div>
               );
             })() : null}
+          {(() => {
+            const partCharts = options?.chartsByPart?.[String(part.key).toLowerCase()] || [];
+            if (!partCharts.length) return null;
+            return (
+            <div className="mt-3 space-y-3">
+              {partCharts.map((spec) => (
+                <div key={`${keyPrefix}-chart-wrap-${spec.id}`} className="space-y-2">
+                  <ChartPreview spec={spec} openPdfHref={options?.openPdfHref} />
+                  {spec.pending ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => options?.onRecoverChart?.(spec)}
+                        disabled={!options?.onRecoverChart || !!options?.recoveringChartIds?.has(spec.id)}
+                        className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                      >
+                        {options?.recoveringChartIds?.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
+                      </button>
+                      {options?.chartRecoveryErrors?.[spec.id] ? (
+                        <div className="text-[11px] text-rose-700">{options.chartRecoveryErrors[spec.id]}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            );
+          })()}
           {part.key === "a" && options?.samplePowerTableBlock ? (
             <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-300 bg-white">
               <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
@@ -631,8 +1128,10 @@ function renderStructuredParts(
                         ? stripInlineSamplePowerTable(child.text)
                         : child.text;
                       if (!cleanChildText) return null;
+                      const sanitizedChildText = stripEquationTokensForFailureTable(cleanChildText);
+                      if (!sanitizedChildText) return null;
                       return renderPdfTextBlocks(
-                        cleanChildText,
+                        sanitizedChildText,
                         `${keyPrefix}-subparttext-${part.key}-${child.key}-${childIndex}`,
                         { ...options, reflowWrappedLines: options?.reflowWrappedLines }
                       );
@@ -743,6 +1242,10 @@ export function TaskCard({
   const [showTaskLatexEditor, setShowTaskLatexEditor] = useState(false);
   const [savingTaskLatex, setSavingTaskLatex] = useState(false);
   const [taskLatexInputMode, setTaskLatexInputMode] = useState<"latex" | "word">("latex");
+  const [chartOverrides, setChartOverrides] = useState<Record<string, { data: ChartDatum[]; confidence: number; pending: false; note?: string }>>({});
+  const [recoveringChartIds, setRecoveringChartIds] = useState<Set<string>>(new Set());
+  const [chartRecoveryErrors, setChartRecoveryErrors] = useState<Record<string, string>>({});
+  const attemptedChartRecoveryRef = useRef<Set<string>>(new Set());
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
@@ -817,6 +1320,14 @@ export function TaskCard({
   );
 
   const tableBlocks = useMemo(() => detectTableBlocks({ ...task, text: taskBodyText }), [task, taskBodyText]);
+  const hasConcreteTableInTask = useMemo(
+    () => tableBlocks.some((b) => b?.kind === "TABLE"),
+    [tableBlocks]
+  );
+  const hasImageGraphCueInTask = useMemo(
+    () => /\[\[img:[^\]]+\]\]/i.test(taskBodyText) || /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(taskBodyText),
+    [taskBodyText]
+  );
   const samplePowerTableBlock = useMemo(
     () =>
       tableBlocks.find(
@@ -868,6 +1379,157 @@ export function TaskCard({
   }, [taskBodyText, tableBlocks, hasTaskParts, hasSamplePowerTableBlock, samplePowerTableBlock]);
 
   const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
+  const baseChartSpecs = useMemo(() => {
+    // Guard: if this task is already represented as a concrete table and has no explicit
+    // chart-image cue, do not synthesize chart previews from table rows.
+    const noParts = structuredParts.length === 0;
+    if (noParts && hasConcreteTableInTask && !hasImageGraphCueInTask) return [] as TaskChartSpec[];
+    return buildChartSpecs(structuredParts, taskBodyText);
+  }, [structuredParts, taskBodyText, hasConcreteTableInTask, hasImageGraphCueInTask]);
+  const chartSpecs = useMemo(
+    () =>
+      baseChartSpecs.map((spec) => {
+        const ov = chartOverrides[spec.id];
+        if (!ov) return spec;
+        return {
+          ...spec,
+          data: ov.data,
+          confidence: ov.confidence,
+          pending: false,
+          note: ov.note ?? spec.note,
+        };
+      }),
+    [baseChartSpecs, chartOverrides]
+  );
+  const chartsByPart = useMemo(() => {
+    const out: Record<string, TaskChartSpec[]> = {};
+    for (const spec of chartSpecs) {
+      const key = String(spec?.partKey || "").toLowerCase();
+      if (!key || key === "task") continue;
+      if (!out[key]) out[key] = [];
+      out[key].push(spec);
+    }
+    return out;
+  }, [chartSpecs]);
+  const unplacedChartSpecs = useMemo(() => {
+    if (!chartSpecs.length) return [] as TaskChartSpec[];
+    const partKeys = new Set(structuredParts.map((p) => String(p?.key || "").toLowerCase()).filter(Boolean));
+    return chartSpecs.filter((spec) => {
+      const key = String(spec?.partKey || "").toLowerCase();
+      if (!key || key === "task") return true;
+      return !partKeys.has(key);
+    });
+  }, [chartSpecs, structuredParts]);
+
+  const getReferenceDocumentId = () => {
+    const src = String(openPdfHref || "");
+    const m = src.match(/\/api\/reference-documents\/([^/]+)\/file/i);
+    return m?.[1] || "";
+  };
+
+  const recoverChartData = async (spec: TaskChartSpec) => {
+    if (!spec?.pending) return;
+    const documentId = getReferenceDocumentId();
+    if (!documentId) return;
+    if (recoveringChartIds.has(spec.id)) return;
+
+    setRecoveringChartIds((prev) => new Set(prev).add(spec.id));
+    setChartRecoveryErrors((prev) => {
+      const next = { ...prev };
+      delete next[spec.id];
+      return next;
+    });
+    try {
+      const pageGuess = Number((Array.isArray(task?.pages) ? task.pages[0] : 1) || 1);
+      const partKey = String(spec.partKey || "").toLowerCase();
+      const anchorText = String(partTextByKey[partKey] || taskBodyText || "").slice(0, 800);
+      const expectedLabels = deriveLabelHints(anchorText);
+      const avoidLabels = Object.entries(partTextByKey)
+        .filter(([k]) => String(k || "").toLowerCase() !== partKey)
+        .flatMap(([, v]) => deriveLabelHints(String(v || "")))
+        .slice(0, 40);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 65000);
+      const res = await fetch(`/api/reference-documents/${documentId}/chart-recover`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pageNumber: pageGuess, anchorText, expectedLabels, avoidLabels }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const data = await res.json().catch(() => ({}));
+      const points = Array.isArray(data?.points)
+        ? data.points
+            .map((p: any) => ({ label: String(p?.label || "").trim(), value: Number(p?.value) }))
+            .filter((p: any) => p.label && Number.isFinite(p.value))
+        : [];
+      if (!res.ok || points.length < 2) {
+        const msg = String(data?.message || data?.error || "AI could not extract graph values from this page.");
+        setChartRecoveryErrors((prev) => ({ ...prev, [spec.id]: msg }));
+        notifyToast("error", msg);
+        return;
+      }
+
+      const provider = String(data?.provider || "ai").toLowerCase();
+      const baseConfidence = Number(data?.confidence || 0);
+      const confidenceFloor =
+        provider === "local"
+          ? points.length >= 4
+            ? 0.9
+            : points.length >= 3
+              ? 0.85
+              : 0.8
+          : points.length >= 4
+            ? 0.84
+            : points.length >= 3
+              ? 0.8
+              : 0.76;
+      const isTaskAPart = String(spec?.partKey || "").toLowerCase() === "a";
+      const taskAImageFloor = isTaskAPart ? (provider === "local" ? 0.93 : 0.88) : 0;
+      const recoveredConfidence = Math.max(
+        confidenceFloor,
+        baseConfidence,
+        Number(spec.confidence || 0),
+        taskAImageFloor
+      );
+
+      setChartOverrides((prev) => ({
+        ...prev,
+        [spec.id]: {
+          data: points,
+          confidence: recoveredConfidence,
+          pending: false,
+          note: `Recovered from PDF image (${provider}).`,
+        },
+      }));
+      notifyToast("success", `Recovered ${points.length} graph values via ${provider}.`);
+    } catch (e: any) {
+      const msg =
+        e?.name === "AbortError"
+          ? "AI graph recovery timed out. Try again or narrow to the exact graph page."
+          : String(e?.message || "AI graph recovery failed.");
+      setChartRecoveryErrors((prev) => ({ ...prev, [spec.id]: msg }));
+      notifyToast("error", msg);
+    } finally {
+      setRecoveringChartIds((prev) => {
+        const next = new Set(prev);
+        next.delete(spec.id);
+        return next;
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const pending = chartSpecs.filter((s) => s.pending);
+    if (!pending.length) return;
+    for (const spec of pending) {
+      if (attemptedChartRecoveryRef.current.has(spec.id)) continue;
+      attemptedChartRecoveryRef.current.add(spec.id);
+      void recoverChartData(spec);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, chartSpecs]);
   const taskNumber = useMemo(() => {
     const n = Number(task?.n);
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -1202,16 +1864,20 @@ export function TaskCard({
                       </div>
                     ) : null}
                     <div className={structuredPartsIntroText ? "mt-2" : ""}>
-                      {renderStructuredParts(structuredParts, "task-parts-no-segment", {
-                        equationsById,
-                        openPdfHref,
-                        canEditLatex,
-                        onSaveEquationLatex,
-                        partLatexOverrides,
-                        suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
-                        samplePowerTableBlock,
-                        reflowWrappedLines: hasMathLayoutWarning,
-                      })}
+                              {renderStructuredParts(structuredParts, "task-parts-no-segment", {
+                                equationsById,
+                                openPdfHref,
+                                canEditLatex,
+                                onSaveEquationLatex,
+                                partLatexOverrides,
+                                chartsByPart,
+                                onRecoverChart: recoverChartData,
+                                recoveringChartIds,
+                                chartRecoveryErrors,
+                                suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
+                                samplePowerTableBlock,
+                                reflowWrappedLines: hasMathLayoutWarning,
+                              })}
                     </div>
                   </div>
                 ) : null}
@@ -1239,6 +1905,10 @@ export function TaskCard({
                                 canEditLatex,
                                 onSaveEquationLatex,
                                 partLatexOverrides,
+                                chartsByPart,
+                                onRecoverChart: recoverChartData,
+                                recoveringChartIds,
+                                chartRecoveryErrors,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1296,6 +1966,34 @@ export function TaskCard({
                 )}
               </div>
             </div>
+
+            {unplacedChartSpecs.length ? (
+              <div className="rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Detected Chart Previews</div>
+                <div className="mt-2 space-y-3">
+                  {unplacedChartSpecs.map((spec) => (
+                    <div key={`unplaced-${spec.id}`} className="space-y-2">
+                      <ChartPreview spec={spec} openPdfHref={openPdfHref} />
+                      {spec.pending ? (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => recoverChartData(spec)}
+                            disabled={recoveringChartIds.has(spec.id)}
+                            className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                          >
+                            {recoveringChartIds.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
+                          </button>
+                          {chartRecoveryErrors[spec.id] ? (
+                            <div className="text-[11px] text-rose-700">{chartRecoveryErrors[spec.id]}</div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
           </div>
 

@@ -9,8 +9,6 @@ type Props = {
   briefUnitId: string;
   setBriefUnitId: (id: string) => void;
   criteria: Criterion[];
-  mapSelected: Record<string, boolean>;
-  setMapSelected: (x: Record<string, boolean>) => void;
   assignmentCodeInput: string;
   setAssignmentCodeInput: (v: string) => void;
 };
@@ -23,19 +21,58 @@ function normCode(s: any) {
   return String(s || "").trim().toUpperCase();
 }
 
+function bandRank(input: string) {
+  const up = String(input || "").toUpperCase();
+  if (up === "PASS" || up.startsWith("P")) return 1;
+  if (up === "MERIT" || up.startsWith("M")) return 2;
+  if (up === "DISTINCTION" || up.startsWith("D")) return 3;
+  return 9;
+}
+
+function sortByBandThenCode(a: { gradeBand?: string; acCode?: string }, b: { gradeBand?: string; acCode?: string }) {
+  const ar = bandRank(String(a.gradeBand || a.acCode || ""));
+  const br = bandRank(String(b.gradeBand || b.acCode || ""));
+  if (ar !== br) return ar - br;
+  return normCode(a.acCode).localeCompare(normCode(b.acCode));
+}
+
+function extractLoHintsFromDraft(draft: any) {
+  const textBits: string[] = [];
+  textBits.push(String(draft?.title || ""));
+  textBits.push(String(draft?.header || ""));
+  textBits.push(String(draft?.preview || ""));
+  if (Array.isArray(draft?.tasks)) {
+    for (const t of draft.tasks) {
+      textBits.push(String(t?.text || ""));
+      textBits.push(String(t?.prompt || ""));
+    }
+  }
+  const src = textBits.join("\n");
+  const out = new Set<string>();
+  const re1 = /\bLO\s*([1-9]\d*)\b/gi;
+  const re2 = /\blearning\s+outcome\s*([1-9]\d*)\b/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re1.exec(src))) out.add(`LO${m[1]}`);
+  while ((m = re2.exec(src))) out.add(`LO${m[1]}`);
+  return out;
+}
+
 export default function BriefMappingPanel({
   draft,
   units,
   briefUnitId,
   setBriefUnitId,
   criteria,
-  mapSelected,
-  setMapSelected,
   assignmentCodeInput,
   setAssignmentCodeInput,
 }: Props) {
   const kind = draft?.kind || "";
   const detectedCodes: string[] = (draft?.detectedCriterionCodes || []).map((x: any) => normCode(x));
+  const detectedCodesSorted = useMemo(
+    () => [...detectedCodes].sort((a, b) => sortByBandThenCode({ acCode: a }, { acCode: b })),
+    [detectedCodes]
+  );
+  const loHints = useMemo(() => extractLoHintsFromDraft(draft), [draft]);
   const unitGuess = draft?.unitCodeGuess ? String(draft.unitCodeGuess) : "";
 
   const [critQ, setCritQ] = useState("");
@@ -43,10 +80,9 @@ export default function BriefMappingPanel({
   const [band, setBand] = useState<"all" | "PASS" | "MERIT" | "DISTINCTION">("all");
 
   const stats = useMemo(() => {
-    const selected = Object.entries(mapSelected || {}).filter(([, v]) => v).length;
     const detected = detectedCodes.length;
-    return { selected, detected };
-  }, [mapSelected, detectedCodes.length]);
+    return { detected };
+  }, [detectedCodes.length]);
 
   const filteredCriteria = useMemo(() => {
     const q = critQ.trim().toLowerCase();
@@ -66,43 +102,54 @@ export default function BriefMappingPanel({
     if (view === "current") {
       list = list.filter((c: any) => {
         const code = normCode(c.acCode);
-        return !!mapSelected?.[code] || detectedCodes.includes(code);
+        if (!detectedCodes.includes(code)) return false;
+        if (!loHints.size) return true;
+        const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
+        return loHints.has(loCode);
       });
+
+      // If brief text has no explicit LO hint and detected AC codes collide across multiple LOs,
+      // keep only the primary LO (highest detected count) to avoid spillover noise.
+      if (!loHints.size) {
+        const loCounts = new Map<string, number>();
+        for (const c of list) {
+          const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
+          if (!loCode) continue;
+          loCounts.set(loCode, (loCounts.get(loCode) || 0) + 1);
+        }
+        if (loCounts.size > 1) {
+          let topLo = "";
+          let topCount = -1;
+          for (const [lo, count] of loCounts.entries()) {
+            if (count > topCount) {
+              topLo = lo;
+              topCount = count;
+            }
+          }
+          if (topLo) {
+            list = list.filter((c: any) => String(c?.learningOutcome?.loCode || "").toUpperCase() === topLo);
+          }
+        }
+      }
     }
 
-    // Sort: selected first, then detected, then band, then code
-    const bandRank: Record<string, number> = { PASS: 1, MERIT: 2, DISTINCTION: 3 };
-    list.sort((a: any, b: any) => {
-      const aSel = !!mapSelected?.[normCode(a.acCode)];
-      const bSel = !!mapSelected?.[normCode(b.acCode)];
-      if (aSel !== bSel) return aSel ? -1 : 1;
-
-      const aDet = detectedCodes.includes(normCode(a.acCode));
-      const bDet = detectedCodes.includes(normCode(b.acCode));
-      if (aDet !== bDet) return aDet ? -1 : 1;
-
-      const ar = bandRank[String(a.gradeBand || "").toUpperCase()] || 9;
-      const br = bandRank[String(b.gradeBand || "").toUpperCase()] || 9;
-      if (ar !== br) return ar - br;
-
-      return normCode(a.acCode).localeCompare(normCode(b.acCode));
-    });
+    // Always display criteria in P -> M -> D sequence.
+    list.sort((a: any, b: any) => sortByBandThenCode(a, b));
 
     return list;
-  }, [criteria, critQ, view, band, mapSelected, detectedCodes]);
+  }, [criteria, critQ, view, band, detectedCodes, loHints]);
 
   const loSummary = useMemo(() => {
-    const summary = new Map<string, { loCode: string; selected: number; detected: number }>();
-    for (const c of criteria || []) {
+    const summary = new Map<string, { loCode: string; detected: number }>();
+    for (const c of filteredCriteria || []) {
       const loCode = c.learningOutcome?.loCode || "LO?";
-      const entry = summary.get(loCode) || { loCode, selected: 0, detected: 0 };
+      const entry = summary.get(loCode) || { loCode, detected: 0 };
       const code = normCode(c.acCode);
-      if (mapSelected?.[code]) entry.selected += 1;
       if (detectedCodes.includes(code)) entry.detected += 1;
       summary.set(loCode, entry);
     }
     return Array.from(summary.values()).sort((a, b) => a.loCode.localeCompare(b.loCode));
-  }, [criteria, mapSelected, detectedCodes]);
+  }, [filteredCriteria, detectedCodes]);
 
   const groupedCriteria = useMemo(() => {
     const groups = new Map<string, Criterion[]>();
@@ -114,7 +161,7 @@ export default function BriefMappingPanel({
     return Array.from(groups.entries())
       .map(([loCode, items]) => ({
         loCode,
-        items: items.sort((a, b) => normCode(a.acCode).localeCompare(normCode(b.acCode))),
+        items: items.sort((a, b) => sortByBandThenCode(a, b)),
       }))
       .sort((a, b) => a.loCode.localeCompare(b.loCode));
   }, [filteredCriteria]);
@@ -141,20 +188,20 @@ export default function BriefMappingPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-zinc-900">Mapping</div>
+          <div className="text-base font-semibold text-zinc-900">Criteria Mapping</div>
           <div className="mt-0.5 text-xs text-zinc-600">
-            Link this brief to a locked unit spec, then confirm which criteria codes this brief actually targets.
+            Read-only mapping from extracted brief criteria (no manual selection required).
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
-            {stats.selected} selected
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+            Extraction-driven
           </span>
-          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold text-zinc-800">
+          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-800">
             {stats.detected} detected
           </span>
         </div>
@@ -191,7 +238,7 @@ export default function BriefMappingPanel({
         </div>
       </div>
 
-      <div className="mt-4 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-zinc-200 pt-4">
         <label className="text-xs text-zinc-600">Link this brief to a unit</label>
         <div className="mt-1">
           <select
@@ -216,13 +263,24 @@ export default function BriefMappingPanel({
         <p className="mt-2 text-xs text-zinc-500">Only ACTIVE (non-archived) locked specs are shown here.</p>
       </div>
 
-      <div className="mt-4 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-zinc-200 pt-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="font-semibold text-zinc-900">Criteria mapping</div>
-            <p className="mt-1 text-sm text-zinc-700 break-words">
-              Detected codes: <span className="font-semibold">{detectedCodes.length ? detectedCodes.join(", ") : "(none)"}</span>
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {detectedCodesSorted.length ? (
+                detectedCodesSorted.map((code) => (
+                  <span
+                    key={`det-${code}`}
+                    className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold text-zinc-800"
+                  >
+                    {code}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-zinc-700">(none)</span>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -242,7 +300,7 @@ export default function BriefMappingPanel({
                 onClick={() => setView("all")}
                 className={cx(
                   "h-8 rounded-lg px-3 text-xs font-semibold",
-                  view === "all" ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"
+                  view === "all" ? "bg-emerald-600 text-white" : "text-zinc-700 hover:bg-zinc-50"
                 )}
               >
                 All unit criteria
@@ -280,9 +338,9 @@ export default function BriefMappingPanel({
                 {loSummary.map((lo) => (
                   <span
                     key={lo.loCode}
-                    className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold text-zinc-800"
+                    className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-800"
                   >
-                    {lo.loCode}: {lo.selected} selected{lo.detected ? ` · ${lo.detected} detected` : ""}
+                    {lo.loCode}: {lo.detected} detected
                   </span>
                 ))}
               </div>
@@ -291,59 +349,52 @@ export default function BriefMappingPanel({
             {filteredCriteria.length === 0 ? (
               <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 {view === "current"
-                  ? "No criteria detected/selected yet. Switch to All unit criteria to browse the full spec."
+                  ? "No criteria detected for this brief yet. Switch to All unit criteria to browse the full spec."
                   : "No criteria match your filters."}
               </div>
             ) : (
               <div className="mt-3 grid gap-3">
                 {groupedCriteria.map((group) => {
                   const summary = loSummaryByCode.get(group.loCode);
+                  const loDescription = String(group.items?.[0]?.learningOutcome?.description || "").trim();
                   return (
-                    <div key={group.loCode} className="rounded-2xl border border-zinc-200 bg-white p-3">
+                    <div key={group.loCode} className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs font-semibold text-zinc-900">{group.loCode}</div>
-                        <div className="text-[11px] text-zinc-600">
-                          {summary ? `${summary.selected} selected` : "0 selected"}
+                        <div>
+                          <div className="inline-flex rounded-md bg-white px-2 py-0.5 text-xs font-semibold text-zinc-900 ring-1 ring-zinc-200">
+                            {group.loCode}
+                          </div>
+                          {loDescription ? (
+                            <div className="mt-1 text-xs text-zinc-600">{loDescription}</div>
+                          ) : null}
+                        </div>
+                        <div className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] text-zinc-600">
+                          {summary ? `${summary.detected} detected` : "0 detected"}
                         </div>
                       </div>
 
                       <div className="mt-2 grid gap-2">
                         {group.items.map((c: any) => {
                           const code = normCode(c.acCode);
-                          const checked = !!mapSelected?.[code];
                           const suggested = detectedCodes.includes(code);
 
                           return (
-                            <label
+                            <div
                               key={`${group.loCode}-${c.acCode}`}
                               className={cx(
-                                "flex items-start gap-3 rounded-2xl border p-3 text-sm transition",
-                                checked
-                                  ? "border-zinc-900 bg-zinc-900 text-white"
-                                  : suggested
-                                  ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-50"
-                                  : "border-zinc-200 bg-white hover:bg-zinc-50"
+                                "flex items-start gap-3 rounded-2xl border p-3 text-sm",
+                                suggested
+                                  ? "border-emerald-200 bg-emerald-50"
+                                  : "border-zinc-200 bg-white"
                               )}
                               title={suggested ? "Detected in brief text" : ""}
                             >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={(e) => {
-                                  const next = { ...(mapSelected || {}) };
-                                  if (e.target.checked) next[code] = true;
-                                  else delete next[code];
-                                  setMapSelected(next);
-                                }}
-                                className="mt-1"
-                              />
-
                               <div className="min-w-0 flex-1">
-                                <div className={cx("flex flex-wrap items-center gap-2", checked ? "text-white" : "text-zinc-900")}>
+                                <div className={cx("flex flex-wrap items-center gap-2 text-zinc-900")}>
                                   <span
                                     className={cx(
                                       "rounded-lg border px-2 py-0.5 text-xs font-bold",
-                                      checked ? "border-white/30 bg-white/10" : "border-zinc-200 bg-white"
+                                      suggested ? "border-emerald-300 bg-emerald-100 text-emerald-900" : "border-zinc-200 bg-white"
                                     )}
                                   >
                                     {c.acCode}
@@ -359,27 +410,19 @@ export default function BriefMappingPanel({
                                     <span
                                       className={cx(
                                         "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                                        checked
-                                          ? "border-emerald-200/40 bg-emerald-200/10 text-emerald-200"
-                                          : "border-emerald-200 bg-emerald-100 text-emerald-900"
+                                        "border-emerald-200 bg-emerald-100 text-emerald-900"
                                       )}
                                     >
                                       Detected
                                     </span>
                                   ) : null}
-
-                                  {checked ? (
-                                    <span className="rounded-full border border-white/25 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white">
-                                      Selected
-                                    </span>
-                                  ) : null}
                                 </div>
 
-                                <div className={cx("mt-1 text-xs leading-relaxed", checked ? "text-zinc-200" : "text-zinc-700")}>
+                                <div className={cx("mt-1 text-xs leading-relaxed", suggested ? "text-emerald-900" : "text-zinc-700")}>
                                   {c.description}
                                 </div>
                               </div>
-                            </label>
+                            </div>
                           );
                         })}
                       </div>
@@ -392,12 +435,7 @@ export default function BriefMappingPanel({
         )}
 
         <p className="mt-3 text-xs text-zinc-500">
-          Professional default: <span className="font-semibold">Current brief</span> shows only detected/selected criteria, grouped by LO. Switch to{" "}
-          <span className="font-semibold">All unit criteria</span> to view the full spec universe.
-        </p>
-
-        <p className="mt-2 text-xs text-zinc-500">
-          Lock stores the selected criteria mapping and binds this brief PDF to the chosen locked unit spec.
+          Current brief shows detected criteria from this brief grouped by LO. Lock stores this extraction-driven mapping against the selected unit.
         </p>
       </div>
     </div>

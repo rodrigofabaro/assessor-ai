@@ -33,6 +33,22 @@ This document defines the locked extraction/rendering behaviors for the current 
     - `Units Sold`
     - `Net Profit/Loss`
 
+### 4003 A1 (`A1 - U4003`)
+- Task 2 `a`:
+  - Must render chart data from the recovered image-derived numeric series.
+  - Accepted expected bins for current locked case:
+    - `0 to 25 devices 14`
+    - `26 to 50 devices 45`
+    - `51 to 75 devices 36`
+    - `76 to 100 devices 24`
+- Task 2 `b`:
+  - Must render as a table-like failure-rate data section.
+  - Must not render chart previews sourced from `b` failure-table text.
+  - Must not surface equation token artifacts as visible math content.
+- Current-brief criteria mapping panel:
+  - Must not leak unrelated LO groups when detected codes collide across LOs.
+  - Must display LO description text when available.
+
 ## How To Run
 
 Run extraction assertions with `scripts/brief-extract.test.js`:

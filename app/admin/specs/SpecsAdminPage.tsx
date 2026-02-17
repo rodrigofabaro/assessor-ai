@@ -172,7 +172,7 @@ export default function SpecsAdminPage() {
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
-            Upload panel collapsed. Click "Upload files" to add specifications.
+            Upload panel collapsed. Click &quot;Upload files&quot; to add specifications.
           </div>
         )}
       </section>

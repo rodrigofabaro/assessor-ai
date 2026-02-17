@@ -21,7 +21,12 @@ function rawWarnings(task: BriefTaskLike): string[] {
 function referencedEquationIds(task: BriefTaskLike): string[] {
   const ids = new Set<string>();
   const tokenRe = /\[\[EQ:([^\]]+)\]\]/g;
+  const isFailureTableLike = (value: unknown) => {
+    const txt = String(value || "");
+    return /\bfailure reason\b/i.test(txt) && /\bnumber of chips\b/i.test(txt);
+  };
   const collect = (value: unknown) => {
+    if (isFailureTableLike(value)) return;
     const txt = String(value || "");
     let m: RegExpExecArray | null;
     while ((m = tokenRe.exec(txt))) {
@@ -74,6 +79,25 @@ function hasPendingTaskEquationReviews(task: BriefTaskLike, equationsById?: Reco
   return ids.some((id) => !isResolvedEquation(equationsById?.[id]));
 }
 
+function taskBodyWordCount(task: BriefTaskLike): number {
+  const buckets: string[] = [];
+  const push = (v: unknown) => {
+    const txt = String(v || "").trim();
+    if (txt) buckets.push(txt);
+  };
+  push(task?.text);
+  push(task?.prompt);
+  if (Array.isArray(task?.parts)) {
+    for (const p of task.parts as Array<any>) push(p?.text);
+  }
+  const merged = buckets.join("\n");
+  if (!merged.trim()) return 0;
+  return merged
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter(Boolean).length;
+}
+
 export function computeEffectiveTaskWarnings(task: BriefTaskLike, options?: WarningOptions): string[] {
   const raw = rawWarnings(task);
   const hasPendingReviews = hasPendingTaskEquationReviews(task, options?.equationsById);
@@ -82,10 +106,13 @@ export function computeEffectiveTaskWarnings(task: BriefTaskLike, options?: Warn
     hasResolvedReferencedEquations(task, options?.equationsById) ||
     hasManualTaskLatexOverride(task, options?.taskLatexOverrides) ||
     !hasPendingReviews;
+  const bodyWords = taskBodyWordCount(task);
+  const bodySeemsResolved = bodyWords >= 24;
 
   return raw
     .filter((w) => !/openai math cleanup applied/i.test(w))
-    .filter((w) => !(resolved && /equation quality: low-confidence/i.test(w)));
+    .filter((w) => !(resolved && /equation quality: low-confidence/i.test(w)))
+    .filter((w) => !(bodySeemsResolved && /task body:\s*suspiciously short/i.test(w)));
 }
 
 export function isTaskAiCorrected(task: BriefTaskLike): boolean {

@@ -1,5 +1,5 @@
 type ProviderMode = "openai" | "local" | "hybrid";
-type AiOp = "cleanup" | "ocr" | "equation";
+type AiOp = "cleanup" | "ocr" | "equation" | "graph";
 
 function normalizeMode(value: string | undefined): ProviderMode {
   const v = String(value || "").trim().toLowerCase();
@@ -13,7 +13,9 @@ function opMode(op: AiOp): ProviderMode {
       ? process.env.AI_PROVIDER_CLEANUP_MODE
       : op === "ocr"
         ? process.env.AI_PROVIDER_OCR_MODE
-        : process.env.AI_PROVIDER_EQUATION_MODE;
+        : op === "equation"
+          ? process.env.AI_PROVIDER_EQUATION_MODE
+          : process.env.AI_PROVIDER_GRAPH_MODE;
   return normalizeMode(opKey || process.env.AI_PROVIDER_MODE);
 }
 
@@ -44,6 +46,9 @@ function localModelFor(op: AiOp) {
   }
   if (op === "ocr") {
     return String(process.env.AI_LOCAL_OCR_MODEL || process.env.AI_LOCAL_VISION_MODEL || "llava:7b").trim();
+  }
+  if (op === "graph") {
+    return String(process.env.AI_LOCAL_GRAPH_MODEL || process.env.AI_LOCAL_VISION_MODEL || "llava:7b").trim();
   }
   return String(process.env.AI_LOCAL_EQUATION_MODEL || process.env.AI_LOCAL_VISION_MODEL || "llava:7b").trim();
 }

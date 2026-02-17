@@ -65,7 +65,7 @@ export type Criterion = {
   acCode: string;
   gradeBand: "PASS" | "MERIT" | "DISTINCTION";
   description: string;
-  learningOutcome: { id: string; loCode: string; unitId: string };
+  learningOutcome: { id: string; loCode: string; unitId: string; description?: string };
 };
 
 type InboxFilters = {
@@ -315,7 +315,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         for (const c of lo.criteria) {
           out.push({
             ...c,
-            learningOutcome: { id: lo.id, loCode: lo.loCode, unitId: u.id },
+            learningOutcome: { id: lo.id, loCode: lo.loCode, unitId: u.id, description: lo.description || "" },
           });
         }
       }
@@ -833,10 +833,6 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       if (selectedDoc.type === "BRIEF") {
         if (assignmentCodeInput.trim()) body.assignmentCode = assignmentCodeInput.trim();
         if (briefUnitId) body.unitId = briefUnitId;
-        const overrideCodes = Object.entries(mapSelected)
-          .filter(([, v]) => v)
-          .map(([k]) => k);
-        if (overrideCodes.length) body.mappingOverride = overrideCodes;
       }
 
       const res = await fetch("/api/reference-documents/lock", {

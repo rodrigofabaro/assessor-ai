@@ -35,16 +35,21 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 
 ## Recent updates
 
-### 2026-02-13
+### 2026-02-17
 
-- Admin dashboard **System** card now routes to `/admin/settings`.
-- Added OpenAI settings page with:
-  - API connectivity status
-  - organization usage and spend/cost metrics
-  - local historical usage fallback telemetry
-  - endpoint diagnostics
-  - model selection dropdown for agent operations
-- Added admin model config API and persisted model config.
+- Brief extraction/rendering hardening:
+  - chart previews now require image provenance (no synthetic chart previews from plain table text)
+  - shared draft artifact sanitizer now runs on extraction save + manual draft save
+  - failure-table/equation/chart leakage cleanup is enforced globally
+- Brief criteria mapping panel now runs in extraction-driven read-only mode:
+  - no manual criteria checkbox selection flow
+  - lock uses detected criteria from brief extraction
+  - criteria display is forced to `P -> M -> D` order
+  - current-brief LO spillover is suppressed for ambiguous code collisions
+  - LO descriptions are shown in the panel
+- Warnings/readiness cleanup:
+  - stale non-actionable warnings are filtered from UI
+  - resolved equation/short-body warnings are automatically suppressed
 
 ## Non‑negotiable philosophy
 

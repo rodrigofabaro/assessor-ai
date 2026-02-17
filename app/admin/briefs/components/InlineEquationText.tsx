@@ -27,6 +27,18 @@ const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 const TASK_REF_RE = /\b(Task\s+(\d+)(?:\s+Part\s+([A-Za-z0-9]+))?)\b/g;
 
+function stripScreenshotArtifactLines(input: string) {
+  const lines = String(input || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const kept = lines.filter((line) => {
+    const s = String(line || "").trim();
+    if (!s) return true;
+    if (/tmp-screens/i.test(s)) return false;
+    if (/^screenshot:\s*/i.test(s)) return false;
+    return true;
+  });
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
 function normalizeLatexForRender(latex: string) {
   const out = String(latex || "")
     // Normalize common Unicode subscript variables to ASCII identifiers for downstream matching/splitting.
@@ -80,7 +92,7 @@ function splitMultiAssignmentLatex(latex: string) {
 }
 
 function normalizeDisplayText(input: string) {
-  let out = String(input || "")
+  let out = stripScreenshotArtifactLines(input)
     // Ensure token boundaries don't glue to surrounding words (e.g. [[EQ:id]]Find).
     .replace(/(\S)(\[\[(?:EQ|IMG|MATH):[\s\S]*?\]\])/g, "$1 $2")
     .replace(/(\[\[(?:EQ|IMG|MATH):[\s\S]*?\]\])(\S)/g, "$1 $2")

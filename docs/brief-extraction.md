@@ -96,6 +96,24 @@ Every extraction run must emit warnings when things look wrong, e.g.:
 
 **Truth‑telling rule:** when unsure, mark it as HEURISTIC and warn; never silently pretend it’s clean.
 
+## 7) Artifact integrity cleanup (global)
+
+After extraction (and also on manual draft save), the system runs a shared sanitizer:
+
+- file: `lib/extraction/brief/draftIntegrity.ts`
+- wired in:
+  - `app/api/reference-documents/extract/route.ts`
+  - `app/api/reference-documents/[documentId]/meta/route.ts`
+
+The sanitizer enforces:
+
+- failure-table sections keep table semantics (and strip stray equation tokens)
+- recovered chart blocks are normalized to clean label/value rows
+- cross-part leakage (table rows into unrelated parts) is removed
+- chart recovery residue is removed from non-chart table sections
+
+This is global behavior, not brief-specific patching.
+
 ## Current implementation note
 
 If the system is still in “minimal brief core” mode (header + criteria code detection), tasks/questions are the next required step.
@@ -108,3 +126,43 @@ The target is a **task register** that preserves:
 - page refs (where possible)
 
 This is not a question bank. It’s a captured question paper.
+
+## AI Recovery Layer (Local-first)
+
+The extraction pipeline now supports an optional **AI structure recovery** pass for briefs:
+
+- Runs after deterministic task extraction + math cleanup.
+- Triggered only when task quality warnings indicate likely structure drift.
+- Local-first (`AI_LOCAL_*`) with OpenAI fallback.
+- Rewrites only task text/parts that pass merge safety guards.
+
+Key env controls:
+
+- `AI_BRIEF_STRUCTURE_RECOVERY=true|false`
+- `AI_PROVIDER_GRAPH_MODE=local|hybrid|openai`
+- `AI_LOCAL_GRAPH_MODEL=...`
+- `AI_LOCAL_BRIEF_STRUCTURE_TIMEOUT_MS=...`
+
+Graph/image charts:
+
+- When chart instructions are detected but no numeric series is present in text,
+  page-image chart extraction is attempted (local-first) and injected as anchored
+  numeric lines near the cue.
+- UI chart previews are shown only when chart-image provenance exists (image cue/recovered-image cue),
+  preventing synthetic chart previews for plain text/table-only sections.
+
+Safety:
+
+- If AI output is invalid/low-confidence, extractor keeps deterministic output.
+- Grading then applies modality compliance checks and confidence capping.
+
+## Criteria mapping behavior (brief review UI)
+
+Brief criteria mapping is now extraction-driven/read-only in review:
+
+- no manual criteria checkbox override flow in UI
+- lock uses detected criteria from extracted brief draft
+- current-brief mode shows only brief-scope detected criteria (LO-scoped)
+- display order is always `PASS -> MERIT -> DISTINCTION`
+
+Operationally: if extraction display is wrong, fix extraction/draft; do not manually force-map criteria in UI.
