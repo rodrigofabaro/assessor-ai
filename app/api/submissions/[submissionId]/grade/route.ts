@@ -242,6 +242,19 @@ function parseModelJson(text: string) {
   }
 }
 
+function buildPageSampleContext(pages: Array<{ pageNumber: number; text: string }>, maxCharsPerPage: number, maxPages: number) {
+  const selected = (Array.isArray(pages) ? pages : [])
+    .slice(0, Math.max(1, maxPages))
+    .map((p) => ({
+      pageNumber: Number(p.pageNumber || 0),
+      text: normalizeText(String(p.text || "")).slice(0, Math.max(200, maxCharsPerPage)),
+    }))
+    .filter((p) => p.pageNumber > 0 && p.text.length > 0);
+
+  if (!selected.length) return "(No page samples available.)";
+  return selected.map((p) => `Page ${p.pageNumber}\n${p.text}`).join("\n\n---\n\n");
+}
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
@@ -413,6 +426,21 @@ export async function POST(
   const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
   const latestRunMeta = (submission.extractionRuns?.[0]?.sourceMeta as any) || {};
   const coverMetadata = latestRunMeta?.coverMetadata || null;
+  const latestRunId = String(submission.extractionRuns?.[0]?.id || "");
+  const sampledPages =
+    latestRunId
+      ? await prisma.extractedPage.findMany({
+          where: { extractionRunId: latestRunId },
+          orderBy: { pageNumber: "asc" },
+          take: Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4))),
+          select: { pageNumber: true, text: true },
+        })
+      : [];
+  const pageContext = buildPageSampleContext(
+    sampledPages,
+    Math.max(500, Math.min(6000, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT || 1600))),
+    Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4)))
+  );
   const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
@@ -451,7 +479,10 @@ export async function POST(
     "Criteria:",
     JSON.stringify(criteria.slice(0, 120), null, 2),
     "",
-    "Student submission extracted text (may be limited if cover-ready mode is active):",
+    "Student submission page samples (preferred for evidence grounding):",
+    pageContext,
+    "",
+    "Submission extracted body text fallback (may be limited in cover-ready mode):",
     String(submission.extractedText || "").slice(0, inputCharLimit) || "(No substantial extracted body text available. Use evidence-based caution.)",
   ].join("\n");
   const promptHash = createHash("sha256").update(prompt).digest("hex");
@@ -629,6 +660,7 @@ export async function POST(
           promptHash,
           promptChars: prompt.length,
           criteriaCount: criteria.length,
+          pageSampleCount: sampledPages.length,
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,
