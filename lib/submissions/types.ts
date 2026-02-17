@@ -45,6 +45,7 @@ export type SubmissionRow = {
       pageCount: number;
       overallConfidence: number;
       runStatus: string;
+      coverMetadataReady: boolean;
     };
   } | null;
 };

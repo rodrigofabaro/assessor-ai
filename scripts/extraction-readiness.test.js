@@ -121,6 +121,7 @@ function run() {
     coverReadyShortText.warnings.some((w) => /cover metadata/i.test(w)),
     "expected warning indicating cover-ready short-text mode"
   );
+  assert(coverReadyShortText.metrics.coverMetadataReady === true, "expected coverMetadataReady metric true");
 
   console.log("extraction readiness gate tests passed.");
 }

@@ -329,16 +329,6 @@ export async function POST(
       details: { submissionId },
     });
   }
-  if (!submission.extractedText || submission.extractedText.trim().length < 100) {
-    return apiError({
-      status: 422,
-      code: "GRADE_EXTRACTION_MISSING",
-      userMessage: "Submission extraction is missing or too short. Run extraction first.",
-      route: "/api/submissions/[submissionId]/grade",
-      requestId,
-      details: { submissionId },
-    });
-  }
   const extractionGate = evaluateExtractionReadiness({
     submissionStatus: submission.status,
     extractedText: submission.extractedText,
@@ -421,6 +411,8 @@ export async function POST(
   const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
   const assessmentRequirements = extractAssessmentRequirementsFromBrief(brief.briefDocument?.extractedJson);
   const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
+  const latestRunMeta = (submission.extractionRuns?.[0]?.sourceMeta as any) || {};
+  const coverMetadata = latestRunMeta?.coverMetadata || null;
   const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
@@ -453,11 +445,14 @@ export async function POST(
     "Submission modality evidence hints (heuristic):",
     JSON.stringify(submissionAssessmentEvidence, null, 2),
     "",
+    "Submission cover metadata (audit extraction):",
+    JSON.stringify(coverMetadata, null, 2),
+    "",
     "Criteria:",
     JSON.stringify(criteria.slice(0, 120), null, 2),
     "",
-    "Student submission extracted text:",
-    submission.extractedText.slice(0, inputCharLimit),
+    "Student submission extracted text (may be limited if cover-ready mode is active):",
+    String(submission.extractedText || "").slice(0, inputCharLimit) || "(No substantial extracted body text available. Use evidence-based caution.)",
   ].join("\n");
   const promptHash = createHash("sha256").update(prompt).digest("hex");
 

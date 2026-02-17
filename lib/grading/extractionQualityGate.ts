@@ -21,6 +21,7 @@ export type ExtractionReadinessResult = {
     pageCount: number;
     overallConfidence: number;
     runStatus: string;
+    coverMetadataReady: boolean;
   };
 };
 
@@ -108,6 +109,7 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
       pageCount: pageCount > 0 ? pageCount : 0,
       overallConfidence: Number.isFinite(overallConfidence) ? overallConfidence : 0,
       runStatus,
+      coverMetadataReady: coverReady,
     },
   };
 }
