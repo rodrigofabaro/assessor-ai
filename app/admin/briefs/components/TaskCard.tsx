@@ -696,11 +696,16 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
 
   const addSpecsFor = (partKey: string, title: string, sourceText: string, instructionText: string) => {
     const data = parseLabelValueRows(sourceText);
+    const tableBlocksInSource = detectTableBlocks({ text: sourceText } as any).filter(
+      (b: any) => b?.kind === "TABLE"
+    );
     const sourceAndInstructions = `${sourceText}\n${instructionText}`;
     const instruction = sourceAndInstructions.toLowerCase();
     const wantsBar = /\bbar\s+chart\b|\bbar\s+graph\b/.test(instruction);
     const wantsPie = /\bpie\s+chart\b|\bpie\s+graph\b/.test(instruction);
-    const hasGenericChartCue = /\b(chart|graph)\b/.test(instruction);
+    const hasChartActionCue =
+      /\b(create|present|plot|draw|produce|construct|prepare|show)\b[\s\S]{0,60}\b(chart|graph)\b/i.test(sourceAndInstructions) ||
+      /\b(chart|graph)\b[\s\S]{0,40}\b(showing|of|for)\b[\s\S]{0,40}\b(data|results|percentages|distribution)\b/i.test(sourceAndInstructions);
     const imageBasedCue =
       /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
       /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions);
@@ -714,8 +719,13 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
         : undefined;
 
     // Only build chart previews when this specific part/task actually cues chart/graph work.
-    const hasChartRequirement = wantsBar || wantsPie || hasGenericChartCue || imageBasedCue;
+    const hasChartRequirement = wantsBar || wantsPie || hasChartActionCue || imageBasedCue;
     if (!hasChartRequirement) return;
+
+    // If this section already contains a concrete extracted table and no image chart cue,
+    // prefer table rendering only (no synthetic chart preview).
+    const hasConcreteTable = tableBlocksInSource.length > 0;
+    if (hasConcreteTable && !imageBasedCue) return;
 
     // Task 2(b)-style sections are tabular source data blocks. Keep them as tables,
     // and avoid rendering duplicate synthetic chart previews for that block.
@@ -732,7 +742,7 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
         dataCount: data.length,
         wantsBar,
         wantsPie,
-        hasGenericChartCue,
+        hasGenericChartCue: hasChartActionCue,
         imageBasedCue,
         pending: true,
       });
@@ -758,7 +768,7 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
       dataCount: data.length,
       wantsBar,
       wantsPie,
-      hasGenericChartCue,
+      hasGenericChartCue: hasChartActionCue,
       imageBasedCue,
       pending: false,
     });
