@@ -38,6 +38,27 @@ function sortByBandThenCode(a: { gradeBand?: string; acCode?: string }, b: { gra
   return normCode(a.acCode).localeCompare(normCode(b.acCode));
 }
 
+function extractLoHintsFromDraft(draft: any) {
+  const textBits: string[] = [];
+  textBits.push(String(draft?.title || ""));
+  textBits.push(String(draft?.header || ""));
+  textBits.push(String(draft?.preview || ""));
+  if (Array.isArray(draft?.tasks)) {
+    for (const t of draft.tasks) {
+      textBits.push(String(t?.text || ""));
+      textBits.push(String(t?.prompt || ""));
+    }
+  }
+  const src = textBits.join("\n");
+  const out = new Set<string>();
+  const re1 = /\bLO\s*([1-9]\d*)\b/gi;
+  const re2 = /\blearning\s+outcome\s*([1-9]\d*)\b/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re1.exec(src))) out.add(`LO${m[1]}`);
+  while ((m = re2.exec(src))) out.add(`LO${m[1]}`);
+  return out;
+}
+
 export default function BriefMappingPanel({
   draft,
   units,
@@ -55,6 +76,7 @@ export default function BriefMappingPanel({
     () => [...detectedCodes].sort((a, b) => sortByBandThenCode({ acCode: a }, { acCode: b })),
     [detectedCodes]
   );
+  const loHints = useMemo(() => extractLoHintsFromDraft(draft), [draft]);
   const unitGuess = draft?.unitCodeGuess ? String(draft.unitCodeGuess) : "";
 
   const [critQ, setCritQ] = useState("");
@@ -85,7 +107,10 @@ export default function BriefMappingPanel({
     if (view === "current") {
       list = list.filter((c: any) => {
         const code = normCode(c.acCode);
-        return !!mapSelected?.[code] || detectedCodes.includes(code);
+        if (!detectedCodes.includes(code)) return false;
+        if (!loHints.size) return true;
+        const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
+        return loHints.has(loCode);
       });
     }
 
@@ -93,11 +118,11 @@ export default function BriefMappingPanel({
     list.sort((a: any, b: any) => sortByBandThenCode(a, b));
 
     return list;
-  }, [criteria, critQ, view, band, mapSelected, detectedCodes]);
+  }, [criteria, critQ, view, band, mapSelected, detectedCodes, loHints]);
 
   const loSummary = useMemo(() => {
     const summary = new Map<string, { loCode: string; selected: number; detected: number }>();
-    for (const c of criteria || []) {
+    for (const c of filteredCriteria || []) {
       const loCode = c.learningOutcome?.loCode || "LO?";
       const entry = summary.get(loCode) || { loCode, selected: 0, detected: 0 };
       const code = normCode(c.acCode);
@@ -105,10 +130,8 @@ export default function BriefMappingPanel({
       if (detectedCodes.includes(code)) entry.detected += 1;
       summary.set(loCode, entry);
     }
-    return Array.from(summary.values())
-      .filter((entry) => (view === "current" ? entry.selected > 0 || entry.detected > 0 : true))
-      .sort((a, b) => a.loCode.localeCompare(b.loCode));
-  }, [criteria, mapSelected, detectedCodes, view]);
+    return Array.from(summary.values()).sort((a, b) => a.loCode.localeCompare(b.loCode));
+  }, [filteredCriteria, mapSelected, detectedCodes]);
 
   const groupedCriteria = useMemo(() => {
     const groups = new Map<string, Criterion[]>();
