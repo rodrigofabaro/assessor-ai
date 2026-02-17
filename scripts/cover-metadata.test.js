@@ -57,7 +57,7 @@ function assert(condition, message) {
 }
 
 function run() {
-  const { extractCoverMetadataFromPages } = loadTsModule("lib/submissions/coverMetadata.ts");
+  const { extractCoverMetadataFromPages, isCoverMetadataReady } = loadTsModule("lib/submissions/coverMetadata.ts");
 
   const pages = [
     {
@@ -84,9 +84,9 @@ function run() {
   assert(Boolean(cover.submissionDate?.value), "expected submissionDate extraction");
   assert(cover.declarationPresent?.value === true, "expected declaration detection");
   assert(Number(cover.confidence) > 0.5, "expected positive cover confidence");
+  assert(isCoverMetadataReady(cover) === true, "expected cover metadata readiness true");
 
   console.log("cover metadata extraction tests passed.");
 }
 
 run();
-

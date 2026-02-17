@@ -192,6 +192,10 @@ export default function SubmissionDetailPage() {
     const c = latestRun?.sourceMeta?.coverMetadata;
     return c && typeof c === "object" ? c : null;
   }, [latestRun]);
+  const extractionMode = useMemo(() => {
+    const m = String(latestRun?.sourceMeta?.extractionMode || "").toUpperCase();
+    return m === "COVER_ONLY" ? "COVER_ONLY" : m === "FULL" ? "FULL" : "";
+  }, [latestRun]);
 
   const latestAssessment = useMemo(() => {
     const a = submission?.assessments ?? [];
@@ -841,6 +845,7 @@ export default function SubmissionDetailPage() {
                 {latestRun ? (
                   <div className="text-xs text-zinc-500">
                     {latestRun.status} · Confidence {Math.round((latestRun.overallConfidence || 0) * 100)}%
+                    {extractionMode ? ` · Mode ${extractionMode}` : ""}
                   </div>
                 ) : null}
               </div>

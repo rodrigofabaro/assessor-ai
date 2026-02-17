@@ -1,3 +1,5 @@
+import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
+
 type ExtractionRunLike = {
   status?: string | null;
   overallConfidence?: number | null;
@@ -33,23 +35,6 @@ function parseWarnings(raw: unknown): string[] {
   return [];
 }
 
-function hasCoverMetadata(raw: unknown): boolean {
-  if (!raw || typeof raw !== "object") return false;
-  const cover = (raw as any)?.coverMetadata;
-  if (!cover || typeof cover !== "object") return false;
-  const fields = [
-    cover.studentName?.value,
-    cover.studentId?.value,
-    cover.unitCode?.value,
-    cover.assignmentCode?.value,
-    cover.submissionDate?.value,
-  ]
-    .map((v: unknown) => String(v || "").trim())
-    .filter(Boolean);
-  const conf = Number(cover.confidence || 0);
-  return fields.length >= 2 && conf >= 0.5;
-}
-
 function envNumber(name: string, fallback: number) {
   const value = Number(process.env[name] || fallback);
   if (!Number.isFinite(value)) return fallback;
@@ -70,7 +55,7 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   const pageCount = Number(run?.pageCount || 0);
   const overallConfidence = Number(run?.overallConfidence || 0);
   const runWarnings = parseWarnings(run?.warnings);
-  const coverReady = hasCoverMetadata(run?.sourceMeta);
+  const coverReady = isCoverMetadataReady((run?.sourceMeta as any)?.coverMetadata);
 
   if (!run) blockers.push("No extraction run found.");
   if (runStatus === "NEEDS_OCR") blockers.push("Extraction flagged as NEEDS_OCR. Run OCR/correction before grading.");

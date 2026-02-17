@@ -21,6 +21,21 @@ export type SubmissionCoverMetadata = {
   confidence: number;
 };
 
+export function isCoverMetadataReady(cover: any): boolean {
+  if (!cover || typeof cover !== "object") return false;
+  const fields = [
+    cover.studentName?.value,
+    cover.studentId?.value,
+    cover.unitCode?.value,
+    cover.assignmentCode?.value,
+    cover.submissionDate?.value,
+  ]
+    .map((v: unknown) => String(v || "").trim())
+    .filter(Boolean);
+  const conf = Number(cover.confidence || 0);
+  return fields.length >= 2 && conf >= 0.5;
+}
+
 function normalizeText(input: string) {
   return String(input || "")
     .replace(/\r\n/g, "\n")
@@ -133,4 +148,3 @@ export function extractCoverMetadataFromPages(
   out.confidence = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
   return out;
 }
-

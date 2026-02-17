@@ -426,6 +426,8 @@ export async function POST(
   const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
   const latestRunMeta = (submission.extractionRuns?.[0]?.sourceMeta as any) || {};
   const coverMetadata = latestRunMeta?.coverMetadata || null;
+  const extractionMode = String(latestRunMeta?.extractionMode || "").toUpperCase();
+  const coverReady = Boolean(latestRunMeta?.coverReady);
   const latestRunId = String(submission.extractionRuns?.[0]?.id || "");
   const sampledPages =
     latestRunId
@@ -441,11 +443,15 @@ export async function POST(
     Math.max(500, Math.min(6000, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT || 1600))),
     Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4)))
   );
-  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
-  const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
-
   const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
   const maxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
+  const bodyFallbackText =
+    extractionMode === "COVER_ONLY"
+      ? "(Cover-only extraction mode active. Do not assume missing body text means missing student work; rely on page-sample evidence.)"
+      : String(submission.extractedText || "").slice(0, inputCharLimit) ||
+        "(No substantial extracted body text available. Use evidence-based caution.)";
+  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
+  const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
   const prompt = [
     "You are an engineering assignment assessor.",
@@ -482,8 +488,8 @@ export async function POST(
     "Student submission page samples (preferred for evidence grounding):",
     pageContext,
     "",
-    "Submission extracted body text fallback (may be limited in cover-ready mode):",
-    String(submission.extractedText || "").slice(0, inputCharLimit) || "(No substantial extracted body text available. Use evidence-based caution.)",
+    "Submission extracted body text fallback (secondary context):",
+    bodyFallbackText,
   ].join("\n");
   const promptHash = createHash("sha256").update(prompt).digest("hex");
 
@@ -615,6 +621,9 @@ export async function POST(
         `Automated review: required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
       );
     }
+    if (extractionMode === "COVER_ONLY") {
+      feedbackBullets.unshift("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
+    }
     const responseWithPolicy = {
       ...validated.data,
       confidence: finalConfidence,
@@ -661,6 +670,8 @@ export async function POST(
           promptChars: prompt.length,
           criteriaCount: criteria.length,
           pageSampleCount: sampledPages.length,
+          extractionMode: extractionMode || "UNKNOWN",
+          coverReady,
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,

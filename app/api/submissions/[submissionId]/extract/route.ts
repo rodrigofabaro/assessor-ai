@@ -4,9 +4,15 @@ import { extractFile } from "@/lib/extraction";
 import { randomUUID } from "crypto";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { ocrPdfWithOpenAi } from "@/lib/ocr/openaiPdfOcr";
-import { extractCoverMetadataFromPages } from "@/lib/submissions/coverMetadata";
+import { extractCoverMetadataFromPages, isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
+
+function envBool(name: string, fallback = false) {
+  const raw = String(process.env[name] ?? "").trim().toLowerCase();
+  if (!raw) return fallback;
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
 
 function clamp01(n: number) {
   if (Number.isNaN(n)) return 0;
@@ -155,9 +161,11 @@ export async function POST(
 
   try {
     const res = await extractFile(submission.storagePath, submission.filename);
+    const coverOnlyMode = envBool("SUBMISSION_EXTRACT_COVER_ONLY", false);
+    const coverPageLimit = Math.max(1, Math.min(3, Number(process.env.SUBMISSION_EXTRACT_COVER_PAGE_LIMIT || 2)));
 
     // Ensure we always have at least one page for UI consistency
-    const pages =
+    const pagesRaw =
       res.pages && res.pages.length
         ? res.pages
         : [
@@ -170,6 +178,12 @@ export async function POST(
               tokens: null,
             },
           ];
+    const pages = coverOnlyMode
+      ? pagesRaw
+          .filter((p: any) => Number(p?.pageNumber || 0) > 0)
+          .sort((a: any, b: any) => Number(a?.pageNumber || 0) - Number(b?.pageNumber || 0))
+          .slice(0, coverPageLimit)
+      : pagesRaw;
 
     let finalPages = pages as any[];
     let combinedText = combinePageText(finalPages as any);
@@ -192,7 +206,7 @@ export async function POST(
       ocrMeta.warnings = ocr.warnings || [];
       if (ocr.ok && ocr.combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS) {
         ocrMeta.succeeded = true;
-        finalPages = ocr.pages.map((p) => ({
+        const ocrPages = ocr.pages.map((p) => ({
           pageNumber: p.pageNumber,
           text: p.text,
           confidence: p.confidence,
@@ -200,13 +214,23 @@ export async function POST(
           height: p.height ?? null,
           tokens: null,
         }));
+        finalPages = coverOnlyMode
+          ? ocrPages
+              .filter((p) => Number(p?.pageNumber || 0) > 0)
+              .sort((a, b) => Number(a?.pageNumber || 0) - Number(b?.pageNumber || 0))
+              .slice(0, coverPageLimit)
+          : ocrPages;
         combinedText = combinePageText(finalPages as any);
         hasMeaningfulText = combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS;
       }
     }
 
-    // Derived truth beats heuristic flags
-    const finalIsScanned = !hasMeaningfulText;
+    const coverMetadata = extractCoverMetadataFromPages(finalPages as any);
+
+    // Derived truth beats heuristic flags. In cover-only mode, strong cover metadata
+    // is enough to mark the run ready even when body text is intentionally short.
+    const coverReady = coverOnlyMode && isCoverMetadataReady(coverMetadata);
+    const finalIsScanned = coverReady ? false : !hasMeaningfulText;
     const finalRunStatus = finalIsScanned ? "NEEDS_OCR" : "DONE";
     const finalSubmissionStatus = finalIsScanned ? "NEEDS_OCR" : "EXTRACTED";
 
@@ -216,7 +240,9 @@ export async function POST(
 
     const finishedAt = new Date();
     const mergedWarnings = [...(res.warnings || []), ...((ocrMeta.warnings as string[]) || [])];
-    const coverMetadata = extractCoverMetadataFromPages(finalPages as any);
+    if (coverReady && combinedText.length < MIN_MEANINGFUL_TEXT_CHARS) {
+      mergedWarnings.push("cover-ready mode: body extraction intentionally limited.");
+    }
 
     // Save pages + finalize run + update submission atomically
     await prisma.$transaction([
@@ -244,6 +270,9 @@ export async function POST(
           sourceMeta: {
             kind: res.kind,
             detectedMime: res.detectedMime ?? null,
+            extractionMode: coverOnlyMode ? "COVER_ONLY" : "FULL",
+            coverPageLimit: coverOnlyMode ? coverPageLimit : null,
+            coverReady,
             coverMetadata,
             ocr: ocrMeta,
 
@@ -280,6 +309,7 @@ export async function POST(
       status: finalRunStatus,
       isScanned: finalIsScanned,
       extractedChars: combinedText.length,
+      coverReady,
       coverMetadata,
       requestId,
     }, { headers: { "x-request-id": requestId } });
