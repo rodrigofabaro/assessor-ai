@@ -706,9 +706,14 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
     const hasChartActionCue =
       /\b(create|present|plot|draw|produce|construct|prepare|show)\b[\s\S]{0,60}\b(chart|graph)\b/i.test(sourceAndInstructions) ||
       /\b(chart|graph)\b[\s\S]{0,40}\b(showing|of|for)\b[\s\S]{0,40}\b(data|results|percentages|distribution)\b/i.test(sourceAndInstructions);
+    const hasRecoveredImageDataCue =
+      /\brecovered\s+chart\s+data\b/i.test(sourceAndInstructions) ||
+      /\bfrom uploaded image\b/i.test(sourceAndInstructions) ||
+      /\bimage-based chart\b/i.test(sourceAndInstructions);
     const imageBasedCue =
       /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
-      /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions);
+      /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions) ||
+      hasRecoveredImageDataCue;
     const hasTabularFailureData =
       /\bfailure reason\b/i.test(sourceText) &&
       /\bnumber of chips\b/i.test(sourceText);
@@ -721,6 +726,10 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
     // Only build chart previews when this specific part/task actually cues chart/graph work.
     const hasChartRequirement = wantsBar || wantsPie || hasChartActionCue || imageBasedCue;
     if (!hasChartRequirement) return;
+
+    // Guardrail: do not synthesize charts from plain text/table instructions.
+    // We only display chart previews when extraction indicates chart-image provenance.
+    if (!imageBasedCue) return;
 
     // If this section already contains a concrete extracted table and no image chart cue,
     // prefer table rendering only (no synthetic chart preview).
@@ -1311,6 +1320,14 @@ export function TaskCard({
   );
 
   const tableBlocks = useMemo(() => detectTableBlocks({ ...task, text: taskBodyText }), [task, taskBodyText]);
+  const hasConcreteTableInTask = useMemo(
+    () => tableBlocks.some((b) => b?.kind === "TABLE"),
+    [tableBlocks]
+  );
+  const hasImageGraphCueInTask = useMemo(
+    () => /\[\[img:[^\]]+\]\]/i.test(taskBodyText) || /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(taskBodyText),
+    [taskBodyText]
+  );
   const samplePowerTableBlock = useMemo(
     () =>
       tableBlocks.find(
@@ -1362,10 +1379,13 @@ export function TaskCard({
   }, [taskBodyText, tableBlocks, hasTaskParts, hasSamplePowerTableBlock, samplePowerTableBlock]);
 
   const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
-  const baseChartSpecs = useMemo(
-    () => buildChartSpecs(structuredParts, taskBodyText),
-    [structuredParts, taskBodyText]
-  );
+  const baseChartSpecs = useMemo(() => {
+    // Guard: if this task is already represented as a concrete table and has no explicit
+    // chart-image cue, do not synthesize chart previews from table rows.
+    const noParts = structuredParts.length === 0;
+    if (noParts && hasConcreteTableInTask && !hasImageGraphCueInTask) return [] as TaskChartSpec[];
+    return buildChartSpecs(structuredParts, taskBodyText);
+  }, [structuredParts, taskBodyText, hasConcreteTableInTask, hasImageGraphCueInTask]);
   const chartSpecs = useMemo(
     () =>
       baseChartSpecs.map((spec) => {
