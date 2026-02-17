@@ -107,6 +107,30 @@ export default function BriefMappingPanel({
         const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
         return loHints.has(loCode);
       });
+
+      // If brief text has no explicit LO hint and detected AC codes collide across multiple LOs,
+      // keep only the primary LO (highest detected count) to avoid spillover noise.
+      if (!loHints.size) {
+        const loCounts = new Map<string, number>();
+        for (const c of list) {
+          const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
+          if (!loCode) continue;
+          loCounts.set(loCode, (loCounts.get(loCode) || 0) + 1);
+        }
+        if (loCounts.size > 1) {
+          let topLo = "";
+          let topCount = -1;
+          for (const [lo, count] of loCounts.entries()) {
+            if (count > topCount) {
+              topLo = lo;
+              topCount = count;
+            }
+          }
+          if (topLo) {
+            list = list.filter((c: any) => String(c?.learningOutcome?.loCode || "").toUpperCase() === topLo);
+          }
+        }
+      }
     }
 
     // Always display criteria in P -> M -> D sequence.
@@ -164,20 +188,20 @@ export default function BriefMappingPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-zinc-900">Mapping</div>
+          <div className="text-base font-semibold text-zinc-900">Criteria Mapping</div>
           <div className="mt-0.5 text-xs text-zinc-600">
-            Link this brief to a locked unit spec, then confirm which criteria codes this brief actually targets.
-          </div>
-          <div className="mt-1 text-xs text-zinc-500">
-            Manual selection is optional. If nothing is selected, lock uses auto-detected criteria.
+            Read-only mapping from extracted brief criteria (no manual selection required).
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold text-zinc-800">
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+            Extraction-driven
+          </span>
+          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-800">
             {stats.detected} detected
           </span>
         </div>
@@ -214,7 +238,7 @@ export default function BriefMappingPanel({
         </div>
       </div>
 
-      <div className="mt-4 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-zinc-200 pt-4">
         <label className="text-xs text-zinc-600">Link this brief to a unit</label>
         <div className="mt-1">
           <select
@@ -239,13 +263,24 @@ export default function BriefMappingPanel({
         <p className="mt-2 text-xs text-zinc-500">Only ACTIVE (non-archived) locked specs are shown here.</p>
       </div>
 
-      <div className="mt-4 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-zinc-200 pt-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="font-semibold text-zinc-900">Criteria mapping</div>
-            <p className="mt-1 text-sm text-zinc-700 break-words">
-              Detected codes: <span className="font-semibold">{detectedCodesSorted.length ? detectedCodesSorted.join(", ") : "(none)"}</span>
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {detectedCodesSorted.length ? (
+                detectedCodesSorted.map((code) => (
+                  <span
+                    key={`det-${code}`}
+                    className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold text-zinc-800"
+                  >
+                    {code}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-zinc-700">(none)</span>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -303,7 +338,7 @@ export default function BriefMappingPanel({
                 {loSummary.map((lo) => (
                   <span
                     key={lo.loCode}
-                    className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold text-zinc-800"
+                    className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-800"
                   >
                     {lo.loCode}: {lo.detected} detected
                   </span>
@@ -321,11 +356,19 @@ export default function BriefMappingPanel({
               <div className="mt-3 grid gap-3">
                 {groupedCriteria.map((group) => {
                   const summary = loSummaryByCode.get(group.loCode);
+                  const loDescription = String((group.items?.[0]?.learningOutcome as any)?.description || "").trim();
                   return (
-                    <div key={group.loCode} className="rounded-2xl border border-zinc-200 bg-white p-3">
+                    <div key={group.loCode} className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs font-semibold text-zinc-900">{group.loCode}</div>
-                        <div className="text-[11px] text-zinc-600">
+                        <div>
+                          <div className="inline-flex rounded-md bg-white px-2 py-0.5 text-xs font-semibold text-zinc-900 ring-1 ring-zinc-200">
+                            {group.loCode}
+                          </div>
+                          {loDescription ? (
+                            <div className="mt-1 text-xs text-zinc-600">{loDescription}</div>
+                          ) : null}
+                        </div>
+                        <div className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] text-zinc-600">
                           {summary ? `${summary.detected} detected` : "0 detected"}
                         </div>
                       </div>
@@ -339,10 +382,10 @@ export default function BriefMappingPanel({
                             <div
                               key={`${group.loCode}-${c.acCode}`}
                               className={cx(
-                                "flex items-start gap-3 rounded-2xl border p-3 text-sm transition",
+                                "flex items-start gap-3 rounded-2xl border p-3 text-sm",
                                 suggested
-                                  ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-50"
-                                  : "border-zinc-200 bg-white hover:bg-zinc-50"
+                                  ? "border-emerald-200 bg-emerald-50"
+                                  : "border-zinc-200 bg-white"
                               )}
                               title={suggested ? "Detected in brief text" : ""}
                             >
@@ -392,12 +435,7 @@ export default function BriefMappingPanel({
         )}
 
         <p className="mt-3 text-xs text-zinc-500">
-          Professional default: <span className="font-semibold">Current brief</span> shows only detected criteria from this brief, grouped by LO. Switch to{" "}
-          <span className="font-semibold">All unit criteria</span> to view the full spec universe.
-        </p>
-
-        <p className="mt-2 text-xs text-zinc-500">
-          Lock binds this brief PDF to the chosen locked unit spec and stores auto-detected criteria from the brief extraction.
+          Current brief shows detected criteria from this brief grouped by LO. Lock stores this extraction-driven mapping against the selected unit.
         </p>
       </div>
     </div>
