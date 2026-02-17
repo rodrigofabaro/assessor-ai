@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sanitizeBriefDraftArtifacts } from "@/lib/extraction/brief/draftIntegrity";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
@@ -48,7 +49,10 @@ export async function PATCH(req: Request, { params }: { params: { documentId: st
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const prev = asObject(existing.sourceMeta);
-  const next = sanitizeArtifacts({ ...prev, ...asObject(body) });
+  const next = sanitizeArtifacts({ ...prev, ...asObject(body) }) as any;
+  if (next?.manualDraft) {
+    next.manualDraft = sanitizeBriefDraftArtifacts(next.manualDraft);
+  }
 
   const updated = await prisma.referenceDocument.update({
     where: { id },

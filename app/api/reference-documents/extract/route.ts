@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { extractReferenceDocument } from "@/lib/extraction/index";
+import { sanitizeBriefDraftArtifacts } from "@/lib/extraction/brief/draftIntegrity";
 
 
 export const runtime = "nodejs";
@@ -245,6 +246,7 @@ export async function POST(req: Request) {
     if (canPartialMerge) {
       extractedJson = mergeBriefExtractionByTaskNumbers(doc.extractedJson, extractedJson, taskNumbers);
     }
+    extractedJson = sanitizeBriefDraftArtifacts(extractedJson);
 
     const nextExtractSummary = summarizeExtracted(extractedJson);
     const nowIso = new Date().toISOString();
