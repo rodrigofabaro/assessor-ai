@@ -605,6 +605,7 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
     const instruction = sourceAndInstructions.toLowerCase();
     const wantsBar = /\bbar\s+chart\b|\bbar\s+graph\b/.test(instruction);
     const wantsPie = /\bpie\s+chart\b|\bpie\s+graph\b/.test(instruction);
+    const hasGenericChartCue = /\b(chart|graph)\b/.test(instruction);
     const imageBasedCue =
       /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
       /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions);
@@ -614,9 +615,14 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
         ? "Showing sample/day data extracted from the brief text."
         : undefined;
 
-    const kinds: ChartKind[] = wantsBar || wantsPie ? [] : ["bar"];
+    // Only build chart previews when this specific part/task actually cues chart/graph work.
+    const hasChartRequirement = wantsBar || wantsPie || hasGenericChartCue || imageBasedCue;
+    if (!hasChartRequirement) return;
+
+    const kinds: ChartKind[] = [];
     if (wantsBar) kinds.push("bar");
     if (wantsPie) kinds.push("pie");
+    if (!kinds.length) kinds.push("bar");
 
     if (data.length < 2) {
       if (!kinds.length) return;
