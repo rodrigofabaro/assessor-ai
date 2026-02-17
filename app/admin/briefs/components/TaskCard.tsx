@@ -552,6 +552,35 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
     }
   }
 
+  // Recovery for truncated Task 3 sections where OCR keeps "Scientific Method Application"
+  // but drops the numbered requirements after "You must:".
+  for (const part of topLevel) {
+    const partText = String(part?.text || "");
+    const isScientificMethodBlock =
+      /\bscientific method application\b/i.test(partText) &&
+      /\byou must[:]?$/im.test(partText);
+    if (!isScientificMethodBlock) continue;
+
+    const defaults: Array<{ key: string; text: string }> = [
+      { key: "1", text: "Write a short definition of ‘Scientific Method’ in your own words." },
+      { key: "2", text: "Give one quantitative example of applying the scientific method in engineering." },
+      { key: "3", text: "Give one qualitative example of applying the scientific method in engineering." },
+    ];
+
+    const byKey = new Map<string, string>();
+    for (const child of part.children || []) {
+      const k = String(child?.key || "").trim().toLowerCase();
+      const t = String(child?.text || "").trim();
+      if (k && t) byKey.set(k, t);
+    }
+
+    for (const d of defaults) {
+      if (!byKey.has(d.key)) {
+        part.children.push({ key: d.key, text: d.text });
+      }
+    }
+  }
+
   return topLevel.filter((part) => part.text || part.children.length > 0);
 }
 
