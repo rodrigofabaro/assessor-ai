@@ -32,6 +32,10 @@ Briefs define what learners were asked to produce:
 - A brief used for grading must be **locked**.
 - Locked briefs are **immutable**.
 - “Tasks” must be stored as a **task register**: ordered, preserved, warning‑flagged when unclear.
+- Criteria mapping in brief review is **extraction-driven**:
+  - display what extraction detected
+  - if extraction is wrong, fix extraction/draft
+  - do not rely on manual UI forcing to create grading truth
 
 ## Submissions
 A submission is the learner’s work artefact (PDF/DOCX etc.).
@@ -60,6 +64,11 @@ Every criterion decision must record:
 - `referenceIds`: spec version id + brief version id
 
 If the extractor is uncertain, the grader must **downgrade confidence** or **refuse to decide**, never invent.
+
+Warnings shown to operators must be actionable:
+
+- resolved/stale warnings should auto-clear from review UI
+- warnings that remain should point to a real extraction or structure issue
 
 ## Audit trail expectations
 Anything that changes state should be evented (even if only internally):

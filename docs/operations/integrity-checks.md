@@ -17,6 +17,11 @@ Assessor‑AI treats these as “health gates”, not optional suggestions.
 - `pnpm run lint` (if present)
 - `pnpm run typecheck` (if present)
 - `pnpm run test` (if present)
+- targeted extraction/brief checks:
+  - `node scripts/extraction-integrity.test.js`
+  - `node scripts/extraction-readiness.test.js`
+  - `node scripts/tasks-tab.logic.test.js`
+  - `node scripts/draft-integrity.test.js`
 
 4) Build gate
 - `pnpm run build`
@@ -45,3 +50,11 @@ If the project doesn’t have these scripts yet, consider adding them to `packag
 - `test`: your chosen test runner
 
 (Only add scripts when asked; don’t do it as a drive‑by change.)
+
+## Warning hygiene expectation
+
+When warnings are visible in brief review UI, they must be actionable.
+
+- stale/non-actionable warnings should be filtered
+- resolved warnings should auto-clear
+- if warning remains, treat it as a real extraction issue and fix draft/extractor path
