@@ -6,6 +6,7 @@ import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { validateGradeDecision } from "@/lib/grading/decisionValidation";
+import { buildStructuredGradingV2 } from "@/lib/grading/assessmentResult";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -549,6 +550,23 @@ export async function POST(
       const errorText = validated.errors.join(" | ");
       throw new Error(`Model output failed schema validation: ${errorText}`);
     }
+    const achievedWithoutEvidence = validated.data.criterionChecks.find(
+      (row) => row.decision === "ACHIEVED" && (!Array.isArray(row.evidence) || row.evidence.length === 0)
+    );
+    if (achievedWithoutEvidence) {
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: "FAILED" },
+      });
+      return apiError({
+        status: 422,
+        code: "GRADE_DECISION_EVIDENCE_MISSING",
+        userMessage: `Criterion ${achievedWithoutEvidence.code} was marked ACHIEVED without evidence.`,
+        route: "/api/submissions/[submissionId]/grade",
+        requestId,
+        details: { submissionId, criterionCode: achievedWithoutEvidence.code },
+      });
+    }
 
     const confidenceCap = Math.max(
       0.2,
@@ -574,6 +592,15 @@ export async function POST(
       ...validated.data,
       confidence: finalConfidence,
     };
+    const completedAtIso = new Date().toISOString();
+    const structuredGradingV2 = buildStructuredGradingV2(responseWithPolicy, {
+      contractVersion: "v2-structured-evidence",
+      promptHash,
+      model: cfg.model,
+      gradedBy: actor,
+      startedAtIso: gradingStartedAt.toISOString(),
+      completedAtIso,
+    });
     const feedbackText = [feedbackSummary, ...feedbackBullets.map((b: string) => `- ${b}`)].filter(Boolean).join("\n");
 
     const marked = await createMarkedPdf(submission.storagePath, {
@@ -594,7 +621,7 @@ export async function POST(
           requestId,
           gradingTimeline: {
             startedAt: gradingStartedAt.toISOString(),
-            completedAt: new Date().toISOString(),
+            completedAt: completedAtIso,
           },
           gradedBy: actor,
           model: cfg.model,
@@ -616,6 +643,7 @@ export async function POST(
             finalConfidence,
             wasCapped: confidenceWasCapped,
           },
+          structuredGradingV2,
           response: responseWithPolicy,
           usage,
           extractionGate,
