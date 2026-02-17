@@ -50,6 +50,13 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - Warnings/readiness cleanup:
   - stale non-actionable warnings are filtered from UI
   - resolved equation/short-body warnings are automatically suppressed
+- Submissions Phase 1 simplification:
+  - optional `SUBMISSION_EXTRACT_COVER_ONLY=true` mode for cover-first extraction
+  - cover metadata readiness is now a first-class extraction quality signal
+  - triage falls back to cover metadata signals (unit/assignment/student)
+  - grading prompt uses page samples as primary evidence context
+  - accepted grade words aligned to Pearson HN flow:
+    - `REFER`, `PASS`, `PASS_ON_RESUBMISSION`, `MERIT`, `DISTINCTION`
 
 ## Non‑negotiable philosophy
 

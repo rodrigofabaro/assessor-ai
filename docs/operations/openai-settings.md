@@ -55,6 +55,17 @@ Usage records are appended by:
 
 - `lib/openai/usageLog.ts`
 
+## Grading Prompt Controls (env)
+
+These are runtime env controls used by grading:
+
+- `OPENAI_GRADE_INPUT_CHAR_LIMIT`
+- `OPENAI_GRADE_MAX_OUTPUT_TOKENS`
+- `OPENAI_GRADE_PAGE_SAMPLE_COUNT`
+- `OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT`
+
+In Phase 1 cover-only mode, page samples are the primary grounding context and body text is secondary.
+
 ## Required scopes and common permission errors
 
 1. Org usage/cost endpoints
