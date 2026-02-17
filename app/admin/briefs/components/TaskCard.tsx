@@ -770,6 +770,7 @@ function renderStructuredParts(
     canEditLatex?: boolean;
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
     partLatexOverrides?: Record<string, string>;
+    chartsByPart?: Record<string, TaskChartSpec[]>;
     suppressInlineSamplePowerTable?: boolean;
     samplePowerTableBlock?: StructuredTableBlock | null;
     reflowWrappedLines?: boolean;
@@ -805,6 +806,17 @@ function renderStructuredParts(
                 </div>
               );
             })() : null}
+          {(() => {
+            const partCharts = options?.chartsByPart?.[String(part.key).toLowerCase()] || [];
+            if (!partCharts.length) return null;
+            return (
+            <div className="mt-3 space-y-3">
+              {partCharts.map((spec) => (
+                <ChartPreview key={`${keyPrefix}-chart-${spec.id}`} spec={spec} />
+              ))}
+            </div>
+            );
+          })()}
           {part.key === "a" && options?.samplePowerTableBlock ? (
             <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-300 bg-white">
               <table className="min-w-full border-collapse text-left text-xs text-zinc-800">
@@ -1099,6 +1111,25 @@ export function TaskCard({
     () => buildChartSpecs(structuredParts, taskBodyText),
     [structuredParts, taskBodyText]
   );
+  const chartsByPart = useMemo(() => {
+    const out: Record<string, TaskChartSpec[]> = {};
+    for (const spec of chartSpecs) {
+      const key = String(spec?.partKey || "").toLowerCase();
+      if (!key || key === "task") continue;
+      if (!out[key]) out[key] = [];
+      out[key].push(spec);
+    }
+    return out;
+  }, [chartSpecs]);
+  const unplacedChartSpecs = useMemo(() => {
+    if (!chartSpecs.length) return [] as TaskChartSpec[];
+    const partKeys = new Set(structuredParts.map((p) => String(p?.key || "").toLowerCase()).filter(Boolean));
+    return chartSpecs.filter((spec) => {
+      const key = String(spec?.partKey || "").toLowerCase();
+      if (!key || key === "task") return true;
+      return !partKeys.has(key);
+    });
+  }, [chartSpecs, structuredParts]);
   const taskNumber = useMemo(() => {
     const n = Number(task?.n);
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -1433,16 +1464,17 @@ export function TaskCard({
                       </div>
                     ) : null}
                     <div className={structuredPartsIntroText ? "mt-2" : ""}>
-                      {renderStructuredParts(structuredParts, "task-parts-no-segment", {
-                        equationsById,
-                        openPdfHref,
-                        canEditLatex,
-                        onSaveEquationLatex,
-                        partLatexOverrides,
-                        suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
-                        samplePowerTableBlock,
-                        reflowWrappedLines: hasMathLayoutWarning,
-                      })}
+                              {renderStructuredParts(structuredParts, "task-parts-no-segment", {
+                                equationsById,
+                                openPdfHref,
+                                canEditLatex,
+                                onSaveEquationLatex,
+                                partLatexOverrides,
+                                chartsByPart,
+                                suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
+                                samplePowerTableBlock,
+                                reflowWrappedLines: hasMathLayoutWarning,
+                              })}
                     </div>
                   </div>
                 ) : null}
@@ -1470,6 +1502,7 @@ export function TaskCard({
                                 canEditLatex,
                                 onSaveEquationLatex,
                                 partLatexOverrides,
+                                chartsByPart,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1528,11 +1561,11 @@ export function TaskCard({
               </div>
             </div>
 
-            {chartSpecs.length ? (
+            {unplacedChartSpecs.length ? (
               <div className="rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Detected Chart Previews</div>
                 <div className="mt-2 space-y-3">
-                  {chartSpecs.map((spec) => (
+                  {unplacedChartSpecs.map((spec) => (
                     <ChartPreview key={spec.id} spec={spec} />
                   ))}
                 </div>
