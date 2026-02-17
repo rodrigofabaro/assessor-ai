@@ -1272,13 +1272,29 @@ export function TaskCard({
         : [];
       if (!res.ok || points.length < 2) return;
 
+      const provider = String(data?.provider || "ai").toLowerCase();
+      const baseConfidence = Number(data?.confidence || 0);
+      const confidenceFloor =
+        provider === "local"
+          ? points.length >= 4
+            ? 0.9
+            : points.length >= 3
+              ? 0.85
+              : 0.8
+          : points.length >= 4
+            ? 0.84
+            : points.length >= 3
+              ? 0.8
+              : 0.76;
+      const recoveredConfidence = Math.max(confidenceFloor, baseConfidence, Number(spec.confidence || 0));
+
       setChartOverrides((prev) => ({
         ...prev,
         [spec.id]: {
           data: points,
-          confidence: Math.max(Number(spec.confidence || 0), Number(data?.confidence || 0.6)),
+          confidence: recoveredConfidence,
           pending: false,
-          note: `Recovered from PDF image (${String(data?.provider || "ai")}).`,
+          note: `Recovered from PDF image (${provider}).`,
         },
       }));
     } finally {

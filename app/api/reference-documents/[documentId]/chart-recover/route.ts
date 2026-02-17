@@ -44,6 +44,22 @@ function sanitizeGraphPayload(raw: any): { chartTypes: string[]; points: GraphPo
   };
 }
 
+function deriveRecoveredConfidence(input: {
+  provider: "local" | "openai";
+  pointsCount: number;
+  chartTypeCount: number;
+  modelConfidence: number;
+}) {
+  const { provider, pointsCount, chartTypeCount, modelConfidence } = input;
+  let score = provider === "local" ? 0.72 : 0.66;
+  if (pointsCount >= 2) score += 0.08;
+  if (pointsCount >= 3) score += 0.07;
+  if (pointsCount >= 5) score += 0.05;
+  if (chartTypeCount > 0) score += 0.03;
+  score += clamp(modelConfidence, 0, 1) * 0.1;
+  return clamp(score, 0.55, 0.99);
+}
+
 function extractResponseText(data: any) {
   const direct = String(data?.output_text || "").trim();
   if (direct) return direct;
@@ -59,7 +75,10 @@ function extractResponseText(data: any) {
   return parts.join("\n").trim();
 }
 
-async function renderPdfPageToPngDataUrl(pdfPathAbs: string, pageNumber: number): Promise<string | null> {
+async function renderPdfPageToPngDataUrl(
+  pdfPathAbs: string,
+  pageNumber: number
+): Promise<{ dataUrl: string; pageCount: number } | null> {
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
@@ -82,7 +101,10 @@ async function renderPdfPageToPngDataUrl(pdfPathAbs: string, pageNumber: number)
     const ctx = canvas.getContext("2d");
     await page.render({ canvasContext: ctx as any, viewport }).promise;
     const png = canvas.toBuffer("image/png");
-    return `data:image/png;base64,${Buffer.from(png).toString("base64")}`;
+    return {
+      dataUrl: `data:image/png;base64,${Buffer.from(png).toString("base64")}`,
+      pageCount: Number(doc.numPages || 1),
+    };
   } catch {
     return null;
   }
@@ -103,8 +125,17 @@ async function recoverGraphFromImage(input: { imageDataUrl: string; anchorText: 
     });
     if (local.ok) {
       const parsed = sanitizeGraphPayload("parsed" in local ? local.parsed : {});
-      if (parsed.points.length >= 2 && parsed.confidence >= 0.6) {
-        return { ...parsed, provider: "local" as const };
+      if (parsed.points.length >= 2) {
+        return {
+          ...parsed,
+          confidence: deriveRecoveredConfidence({
+            provider: "local",
+            pointsCount: parsed.points.length,
+            chartTypeCount: parsed.chartTypes.length,
+            modelConfidence: parsed.confidence,
+          }),
+          provider: "local" as const,
+        };
       }
     }
     if (!shouldTryOpenAi("graph")) return { chartTypes: [], points: [], confidence: 0, provider: "local" as const };
@@ -149,7 +180,16 @@ async function recoverGraphFromImage(input: { imageDataUrl: string; anchorText: 
   const jsonLike = deFenced.match(/\{[\s\S]*\}/)?.[0] || "";
   if (!jsonLike) return { chartTypes: [], points: [], confidence: 0, provider: "openai" as const };
   const parsed = sanitizeGraphPayload(JSON.parse(jsonLike));
-  return { ...parsed, provider: "openai" as const };
+  return {
+    ...parsed,
+    confidence: deriveRecoveredConfidence({
+      provider: "openai",
+      pointsCount: parsed.points.length,
+      chartTypeCount: parsed.chartTypes.length,
+      modelConfidence: parsed.confidence,
+    }),
+    provider: "openai" as const,
+  };
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ documentId: string }> }) {
@@ -171,14 +211,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ documen
     return NextResponse.json({ error: "FILE_NOT_FOUND", tried: resolved.tried }, { status: 400 });
   }
 
-  const imageDataUrl = await renderPdfPageToPngDataUrl(resolved.path, requestedPage);
-  if (!imageDataUrl) return NextResponse.json({ error: "PAGE_RENDER_FAILED" }, { status: 500 });
+  const firstRender = await renderPdfPageToPngDataUrl(resolved.path, requestedPage);
+  if (!firstRender) return NextResponse.json({ error: "PAGE_RENDER_FAILED" }, { status: 500 });
 
   try {
-    const recovered = await recoverGraphFromImage({ imageDataUrl, anchorText });
-    if (!recovered.points.length) {
+    const pageCandidates = Array.from(
+      new Set(
+        [requestedPage, requestedPage + 1, requestedPage - 1]
+          .map((p) => clamp(Math.floor(p), 1, Math.max(1, firstRender.pageCount)))
+      )
+    );
+
+    let recovered: Awaited<ReturnType<typeof recoverGraphFromImage>> | null = null;
+    for (const p of pageCandidates) {
+      const rendered = p === requestedPage ? firstRender : await renderPdfPageToPngDataUrl(resolved.path, p);
+      if (!rendered?.dataUrl) continue;
+      const current = await recoverGraphFromImage({ imageDataUrl: rendered.dataUrl, anchorText });
+      if (!current.points.length) continue;
+      if (
+        !recovered ||
+        current.confidence > recovered.confidence ||
+        (current.confidence === recovered.confidence && current.points.length > recovered.points.length)
+      ) {
+        recovered = current;
+      }
+    }
+
+    if (!recovered || !recovered.points.length) {
       return NextResponse.json(
-        { ok: false, points: [], confidence: recovered.confidence, provider: recovered.provider, message: "No graph data extracted." },
+        { ok: false, points: [], confidence: 0, provider: "none", message: "No graph data extracted." },
         { status: 422 }
       );
     }
@@ -186,11 +247,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ documen
       ok: true,
       points: recovered.points,
       chartTypes: recovered.chartTypes,
-      confidence: clamp(recovered.confidence || 0.6, 0.5, 0.99),
+      confidence: clamp(recovered.confidence || 0.72, 0.55, 0.99),
       provider: recovered.provider,
+      pagesTried: pageCandidates,
     });
   } catch (e: any) {
     return NextResponse.json({ error: "CHART_RECOVER_FAILED", message: String(e?.message || e) }, { status: 500 });
   }
 }
-
