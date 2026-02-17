@@ -356,7 +356,7 @@ export default function BriefMappingPanel({
               <div className="mt-3 grid gap-3">
                 {groupedCriteria.map((group) => {
                   const summary = loSummaryByCode.get(group.loCode);
-                  const loDescription = String((group.items?.[0]?.learningOutcome as any)?.description || "").trim();
+                  const loDescription = String(group.items?.[0]?.learningOutcome?.description || "").trim();
                   return (
                     <div key={group.loCode} className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
