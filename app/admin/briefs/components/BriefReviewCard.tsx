@@ -88,7 +88,9 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
     : (doc?.extractedJson ?? null);
 
   const rawTasks = (Array.isArray(draft?.tasks) ? draft.tasks : []).map(syncTaskFromText);
-  const draftWarnings = Array.isArray(draft?.warnings) ? draft.warnings : [];
+  const draftWarnings = (Array.isArray(draft?.warnings) ? draft.warnings : []).filter(
+    (w: any) => !/openai task cleanup applied/i.test(String(w || ""))
+  );
   const lockConflict = rx.lockConflict;
   const [expandAll, setExpandAll] = useState(false);
   const [expandSignal, setExpandSignal] = useState(0);
