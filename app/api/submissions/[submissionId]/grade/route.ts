@@ -443,6 +443,15 @@ export async function POST(
     Math.max(500, Math.min(6000, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT || 1600))),
     Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4)))
   );
+  const sampledPageText = sampledPages
+    .map((p) => normalizeText(p.text))
+    .filter(Boolean)
+    .join("\n\n");
+  const modalityEvidenceText =
+    extractionMode === "COVER_ONLY"
+      ? sampledPageText
+      : [String(submission.extractedText || ""), sampledPageText].filter(Boolean).join("\n\n");
+  const modalityEvidenceSource = extractionMode === "COVER_ONLY" ? "PAGE_SAMPLES_ONLY" : "BODY_PLUS_PAGE_SAMPLES";
   const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
   const maxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
   const bodyFallbackText =
@@ -450,7 +459,7 @@ export async function POST(
       ? "(Cover-only extraction mode active. Do not assume missing body text means missing student work; rely on page-sample evidence.)"
       : String(submission.extractedText || "").slice(0, inputCharLimit) ||
         "(No substantial extracted body text available. Use evidence-based caution.)";
-  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
+  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(modalityEvidenceText);
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
   const prompt = [
@@ -672,6 +681,7 @@ export async function POST(
           pageSampleCount: sampledPages.length,
           extractionMode: extractionMode || "UNKNOWN",
           coverReady,
+          modalityEvidenceSource,
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,
