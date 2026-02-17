@@ -23,6 +23,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Integrity checks: `docs/operations/integrity-checks.md`
 - Codex workflow: `docs/codex/README.md`
 - Submission operations: `docs/operations/submissions-workspace-guide.md`
+- Phase 1 grading runbook: `docs/operations/phase1-submission-grading-runbook.md`
 - OpenAI settings operations: `docs/operations/openai-settings.md`
 
 ## Common commands
