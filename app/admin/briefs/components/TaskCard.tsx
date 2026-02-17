@@ -588,6 +588,27 @@ function parseLabelValueRows(text: string): ChartDatum[] {
   return out;
 }
 
+function deriveLabelHints(text: string): string[] {
+  const fromRows = parseLabelValueRows(text).map((r) => String(r.label || "").trim()).filter(Boolean);
+  if (fromRows.length) return Array.from(new Set(fromRows)).slice(0, 20);
+  const lines = normalizeText(String(text || "")).split("\n");
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const clean = line.replace(/\s+/g, " ").trim();
+    if (!clean) continue;
+    if (/^(task|part)\s+\d+/i.test(clean)) continue;
+    if (/^you must[:]?$/i.test(clean)) continue;
+    if (/\d/.test(clean) && clean.split(" ").length <= 2) continue;
+    if (clean.length < 3 || clean.length > 64) continue;
+    const key = clean.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+  }
+  return out.slice(0, 20);
+}
+
 function inferChartTitle(part: StructuredPart): string {
   const firstLine = normalizeText(String(part?.text || "")).split("\n").map((l) => l.trim()).find(Boolean) || "";
   if (!firstLine) return `Part ${part.key.toUpperCase()} Data`;
@@ -641,6 +662,9 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
     const imageBasedCue =
       /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
       /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions);
+    const hasTabularFailureData =
+      /\bfailure reason\b/i.test(sourceText) &&
+      /\bnumber of chips\b/i.test(sourceText);
     const unit = /\bpercentage|%\b/i.test(sourceAndInstructions) ? "%" : undefined;
     const singleDayWarning =
       /\b5-?\s*day\b/i.test(instructionText) && data.length <= 5
@@ -650,6 +674,10 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
     // Only build chart previews when this specific part/task actually cues chart/graph work.
     const hasChartRequirement = wantsBar || wantsPie || hasGenericChartCue || imageBasedCue;
     if (!hasChartRequirement) return;
+
+    // Task 2(b)-style sections are tabular source data blocks. Keep them as tables,
+    // and avoid rendering duplicate synthetic chart previews for that block.
+    if (hasTabularFailureData && !imageBasedCue) return;
 
     const kinds: ChartKind[] = [];
     if (wantsBar) kinds.push("bar");
@@ -1258,11 +1286,17 @@ export function TaskCard({
     setRecoveringChartIds((prev) => new Set(prev).add(spec.id));
     try {
       const pageGuess = Number((Array.isArray(task?.pages) ? task.pages[0] : 1) || 1);
-      const anchorText = String(partTextByKey[String(spec.partKey || "").toLowerCase()] || taskBodyText || "").slice(0, 800);
+      const partKey = String(spec.partKey || "").toLowerCase();
+      const anchorText = String(partTextByKey[partKey] || taskBodyText || "").slice(0, 800);
+      const expectedLabels = deriveLabelHints(anchorText);
+      const avoidLabels = Object.entries(partTextByKey)
+        .filter(([k]) => String(k || "").toLowerCase() !== partKey)
+        .flatMap(([, v]) => deriveLabelHints(String(v || "")))
+        .slice(0, 40);
       const res = await fetch(`/api/reference-documents/${documentId}/chart-recover`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pageNumber: pageGuess, anchorText }),
+        body: JSON.stringify({ pageNumber: pageGuess, anchorText, expectedLabels, avoidLabels }),
       });
       const data = await res.json().catch(() => ({}));
       const points = Array.isArray(data?.points)
@@ -1286,7 +1320,14 @@ export function TaskCard({
             : points.length >= 3
               ? 0.8
               : 0.76;
-      const recoveredConfidence = Math.max(confidenceFloor, baseConfidence, Number(spec.confidence || 0));
+      const isTaskAPart = String(spec?.partKey || "").toLowerCase() === "a";
+      const taskAImageFloor = isTaskAPart ? (provider === "local" ? 0.93 : 0.88) : 0;
+      const recoveredConfidence = Math.max(
+        confidenceFloor,
+        baseConfidence,
+        Number(spec.confidence || 0),
+        taskAImageFloor
+      );
 
       setChartOverrides((prev) => ({
         ...prev,
