@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { readGradingConfig } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
@@ -427,13 +428,15 @@ export async function POST(
   const prompt = [
     "You are an engineering assignment assessor.",
     `Tone: ${tone}. Strictness: ${strictness}.`,
-    "Grade using only these grades: PASS, MERIT, DISTINCTION, REFER.",
+    "Grade using only these grades: REFER, PASS, PASS_ON_RESUBMISSION, MERIT, DISTINCTION.",
     "Return STRICT JSON with keys:",
-    "{ overallGrade, feedbackSummary, feedbackBullets[], criterionChecks:[{code, met, comment, evidence:[{page, quote}]}], confidence }",
+    "{ overallGradeWord, resubmissionRequired, feedbackSummary, feedbackBullets[], criterionChecks:[{code, decision, rationale, confidence, evidence:[{page, quote?, visualDescription?}]}], confidence }",
     "Rules:",
     "- Include one criterionChecks item for every criteria code provided.",
     "- code must exactly match the provided criteria code.",
-    "- evidence must include at least one quote with a numeric page number.",
+    "- ACHIEVED is only valid with page-linked evidence.",
+    "- evidence must include at least one item with numeric page and either quote or visualDescription.",
+    "- decision must be one of: ACHIEVED, NOT_ACHIEVED, UNCLEAR.",
     "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
     "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
     "",
@@ -454,6 +457,7 @@ export async function POST(
     "Student submission extracted text:",
     submission.extractedText.slice(0, inputCharLimit),
   ].join("\n");
+  const promptHash = createHash("sha256").update(prompt).digest("hex");
 
   await prisma.submission.update({
     where: { id: submission.id },
@@ -481,6 +485,8 @@ export async function POST(
               additionalProperties: false,
               properties: {
                 overallGrade: { type: "string" },
+                overallGradeWord: { type: "string" },
+                resubmissionRequired: { type: "boolean" },
                 feedbackSummary: { type: "string" },
                 feedbackBullets: { type: "array", items: { type: "string" } },
                 criterionChecks: {
@@ -490,8 +496,9 @@ export async function POST(
                     additionalProperties: false,
                     properties: {
                       code: { type: "string" },
-                      met: { type: "boolean" },
-                      comment: { type: "string" },
+                      decision: { type: "string" },
+                      rationale: { type: "string" },
+                      confidence: { type: "number" },
                       evidence: {
                         type: "array",
                         items: {
@@ -500,17 +507,18 @@ export async function POST(
                           properties: {
                             page: { type: "number" },
                             quote: { type: "string" },
+                            visualDescription: { type: "string" },
                           },
-                          required: ["page", "quote"],
+                          required: ["page"],
                         },
                       },
                     },
-                    required: ["code", "met", "comment", "evidence"],
+                    required: ["code", "decision", "rationale", "confidence", "evidence"],
                   },
                 },
                 confidence: { type: "number" },
               },
-              required: ["overallGrade", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
+              required: ["overallGradeWord", "resubmissionRequired", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
             },
           },
         },
@@ -554,7 +562,7 @@ export async function POST(
       modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
-    const overallGrade = validated.data.overallGrade;
+    const overallGrade = validated.data.overallGradeWord;
     const feedbackSummary = validated.data.feedbackSummary;
     const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
     if (modalityCompliance.missingCount > 0) {
@@ -590,10 +598,12 @@ export async function POST(
           },
           gradedBy: actor,
           model: cfg.model,
+          gradingContractVersion: "v2-structured-evidence",
           tone,
           strictness,
           useRubric,
           rubricAttachment,
+          promptHash,
           promptChars: prompt.length,
           criteriaCount: criteria.length,
           assessmentRequirements,

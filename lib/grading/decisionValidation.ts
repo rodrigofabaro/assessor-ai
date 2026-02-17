@@ -1,17 +1,24 @@
+export type GradeDecisionStatus = "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
+
 export type GradeDecisionEvidence = {
   page: number;
-  quote: string;
+  quote?: string;
+  visualDescription?: string;
 };
 
 export type GradeDecisionCriterionCheck = {
   code: string;
-  met: boolean;
-  comment: string;
+  decision: GradeDecisionStatus;
+  rationale: string;
   evidence: GradeDecisionEvidence[];
+  confidence: number;
 };
 
 export type GradeDecision = {
-  overallGrade: "PASS" | "MERIT" | "DISTINCTION" | "REFER";
+  overallGradeWord: "REFER" | "PASS" | "PASS_ON_RESUBMISSION" | "MERIT" | "DISTINCTION";
+  // legacy alias kept for existing callers/UI payloads
+  overallGrade: "REFER" | "PASS" | "PASS_ON_RESUBMISSION" | "MERIT" | "DISTINCTION";
+  resubmissionRequired: boolean;
   feedbackSummary: string;
   feedbackBullets: string[];
   criterionChecks: GradeDecisionCriterionCheck[];
@@ -22,7 +29,8 @@ export type GradeDecisionValidationResult =
   | { ok: true; data: GradeDecision }
   | { ok: false; errors: string[] };
 
-const ALLOWED_GRADES = new Set(["PASS", "MERIT", "DISTINCTION", "REFER", "FAIL"]);
+const ALLOWED_GRADES = new Set(["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION", "FAIL"]);
+const ALLOWED_DECISIONS = new Set(["ACHIEVED", "NOT_ACHIEVED", "UNCLEAR"]);
 
 function normalizeText(input: unknown) {
   return String(input ?? "")
@@ -32,25 +40,59 @@ function normalizeText(input: unknown) {
     .trim();
 }
 
-function normalizeGrade(input: unknown): GradeDecision["overallGrade"] | null {
-  const raw = String(input ?? "").trim().toUpperCase();
-  if (!ALLOWED_GRADES.has(raw)) return null;
-  return raw === "FAIL" ? "REFER" : (raw as GradeDecision["overallGrade"]);
+function normalizeGrade(input: unknown): GradeDecision["overallGradeWord"] | null {
+  const raw = String(input ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  const normalized =
+    raw === "PASS_ON_RESUB" || raw === "PASS_RESUBMISSION" ? "PASS_ON_RESUBMISSION" : raw;
+  if (!ALLOWED_GRADES.has(normalized)) return null;
+  if (normalized === "FAIL") return "REFER";
+  return normalized as GradeDecision["overallGradeWord"];
 }
 
-function isValidEvidence(input: any) {
-  if (!input || typeof input !== "object") return false;
+function clamp01(n: unknown): number {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return NaN;
+  return Math.max(0, Math.min(1, x));
+}
+
+function normalizeDecision(input: unknown, metFallback: unknown): GradeDecisionStatus | null {
+  const raw = String(input ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  if (ALLOWED_DECISIONS.has(raw)) return raw as GradeDecisionStatus;
+  if (raw === "NOTACHIEVED" || raw === "NOT-ACHIEVED") return "NOT_ACHIEVED";
+  if (typeof metFallback === "boolean") return metFallback ? "ACHIEVED" : "NOT_ACHIEVED";
+  return null;
+}
+
+function normalizeEvidence(input: any): GradeDecisionEvidence | null {
+  if (!input || typeof input !== "object") return null;
   const page = Number(input.page);
   const quote = normalizeText(input.quote);
-  return Number.isInteger(page) && page > 0 && quote.length >= 6;
+  const visualDescription = normalizeText(input.visualDescription);
+  if (!Number.isInteger(page) || page <= 0) return null;
+  if (!quote && !visualDescription) return null;
+  return {
+    page,
+    ...(quote ? { quote } : {}),
+    ...(visualDescription ? { visualDescription } : {}),
+  };
 }
 
 export function validateGradeDecision(input: unknown, criteriaCodes: string[]): GradeDecisionValidationResult {
   const errors: string[] = [];
   const payload = (input && typeof input === "object" ? input : {}) as Record<string, any>;
 
-  const grade = normalizeGrade(payload.overallGrade);
-  if (!grade) errors.push("overallGrade must be one of PASS/MERIT/DISTINCTION/REFER (FAIL accepted and normalized to REFER).");
+  const grade = normalizeGrade(payload.overallGradeWord ?? payload.overallGrade);
+  if (!grade) {
+    errors.push(
+      "overallGradeWord must be one of REFER/PASS/PASS_ON_RESUBMISSION/MERIT/DISTINCTION (FAIL accepted and normalized to REFER)."
+    );
+  }
 
   const feedbackSummary = normalizeText(payload.feedbackSummary);
   if (!feedbackSummary) errors.push("feedbackSummary is required.");
@@ -61,6 +103,15 @@ export function validateGradeDecision(input: unknown, criteriaCodes: string[]): 
     .filter(Boolean)
     .slice(0, 24);
   if (!feedbackBullets.length) errors.push("feedbackBullets must contain at least one non-empty bullet.");
+
+  const resubmissionRequiredRaw = payload.resubmissionRequired;
+  const resubmissionRequired =
+    typeof resubmissionRequiredRaw === "boolean"
+      ? resubmissionRequiredRaw
+      : grade === "REFER";
+  if (typeof resubmissionRequiredRaw !== "boolean" && typeof resubmissionRequiredRaw !== "undefined") {
+    errors.push("resubmissionRequired must be boolean when provided.");
+  }
 
   const expectedCodes = Array.from(
     new Set((criteriaCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean))
@@ -74,13 +125,11 @@ export function validateGradeDecision(input: unknown, criteriaCodes: string[]): 
   const seenCodes = new Set<string>();
   for (const row of checksRaw) {
     const code = String(row?.code || "").trim().toUpperCase();
-    const met = Boolean(row?.met);
-    const comment = normalizeText(row?.comment);
+    const decision = normalizeDecision(row?.decision, row?.met);
+    const rationale = normalizeText(row?.rationale ?? row?.comment);
     const evidenceRaw = Array.isArray(row?.evidence) ? row.evidence : [];
-    const evidence = evidenceRaw.filter(isValidEvidence).map((ev: any) => ({
-      page: Number(ev.page),
-      quote: normalizeText(ev.quote),
-    }));
+    const evidence = evidenceRaw.map(normalizeEvidence).filter(Boolean) as GradeDecisionEvidence[];
+    const rowConfidence = clamp01(row?.confidence);
 
     if (!code) {
       errors.push("criterionChecks[].code is required.");
@@ -95,27 +144,41 @@ export function validateGradeDecision(input: unknown, criteriaCodes: string[]): 
       continue;
     }
     seenCodes.add(code);
-    if (!comment) errors.push(`criterionChecks[${code}].comment is required.`);
+    if (!decision) errors.push(`criterionChecks[${code}].decision is required and must be ACHIEVED/NOT_ACHIEVED/UNCLEAR.`);
+    if (!rationale) errors.push(`criterionChecks[${code}].rationale is required.`);
     if (!Array.isArray(row?.evidence) || !evidence.length) {
-      errors.push(`criterionChecks[${code}].evidence must contain at least one page-linked quote.`);
+      errors.push(`criterionChecks[${code}].evidence must contain at least one page-linked item (quote or visualDescription).`);
     }
-    checks.push({ code, met, comment, evidence });
+    if (decision === "ACHIEVED" && evidence.length === 0) {
+      errors.push(`criterionChecks[${code}] cannot be ACHIEVED without evidence.`);
+    }
+    if (!Number.isFinite(rowConfidence)) {
+      errors.push(`criterionChecks[${code}].confidence must be a number between 0 and 1.`);
+    }
+    checks.push({
+      code,
+      decision: decision || "UNCLEAR",
+      rationale,
+      evidence,
+      confidence: Number.isFinite(rowConfidence) ? rowConfidence : 0.5,
+    });
   }
 
   for (const code of expectedCodes) {
     if (!seenCodes.has(code)) errors.push(`Missing criterion check for code: ${code}.`);
   }
 
-  const confidenceNum = Number(payload.confidence);
-  const confidence = Number.isFinite(confidenceNum) ? Math.max(0, Math.min(1, confidenceNum)) : NaN;
-  if (!Number.isFinite(confidenceNum)) errors.push("confidence must be a number.");
+  const confidence = clamp01(payload.confidence);
+  if (!Number.isFinite(confidence)) errors.push("confidence must be a number between 0 and 1.");
 
   if (errors.length) return { ok: false, errors };
 
   return {
     ok: true,
     data: {
+      overallGradeWord: grade!,
       overallGrade: grade!,
+      resubmissionRequired,
       feedbackSummary,
       feedbackBullets,
       criterionChecks: checks,

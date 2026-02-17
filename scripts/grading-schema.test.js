@@ -62,20 +62,23 @@ function run() {
 
   const valid = validateGradeDecision(
     {
-      overallGrade: "PASS",
+      overallGradeWord: "PASS",
+      resubmissionRequired: false,
       feedbackSummary: "Good structure with some evidence gaps.",
       feedbackBullets: ["Addresses LO1 clearly.", "Needs deeper evaluation for distinction criteria."],
       criterionChecks: [
         {
           code: "P1",
-          met: true,
-          comment: "Clear demonstration in section 2.",
+          decision: "ACHIEVED",
+          rationale: "Clear demonstration in section 2.",
+          confidence: 0.9,
           evidence: [{ page: 2, quote: "Control chart interpretation is accurate and applied." }],
         },
         {
           code: "M1",
-          met: false,
-          comment: "Analysis is descriptive rather than evaluative.",
+          decision: "NOT_ACHIEVED",
+          rationale: "Analysis is descriptive rather than evaluative.",
+          confidence: 0.72,
           evidence: [{ page: 4, quote: "The report lists tools but does not justify selection trade-offs." }],
         },
       ],
@@ -85,14 +88,15 @@ function run() {
   );
 
   assert(valid.ok, "expected valid decision to pass");
-  assert(valid.data.overallGrade === "PASS", "expected normalized PASS grade");
+  assert(valid.data.overallGradeWord === "PASS", "expected normalized PASS grade");
 
   const invalidMissingEvidence = validateGradeDecision(
     {
-      overallGrade: "MERIT",
+      overallGradeWord: "MERIT",
+      resubmissionRequired: false,
       feedbackSummary: "Incomplete criteria coverage.",
       feedbackBullets: ["One bullet only."],
-      criterionChecks: [{ code: "P1", met: true, comment: "ok", evidence: [] }],
+      criterionChecks: [{ code: "P1", decision: "ACHIEVED", rationale: "ok", confidence: 0.6, evidence: [] }],
       confidence: 0.7,
     },
     criteria
@@ -110,20 +114,23 @@ function run() {
 
   const failAsRefer = validateGradeDecision(
     {
-      overallGrade: "FAIL",
+      overallGradeWord: "FAIL",
+      resubmissionRequired: true,
       feedbackSummary: "Does not meet pass threshold.",
       feedbackBullets: ["Major omissions in required tasks."],
       criterionChecks: [
         {
           code: "P1",
-          met: false,
-          comment: "Missing required analysis.",
+          decision: "NOT_ACHIEVED",
+          rationale: "Missing required analysis.",
+          confidence: 0.85,
           evidence: [{ page: 1, quote: "No statistical process control discussion present." }],
         },
         {
           code: "M1",
-          met: false,
-          comment: "No evaluative comparison provided.",
+          decision: "NOT_ACHIEVED",
+          rationale: "No evaluative comparison provided.",
+          confidence: 0.8,
           evidence: [{ page: 1, quote: "No merit-level comparison or justification found." }],
         },
       ],
@@ -133,7 +140,41 @@ function run() {
   );
 
   assert(failAsRefer.ok, "expected FAIL to be accepted");
-  assert(failAsRefer.data.overallGrade === "REFER", "expected FAIL to normalize to REFER");
+  assert(failAsRefer.data.overallGradeWord === "REFER", "expected FAIL to normalize to REFER");
+  assert(failAsRefer.data.resubmissionRequired === true, "expected resubmissionRequired true");
+
+  const passOnResub = validateGradeDecision(
+    {
+      overallGradeWord: "PASS ON RESUBMISSION",
+      resubmissionRequired: false,
+      feedbackSummary: "Resubmission now meets pass criteria.",
+      feedbackBullets: ["All pass criteria now evidenced."],
+      criterionChecks: [
+        {
+          code: "P1",
+          decision: "ACHIEVED",
+          rationale: "Pass criterion met in revised section.",
+          confidence: 0.84,
+          evidence: [{ page: 3, quote: "Updated analysis includes required SPC method." }],
+        },
+        {
+          code: "M1",
+          decision: "NOT_ACHIEVED",
+          rationale: "Merit criteria still not evidenced.",
+          confidence: 0.8,
+          evidence: [{ page: 5, quote: "No evaluative comparison at merit level." }],
+        },
+      ],
+      confidence: 0.81,
+    },
+    criteria
+  );
+
+  assert(passOnResub.ok, "expected PASS ON RESUBMISSION alias to be accepted");
+  assert(
+    passOnResub.data.overallGradeWord === "PASS_ON_RESUBMISSION",
+    "expected PASS ON RESUBMISSION to normalize to PASS_ON_RESUBMISSION"
+  );
   console.log("grading schema validation tests passed.");
 }
 
