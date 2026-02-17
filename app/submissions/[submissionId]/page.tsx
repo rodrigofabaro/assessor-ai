@@ -199,6 +199,15 @@ export default function SubmissionDetailPage() {
     return a[0];
   }, [submission]);
 
+  const structuredGrading = useMemo(() => {
+    const rj: any = latestAssessment?.resultJson || {};
+    const v2 = rj?.structuredGradingV2;
+    if (v2 && typeof v2 === "object") return v2;
+    const fallback = rj?.response;
+    if (fallback && typeof fallback === "object") return fallback;
+    return null;
+  }, [latestAssessment]);
+
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
     const assignmentLinked = !!submission?.assignment;
@@ -840,7 +849,7 @@ export default function SubmissionDetailPage() {
             <div className="p-4">
               {!latestRun ? (
                 <div className="text-sm text-zinc-600">
-                  No extraction yet. Click <span className="font-semibold">Run extraction</span> to generate readable text for grading.
+                  No extraction yet. Click <span className="font-semibold">Run extraction</span> to collect cover metadata and page samples for grading.
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -916,7 +925,7 @@ export default function SubmissionDetailPage() {
                   </div>
 
                   <div className="text-xs text-zinc-500">
-                    Tip: scanned/handwritten pages may show low text. Those will become "NEEDS_OCR" later when we add vision.
+                    Tip: scanned/low-text pages can still proceed in cover-ready mode when identity metadata is extracted.
                   </div>
                 </div>
               )}
@@ -1000,6 +1009,55 @@ export default function SubmissionDetailPage() {
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                 {latestAssessment?.feedbackText || "No feedback generated yet."}
               </div>
+
+              {structuredGrading ? (
+                <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Criterion Decisions</div>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                      {String(structuredGrading?.overallGradeWord || structuredGrading?.overallGrade || "—")}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                      Resubmission: {Boolean(structuredGrading?.resubmissionRequired) ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {(Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : []).slice(0, 24).map((row: any, idx: number) => {
+                      const decision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase();
+                      const tone =
+                        decision === "ACHIEVED"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          : decision === "NOT_ACHIEVED"
+                            ? "border-amber-200 bg-amber-50 text-amber-900"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-800";
+                      const rationale = String(row?.rationale || row?.comment || "").trim();
+                      const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+                      const pages = Array.from(
+                        new Set(
+                          evidence
+                            .map((ev: any) => Number(ev?.page))
+                            .filter((n: number) => Number.isInteger(n) && n > 0)
+                        )
+                      ).slice(0, 8);
+                      return (
+                        <div key={`crit-${idx}`} className="rounded-lg border border-zinc-200 p-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-900">
+                              {String(row?.code || "—")}
+                            </span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{decision}</span>
+                            {pages.length ? (
+                              <span className="text-[11px] text-zinc-600">Pages: {pages.join(", ")}</span>
+                            ) : null}
+                          </div>
+                          {rationale ? <div className="mt-1 text-xs text-zinc-700">{rationale}</div> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               {modalityCompliance.hasData ? (
                 <div className="rounded-xl border border-zinc-200 bg-white p-3">
                   <div className="flex flex-wrap items-center gap-2">
