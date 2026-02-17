@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill } from "./ui";
 import { detectTableBlocks, type StructuredTableBlock } from "@/lib/extraction/render/tableBlocks";
 import { extractIntroBeforeParts } from "@/lib/extraction/render/parseParts";
@@ -851,6 +851,8 @@ function renderStructuredParts(
     onSaveEquationLatex?: (equationId: string, latex: string) => Promise<void> | void;
     partLatexOverrides?: Record<string, string>;
     chartsByPart?: Record<string, TaskChartSpec[]>;
+    onRecoverChart?: (spec: TaskChartSpec) => Promise<void> | void;
+    recoveringChartIds?: Set<string>;
     suppressInlineSamplePowerTable?: boolean;
     samplePowerTableBlock?: StructuredTableBlock | null;
     reflowWrappedLines?: boolean;
@@ -892,7 +894,19 @@ function renderStructuredParts(
             return (
             <div className="mt-3 space-y-3">
               {partCharts.map((spec) => (
-                <ChartPreview key={`${keyPrefix}-chart-${spec.id}`} spec={spec} openPdfHref={options?.openPdfHref} />
+                <div key={`${keyPrefix}-chart-wrap-${spec.id}`} className="space-y-2">
+                  <ChartPreview spec={spec} openPdfHref={options?.openPdfHref} />
+                  {spec.pending ? (
+                    <button
+                      type="button"
+                      onClick={() => options?.onRecoverChart?.(spec)}
+                      disabled={!options?.onRecoverChart || !!options?.recoveringChartIds?.has(spec.id)}
+                      className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                    >
+                      {options?.recoveringChartIds?.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
+                    </button>
+                  ) : null}
+                </div>
               ))}
             </div>
             );
@@ -1062,6 +1076,9 @@ export function TaskCard({
   const [showTaskLatexEditor, setShowTaskLatexEditor] = useState(false);
   const [savingTaskLatex, setSavingTaskLatex] = useState(false);
   const [taskLatexInputMode, setTaskLatexInputMode] = useState<"latex" | "word">("latex");
+  const [chartOverrides, setChartOverrides] = useState<Record<string, { data: ChartDatum[]; confidence: number; pending: false; note?: string }>>({});
+  const [recoveringChartIds, setRecoveringChartIds] = useState<Set<string>>(new Set());
+  const attemptedChartRecoveryRef = useRef<Set<string>>(new Set());
 
   const expanded = typeof forcedExpanded === "boolean" ? forcedExpanded : expandedLocal;
 
@@ -1187,9 +1204,24 @@ export function TaskCard({
   }, [taskBodyText, tableBlocks, hasTaskParts, hasSamplePowerTableBlock, samplePowerTableBlock]);
 
   const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
-  const chartSpecs = useMemo(
+  const baseChartSpecs = useMemo(
     () => buildChartSpecs(structuredParts, taskBodyText),
     [structuredParts, taskBodyText]
+  );
+  const chartSpecs = useMemo(
+    () =>
+      baseChartSpecs.map((spec) => {
+        const ov = chartOverrides[spec.id];
+        if (!ov) return spec;
+        return {
+          ...spec,
+          data: ov.data,
+          confidence: ov.confidence,
+          pending: false,
+          note: ov.note ?? spec.note,
+        };
+      }),
+    [baseChartSpecs, chartOverrides]
   );
   const chartsByPart = useMemo(() => {
     const out: Record<string, TaskChartSpec[]> = {};
@@ -1210,6 +1242,65 @@ export function TaskCard({
       return !partKeys.has(key);
     });
   }, [chartSpecs, structuredParts]);
+
+  const getReferenceDocumentId = () => {
+    const src = String(openPdfHref || "");
+    const m = src.match(/\/api\/reference-documents\/([^/]+)\/file/i);
+    return m?.[1] || "";
+  };
+
+  const recoverChartData = async (spec: TaskChartSpec) => {
+    if (!spec?.pending) return;
+    const documentId = getReferenceDocumentId();
+    if (!documentId) return;
+    if (recoveringChartIds.has(spec.id)) return;
+
+    setRecoveringChartIds((prev) => new Set(prev).add(spec.id));
+    try {
+      const pageGuess = Number((Array.isArray(task?.pages) ? task.pages[0] : 1) || 1);
+      const anchorText = String(partTextByKey[String(spec.partKey || "").toLowerCase()] || taskBodyText || "").slice(0, 800);
+      const res = await fetch(`/api/reference-documents/${documentId}/chart-recover`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pageNumber: pageGuess, anchorText }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const points = Array.isArray(data?.points)
+        ? data.points
+            .map((p: any) => ({ label: String(p?.label || "").trim(), value: Number(p?.value) }))
+            .filter((p: any) => p.label && Number.isFinite(p.value))
+        : [];
+      if (!res.ok || points.length < 2) return;
+
+      setChartOverrides((prev) => ({
+        ...prev,
+        [spec.id]: {
+          data: points,
+          confidence: Math.max(Number(spec.confidence || 0), Number(data?.confidence || 0.6)),
+          pending: false,
+          note: `Recovered from PDF image (${String(data?.provider || "ai")}).`,
+        },
+      }));
+    } finally {
+      setRecoveringChartIds((prev) => {
+        const next = new Set(prev);
+        next.delete(spec.id);
+        return next;
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const pending = chartSpecs.filter((s) => s.pending);
+    if (!pending.length) return;
+    for (const spec of pending) {
+      if (attemptedChartRecoveryRef.current.has(spec.id)) continue;
+      attemptedChartRecoveryRef.current.add(spec.id);
+      void recoverChartData(spec);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, chartSpecs]);
   const taskNumber = useMemo(() => {
     const n = Number(task?.n);
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -1551,6 +1642,8 @@ export function TaskCard({
                                 onSaveEquationLatex,
                                 partLatexOverrides,
                                 chartsByPart,
+                                onRecoverChart: recoverChartData,
+                                recoveringChartIds,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1583,6 +1676,8 @@ export function TaskCard({
                                 onSaveEquationLatex,
                                 partLatexOverrides,
                                 chartsByPart,
+                                onRecoverChart: recoverChartData,
+                                recoveringChartIds,
                                 suppressInlineSamplePowerTable: hasSamplePowerTableBlock,
                                 samplePowerTableBlock,
                                 reflowWrappedLines: hasMathLayoutWarning,
@@ -1646,7 +1741,19 @@ export function TaskCard({
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Detected Chart Previews</div>
                 <div className="mt-2 space-y-3">
                   {unplacedChartSpecs.map((spec) => (
-                    <ChartPreview key={spec.id} spec={spec} openPdfHref={openPdfHref} />
+                    <div key={`unplaced-${spec.id}`} className="space-y-2">
+                      <ChartPreview spec={spec} openPdfHref={openPdfHref} />
+                      {spec.pending ? (
+                        <button
+                          type="button"
+                          onClick={() => recoverChartData(spec)}
+                          disabled={recoveringChartIds.has(spec.id)}
+                          className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                        >
+                          {recoveringChartIds.has(spec.id) ? "Recovering chart data..." : "Recover chart numbers (AI)"}
+                        </button>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               </div>
