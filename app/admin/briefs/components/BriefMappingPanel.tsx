@@ -105,8 +105,10 @@ export default function BriefMappingPanel({
       if (detectedCodes.includes(code)) entry.detected += 1;
       summary.set(loCode, entry);
     }
-    return Array.from(summary.values()).sort((a, b) => a.loCode.localeCompare(b.loCode));
-  }, [criteria, mapSelected, detectedCodes]);
+    return Array.from(summary.values())
+      .filter((entry) => (view === "current" ? entry.selected > 0 || entry.detected > 0 : true))
+      .sort((a, b) => a.loCode.localeCompare(b.loCode));
+  }, [criteria, mapSelected, detectedCodes, view]);
 
   const groupedCriteria = useMemo(() => {
     const groups = new Map<string, Criterion[]>();
