@@ -98,6 +98,30 @@ function run() {
   assert(!lowText.ok, "expected short extraction text to fail gate");
   assert(lowText.blockers.some((b) => /too short/i.test(b)), "expected min chars blocker");
 
+  const coverReadyShortText = evaluateExtractionReadiness({
+    submissionStatus: "EXTRACTED",
+    extractedText: "short text",
+    latestRun: {
+      status: "DONE",
+      overallConfidence: 0.9,
+      pageCount: 2,
+      warnings: [],
+      sourceMeta: {
+        coverMetadata: {
+          studentName: { value: "Jane Doe", confidence: 0.8, page: 1, snippet: "Student Name: Jane Doe" },
+          unitCode: { value: "4003", confidence: 0.9, page: 1, snippet: "Unit: 4003" },
+          assignmentCode: { value: "A1", confidence: 0.86, page: 1, snippet: "Assignment: A1" },
+          confidence: 0.85,
+        },
+      },
+    },
+  });
+  assert(coverReadyShortText.ok, "expected cover-ready short text to pass gate");
+  assert(
+    coverReadyShortText.warnings.some((w) => /cover metadata/i.test(w)),
+    "expected warning indicating cover-ready short-text mode"
+  );
+
   console.log("extraction readiness gate tests passed.");
 }
 

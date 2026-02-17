@@ -4,6 +4,7 @@ import { extractFile } from "@/lib/extraction";
 import { randomUUID } from "crypto";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { ocrPdfWithOpenAi } from "@/lib/ocr/openaiPdfOcr";
+import { extractCoverMetadataFromPages } from "@/lib/submissions/coverMetadata";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 
@@ -215,6 +216,7 @@ export async function POST(
 
     const finishedAt = new Date();
     const mergedWarnings = [...(res.warnings || []), ...((ocrMeta.warnings as string[]) || [])];
+    const coverMetadata = extractCoverMetadataFromPages(finalPages as any);
 
     // Save pages + finalize run + update submission atomically
     await prisma.$transaction([
@@ -242,6 +244,7 @@ export async function POST(
           sourceMeta: {
             kind: res.kind,
             detectedMime: res.detectedMime ?? null,
+            coverMetadata,
             ocr: ocrMeta,
 
             // breadcrumbs for QA/debugging
@@ -277,6 +280,7 @@ export async function POST(
       status: finalRunStatus,
       isScanned: finalIsScanned,
       extractedChars: combinedText.length,
+      coverMetadata,
       requestId,
     }, { headers: { "x-request-id": requestId } });
   } catch (e: any) {

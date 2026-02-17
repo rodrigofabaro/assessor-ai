@@ -314,6 +314,7 @@ export async function POST(
           overallConfidence: true,
           pageCount: true,
           warnings: true,
+          sourceMeta: true,
         },
       },
     },
