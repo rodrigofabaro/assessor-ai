@@ -4,6 +4,7 @@ import { pdfToText } from "@/lib/extraction/text/pdfToText";
 import { parseSpec } from "@/lib/extraction/parsers/specParser";
 import { extractBrief } from "@/lib/extractors/brief";
 import { cleanupBriefTasksMathWithOpenAi } from "@/lib/openai/briefMathCleanup";
+import { recoverBriefStructureWithAi } from "@/lib/openai/briefStructureRecovery";
 
 export type ExtractWarning = string;
 
@@ -47,10 +48,12 @@ export async function extractReferenceDocument(args: {
       extractionWarnings: extractionWarnings.length ? extractionWarnings : undefined,
     };
   } else if (args.type === "BRIEF") {
-    const brief = await cleanupBriefTasksMathWithOpenAi(
+    const briefCleaned = await cleanupBriefTasksMathWithOpenAi(
       extractBrief(text, args.docTitleFallback, { equations }),
       { runCleanup: args.runOpenAiCleanup }
     );
+    const recovered = await recoverBriefStructureWithAi(briefCleaned, text);
+    const brief = recovered.brief;
     extractedJson = {
       ...brief,
       pageCount,

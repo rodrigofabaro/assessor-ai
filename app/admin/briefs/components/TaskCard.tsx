@@ -62,6 +62,25 @@ type StructuredPart = {
   children: Array<{ key: string; text: string }>;
 };
 
+type ChartKind = "bar" | "pie";
+
+type ChartDatum = {
+  label: string;
+  value: number;
+};
+
+type TaskChartSpec = {
+  id: string;
+  partKey: string;
+  kind: ChartKind;
+  title: string;
+  data: ChartDatum[];
+  confidence: number;
+  note?: string;
+  unit?: string;
+  pending?: boolean;
+};
+
 function stripInlineSamplePowerTable(text: string) {
   return String(text || "")
     .replace(
@@ -546,6 +565,196 @@ function normalizeManualLatex(raw: string) {
     .trim();
 }
 
+function parseLabelValueRows(text: string): ChartDatum[] {
+  const lines = normalizeText(String(text || "")).split("\n");
+  const out: ChartDatum[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const clean = line.replace(/\s+/g, " ").trim();
+    if (!clean) continue;
+    if (/^you must[:]?$/i.test(clean)) continue;
+    if (/^failure reason/i.test(clean) && /number of chips/i.test(clean)) continue;
+    if (/^(task|part)\s+\d+/i.test(clean)) continue;
+    const m = clean.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*%?\s*$/);
+    if (!m) continue;
+    const label = String(m[1] || "").trim().replace(/[:\-]+$/g, "").trim();
+    const value = Number(m[2]);
+    if (!label || !Number.isFinite(value)) continue;
+    const key = `${label.toLowerCase()}::${value}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ label, value });
+  }
+  return out;
+}
+
+function inferChartTitle(part: StructuredPart): string {
+  const firstLine = normalizeText(String(part?.text || "")).split("\n").map((l) => l.trim()).find(Boolean) || "";
+  if (!firstLine) return `Part ${part.key.toUpperCase()} Data`;
+  if (firstLine.length <= 80) return firstLine.replace(/[:\-]\s*$/g, "");
+  const m = firstLine.match(/^(.{1,80}?)(?:\s+-\s+|:\s+)/);
+  return m ? m[1].trim() : `Part ${part.key.toUpperCase()} Data`;
+}
+
+function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): TaskChartSpec[] {
+  const specs: TaskChartSpec[] = [];
+
+  const addSpecsFor = (partKey: string, title: string, sourceText: string, instructionText: string) => {
+    const data = parseLabelValueRows(sourceText);
+    const sourceAndInstructions = `${sourceText}\n${instructionText}`;
+    const instruction = sourceAndInstructions.toLowerCase();
+    const wantsBar = /\bbar\s+chart\b|\bbar\s+graph\b/.test(instruction);
+    const wantsPie = /\bpie\s+chart\b|\bpie\s+graph\b/.test(instruction);
+    const imageBasedCue =
+      /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
+      /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions);
+    const unit = /\bpercentage|%\b/i.test(sourceAndInstructions) ? "%" : undefined;
+    const singleDayWarning =
+      /\b5-?\s*day\b/i.test(instructionText) && data.length <= 5
+        ? "Showing sample/day data extracted from the brief text."
+        : undefined;
+
+    const kinds: ChartKind[] = wantsBar || wantsPie ? [] : ["bar"];
+    if (wantsBar) kinds.push("bar");
+    if (wantsPie) kinds.push("pie");
+
+    if (data.length < 2) {
+      if (!kinds.length) return;
+      for (const kind of kinds) {
+        specs.push({
+          id: `${partKey}-${kind}-pending`,
+          partKey,
+          kind,
+          title,
+          data: [],
+          confidence: 0.35,
+          pending: true,
+          note: imageBasedCue
+            ? "Chart appears image-based in the source PDF. Numeric series was not extracted yet."
+            : "Chart is required by this task, but numeric series was not extracted from text.",
+          unit,
+        });
+      }
+      return;
+    }
+
+    const confidence = Math.min(0.98, 0.6 + Math.min(data.length, 6) * 0.06);
+    for (const kind of kinds) {
+      specs.push({
+        id: `${partKey}-${kind}`,
+        partKey,
+        kind,
+        title,
+        data,
+        confidence,
+        note: singleDayWarning,
+        unit,
+      });
+    }
+  };
+
+  if (parts.length > 0) {
+    for (const part of parts) {
+      const instructionText = [part.text, ...part.children.map((c) => c.text)].join("\n");
+      addSpecsFor(part.key, inferChartTitle(part), part.text, instructionText);
+    }
+  } else {
+    addSpecsFor("task", "Task Data", fallbackBodyText, fallbackBodyText);
+  }
+
+  return specs;
+}
+
+function formatChartValue(value: number, unit?: string) {
+  const rounded = Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, "");
+  return unit === "%" ? `${rounded}%` : rounded;
+}
+
+function ChartPreview({ spec }: { spec: TaskChartSpec }) {
+  const total = spec.data.reduce((sum, d) => sum + Math.max(0, d.value), 0);
+  const max = Math.max(1, ...spec.data.map((d) => d.value));
+
+  const pieStops: string[] = [];
+  const colors = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#6b7280"];
+  let cursor = 0;
+  spec.data.forEach((d, idx) => {
+    const pct = total > 0 ? (Math.max(0, d.value) / total) * 100 : 0;
+    const next = cursor + pct;
+    const color = colors[idx % colors.length];
+    pieStops.push(`${color} ${cursor}% ${next}%`);
+    cursor = next;
+  });
+
+  return (
+    <div className="rounded-lg border border-zinc-300 bg-white p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+            {spec.kind === "bar" ? "Bar chart preview" : "Pie chart preview"} - Part {spec.partKey}
+          </div>
+          <div className="text-sm font-medium text-zinc-900">{spec.title}</div>
+        </div>
+        <div className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+          confidence {Math.round(spec.confidence * 100)}%
+        </div>
+      </div>
+
+      {spec.note ? <div className="mt-2 text-[11px] text-amber-700">{spec.note}</div> : null}
+
+      {spec.pending ? (
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Pending data extraction for this chart.
+        </div>
+      ) : null}
+
+      {!spec.pending && spec.kind === "bar" ? (
+        <div className="mt-3 space-y-2">
+          {spec.data.map((d, idx) => {
+            const widthPct = Math.max(4, Math.round((d.value / max) * 100));
+            const color = colors[idx % colors.length];
+            return (
+              <div key={`${spec.id}-${d.label}`} className="grid grid-cols-[minmax(140px,1fr)_3fr_auto] items-center gap-2 text-xs">
+                <div className="truncate text-zinc-700">{d.label}</div>
+                <div className="h-4 overflow-hidden rounded bg-zinc-100">
+                  <div className="h-full rounded" style={{ width: `${widthPct}%`, backgroundColor: color }} />
+                </div>
+                <div className="tabular-nums text-zinc-800">{formatChartValue(d.value, spec.unit)}</div>
+              </div>
+            );
+          })}
+        </div>
+      ) : !spec.pending ? (
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <div
+            className="h-36 w-36 shrink-0 rounded-full border border-zinc-200"
+            style={{
+              background:
+                pieStops.length > 0 ? `conic-gradient(${pieStops.join(", ")})` : "conic-gradient(#e5e7eb 0% 100%)",
+            }}
+          />
+          <div className="min-w-[220px] flex-1 space-y-1 text-xs">
+            {spec.data.map((d, idx) => {
+              const color = colors[idx % colors.length];
+              const pct = total > 0 ? (d.value / total) * 100 : 0;
+              return (
+                <div key={`${spec.id}-legend-${d.label}`} className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: color }} />
+                    <span className="truncate text-zinc-700">{d.label}</span>
+                  </div>
+                  <div className="tabular-nums text-zinc-800">
+                    {formatChartValue(d.value, spec.unit)} ({pct.toFixed(1)}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function renderStructuredParts(
   parts: StructuredPart[],
   keyPrefix: string,
@@ -880,6 +1089,10 @@ export function TaskCard({
   }, [taskBodyText, tableBlocks, hasTaskParts, hasSamplePowerTableBlock, samplePowerTableBlock]);
 
   const structuredParts = useMemo(() => buildStructuredParts(task?.parts), [task?.parts]);
+  const chartSpecs = useMemo(
+    () => buildChartSpecs(structuredParts, taskBodyText),
+    [structuredParts, taskBodyText]
+  );
   const taskNumber = useMemo(() => {
     const n = Number(task?.n);
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -1308,6 +1521,17 @@ export function TaskCard({
                 )}
               </div>
             </div>
+
+            {chartSpecs.length ? (
+              <div className="rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Detected Chart Previews</div>
+                <div className="mt-2 space-y-3">
+                  {chartSpecs.map((spec) => (
+                    <ChartPreview key={spec.id} spec={spec} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
           </div>
 

@@ -393,6 +393,42 @@ function looksInstructionOrMathLine(text: string) {
   return /^(where|find|make|determine|express|calculate)\b/i.test(s);
 }
 
+type GraphPoint = { label: string; value: number };
+
+function isGraphCueLine(text: string) {
+  const s = normalizeMathUnicode(text || "").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!s) return false;
+  if (isSectionHeaderLine(s) || isAiasPolicyLine(s)) return false;
+  return (
+    /\b(bar|pie|line)\s+(chart|graph)\b/.test(s) ||
+    /\bcreate\b.*\b(chart|graph)\b/.test(s) ||
+    /\bpresent\b.*\b(chart|graph)\b/.test(s) ||
+    /\bplot\b/.test(s)
+  );
+}
+
+function parseLabelValueLine(line: string): GraphPoint | null {
+  const clean = normalizeMathUnicode(String(line || "")).replace(/\s+/g, " ").trim();
+  if (!clean) return null;
+  const m = clean.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*%?\s*$/);
+  if (!m) return null;
+  const label = String(m[1] || "").trim().replace(/[:\-]+$/g, "").trim();
+  const value = Number(m[2]);
+  if (!label || !Number.isFinite(value)) return null;
+  return { label, value };
+}
+
+function hasNumericSeriesNearby(lines: string[], index: number, window = 12) {
+  const start = Math.max(0, index - window);
+  const end = Math.min(lines.length, index + window + 1);
+  let hits = 0;
+  for (let i = start; i < end; i += 1) {
+    if (parseLabelValueLine(lines[i] || "")) hits += 1;
+    if (hits >= 2) return true;
+  }
+  return false;
+}
+
 async function renderPdfPagePngDataUrl(buf: Buffer, pageNumber: number, scale = 2): Promise<string | null> {
   try {
     const pdfjsMod = await dynamicImport("pdfjs-dist/legacy/build/pdf.mjs");
@@ -510,6 +546,112 @@ async function openAiEquationFromPageImage(input: {
     return { latex: latex || null, confidence };
   } catch {
     return { latex: null, confidence: 0 };
+  }
+}
+
+async function graphDataFromPageImage(input: {
+  pageImageDataUrl: string;
+  anchorText?: string | null;
+}): Promise<{ points: GraphPoint[]; chartTypes: string[]; confidence: number }> {
+  const prompt = [
+    "Extract chart data from this assignment page and return only strict JSON.",
+    'JSON schema: {"chartTypes":["bar|pie|line"],"points":[{"label":"string","value":number}],"confidence":<0..1>}',
+    "Use numeric values exactly as visible. Do not invent data.",
+    "If no readable chart data is present, return points as [] and low confidence.",
+    (input.anchorText || "").trim()
+      ? `Anchor text near the target chart: "${(input.anchorText || "").trim()}"`
+      : "Extract the most relevant chart data on this page.",
+    "Do not include markdown fences."
+  ].join("\n");
+
+  const sanitize = (raw: any) => {
+    const chartTypes = Array.isArray(raw?.chartTypes)
+      ? raw.chartTypes.map((v: any) => String(v || "").trim().toLowerCase()).filter(Boolean)
+      : [];
+    const points = Array.isArray(raw?.points)
+      ? raw.points
+          .map((p: any) => ({ label: String(p?.label || "").trim(), value: Number(p?.value) }))
+          .filter((p: any) => p.label && Number.isFinite(p.value))
+      : [];
+    const dedup = new Set<string>();
+    const finalPoints: GraphPoint[] = [];
+    for (const p of points) {
+      const key = `${p.label.toLowerCase()}::${p.value}`;
+      if (dedup.has(key)) continue;
+      dedup.add(key);
+      finalPoints.push({ label: p.label, value: p.value });
+    }
+    const confidence = Math.max(0, Math.min(1, Number(raw?.confidence || 0)));
+    return { chartTypes, points: finalPoints, confidence };
+  };
+
+  if (shouldTryLocal("graph")) {
+    const local = await localVisionJson("graph", prompt, input.pageImageDataUrl, {
+      timeoutMs: Number(process.env.AI_LOCAL_GRAPH_TIMEOUT_MS || process.env.AI_LOCAL_TIMEOUT_MS || 30000),
+    });
+    if (local.ok) {
+      const parsed = sanitize(("parsed" in local ? local.parsed : {}) as any);
+      if (parsed.points.length >= 2 && parsed.confidence >= 0.7) return parsed;
+    }
+    if (!shouldTryOpenAi("graph")) return { points: [], chartTypes: [], confidence: 0 };
+  }
+
+  const apiKey = String(resolveOpenAiApiKey("preferStandard").apiKey || "");
+  if (!apiKey) return { points: [], chartTypes: [], confidence: 0 };
+  const model = String(process.env.OPENAI_GRAPH_MODEL || readOpenAiModel().model || "").trim();
+  if (!model) return { points: [], chartTypes: [], confidence: 0 };
+
+  try {
+    const res = await fetchOpenAiJson(
+      "/v1/responses",
+      apiKey,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          max_output_tokens: 380,
+          input: [
+            {
+              role: "user",
+              content: [
+                { type: "input_text", text: prompt },
+                { type: "input_image", image_url: input.pageImageDataUrl },
+              ],
+            },
+          ],
+        }),
+      },
+      {
+        timeoutMs: Number(process.env.OPENAI_GRAPH_TIMEOUT_MS || 30000),
+        retries: Number(process.env.OPENAI_GRAPH_RETRIES || 1),
+      }
+    );
+    if (!res.ok) return { points: [], chartTypes: [], confidence: 0 };
+    const data: any = res.json;
+    recordOpenAiUsage({
+      model,
+      op: "graph_from_page_image",
+      usage: data?.usage,
+    });
+    const primary = String(data?.output_text || "").trim();
+    const fromOutput = Array.isArray(data?.output)
+      ? data.output
+          .flatMap((msg: any) => (Array.isArray(msg?.content) ? msg.content : []))
+          .map((c: any) => String(c?.text || ""))
+          .join("\n")
+          .trim()
+      : "";
+    const text = (primary || fromOutput || "").trim();
+    if (!text) return { points: [], chartTypes: [], confidence: 0 };
+    const deFenced = text.replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim();
+    const jsonLike = deFenced.match(/\{[\s\S]*\}/)?.[0] || "";
+    if (!jsonLike) return { points: [], chartTypes: [], confidence: 0 };
+    const parsed = sanitize(JSON.parse(jsonLike));
+    return parsed;
+  } catch {
+    return { points: [], chartTypes: [], confidence: 0 };
   }
 }
 
@@ -835,7 +977,45 @@ export async function pdfToText(
       finalLines.push(`[[EQ:${id}]]`);
     }
 
-    const text = finalLines.join("\n");
+    // Tertiary fallback: if a chart is required but numeric rows are missing, try image-to-data recovery.
+    const graphAugmentedLines: string[] = [];
+    let pageGraphCounter = 1;
+    let pageImageDataUrl: string | null | undefined;
+    const chartCueCache = new Set<string>();
+    for (let i = 0; i < finalLines.length; i += 1) {
+      const current = String(finalLines[i] || "");
+      graphAugmentedLines.push(current);
+      if (!isGraphCueLine(current)) continue;
+      if (hasNumericSeriesNearby(finalLines, i)) continue;
+      const cueKey = current.toLowerCase().replace(/\s+/g, " ").trim();
+      if (!cueKey || chartCueCache.has(cueKey)) continue;
+      chartCueCache.add(cueKey);
+      if (pageGraphCounter > 2) continue;
+
+      if (typeof pageImageDataUrl === "undefined") {
+        pageImageDataUrl = await renderPdfPagePngDataUrl(buf, pageNumber, 2);
+      }
+      if (!pageImageDataUrl) continue;
+
+      const guessed = await graphDataFromPageImage({
+        pageImageDataUrl,
+        anchorText: current || null,
+      });
+      if (!Array.isArray(guessed.points) || guessed.points.length < 2) continue;
+      if (Number(guessed.confidence || 0) < 0.72) continue;
+
+      const graphId = `p${pageNumber}-g${pageGraphCounter++}`;
+      graphAugmentedLines.push(`[[IMG:${graphId}]]`);
+      graphAugmentedLines.push(`Graph data extracted (${Math.round((guessed.confidence || 0) * 100)}% confidence):`);
+      for (const point of guessed.points.slice(0, 20)) {
+        const label = String(point.label || "").replace(/\s+/g, " ").trim();
+        const value = Number(point.value);
+        if (!label || !Number.isFinite(value)) continue;
+        graphAugmentedLines.push(`${label} ${value}`);
+      }
+    }
+
+    const text = graphAugmentedLines.join("\n");
     pages.push(text);
     return text;
   };

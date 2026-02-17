@@ -11,6 +11,204 @@ import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
 export const runtime = "nodejs";
 
+type BriefTaskLike = {
+  n?: number | string;
+  label?: string;
+  text?: string;
+  parts?: Array<{ key?: string; text?: string }>;
+};
+
+type AssessmentRequirement = {
+  task: string;
+  section: string;
+  needsTable: boolean;
+  needsPercentage: boolean;
+  charts: string[];
+  needsEquation: boolean;
+  needsImage: boolean;
+};
+
+type SubmissionAssessmentEvidence = {
+  hasTableWords?: boolean;
+  hasBarWords?: boolean;
+  hasPieWords?: boolean;
+  hasFigureWords?: boolean;
+  hasImageWords?: boolean;
+  hasEquationTokenWords?: boolean;
+  hasEqMarker?: boolean;
+  equationLikeLineCount?: number;
+  percentageCount?: number;
+  dataRowLikeCount?: number;
+};
+
+function normalizeText(value: unknown) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractAssessmentRequirementsFromBrief(briefDocExtractedJson: any): AssessmentRequirement[] {
+  const tasks = Array.isArray(briefDocExtractedJson?.tasks) ? (briefDocExtractedJson.tasks as BriefTaskLike[]) : [];
+  if (!tasks.length) return [];
+
+  const out: AssessmentRequirement[] = [];
+  for (const task of tasks) {
+    const taskLabel = String(task?.label || (task?.n ? `Task ${task.n}` : "Task")).trim();
+    const parts = Array.isArray(task?.parts) ? task.parts : [];
+
+    const sections = new Map<string, string[]>();
+    let currentSection = "";
+    for (const part of parts) {
+      const key = String(part?.key || "").trim().toLowerCase();
+      const txt = normalizeText(part?.text);
+      if (!key || !txt) continue;
+      const letter = key.match(/^[a-z]$/)?.[0] || key.match(/^([a-z])\./)?.[1] || null;
+      if (letter) currentSection = letter;
+      const bucket = letter || currentSection || "task";
+      if (!sections.has(bucket)) sections.set(bucket, []);
+      sections.get(bucket)!.push(txt);
+    }
+
+    if (!sections.size) {
+      const body = normalizeText(task?.text);
+      if (body) sections.set("task", [body]);
+    }
+
+    for (const [section, chunks] of sections.entries()) {
+      const body = normalizeText(chunks.join("\n"));
+      const lower = body.toLowerCase();
+      const charts: string[] = [];
+      if (/\bbar\s+(chart|graph)\b/.test(lower)) charts.push("bar");
+      if (/\bpie\s+(chart|graph)\b/.test(lower)) charts.push("pie");
+      if (/\bline\s+(chart|graph)\b/.test(lower)) charts.push("line");
+      if (/\bscatter\b/.test(lower)) charts.push("scatter");
+      if (/\bhistogram\b/.test(lower)) charts.push("histogram");
+      const needsTable = /\btable\b/.test(lower);
+      const needsPercentage = /\bpercentage\b|%/.test(lower);
+      const needsEquation =
+        /\[\[eq:[^\]]+\]\]/i.test(body) ||
+        /\b(equation|formula|express(ed|ion)|using\s+.*equation|solve\s+for|derive)\b/i.test(body);
+      const needsImage =
+        /\[\[img:[^\]]+\]\]/i.test(body) ||
+        /\b(image|diagram|figure|graph\s+below|shown\s+below|circuit|screenshot)\b/i.test(body);
+
+      if (!charts.length && !needsTable && !needsPercentage && !needsEquation && !needsImage) continue;
+      out.push({
+        task: taskLabel,
+        section,
+        needsTable,
+        needsPercentage,
+        charts,
+        needsEquation,
+        needsImage,
+      });
+    }
+  }
+  return out;
+}
+
+function summarizeAssessmentRequirements(requirements: AssessmentRequirement[]): string {
+  if (!requirements.length) return "No explicit chart/table/image/equation requirements detected from brief tasks.";
+  return requirements
+    .slice(0, 16)
+    .map((r) => {
+      const items: string[] = [];
+      if (r.needsTable) items.push("table");
+      if (r.needsPercentage) items.push("percentages");
+      if (r.charts.length) items.push(`${r.charts.join("+")} chart`);
+      if (r.needsImage) items.push("image/diagram evidence");
+      if (r.needsEquation) items.push("equation/formula evidence");
+      const section = r.section === "task" ? "" : ` part ${r.section}`;
+      return `- ${r.task}${section}: ${items.join(", ") || "modality evidence required"}`;
+    })
+    .join("\n");
+}
+
+function detectSubmissionAssessmentEvidence(text: string) {
+  const src = normalizeText(text).toLowerCase();
+  const hasTableWords = /\btable\b|\btabulated\b/.test(src);
+  const hasBarWords = /\bbar\s+(chart|graph)\b/.test(src);
+  const hasPieWords = /\bpie\s+(chart|graph)\b/.test(src);
+  const hasFigureWords = /\bfigure\b|\bgraph\b|\bchart\b/.test(src);
+  const hasImageWords = /\b(image|diagram|figure|circuit|screenshot)\b/.test(src);
+  const hasEquationTokenWords = /\b(equation|formula)\b/.test(src);
+  const hasEqMarker = /\[\[eq:[^\]]+\]\]/i.test(src);
+  const equationLikeLineCount =
+    src.match(/(?:^|\n)\s*[a-z][a-z0-9_]{0,10}\s*=\s*[^,\n]{2,80}/g)?.length || 0;
+  const percentageCount = src.match(/\b\d+(?:\.\d+)?\s*%/g)?.length || 0;
+  const dataRowLikeMatches = src.match(/\b[a-z][a-z\s]{2,30}\s+\d{1,4}(?:\.\d+)?%?\b/g) || [];
+  return {
+    hasTableWords,
+    hasBarWords,
+    hasPieWords,
+    hasFigureWords,
+    hasImageWords,
+    hasEquationTokenWords,
+    hasEqMarker,
+    equationLikeLineCount: Math.min(120, equationLikeLineCount),
+    percentageCount: Math.min(200, percentageCount),
+    dataRowLikeCount: Math.min(80, dataRowLikeMatches.length),
+  };
+}
+
+function evaluateModalityCompliance(
+  requirements: AssessmentRequirement[],
+  evidence: SubmissionAssessmentEvidence
+) {
+  const found = {
+    table: Boolean(evidence.hasTableWords) || Number(evidence.dataRowLikeCount || 0) >= 2,
+    bar: Boolean(evidence.hasBarWords),
+    pie: Boolean(evidence.hasPieWords),
+    graph: Boolean(evidence.hasFigureWords),
+    image: Boolean(evidence.hasImageWords) || Boolean(evidence.hasFigureWords),
+    equation:
+      Boolean(evidence.hasEqMarker) ||
+      Boolean(evidence.hasEquationTokenWords) ||
+      Number(evidence.equationLikeLineCount || 0) > 0,
+    percentage: Number(evidence.percentageCount || 0) > 0,
+  };
+
+  const rows = requirements.map((r) => {
+    const charts = Array.isArray(r.charts) ? r.charts.map((c) => String(c || "").toLowerCase()) : [];
+    const chartRequired = charts.length > 0;
+    const chartFound = !chartRequired
+      ? true
+      : charts.every((c) => (c === "bar" ? found.bar : c === "pie" ? found.pie : found.graph));
+    const tableFound = !r.needsTable || found.table;
+    const equationFound = !r.needsEquation || found.equation;
+    const imageFound = !r.needsImage || found.image;
+    const percentageFound = !r.needsPercentage || found.percentage;
+    const ok = chartFound && tableFound && equationFound && imageFound && percentageFound;
+    return {
+      task: r.task,
+      section: r.section,
+      ok,
+      missing: {
+        chart: chartRequired && !chartFound,
+        table: !!r.needsTable && !tableFound,
+        equation: !!r.needsEquation && !equationFound,
+        image: !!r.needsImage && !imageFound,
+        percentage: !!r.needsPercentage && !percentageFound,
+      },
+    };
+  });
+
+  const failedRows = rows.filter((r) => !r.ok);
+  return {
+    found,
+    rows,
+    missingCount: failedRows.length,
+    missingSummary: failedRows.slice(0, 12).map((r) => ({
+      task: r.task,
+      section: r.section,
+      ...r.missing,
+    })),
+  };
+}
+
 function extractOutputText(responseJson: any): string {
   const direct = String(responseJson?.output_text || "").trim();
   if (direct) return direct;
@@ -218,6 +416,10 @@ export async function POST(
 
   const rubricAttachment = (brief.briefDocument?.sourceMeta as any)?.rubricAttachment || null;
   const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
+  const assessmentRequirements = extractAssessmentRequirementsFromBrief(brief.briefDocument?.extractedJson);
+  const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
+  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
+  const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
   const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
   const maxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
@@ -232,11 +434,19 @@ export async function POST(
     "- Include one criterionChecks item for every criteria code provided.",
     "- code must exactly match the provided criteria code.",
     "- evidence must include at least one quote with a numeric page number.",
+    "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
+    "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
     "",
     "Assignment context:",
     `Unit: ${brief.unit.unitCode} ${brief.unit.unitTitle}`,
     `Assignment code: ${brief.assignmentCode}`,
     rubricHint,
+    "",
+    "Detected modality requirements from assignment brief (chart/table/image/equation):",
+    assessmentRequirementsText,
+    "",
+    "Submission modality evidence hints (heuristic):",
+    JSON.stringify(submissionAssessmentEvidence, null, 2),
     "",
     "Criteria:",
     JSON.stringify(criteria.slice(0, 120), null, 2),
@@ -332,9 +542,30 @@ export async function POST(
       throw new Error(`Model output failed schema validation: ${errorText}`);
     }
 
+    const confidenceCap = Math.max(
+      0.2,
+      Math.min(0.95, Number(process.env.GRADE_MODALITY_MISSING_CONFIDENCE_CAP || 0.65))
+    );
+    const modelConfidenceRaw = Number(validated.data.confidence);
+    const modelConfidence = Number.isFinite(modelConfidenceRaw)
+      ? Math.max(0, Math.min(1, modelConfidenceRaw))
+      : 0.5;
+    const confidenceWasCapped =
+      modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
+    const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
+
     const overallGrade = validated.data.overallGrade;
     const feedbackSummary = validated.data.feedbackSummary;
     const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
+    if (modalityCompliance.missingCount > 0) {
+      feedbackBullets.unshift(
+        `Automated review: required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
+      );
+    }
+    const responseWithPolicy = {
+      ...validated.data,
+      confidence: finalConfidence,
+    };
     const feedbackText = [feedbackSummary, ...feedbackBullets.map((b: string) => `- ${b}`)].filter(Boolean).join("\n");
 
     const marked = await createMarkedPdf(submission.storagePath, {
@@ -365,7 +596,17 @@ export async function POST(
           rubricAttachment,
           promptChars: prompt.length,
           criteriaCount: criteria.length,
-          response: validated.data,
+          assessmentRequirements,
+          submissionAssessmentEvidence,
+          modalityCompliance,
+          confidencePolicy: {
+            mode: "cap",
+            cap: confidenceCap,
+            modelConfidence,
+            finalConfidence,
+            wasCapped: confidenceWasCapped,
+          },
+          response: responseWithPolicy,
           usage,
           extractionGate,
         } as any,

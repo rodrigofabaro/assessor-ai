@@ -85,6 +85,16 @@ type StudentSearchResult = {
   externalRef?: string | null;
 };
 
+type AssessmentRequirement = {
+  task?: string;
+  section?: string;
+  needsTable?: boolean;
+  needsPercentage?: boolean;
+  charts?: string[];
+  needsEquation?: boolean;
+  needsImage?: boolean;
+};
+
 function cx(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
@@ -94,6 +104,12 @@ function safeDate(s?: string | null) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
+}
+
+function normalizeRequirementSection(section?: string) {
+  const s = String(section || "").trim();
+  if (!s || s.toLowerCase() === "task") return "Task";
+  return `Part ${s.toUpperCase()}`;
 }
 
 function StatusPill({ children }: { children: string }) {
@@ -204,6 +220,71 @@ export default function SubmissionDetailPage() {
       readyToUpload,
     };
   }, [submission, latestRun, latestAssessment]);
+
+  const modalityCompliance = useMemo(() => {
+    const reqsRaw = Array.isArray(latestAssessment?.resultJson?.assessmentRequirements)
+      ? (latestAssessment?.resultJson?.assessmentRequirements as AssessmentRequirement[])
+      : [];
+    const evidence = (latestAssessment?.resultJson?.submissionAssessmentEvidence || {}) as Record<string, any>;
+
+    const found = {
+      table: Boolean(evidence.hasTableWords) || Number(evidence.dataRowLikeCount || 0) >= 2,
+      bar: Boolean(evidence.hasBarWords),
+      pie: Boolean(evidence.hasPieWords),
+      graph: Boolean(evidence.hasFigureWords),
+      image: Boolean(evidence.hasImageWords) || Boolean(evidence.hasFigureWords),
+      equation:
+        Boolean(evidence.hasEqMarker) ||
+        Boolean(evidence.hasEquationTokenWords) ||
+        Number(evidence.equationLikeLineCount || 0) > 0,
+      percentage: Number(evidence.percentageCount || 0) > 0,
+    };
+
+    const rows = reqsRaw.map((r, idx) => {
+      const charts = Array.isArray(r.charts) ? r.charts.map((c) => String(c || "").toLowerCase()) : [];
+      const chartRequired = charts.length > 0;
+      const chartFound = !chartRequired
+        ? true
+        : charts.every((c) => (c === "bar" ? found.bar : c === "pie" ? found.pie : found.graph));
+      const tableRequired = !!r.needsTable;
+      const tableFound = !tableRequired || found.table;
+      const equationRequired = !!r.needsEquation;
+      const equationFound = !equationRequired || found.equation;
+      const imageRequired = !!r.needsImage;
+      const imageFound = !imageRequired || found.image;
+      const percentageRequired = !!r.needsPercentage;
+      const percentageFound = !percentageRequired || found.percentage;
+      const ok = chartFound && tableFound && equationFound && imageFound && percentageFound;
+      return {
+        id: `${String(r.task || "Task")}-${String(r.section || "task")}-${idx}`,
+        task: String(r.task || "Task"),
+        section: normalizeRequirementSection(r.section),
+        required: {
+          chart: chartRequired ? charts.join(", ") : "—",
+          table: tableRequired ? "Yes" : "—",
+          equation: equationRequired ? "Yes" : "—",
+          image: imageRequired ? "Yes" : "—",
+          percentage: percentageRequired ? "Yes" : "—",
+        },
+        found: {
+          chart: chartRequired ? (chartFound ? "Yes" : "No") : "—",
+          table: tableRequired ? (tableFound ? "Yes" : "No") : "—",
+          equation: equationRequired ? (equationFound ? "Yes" : "No") : "—",
+          image: imageRequired ? (imageFound ? "Yes" : "No") : "—",
+          percentage: percentageRequired ? (percentageFound ? "Yes" : "No") : "—",
+        },
+        ok,
+      };
+    });
+
+    return {
+      rows,
+      foundSignals: found,
+      hasData: rows.length > 0,
+      passCount: rows.filter((r) => r.ok).length,
+      failCount: rows.filter((r) => !r.ok).length,
+    };
+  }, [latestAssessment]);
 
   /* =========================
      Data loading
@@ -882,6 +963,61 @@ export default function SubmissionDetailPage() {
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                 {latestAssessment?.feedbackText || "No feedback generated yet."}
               </div>
+              {modalityCompliance.hasData ? (
+                <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                      Modality Compliance (Automated)
+                    </div>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                      Pass {modalityCompliance.passCount}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                      Review {modalityCompliance.failCount}
+                    </span>
+                  </div>
+                  <div className="mt-2 overflow-x-auto">
+                    <table className="min-w-full border-collapse text-left text-xs">
+                      <thead className="bg-zinc-50 text-zinc-600">
+                        <tr>
+                          <th className="border border-zinc-200 px-2 py-1.5">Task</th>
+                          <th className="border border-zinc-200 px-2 py-1.5">Section</th>
+                          <th className="border border-zinc-200 px-2 py-1.5">Required</th>
+                          <th className="border border-zinc-200 px-2 py-1.5">Found</th>
+                          <th className="border border-zinc-200 px-2 py-1.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {modalityCompliance.rows.map((row) => (
+                          <tr key={row.id}>
+                            <td className="border border-zinc-200 px-2 py-1.5 text-zinc-800">{row.task}</td>
+                            <td className="border border-zinc-200 px-2 py-1.5 text-zinc-800">{row.section}</td>
+                            <td className="border border-zinc-200 px-2 py-1.5 text-zinc-700">
+                              chart: {row.required.chart}; table: {row.required.table}; image: {row.required.image}; equation: {row.required.equation}; %: {row.required.percentage}
+                            </td>
+                            <td className="border border-zinc-200 px-2 py-1.5 text-zinc-700">
+                              chart: {row.found.chart}; table: {row.found.table}; image: {row.found.image}; equation: {row.found.equation}; %: {row.found.percentage}
+                            </td>
+                            <td className="border border-zinc-200 px-2 py-1.5">
+                              <span
+                                className={cx(
+                                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                  row.ok ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                                )}
+                              >
+                                {row.ok ? "Pass" : "Review"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-2 text-[11px] text-zinc-500">
+                    Signals: table={String(modalityCompliance.foundSignals.table)}; bar={String(modalityCompliance.foundSignals.bar)}; pie={String(modalityCompliance.foundSignals.pie)}; image={String(modalityCompliance.foundSignals.image)}; equation={String(modalityCompliance.foundSignals.equation)}; percentage={String(modalityCompliance.foundSignals.percentage)}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

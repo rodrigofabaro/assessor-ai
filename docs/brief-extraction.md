@@ -108,3 +108,30 @@ The target is a **task register** that preserves:
 - page refs (where possible)
 
 This is not a question bank. It’s a captured question paper.
+
+## AI Recovery Layer (Local-first)
+
+The extraction pipeline now supports an optional **AI structure recovery** pass for briefs:
+
+- Runs after deterministic task extraction + math cleanup.
+- Triggered only when task quality warnings indicate likely structure drift.
+- Local-first (`AI_LOCAL_*`) with OpenAI fallback.
+- Rewrites only task text/parts that pass merge safety guards.
+
+Key env controls:
+
+- `AI_BRIEF_STRUCTURE_RECOVERY=true|false`
+- `AI_PROVIDER_GRAPH_MODE=local|hybrid|openai`
+- `AI_LOCAL_GRAPH_MODEL=...`
+- `AI_LOCAL_BRIEF_STRUCTURE_TIMEOUT_MS=...`
+
+Graph/image charts:
+
+- When chart instructions are detected but no numeric series is present in text,
+  page-image chart extraction is attempted (local-first) and injected as anchored
+  numeric lines near the cue.
+
+Safety:
+
+- If AI output is invalid/low-confidence, extractor keeps deterministic output.
+- Grading then applies modality compliance checks and confidence capping.
