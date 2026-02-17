@@ -596,6 +596,38 @@ function inferChartTitle(part: StructuredPart): string {
   return m ? m[1].trim() : `Part ${part.key.toUpperCase()} Data`;
 }
 
+function scoreChartConfidence(input: {
+  dataCount: number;
+  wantsBar: boolean;
+  wantsPie: boolean;
+  hasGenericChartCue: boolean;
+  imageBasedCue: boolean;
+  pending: boolean;
+}) {
+  const {
+    dataCount,
+    wantsBar,
+    wantsPie,
+    hasGenericChartCue,
+    imageBasedCue,
+    pending,
+  } = input;
+
+  let score = 0.34;
+  if (wantsBar || wantsPie) score += 0.16;
+  if (hasGenericChartCue) score += 0.1;
+  if (imageBasedCue) score += 0.18;
+
+  if (!pending) {
+    score += 0.18;
+    score += Math.min(0.2, Math.max(0, dataCount - 2) * 0.04);
+  }
+
+  const min = pending ? 0.35 : 0.55;
+  const max = pending ? 0.75 : 0.98;
+  return Math.max(min, Math.min(max, score));
+}
+
 function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): TaskChartSpec[] {
   const specs: TaskChartSpec[] = [];
 
@@ -626,6 +658,14 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
 
     if (data.length < 2) {
       if (!kinds.length) return;
+      const pendingConfidence = scoreChartConfidence({
+        dataCount: data.length,
+        wantsBar,
+        wantsPie,
+        hasGenericChartCue,
+        imageBasedCue,
+        pending: true,
+      });
       for (const kind of kinds) {
         specs.push({
           id: `${partKey}-${kind}-pending`,
@@ -633,7 +673,7 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
           kind,
           title,
           data: [],
-          confidence: 0.35,
+          confidence: pendingConfidence,
           pending: true,
           note: imageBasedCue
             ? "Chart appears image-based in the source PDF. Numeric series was not extracted yet."
@@ -644,7 +684,14 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
       return;
     }
 
-    const confidence = Math.min(0.98, 0.6 + Math.min(data.length, 6) * 0.06);
+    const confidence = scoreChartConfidence({
+      dataCount: data.length,
+      wantsBar,
+      wantsPie,
+      hasGenericChartCue,
+      imageBasedCue,
+      pending: false,
+    });
     for (const kind of kinds) {
       specs.push({
         id: `${partKey}-${kind}`,
@@ -676,12 +723,12 @@ function formatChartValue(value: number, unit?: string) {
   return unit === "%" ? `${rounded}%` : rounded;
 }
 
-function ChartPreview({ spec }: { spec: TaskChartSpec }) {
+function ChartPreview({ spec, openPdfHref }: { spec: TaskChartSpec; openPdfHref?: string }) {
   const total = spec.data.reduce((sum, d) => sum + Math.max(0, d.value), 0);
   const max = Math.max(1, ...spec.data.map((d) => d.value));
 
   const pieStops: string[] = [];
-  const colors = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#6b7280"];
+  const colors = ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#22c55e", "#f59e0b", "#ef4444"];
   let cursor = 0;
   spec.data.forEach((d, idx) => {
     const pct = total > 0 ? (Math.max(0, d.value) / total) * 100 : 0;
@@ -708,8 +755,41 @@ function ChartPreview({ spec }: { spec: TaskChartSpec }) {
       {spec.note ? <div className="mt-2 text-[11px] text-amber-700">{spec.note}</div> : null}
 
       {spec.pending ? (
-        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Pending data extraction for this chart.
+        <div className="mt-3 rounded-md border border-zinc-300 bg-zinc-50 p-3">
+          {spec.kind === "bar" ? (
+            <div className="space-y-2">
+              {[72, 48, 86, 40].map((w, i) => (
+                <div key={`${spec.id}-ghost-bar-${i}`} className="grid grid-cols-[90px_1fr_auto] items-center gap-2 text-[11px] text-zinc-700">
+                  <div className="truncate">Series {i + 1}</div>
+                  <div className="h-3 rounded bg-white">
+                    <div className="h-full rounded" style={{ width: `${w}%`, backgroundColor: colors[i % colors.length] }} />
+                  </div>
+                  <div className="tabular-nums text-zinc-500">N/A</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div
+                className="h-24 w-24 shrink-0 rounded-full border border-zinc-300"
+                style={{
+                  background: "conic-gradient(#0f172a 0% 30%, #334155 30% 55%, #64748b 55% 75%, #94a3b8 75% 100%)",
+                }}
+              />
+              <div className="text-xs text-zinc-700">
+                Image-based chart detected. Numeric series is missing from extraction.
+                <div className="mt-1 text-zinc-500">Values: N/A</div>
+              </div>
+            </div>
+          )}
+          <div className="mt-2 text-[11px] text-zinc-600">Numbers are missing in extracted text; showing placeholder graph.</div>
+          {openPdfHref ? (
+            <div className="mt-3">
+              <a href={openPdfHref} target="_blank" rel="noreferrer" className="text-xs font-semibold text-zinc-900 underline underline-offset-2">
+                Open source PDF graph
+              </a>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -812,7 +892,7 @@ function renderStructuredParts(
             return (
             <div className="mt-3 space-y-3">
               {partCharts.map((spec) => (
-                <ChartPreview key={`${keyPrefix}-chart-${spec.id}`} spec={spec} />
+                <ChartPreview key={`${keyPrefix}-chart-${spec.id}`} spec={spec} openPdfHref={options?.openPdfHref} />
               ))}
             </div>
             );
@@ -1566,7 +1646,7 @@ export function TaskCard({
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Detected Chart Previews</div>
                 <div className="mt-2 space-y-3">
                   {unplacedChartSpecs.map((spec) => (
-                    <ChartPreview key={spec.id} spec={spec} />
+                    <ChartPreview key={spec.id} spec={spec} openPdfHref={openPdfHref} />
                   ))}
                 </div>
               </div>
