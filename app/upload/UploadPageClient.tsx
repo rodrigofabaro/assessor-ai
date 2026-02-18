@@ -83,9 +83,12 @@ export function UploadPageClient() {
 
   return (
     <div className="grid gap-5">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">
+              Workflow Operations
+            </div>
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Upload Student Work</h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-700">
               Upload one or many student files (PDF/DOC/DOCX). We extract the cover page, identify unit/assignment, and prepare each submission for grading.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buildCopySummary } from "@/lib/submissionReady";
 import { isReadyToUpload } from "@/lib/submissionReady";
 import { useSubmissionsList, type LaneKey } from "@/lib/submissions/useSubmissionsList";
@@ -46,6 +46,12 @@ export default function SubmissionsPage() {
     setStatusFilter,
     laneFilter,
     setLaneFilter,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
+    handoffOnly,
+    setHandoffOnly,
 
     statuses,
     laneGroups,
@@ -53,6 +59,10 @@ export default function SubmissionsPage() {
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
+  const [showColWorkflow, setShowColWorkflow] = useState(true);
+  const [showColUploaded, setShowColUploaded] = useState(true);
+  const [showColGrade, setShowColGrade] = useState(true);
+  const [showColAssignmentTitle, setShowColAssignmentTitle] = useState(true);
 
   // Resolve drawer state lives here; drawer owns its internal state.
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -71,6 +81,31 @@ export default function SubmissionsPage() {
   const unlinkedCount = flatRows.filter((s) => !s.studentId).length;
   const exportReady = flatRows.filter((s) => isReadyToUpload(s)).length;
   const failedVisibleCount = flatRows.filter((s) => String(s.status || "").toUpperCase() === "FAILED").length;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("submissions.columns.v1");
+    if (!raw) return;
+    try {
+      const v = JSON.parse(raw) as Record<string, boolean>;
+      if (typeof v.workflow === "boolean") setShowColWorkflow(v.workflow);
+      if (typeof v.uploaded === "boolean") setShowColUploaded(v.uploaded);
+      if (typeof v.grade === "boolean") setShowColGrade(v.grade);
+      if (typeof v.assignmentTitle === "boolean") setShowColAssignmentTitle(v.assignmentTitle);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  function persistColumns(next: { workflow?: boolean; uploaded?: boolean; grade?: boolean; assignmentTitle?: boolean }) {
+    const payload = {
+      workflow: next.workflow ?? showColWorkflow,
+      uploaded: next.uploaded ?? showColUploaded,
+      grade: next.grade ?? showColGrade,
+      assignmentTitle: next.assignmentTitle ?? showColAssignmentTitle,
+    };
+    if (typeof window !== "undefined") localStorage.setItem("submissions.columns.v1", JSON.stringify(payload));
+  }
 
   function toAbsoluteUrl(url: string) {
     const src = String(url || "").trim();
@@ -112,6 +147,29 @@ export default function SubmissionsPage() {
     } catch (e: any) {
       setErr(e?.message || "Could not download marked PDF.");
     }
+  }
+
+  async function onBulkCopyFeedback(rows: SubmissionRow[]) {
+    const completed = rows.filter((r) => isReadyToUpload(r));
+    if (!completed.length) return;
+    const joined = completed
+      .map((r) => {
+        const feedback = String(r.feedback || "").trim();
+        const marked = toAbsoluteUrl(buildMarkedPdfUrl(r.id, null, Date.now()));
+        return `Submission: ${r.filename}\n${feedback}\n\nMarked version link: ${marked}`;
+      })
+      .join("\n\n====================\n\n");
+    try {
+      await navigator.clipboard.writeText(joined);
+      setMsg(`Copied feedback pack for ${completed.length} submission(s).`);
+    } catch {
+      setErr("Could not copy bulk feedback pack.");
+    }
+  }
+
+  function onBulkDownloadMarked(rows: SubmissionRow[]) {
+    const completed = rows.filter((r) => isReadyToUpload(r));
+    for (const r of completed) void onDownloadMarkedFile(r);
   }
 
   function onOpenResolve(id: string) {
@@ -178,6 +236,10 @@ export default function SubmissionsPage() {
     runBatchGrade(ids, false);
   }
 
+  function onRunGradeSingle(submissionId: string) {
+    runBatchGrade([submissionId], false);
+  }
+
   function onRetryFailedLane(laneKey: LaneKey) {
     const ids =
       laneGroups
@@ -189,10 +251,13 @@ export default function SubmissionsPage() {
 
   return (
     <main className="py-2">
-      <div className="mb-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="mb-5 rounded-3xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight">Submissions Workspace</h1>
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">
+              Workflow Operations
+            </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Submissions Workspace</h1>
             <p className="mt-2 max-w-3xl text-sm text-zinc-600">
               Batch intake, extraction tracking, student resolution, and grading readiness in one place.
             </p>
@@ -221,6 +286,56 @@ export default function SubmissionsPage() {
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Export-ready</div>
             <div className="mt-1 text-xl font-semibold text-emerald-900">{exportReady}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setReadyOnly((v) => !v)}
+            className={cx("rounded-full border px-3 py-1 font-semibold", readyOnly ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-zinc-200 bg-white text-zinc-700")}
+          >
+            Ready to upload
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnlinkedOnly((v) => !v)}
+            className={cx("rounded-full border px-3 py-1 font-semibold", unlinkedOnly ? "border-amber-200 bg-amber-50 text-amber-900" : "border-zinc-200 bg-white text-zinc-700")}
+          >
+            Missing student
+          </button>
+          <button
+            type="button"
+            onClick={() => setLaneFilter("BLOCKED")}
+            className={cx("rounded-full border px-3 py-1 font-semibold", laneFilter === "BLOCKED" ? "border-red-200 bg-red-50 text-red-900" : "border-zinc-200 bg-white text-zinc-700")}
+          >
+            Failed / blocked
+          </button>
+          <button
+            type="button"
+            onClick={() => setHandoffOnly((v) => !v)}
+            className={cx("rounded-full border px-3 py-1 font-semibold", handoffOnly ? "border-sky-200 bg-sky-50 text-sky-900" : "border-zinc-200 bg-white text-zinc-700")}
+          >
+            Totara handoff mode
+          </button>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <span className="text-zinc-500">Columns:</span>
+            <label className="inline-flex items-center gap-1">
+              <input type="checkbox" checked={showColGrade} onChange={(e) => { setShowColGrade(e.target.checked); persistColumns({ grade: e.target.checked }); }} />
+              Grade
+            </label>
+            <label className="inline-flex items-center gap-1">
+              <input type="checkbox" checked={showColWorkflow} onChange={(e) => { setShowColWorkflow(e.target.checked); persistColumns({ workflow: e.target.checked }); }} />
+              Workflow
+            </label>
+            <label className="inline-flex items-center gap-1">
+              <input type="checkbox" checked={showColUploaded} onChange={(e) => { setShowColUploaded(e.target.checked); persistColumns({ uploaded: e.target.checked }); }} />
+              Uploaded
+            </label>
+            <label className="inline-flex items-center gap-1">
+              <input type="checkbox" checked={showColAssignmentTitle} onChange={(e) => { setShowColAssignmentTitle(e.target.checked); persistColumns({ assignmentTitle: e.target.checked }); }} />
+              Assignment title
+            </label>
           </div>
         </div>
       </div>
@@ -262,6 +377,12 @@ export default function SubmissionsPage() {
         setStatusFilter={setStatusFilter}
         laneFilter={laneFilter}
         setLaneFilter={setLaneFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        sortDir={sortDir}
+        setSortDir={setSortDir}
+        handoffOnly={handoffOnly}
+        setHandoffOnly={setHandoffOnly}
         statuses={statuses}
       />
 
@@ -272,9 +393,17 @@ export default function SubmissionsPage() {
           unlinkedOnly={unlinkedOnly}
           onBatchGradeLane={onBatchGradeLane}
           onRetryFailedLane={onRetryFailedLane}
+          onRunGradeSingle={onRunGradeSingle}
           onOpenResolve={onOpenResolve}
           onCopySummary={onCopySummary}
           onDownloadMarkedFile={onDownloadMarkedFile}
+          onBulkCopyFeedback={onBulkCopyFeedback}
+          onBulkDownloadMarked={onBulkDownloadMarked}
+          showColWorkflow={showColWorkflow}
+          showColUploaded={showColUploaded}
+          showColGrade={showColGrade}
+          showColAssignmentTitle={showColAssignmentTitle}
+          handoffOnly={handoffOnly}
           copiedKey={copiedKey}
         />
       </section>

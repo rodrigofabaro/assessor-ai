@@ -20,11 +20,17 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   const pdf = await PDFDocument.load(bytes);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const pages = pdf.getPages();
-  const first = pages[0];
-  const last = pages[Math.max(0, pages.length - 1)];
-  const overallPage = payload.overallPlacement === "first" ? first : last;
-  const { width } = overallPage.getSize();
+  const originalPages = pdf.getPages();
+  const first = originalPages[0];
+  const fallbackPageSize = first ? first.getSize() : { width: 595.28, height: 841.89 };
+
+  // Overall feedback is always rendered on a dedicated page so it never competes
+  // with submission text/background.
+  const overallPage =
+    payload.overallPlacement === "first"
+      ? pdf.insertPage(0, [fallbackPageSize.width, fallbackPageSize.height])
+      : pdf.addPage([fallbackPageSize.width, fallbackPageSize.height]);
+  const { width, height } = overallPage.getSize();
 
   const margin = 24;
   const boxW = Math.min(380, width - margin * 2);
@@ -33,8 +39,8 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   const metaH = 28;
   const bulletCount = Math.max(1, Math.min(8, payload.feedbackBullets.length || 1));
   const boxH = titleH + metaH + bulletCount * lineH + 18;
-  const x = width - boxW - margin;
-  const y = margin;
+  const x = (width - boxW) / 2;
+  const y = Math.max(margin, (height - boxH) / 2);
 
   overallPage.drawRectangle({
     x,
@@ -47,10 +53,10 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     opacity: 0.94,
   });
 
-  overallPage.drawText("Assessor AI - Marking Summary", {
+  overallPage.drawText("Overall feedback", {
     x: x + 10,
     y: y + boxH - 16,
-    size: 10,
+    size: 12,
     font: bold,
     color: rgb(0.1, 0.1, 0.1),
   });
@@ -99,11 +105,15 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     });
   }
 
+  const pages = pdf.getPages();
+  const summaryPageOffset = payload.overallPlacement === "first" ? 1 : 0;
   const pageNotes = Array.isArray(payload.pageNotes) ? payload.pageNotes : [];
   for (const note of pageNotes) {
     const pageNo = Number(note?.page || 0);
     if (!Number.isInteger(pageNo) || pageNo < 1 || pageNo > pages.length) continue;
-    const page = pages[pageNo - 1];
+    const mappedPageIndex = pageNo - 1 + summaryPageOffset;
+    if (mappedPageIndex < 0 || mappedPageIndex >= pages.length) continue;
+    const page = pages[mappedPageIndex];
     const { width: pw, height: ph } = page.getSize();
     const lines = (Array.isArray(note?.lines) ? note.lines : [])
       .map((l) => String(l || "").trim())
@@ -119,17 +129,17 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
       y: ny,
       width: noteW,
       height: noteH,
-      color: rgb(1, 1, 1),
-      borderColor: rgb(0.2, 0.2, 0.2),
+      color: rgb(1, 0.88, 0.88),
+      borderColor: rgb(0.7, 0.15, 0.15),
       borderWidth: 1,
-      opacity: 0.95,
+      opacity: 0.72,
     });
     page.drawText("Constructive note", {
       x: nx + 8,
       y: ny + noteH - 13,
       size: 8.5,
       font: bold,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0.42, 0.06, 0.06),
     });
     for (let i = 0; i < lines.length; i += 1) {
       page.drawText(`- ${lines[i]}`, {
@@ -137,7 +147,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
         y: ny + noteH - 26 - i * 11,
         size: 7.8,
         font,
-        color: rgb(0.15, 0.15, 0.15),
+        color: rgb(0.3, 0.05, 0.05),
         maxWidth: noteW - 14,
         lineHeight: 8.5,
       });

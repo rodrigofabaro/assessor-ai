@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { LaneFilter, Timeframe } from "@/lib/submissions/useSubmissionsList";
+import type { LaneFilter, SortBy, SortDir, Timeframe } from "@/lib/submissions/useSubmissionsList";
 import { cx } from "@/lib/submissions/utils";
 import { IconButton } from "./IconButton";
 
@@ -35,6 +35,12 @@ export function SubmissionsToolbar({
   setStatusFilter,
   laneFilter,
   setLaneFilter,
+  sortBy,
+  setSortBy,
+  sortDir,
+  setSortDir,
+  handoffOnly,
+  setHandoffOnly,
 
   statuses,
 }: {
@@ -68,6 +74,12 @@ export function SubmissionsToolbar({
 
   laneFilter: LaneFilter;
   setLaneFilter: (v: LaneFilter) => void;
+  sortBy: SortBy;
+  setSortBy: (v: SortBy) => void;
+  sortDir: SortDir;
+  setSortDir: (v: SortDir) => void;
+  handoffOnly: boolean;
+  setHandoffOnly: (v: boolean) => void;
 
   statuses: string[];
 }) {
@@ -93,6 +105,16 @@ export function SubmissionsToolbar({
               onChange={(e) => setReadyOnly(e.target.checked)}
             />
             Ready to upload
+          </label>
+
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-zinc-300"
+              checked={handoffOnly}
+              onChange={(e) => setHandoffOnly(e.target.checked)}
+            />
+            Handoff mode
           </label>
 
           <div className="inline-flex overflow-hidden rounded-xl border border-zinc-200 bg-white">
@@ -160,6 +182,28 @@ export function SubmissionsToolbar({
             <option value="NEEDS_HUMAN">Needs Human</option>
             <option value="BLOCKED">Blocked</option>
             <option value="COMPLETED">Completed</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+            aria-label="Sort by"
+          >
+            <option value="uploadedAt">Sort: uploaded</option>
+            <option value="student">Sort: student</option>
+            <option value="status">Sort: status</option>
+            <option value="grade">Sort: grade</option>
+          </select>
+
+          <select
+            value={sortDir}
+            onChange={(e) => setSortDir(e.target.value as SortDir)}
+            className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+            aria-label="Sort direction"
+          >
+            <option value="desc">Order: desc</option>
+            <option value="asc">Order: asc</option>
           </select>
         </div>
 

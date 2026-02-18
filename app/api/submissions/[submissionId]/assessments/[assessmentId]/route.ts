@@ -5,6 +5,7 @@ import { deriveBulletsFromFeedbackText } from "@/lib/grading/feedbackDocument";
 import { readGradingConfig } from "@/lib/grading/config";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { buildPageNotesFromCriterionChecks, extractCriterionChecksFromResultJson } from "@/lib/grading/pageNotes";
+import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Assessment not found for this submission." }, { status: 404 });
     }
 
-    const feedbackText = String(body.feedbackText || "").trim();
+    const feedbackText = sanitizeStudentFeedbackText(body.feedbackText);
     if (!feedbackText) {
       return NextResponse.json({ error: "feedbackText is required." }, { status: 400 });
     }

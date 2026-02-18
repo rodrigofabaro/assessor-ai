@@ -36,27 +36,6 @@ function sortByBandThenCode(a: { gradeBand?: string; acCode?: string }, b: { gra
   return normCode(a.acCode).localeCompare(normCode(b.acCode));
 }
 
-function extractLoHintsFromDraft(draft: any) {
-  const textBits: string[] = [];
-  textBits.push(String(draft?.title || ""));
-  textBits.push(String(draft?.header || ""));
-  textBits.push(String(draft?.preview || ""));
-  if (Array.isArray(draft?.tasks)) {
-    for (const t of draft.tasks) {
-      textBits.push(String(t?.text || ""));
-      textBits.push(String(t?.prompt || ""));
-    }
-  }
-  const src = textBits.join("\n");
-  const out = new Set<string>();
-  const re1 = /\bLO\s*([1-9]\d*)\b/gi;
-  const re2 = /\blearning\s+outcome\s*([1-9]\d*)\b/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re1.exec(src))) out.add(`LO${m[1]}`);
-  while ((m = re2.exec(src))) out.add(`LO${m[1]}`);
-  return out;
-}
-
 export default function BriefMappingPanel({
   draft,
   units,
@@ -72,7 +51,6 @@ export default function BriefMappingPanel({
     () => [...detectedCodes].sort((a, b) => sortByBandThenCode({ acCode: a }, { acCode: b })),
     [detectedCodes]
   );
-  const loHints = useMemo(() => extractLoHintsFromDraft(draft), [draft]);
   const unitGuess = draft?.unitCodeGuess ? String(draft.unitCodeGuess) : "";
 
   const [critQ, setCritQ] = useState("");
@@ -102,42 +80,15 @@ export default function BriefMappingPanel({
     if (view === "current") {
       list = list.filter((c: any) => {
         const code = normCode(c.acCode);
-        if (!detectedCodes.includes(code)) return false;
-        if (!loHints.size) return true;
-        const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
-        return loHints.has(loCode);
+        return detectedCodes.includes(code);
       });
-
-      // If brief text has no explicit LO hint and detected AC codes collide across multiple LOs,
-      // keep only the primary LO (highest detected count) to avoid spillover noise.
-      if (!loHints.size) {
-        const loCounts = new Map<string, number>();
-        for (const c of list) {
-          const loCode = String(c?.learningOutcome?.loCode || "").toUpperCase();
-          if (!loCode) continue;
-          loCounts.set(loCode, (loCounts.get(loCode) || 0) + 1);
-        }
-        if (loCounts.size > 1) {
-          let topLo = "";
-          let topCount = -1;
-          for (const [lo, count] of loCounts.entries()) {
-            if (count > topCount) {
-              topLo = lo;
-              topCount = count;
-            }
-          }
-          if (topLo) {
-            list = list.filter((c: any) => String(c?.learningOutcome?.loCode || "").toUpperCase() === topLo);
-          }
-        }
-      }
     }
 
     // Always display criteria in P -> M -> D sequence.
     list.sort((a: any, b: any) => sortByBandThenCode(a, b));
 
     return list;
-  }, [criteria, critQ, view, band, detectedCodes, loHints]);
+  }, [criteria, critQ, view, band, detectedCodes]);
 
   const loSummary = useMemo(() => {
     const summary = new Map<string, { loCode: string; detected: number }>();

@@ -10,6 +10,8 @@ import { deriveAutomationState } from "./automation";
 export type Timeframe = "today" | "week" | "all";
 export type LaneKey = "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED";
 export type LaneFilter = LaneKey | "ALL";
+export type SortBy = "uploadedAt" | "grade" | "status" | "student";
+export type SortDir = "asc" | "desc";
 
 type LaneMeta = {
   key: LaneKey;
@@ -41,6 +43,9 @@ export function useSubmissionsList() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
   const [laneFilter, setLaneFilter] = useState<LaneFilter>("ALL");
+  const [sortBy, setSortBy] = useState<SortBy>("uploadedAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [handoffOnly, setHandoffOnly] = useState(false);
 
   async function refresh() {
     setBusy(true);
@@ -105,14 +110,45 @@ export function useSubmissionsList() {
             return key === laneFilter;
           });
 
-    if (timeframe === "all") return byLane;
+    const byHandoff = handoffOnly ? byLane.filter((s) => isReadyToUpload(s)) : byLane;
+
+    const sorted = [...byHandoff].sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortBy === "student") {
+        const av = String(a.student?.fullName || "").toLowerCase();
+        const bv = String(b.student?.fullName || "").toLowerCase();
+        return av.localeCompare(bv) * dir;
+      }
+      if (sortBy === "status") {
+        const av = String(a.status || "").toUpperCase();
+        const bv = String(b.status || "").toUpperCase();
+        return av.localeCompare(bv) * dir;
+      }
+      if (sortBy === "grade") {
+        const rank = (v: string) => {
+          const x = String(v || "").toUpperCase();
+          if (x === "DISTINCTION") return 5;
+          if (x === "MERIT") return 4;
+          if (x === "PASS") return 3;
+          if (x === "PASS_ON_RESUBMISSION") return 2;
+          if (x === "REFER") return 1;
+          return 0;
+        };
+        return (rank(String(a.grade || a.overallGrade || "")) - rank(String(b.grade || b.overallGrade || ""))) * dir;
+      }
+      const at = new Date(a.uploadedAt).getTime() || 0;
+      const bt = new Date(b.uploadedAt).getTime() || 0;
+      return (at - bt) * dir;
+    });
+
+    if (timeframe === "all") return sorted;
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const endOfToday = startOfToday + 24 * 60 * 60 * 1000;
 
     if (timeframe === "today") {
-      return byLane.filter((s) => {
+      return sorted.filter((s) => {
         const t = new Date(s.uploadedAt).getTime();
         return !Number.isNaN(t) && t >= startOfToday && t < endOfToday;
       });
@@ -124,11 +160,11 @@ export function useSubmissionsList() {
     const startOfWeek = startOfToday - offsetToMonday * 24 * 60 * 60 * 1000;
     const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000;
 
-    return byLane.filter((s) => {
+    return sorted.filter((s) => {
       const t = new Date(s.uploadedAt).getTime();
       return !Number.isNaN(t) && t >= startOfWeek && t < endOfWeek;
     });
-  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly, laneFilter]);
+  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly, laneFilter, sortBy, sortDir, handoffOnly]);
 
   const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
 
@@ -186,6 +222,12 @@ export function useSubmissionsList() {
     setStatusFilter,
     laneFilter,
     setLaneFilter,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
+    handoffOnly,
+    setHandoffOnly,
     readyOnly,
     setReadyOnly,
 

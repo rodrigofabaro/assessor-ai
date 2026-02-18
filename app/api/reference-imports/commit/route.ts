@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { evaluateBriefLockQuality } from "@/lib/briefs/lockQualityGate";
+import { selectBriefMappingCodes } from "@/lib/briefs/mappingCodes";
 
 import type { ExtractDraft, SpecDraft, BriefDraft, GradeBand } from "@/lib/referenceParser";
 
@@ -13,6 +15,7 @@ export async function POST(req: Request) {
     const documentId = body?.documentId as string | undefined;
     const draft = body?.draft as ExtractDraft | undefined;
     const overrideUnitId = body?.unitId as string | undefined; // for BRIEF imports
+    const allowQualityGateBypass = body?.allowQualityGateBypass as boolean | undefined;
 
     if (!documentId || !draft) {
       return NextResponse.json({ error: "Missing documentId or draft" }, { status: 400 });
@@ -140,6 +143,43 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Brief title is required." }, { status: 400 });
       }
 
+      const unitCriteria = await prisma.assessmentCriterion.findMany({
+        where: { learningOutcome: { unitId: unit.id } },
+        select: {
+          acCode: true,
+          gradeBand: true,
+          learningOutcome: { select: { loCode: true } },
+        },
+      });
+      const mappedUnitCriteria = unitCriteria.map((c) => ({
+        acCode: c.acCode,
+        gradeBand: c.gradeBand as GradeBand,
+        loCode: c.learningOutcome?.loCode || "",
+      }));
+      const pickedCodes = selectBriefMappingCodes(brief as any, mappedUnitCriteria);
+      const codes = pickedCodes.selectedCodes;
+      const qualityGate = evaluateBriefLockQuality({
+        assignmentCode,
+        title,
+        hasUnitSignal: Boolean(overrideUnitId || brief.unitCodeGuess),
+        selectedCodes: codes,
+        rawText: String((brief as any)?.rawText || ""),
+        unitCriteria: mappedUnitCriteria,
+      });
+      if (!qualityGate.ok && !allowQualityGateBypass) {
+        return NextResponse.json(
+          {
+            error: "BRIEF_EXTRACTION_QUALITY_GATE_FAILED",
+            message: "Brief extraction quality gate failed. Fix extraction/mapping before commit.",
+            blockers: qualityGate.blockers,
+            warnings: qualityGate.warnings,
+            metrics: qualityGate.metrics,
+            suggestion: "Re-extract the brief, then verify criteria mapping (or retry with allowQualityGateBypass=true after manual review).",
+          },
+          { status: 422 }
+        );
+      }
+
       // Upsert brief
       const briefRec = await prisma.assignmentBrief.upsert({
         where: { unitId_assignmentCode: { unitId: unit.id, assignmentCode } },
@@ -156,7 +196,6 @@ export async function POST(req: Request) {
       });
 
       // Map detected criterion codes (best-effort)
-      const codes = (brief.detectedCriterionCodes || []).map(cleanCode).filter(Boolean);
       const criteria = await prisma.assessmentCriterion.findMany({
         where: {
           learningOutcome: { unitId: unit.id },
@@ -173,7 +212,14 @@ export async function POST(req: Request) {
         });
       }
 
-      return NextResponse.json({ ok: true, kind: "BRIEF", briefId: briefRec.id, mapped: criteria.length, detected: codes.length });
+      return NextResponse.json({
+        ok: true,
+        kind: "BRIEF",
+        briefId: briefRec.id,
+        mapped: criteria.length,
+        detected: codes.length,
+        qualityGate,
+      });
     }
 
     return NextResponse.json({ error: "Unknown draft kind" }, { status: 400 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
+import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 
 export async function GET(
   _req: Request,
@@ -37,7 +38,15 @@ export async function GET(
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ submission });
+  return NextResponse.json({
+    submission: {
+      ...submission,
+      assessments: (submission.assessments || []).map((a) => ({
+        ...a,
+        feedbackText: sanitizeStudentFeedbackText(a.feedbackText || null) || null,
+      })),
+    },
+  });
 }
 
 // PATCH /api/submissions/[submissionId]

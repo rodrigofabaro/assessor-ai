@@ -34,6 +34,8 @@ export function uniqSortedCriteriaCodes(codes: unknown[]): string[] {
 
 export function extractCriteriaCodesFromText(text: string): string[] {
   if (!text) return [];
-  const matches = Array.from(text.matchAll(/\b([PMD])\s*(\d+)\b/gi)).map((m) => `${m[1]}${m[2]}`);
+  // Ignore synthetic extraction markers like [[EQ:p4-eq1]] that can look like criteria codes.
+  const scrubbed = String(text).replace(/\[\[[^\]]+\]\]/g, " ");
+  const matches = Array.from(scrubbed.matchAll(/\b([PMD])\s*(\d+)\b/gi)).map((m) => `${m[1]}${m[2]}`);
   return uniqSortedCriteriaCodes(matches);
 }

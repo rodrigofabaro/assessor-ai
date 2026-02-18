@@ -32,6 +32,7 @@ export type SubmissionRow = {
   feedback?: string | null;
   markedPdfPath?: string | null;
   gradedAt?: string | null;
+  assessmentActor?: string | null;
   updatedAt?: string | null;
   automationState?: "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED" | null;
   automationReason?: string | null;

@@ -11,6 +11,7 @@ import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate
 import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/grading/feedbackPersonalization";
 import { renderFeedbackTemplate } from "@/lib/grading/feedbackDocument";
 import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
+import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
@@ -716,18 +717,18 @@ export async function POST(
             overallGrade: "REFER" as const,
             resubmissionRequired: true,
             feedbackSummary:
-              "Automated grading output was invalid for this submission. This run is flagged for manual review.",
+              "Your work could not be graded reliably from the available evidence.",
             feedbackBullets: [
-              "Automated grading output failed schema validation.",
-              "A conservative REFER fallback has been applied.",
-              "Review criterion decisions and rerun grading after extraction/model checks.",
+              "Please review the assignment requirements and ensure each criterion is evidenced clearly.",
+              "Resubmit with explicit evidence across the required tasks and outcomes.",
+              "Your assessor can provide additional guidance on the areas to strengthen.",
             ],
             criterionChecks: criteriaCodes.map((code) => ({
               code,
               decision: "UNCLEAR" as const,
-              rationale: "Fallback decision: model output invalid; manual review required.",
+              rationale: "Insufficient reliable evidence captured for a confident criterion decision.",
               confidence: 0.25,
-              evidence: [{ page: 1, visualDescription: "Fallback placeholder due to invalid model output." }],
+              evidence: [{ page: 1, visualDescription: "Evidence could not be validated for this criterion." }],
             })),
             confidence: 0.25,
           }
@@ -763,15 +764,17 @@ export async function POST(
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
     const overallGrade = decision.overallGradeWord;
-    const feedbackSummary = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
-    const feedbackBullets = decision.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
+    const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
+    const feedbackSummary = sanitizeStudentFeedbackLine(feedbackSummaryRaw) || "Feedback provided below.";
+    const feedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
+    const systemNotes: string[] = [];
     if (modalityCompliance.missingCount > 0) {
-      feedbackBullets.unshift(
-        `Automated review: required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
+      systemNotes.push(
+        `Required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
       );
     }
     if (extractionMode === "COVER_ONLY") {
-      feedbackBullets.unshift("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
+      systemNotes.push("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
     }
     const responseWithPolicy = {
       ...decision,
@@ -874,6 +877,7 @@ export async function POST(
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,
+          systemNotes,
           confidencePolicy: {
             mode: "cap",
             cap: confidenceCap,

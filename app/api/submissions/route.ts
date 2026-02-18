@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deriveAutomationState } from "@/lib/submissions/automation";
 import { computeExtractionQuality } from "@/lib/submissions/extractionQuality";
+import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 
 export async function GET() {
   const rows = await prisma.submission.findMany({
@@ -16,6 +17,7 @@ export async function GET() {
           overallGrade: true,
           feedbackText: true,
           annotatedPdfPath: true,
+          resultJson: true,
           createdAt: true,
         },
       },
@@ -41,6 +43,7 @@ export async function GET() {
 
   const submissions = rows.map((s) => {
     const latest = s.assessments?.[0] || null;
+    const feedbackText = sanitizeStudentFeedbackText(latest?.feedbackText || null) || null;
     const latestRun = s.extractionRuns?.[0] || null;
     const extractionQuality = computeExtractionQuality({
       submissionStatus: s.status,
@@ -64,7 +67,7 @@ export async function GET() {
       _count: s._count,
       grade: latest?.overallGrade || null,
       overallGrade: latest?.overallGrade || null,
-      feedback: latest?.feedbackText || null,
+      feedback: feedbackText,
       markedPdfPath: latest?.annotatedPdfPath || null,
       extractionQuality,
     });
@@ -73,9 +76,10 @@ export async function GET() {
       ...s,
       grade: latest?.overallGrade || null,
       overallGrade: latest?.overallGrade || null,
-      feedback: latest?.feedbackText || null,
+      feedback: feedbackText,
       markedPdfPath: latest?.annotatedPdfPath || null,
       gradedAt: latest?.createdAt || null,
+      assessmentActor: String((latest?.resultJson as any)?.gradedBy || "").trim() || null,
       extractionMode: String((latestRun?.sourceMeta as any)?.extractionMode || "").toUpperCase() || null,
       coverReady: Boolean((latestRun?.sourceMeta as any)?.coverReady),
       automationState: automation.state,

@@ -22,9 +22,17 @@ export function SubmissionsTable({
   unlinkedOnly,
   onBatchGradeLane,
   onRetryFailedLane,
+  onRunGradeSingle,
   onOpenResolve,
   onCopySummary,
   onDownloadMarkedFile,
+  onBulkCopyFeedback,
+  onBulkDownloadMarked,
+  showColWorkflow,
+  showColUploaded,
+  showColGrade,
+  showColAssignmentTitle,
+  handoffOnly,
   copiedKey,
 }: {
   laneGroups: LaneGroup[];
@@ -32,9 +40,17 @@ export function SubmissionsTable({
   unlinkedOnly: boolean;
   onBatchGradeLane: (laneKey: LaneKey) => void;
   onRetryFailedLane: (laneKey: LaneKey) => void;
+  onRunGradeSingle: (submissionId: string) => void;
   onOpenResolve: (submissionId: string) => void;
   onCopySummary: (s: SubmissionRow) => void;
   onDownloadMarkedFile: (s: SubmissionRow) => void;
+  onBulkCopyFeedback: (rows: SubmissionRow[]) => void;
+  onBulkDownloadMarked: (rows: SubmissionRow[]) => void;
+  showColWorkflow: boolean;
+  showColUploaded: boolean;
+  showColGrade: boolean;
+  showColAssignmentTitle: boolean;
+  handoffOnly: boolean;
   copiedKey: string | null;
 }) {
   const [collapsed, setCollapsed] = useState<Record<LaneKey, boolean>>({
@@ -54,6 +70,18 @@ export function SubmissionsTable({
     }
     return out;
   }, [laneGroups]);
+
+  const [selectedCompleted, setSelectedCompleted] = useState<Record<string, boolean>>({});
+
+  function gradeTone(gradeRaw: string) {
+    const g = String(gradeRaw || "").toUpperCase();
+    if (g === "DISTINCTION") return "border-violet-200 bg-violet-50 text-violet-900";
+    if (g === "MERIT") return "border-cyan-200 bg-cyan-50 text-cyan-900";
+    if (g === "PASS") return "border-emerald-200 bg-emerald-50 text-emerald-900";
+    if (g === "PASS_ON_RESUBMISSION") return "border-amber-200 bg-amber-50 text-amber-900";
+    if (g === "REFER") return "border-rose-200 bg-rose-50 text-rose-900";
+    return "border-zinc-200 bg-zinc-50 text-zinc-800";
+  }
 
   const totalRows = laneGroups.reduce((acc, lane) => acc + lane.rows.length, 0);
 
@@ -108,6 +136,44 @@ export function SubmissionsTable({
                     Retry failed ({failedByLane.get(lane.key) || 0})
                   </button>
                 ) : null}
+                {lane.key === "COMPLETED" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rows = lane.rows.filter((r) => selectedCompleted[r.id]);
+                        onBulkCopyFeedback(rows);
+                      }}
+                      disabled={batchBusy || lane.rows.filter((r) => selectedCompleted[r.id]).length === 0}
+                      className={cx(
+                        "rounded-lg px-2.5 py-1 text-xs font-semibold",
+                        batchBusy || lane.rows.filter((r) => selectedCompleted[r.id]).length === 0
+                          ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                          : "bg-emerald-700 text-white hover:bg-emerald-800"
+                      )}
+                      title="Copy feedback for selected completed rows"
+                    >
+                      Bulk feedback
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rows = lane.rows.filter((r) => selectedCompleted[r.id]);
+                        onBulkDownloadMarked(rows);
+                      }}
+                      disabled={batchBusy || lane.rows.filter((r) => selectedCompleted[r.id]).length === 0}
+                      className={cx(
+                        "rounded-lg px-2.5 py-1 text-xs font-semibold",
+                        batchBusy || lane.rows.filter((r) => selectedCompleted[r.id]).length === 0
+                          ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                          : "bg-sky-700 text-white hover:bg-sky-800"
+                      )}
+                      title="Download marked PDFs for selected completed rows"
+                    >
+                      Bulk files
+                    </button>
+                  </>
+                ) : null}
                 <button
                   type="button"
                   onClick={() =>
@@ -138,26 +204,39 @@ export function SubmissionsTable({
               <table className="min-w-full border-separate border-spacing-0">
                 <thead>
                   <tr className="text-left text-xs font-semibold text-zinc-700">
-                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Candidate & Assignment</th>
-                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
-                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Workflow</th>
-                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
-                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-right">Actions</th>
+                    {lane.key === "COMPLETED" ? (
+                      <th className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-4 py-3">Pick</th>
+                    ) : null}
+                    <th className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-4 py-3">Candidate & Assignment</th>
+                    {showColGrade ? <th className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th> : null}
+                    {showColWorkflow ? <th className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-4 py-3">Workflow</th> : null}
+                    {showColUploaded ? <th className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-4 py-3">{lane.key === "COMPLETED" ? "Completed" : "Uploaded"}</th> : null}
+                    <th className="sticky right-0 top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lane.dayGroups.map(([day, rows]) => (
                     <Fragment key={`${lane.key}-${day}`}>
                       <tr key={`${lane.key}-${day}-header`}>
-                        <td colSpan={5} className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        <td colSpan={2 + (lane.key === "COMPLETED" ? 1 : 0) + (showColGrade ? 1 : 0) + (showColWorkflow ? 1 : 0) + (showColUploaded ? 1 : 0)} className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                           {day} · {rows.length} submission{rows.length === 1 ? "" : "s"}
                         </td>
                       </tr>
                       {rows.map((s) => {
                         const ready = isReadyToUpload(s);
                         const a = deriveNextAction(s);
+                        const gradeLabel = String(s.grade || s.overallGrade || "—").toUpperCase();
                         return (
                           <tr key={s.id} className="text-sm transition hover:bg-zinc-50/70">
+                            {lane.key === "COMPLETED" ? (
+                              <td className="border-b border-zinc-100 px-4 py-3 align-top">
+                                <input
+                                  type="checkbox"
+                                  checked={!!selectedCompleted[s.id]}
+                                  onChange={(e) => setSelectedCompleted((prev) => ({ ...prev, [s.id]: e.target.checked }))}
+                                />
+                              </td>
+                            ) : null}
                             <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-800">
                               {s.studentId && s.student?.fullName ? (
                                 <Link className="font-medium underline underline-offset-4 hover:opacity-80" href={`/students/${s.studentId}`}>
@@ -174,55 +253,75 @@ export function SubmissionsTable({
                               <div className="mt-0.5 text-xs text-zinc-600">
                                 Assignment: {String(s.assignment?.assignmentRef || "—")}
                               </div>
-                              <div className="mt-1 text-xs text-zinc-600">{s.assignment?.title || s.assignmentId || "No assignment linked"}</div>
-                            </td>
-
-                            <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-800">
-                              <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
-                                {String(s.grade || s.overallGrade || "—").toUpperCase()}
-                              </span>
-                            </td>
-
-                            <td className="border-b border-zinc-100 px-4 py-3 align-top">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <StatusPill>{s.status}</StatusPill>
-                                <ActionPill tone={a.tone}>{a.label}</ActionPill>
-                                {s.extractionMode ? (
-                                  <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
-                                    {s.extractionMode}
-                                  </span>
-                                ) : null}
-                                {s.coverReady ? (
-                                  <span className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-700">
-                                    COVER_READY
-                                  </span>
-                                ) : null}
-                                {typeof s.extractionQuality?.score === "number" ? (
-                                  <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
-                                    Q{Math.round(s.extractionQuality.score)} · {s.extractionQuality.band}
-                                  </span>
-                                ) : null}
-                                {s.automationExceptionCode ? (
-                                  <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
-                                    {s.automationExceptionCode}
-                                  </span>
-                                ) : null}
-                              </div>
-                              {s.automationReason ? <div className="mt-1 text-xs text-zinc-500">{s.automationReason}</div> : null}
-                              {s.automationRecommendedAction ? (
-                                <div className="mt-1 text-xs text-zinc-700">Recommended: {s.automationRecommendedAction}</div>
+                              {showColAssignmentTitle ? (
+                                <div className="mt-1 text-xs text-zinc-600" title={s.assignment?.title || ""}>
+                                  {s.assignment?.title || s.assignmentId || "No assignment linked"}
+                                </div>
                               ) : null}
                             </td>
 
-                            <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-700">
-                              <div>{safeDate(s.uploadedAt)}</div>
-                              <div className="mt-1 text-xs text-zinc-500">
-                                {s._count?.extractionRuns ?? 0} extraction run{(s._count?.extractionRuns ?? 0) === 1 ? "" : "s"} ·{" "}
-                                {s._count?.assessments ?? 0} assessment{(s._count?.assessments ?? 0) === 1 ? "" : "s"}
-                              </div>
-                            </td>
+                            {showColGrade ? (
+                              <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-800">
+                                <span className={cx("inline-flex rounded-full border px-2 py-1 text-xs font-semibold", gradeTone(gradeLabel))}>
+                                  {gradeLabel}
+                                </span>
+                              </td>
+                            ) : null}
 
-                            <td className="border-b border-zinc-100 px-4 py-3 align-top">
+                            {showColWorkflow ? (
+                              <td className="border-b border-zinc-100 px-4 py-3 align-top">
+                                {lane.key === "COMPLETED" ? (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <StatusPill>{s.status}</StatusPill>
+                                    <ActionPill tone="ok">Completed</ActionPill>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <StatusPill>{s.status}</StatusPill>
+                                      <ActionPill tone={a.tone}>{a.label}</ActionPill>
+                                      {s.extractionMode ? (
+                                        <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
+                                          {s.extractionMode}
+                                        </span>
+                                      ) : null}
+                                      {s.coverReady ? (
+                                        <span className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-700">
+                                          COVER_READY
+                                        </span>
+                                      ) : null}
+                                      {typeof s.extractionQuality?.score === "number" ? (
+                                        <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
+                                          Q{Math.round(s.extractionQuality.score)} · {s.extractionQuality.band}
+                                        </span>
+                                      ) : null}
+                                      {s.automationExceptionCode ? (
+                                        <span className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-700">
+                                          {s.automationExceptionCode}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    {s.automationReason ? <div className="mt-1 text-xs text-zinc-500">{s.automationReason}</div> : null}
+                                    {s.automationRecommendedAction ? (
+                                      <div className="mt-1 text-xs text-zinc-700">Recommended: {s.automationRecommendedAction}</div>
+                                    ) : null}
+                                  </>
+                                )}
+                              </td>
+                            ) : null}
+
+                            {showColUploaded ? (
+                              <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-700">
+                                <div>{safeDate(lane.key === "COMPLETED" ? (s.gradedAt || s.updatedAt || s.uploadedAt) : s.uploadedAt)}</div>
+                                <div className="mt-1 text-xs text-zinc-500">
+                                  {lane.key === "COMPLETED"
+                                    ? `Assessor: ${String((s as any)?.assessmentActor || "—")}`
+                                    : `${s._count?.extractionRuns ?? 0} extraction run${(s._count?.extractionRuns ?? 0) === 1 ? "" : "s"} · ${s._count?.assessments ?? 0} assessment${(s._count?.assessments ?? 0) === 1 ? "" : "s"}`}
+                                </div>
+                              </td>
+                            ) : null}
+
+                            <td className="sticky right-0 border-b border-zinc-100 bg-white px-4 py-3 align-top">
                               <div className="flex items-center justify-end gap-2">
                                 <Link
                                   href={`/submissions/${s.id}`}
@@ -231,6 +330,23 @@ export function SubmissionsTable({
                                 >
                                   Open record
                                 </Link>
+
+                                {lane.key === "AUTO_READY" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRunGradeSingle(s.id)}
+                                    disabled={batchBusy}
+                                    className={cx(
+                                      "inline-flex h-9 min-w-[96px] items-center justify-center rounded-lg border px-3 text-xs font-semibold",
+                                      batchBusy
+                                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                                        : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                                    )}
+                                    title="Run grading for this submission"
+                                  >
+                                    Run grading
+                                  </button>
+                                ) : null}
 
                                 {ready ? (
                                   <>

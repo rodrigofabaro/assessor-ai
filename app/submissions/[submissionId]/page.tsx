@@ -8,6 +8,7 @@ import { notifyToast } from "@/lib/ui/toast";
 import { summarizeFeedbackText } from "@/lib/grading/feedbackDocument";
 import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { buildMarkedPdfUrl } from "@/lib/submissions/markedPdfUrl";
+import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 
 type ExtractedPage = {
   id: string;
@@ -262,6 +263,11 @@ export default function SubmissionDetailPage() {
     feedbackDraft !== feedbackBaseline.text ||
     feedbackStudentName !== feedbackBaseline.studentName ||
     feedbackMarkedDate !== feedbackBaseline.date;
+  const studentFeedbackPreview = useMemo(() => sanitizeStudentFeedbackText(feedbackDraft), [feedbackDraft]);
+  const studentFeedbackChanged = useMemo(
+    () => studentFeedbackPreview.trim() !== String(feedbackDraft || "").trim(),
+    [studentFeedbackPreview, feedbackDraft]
+  );
   const changeChips = useMemo(() => {
     const out: string[] = [];
     if ((submission?.assessments?.length || 0) > 1) out.push(`Regraded ${Math.max(0, (submission?.assessments?.length || 1) - 1)}x`);
@@ -941,7 +947,7 @@ export default function SubmissionDetailPage() {
   }
 
   async function copyOverallFeedbackPack() {
-    const feedback = String(feedbackDraft || "").trim();
+    const feedback = String(studentFeedbackPreview || "").trim();
     if (!feedback) {
       notifyToast("error", "Nothing to copy for overall feedback.");
       return;
@@ -1852,7 +1858,9 @@ export default function SubmissionDetailPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => void (checklist.readyToUpload ? copyOverallFeedbackPack() : copyText("Feedback", feedbackDraft))}
+                  onClick={() =>
+                    void (checklist.readyToUpload ? copyOverallFeedbackPack() : copyText("Feedback", studentFeedbackPreview))
+                  }
                   className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
                 >
                   {checklist.readyToUpload ? "Copy overall feedback" : "Copy feedback"}
@@ -1941,7 +1949,19 @@ export default function SubmissionDetailPage() {
                 </a>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-600">Feedback editor</div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Feedback editor</div>
+                  <span
+                    className={cx(
+                      "inline-flex h-6 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-wide",
+                      studentFeedbackChanged
+                        ? "border-amber-200 bg-amber-50 text-amber-900"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    )}
+                  >
+                    {studentFeedbackChanged ? "Student-safe filter applied" : "Student-safe output"}
+                  </span>
+                </div>
                 <div className="grid gap-2 md:grid-cols-2">
                   <label className="text-xs text-zinc-700">
                     Student name
@@ -1968,6 +1988,12 @@ export default function SubmissionDetailPage() {
                   className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs text-zinc-900"
                   placeholder="Edit the feedback text shown in audit and marked PDF."
                 />
+                <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+                  <div className="text-[11px] font-semibold text-emerald-900">Student view preview</div>
+                  <div className="mt-1 whitespace-pre-wrap text-xs text-emerald-950">
+                    {studentFeedbackPreview || "No student-facing feedback."}
+                  </div>
+                </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
