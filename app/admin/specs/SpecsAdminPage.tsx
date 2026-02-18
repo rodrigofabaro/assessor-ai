@@ -44,7 +44,8 @@ export default function SpecsAdminPage() {
   const selectedLabel = selectedDoc?.title || "No document selected";
 
   return (
-    <div className="grid min-w-0 gap-4">
+    <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8">
+      <div className="grid min-w-0 gap-4">
       <input
         ref={inputRef}
         type="file"
@@ -67,17 +68,22 @@ export default function SpecsAdminPage() {
 
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
-              Specification Operations
-            </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Specification Library</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Specification Library</h1>
             <p className="mt-2 text-sm text-zinc-700">
               Upload, extract, and approve unit specifications used as grading reference truth.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => vm.refreshAll()}
+              disabled={!!vm.busy}
+              className={ui.btnSecondary + " disabled:cursor-not-allowed disabled:opacity-60"}
+            >
+              Refresh
+            </button>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
               {admin.uploading ? admin.uploadStatus : vm.busy ? `Processing: ${vm.busy}` : "Ready"}
             </span>
@@ -97,6 +103,32 @@ export default function SpecsAdminPage() {
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Selected specification</div>
             <div className="mt-1 truncate text-sm font-semibold text-zinc-900" title={selectedLabel}>{selectedLabel}</div>
           </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => admin.setTab("library")}
+            className={
+              "rounded-lg px-4 py-2 text-sm font-semibold transition " +
+              (admin.tab === "library"
+                ? "bg-sky-700 text-white"
+                : "text-zinc-700 hover:bg-zinc-100")
+            }
+          >
+            Library
+          </button>
+          <button
+            type="button"
+            onClick={() => admin.setTab("extract")}
+            className={
+              "rounded-lg px-4 py-2 text-sm font-semibold transition " +
+              (admin.tab === "extract"
+                ? "bg-sky-700 text-white"
+                : "text-zinc-700 hover:bg-zinc-100")
+            }
+          >
+            Extraction tools
+          </button>
         </div>
       </section>
 
@@ -175,33 +207,6 @@ export default function SpecsAdminPage() {
             Upload panel collapsed. Click &quot;Upload files&quot; to add specifications.
           </div>
         )}
-      </section>
-
-      <section className="inline-flex w-fit items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1 shadow-sm">
-        <button
-          type="button"
-          onClick={() => admin.setTab("library")}
-          className={
-            "rounded-lg px-4 py-2 text-sm font-semibold transition " +
-            (admin.tab === "library"
-              ? "bg-sky-700 text-white"
-              : "text-zinc-700 hover:bg-zinc-100")
-          }
-        >
-          Library
-        </button>
-        <button
-          type="button"
-          onClick={() => admin.setTab("extract")}
-          className={
-            "rounded-lg px-4 py-2 text-sm font-semibold transition " +
-            (admin.tab === "extract"
-              ? "bg-sky-700 text-white"
-              : "text-zinc-700 hover:bg-zinc-100")
-          }
-        >
-          Extraction tools
-        </button>
       </section>
 
       {admin.tab === "library" ? (
@@ -331,6 +336,7 @@ export default function SpecsAdminPage() {
           </section>
         </section>
       )}
+      </div>
     </div>
   );
 }

@@ -283,15 +283,6 @@ export default function LibraryView({
                   </div>
 
                   <div className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
-                    <span
-                      className={
-                        "inline-flex h-5 w-5 items-center justify-center rounded-md " +
-                        (active ? "bg-sky-700 text-white" : "bg-zinc-100")
-                      }
-                      aria-hidden="true"
-                    >
-                      🏷️
-                    </span>
                     <span className="truncate">
                       {issue ? `Issue: ${issue}` : "Issue: —"}
                     </span>
@@ -321,12 +312,6 @@ export default function LibraryView({
               </div>
 
               <div className="mt-1 flex items-center gap-2 text-sm text-zinc-700">
-                <span
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100"
-                  aria-hidden="true"
-                >
-                  🏷️
-                </span>
                 <span>
                   {selected
                     ? selectedIssueLabel
