@@ -448,6 +448,31 @@ export async function POST(
     });
   }
 
+  // Best-effort auto-grade when triage resolves all required links after extraction.
+  try {
+    const autoGradeEnabled = ["1", "true", "yes", "on"].includes(
+      String(process.env.SUBMISSION_AUTO_GRADE_ON_EXTRACT || "true").toLowerCase()
+    );
+    if (autoGradeEnabled) {
+      const shouldAutoGrade =
+        !!result?.studentId &&
+        !!result?.assignmentId &&
+        String(result?.status || "").toUpperCase() === "EXTRACTED";
+      if (shouldAutoGrade) {
+        const counts = await prisma.submission.findUnique({
+          where: { id: submissionId },
+          select: { _count: { select: { assessments: true } } },
+        });
+        if (Number(counts?._count?.assessments || 0) === 0) {
+          const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, _req.url);
+          await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("AUTO_GRADE_AFTER_TRIAGE_FAILED", e);
+  }
+
     return NextResponse.json(
       {
         submission: result,
