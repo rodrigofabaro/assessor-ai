@@ -176,6 +176,15 @@ export default function AdminSettingsPage() {
   const [appMsg, setAppMsg] = useState("");
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [faviconBusy, setFaviconBusy] = useState(false);
+  const [activeSectionHash, setActiveSectionHash] = useState("#ai-usage");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => setActiveSectionHash(window.location.hash || "#ai-usage");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -386,7 +395,7 @@ export default function AdminSettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap gap-2">
+        <nav aria-label="Settings sections" className="flex flex-wrap gap-2">
           <Link
             href="/admin/users"
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-700 px-3 text-xs font-semibold text-white hover:bg-slate-800"
@@ -395,23 +404,41 @@ export default function AdminSettingsPage() {
           </Link>
           <a
             href="#ai-usage"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+            aria-current={activeSectionHash === "#ai-usage" ? "location" : undefined}
+            className={
+              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              (activeSectionHash === "#ai-usage"
+                ? "border-slate-300 bg-slate-100 text-slate-900"
+                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+            }
           >
             AI Usage
           </a>
           <a
             href="#grading-defaults"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+            aria-current={activeSectionHash === "#grading-defaults" ? "location" : undefined}
+            className={
+              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              (activeSectionHash === "#grading-defaults"
+                ? "border-slate-300 bg-slate-100 text-slate-900"
+                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+            }
           >
             Grading
           </a>
           <a
             href="#app-settings"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+            aria-current={activeSectionHash === "#app-settings" ? "location" : undefined}
+            className={
+              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              (activeSectionHash === "#app-settings"
+                ? "border-slate-300 bg-slate-100 text-slate-900"
+                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+            }
           >
             App
           </a>
-        </div>
+        </nav>
       </section>
 
       <section id="ai-usage" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 scroll-mt-20">
