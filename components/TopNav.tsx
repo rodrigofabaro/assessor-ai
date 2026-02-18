@@ -22,7 +22,7 @@ const ADMIN_ITEMS: AdminItem[] = [
   { label: "Specs", href: "/admin/specs", accent: "cyan" },
   { label: "Students", href: "/admin/students", accent: "violet" },
   { label: "Users", href: "/admin/users", accent: "fuchsia" },
-];
+].sort((a, b) => a.label.localeCompare(b.label));
 
 function accentClasses(accent: string) {
   switch (accent) {
