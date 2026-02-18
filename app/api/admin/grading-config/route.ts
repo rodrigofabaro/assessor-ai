@@ -17,6 +17,7 @@ export async function PUT(req: Request) {
       strictness: body.strictness as any,
       useRubricIfAvailable: body.useRubricIfAvailable as any,
       maxFeedbackBullets: body.maxFeedbackBullets as any,
+      feedbackTemplate: typeof body.feedbackTemplate === "string" ? body.feedbackTemplate : undefined,
     });
     return NextResponse.json({ ok: true, config: saved });
   } catch (e) {

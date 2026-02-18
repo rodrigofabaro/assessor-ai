@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
+import { summarizeFeedbackText } from "@/lib/grading/feedbackDocument";
 
 type ExtractedPage = {
   id: string;
@@ -77,6 +78,7 @@ type GradingConfig = {
   strictness: "lenient" | "balanced" | "strict";
   useRubricIfAvailable: boolean;
   maxFeedbackBullets: number;
+  feedbackTemplate?: string;
 };
 
 type StudentSearchResult = {
@@ -181,8 +183,18 @@ export default function SubmissionDetailPage() {
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
   const [coverEditBusy, setCoverEditBusy] = useState(false);
+  const [coverSaveState, setCoverSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [pdfView, setPdfView] = useState<"original" | "marked">("original");
   const [gradingConfigOpen, setGradingConfigOpen] = useState(false);
+  const [runGradeWhenReady, setRunGradeWhenReady] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [pdfViewport, setPdfViewport] = useState<"compact" | "comfort" | "full">("comfort");
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
+  const [feedbackEditorBusy, setFeedbackEditorBusy] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState("");
+  const [feedbackStudentName, setFeedbackStudentName] = useState("");
+  const [feedbackAssessorName, setFeedbackAssessorName] = useState("");
+  const [feedbackMarkedDate, setFeedbackMarkedDate] = useState("");
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
   const [coverUnitCode, setCoverUnitCode] = useState("");
@@ -232,15 +244,47 @@ export default function SubmissionDetailPage() {
     if (!a.length) return null;
     return a[0];
   }, [submission]);
+  const previousAssessment = useMemo(() => {
+    const a = submission?.assessments ?? [];
+    return a.length > 1 ? a[1] : null;
+  }, [submission]);
+  const gradingHistory = useMemo(() => submission?.assessments ?? [], [submission]);
+  const selectedAssessment = useMemo(() => {
+    if (!selectedAssessmentId) return latestAssessment;
+    return gradingHistory.find((a) => a.id === selectedAssessmentId) || latestAssessment;
+  }, [selectedAssessmentId, gradingHistory, latestAssessment]);
+  const feedbackHistory = useMemo(
+    () =>
+      gradingHistory.map((a, idx) => ({
+        id: a.id,
+        index: idx,
+        grade: a.overallGrade || "—",
+        when: safeDate(a.createdAt),
+        summary: summarizeFeedbackText(String(a.feedbackText || ""), 150) || "No feedback text.",
+      })),
+    [gradingHistory]
+  );
+  const changeChips = useMemo(() => {
+    const out: string[] = [];
+    if ((submission?.assessments?.length || 0) > 1) out.push(`Regraded ${Math.max(0, (submission?.assessments?.length || 1) - 1)}x`);
+    const coverUpdatedAfterGrade =
+      !!latestAssessment?.createdAt &&
+      !!submission?.studentLinkedAt &&
+      new Date(submission.studentLinkedAt).getTime() > new Date(latestAssessment.createdAt).getTime();
+    if (coverUpdatedAfterGrade) out.push("Student link changed after last grade");
+    if (extractionMode === "COVER_ONLY") out.push("Cover-only mode");
+    if (coverSaveState === "saved") out.push("Cover metadata saved");
+    return out;
+  }, [submission, latestAssessment, extractionMode, coverSaveState]);
 
   const structuredGrading = useMemo(() => {
-    const rj: any = latestAssessment?.resultJson || {};
+    const rj: any = selectedAssessment?.resultJson || {};
     const v2 = rj?.structuredGradingV2;
     if (v2 && typeof v2 === "object") return v2;
     const fallback = rj?.response;
     if (fallback && typeof fallback === "object") return fallback;
     return null;
-  }, [latestAssessment]);
+  }, [selectedAssessment]);
 
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
@@ -283,10 +327,10 @@ export default function SubmissionDetailPage() {
   }, [submission, latestRun, latestAssessment]);
 
   const modalityCompliance = useMemo(() => {
-    const reqsRaw = Array.isArray(latestAssessment?.resultJson?.assessmentRequirements)
-      ? (latestAssessment?.resultJson?.assessmentRequirements as AssessmentRequirement[])
+    const reqsRaw = Array.isArray(selectedAssessment?.resultJson?.assessmentRequirements)
+      ? (selectedAssessment?.resultJson?.assessmentRequirements as AssessmentRequirement[])
       : [];
-    const evidence = (latestAssessment?.resultJson?.submissionAssessmentEvidence || {}) as Record<string, any>;
+    const evidence = (selectedAssessment?.resultJson?.submissionAssessmentEvidence || {}) as Record<string, any>;
 
     const found = {
       table: Boolean(evidence.hasTableWords) || Number(evidence.dataRowLikeCount || 0) >= 2,
@@ -345,7 +389,7 @@ export default function SubmissionDetailPage() {
       passCount: rows.filter((r) => r.ok).length,
       failCount: rows.filter((r) => !r.ok).length,
     };
-  }, [latestAssessment]);
+  }, [selectedAssessment]);
 
   /* =========================
      Data loading
@@ -455,11 +499,14 @@ export default function SubmissionDetailPage() {
     }
   }
 
-  async function saveCoverMetadata() {
+  async function saveCoverMetadata(options?: { silent?: boolean }) {
     if (!submissionId || !latestRun) return;
     setCoverEditBusy(true);
-    setErr("");
-    setMsg("");
+    setCoverSaveState("saving");
+    if (!options?.silent) {
+      setErr("");
+      setMsg("");
+    }
     try {
       const mkField = (value: string) => {
         const v = String(value || "").trim();
@@ -481,12 +528,19 @@ export default function SubmissionDetailPage() {
       });
       await jsonFetch(`/api/submissions/${submissionId}/triage`, { method: "POST" }).catch(() => null);
       await refresh();
-      setMsg("Cover metadata updated.");
-      notifyToast("success", "Cover metadata saved.");
+      setCoverSaveState("saved");
+      window.setTimeout(() => setCoverSaveState("idle"), 1200);
+      if (!options?.silent) {
+        setMsg("Cover metadata updated.");
+        notifyToast("success", "Cover metadata saved.");
+      }
     } catch (e: any) {
       const message = e?.message || "Failed to save cover metadata.";
-      setErr(message);
-      notifyToast("error", message);
+      setCoverSaveState("idle");
+      if (!options?.silent) {
+        setErr(message);
+        notifyToast("error", message);
+      }
     } finally {
       setCoverEditBusy(false);
     }
@@ -587,8 +641,10 @@ export default function SubmissionDetailPage() {
   }
 
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
-  const markedPdfUrl = submissionId ? `/api/submissions/${submissionId}/marked-file?t=${Date.now()}` : "";
-  const hasMarkedPdf = !!latestAssessment?.annotatedPdfPath;
+  const markedPdfUrl = submissionId
+    ? `/api/submissions/${submissionId}/marked-file?assessmentId=${encodeURIComponent(selectedAssessmentId || "")}&t=${Date.now()}`
+    : "";
+  const hasMarkedPdf = !!selectedAssessment?.annotatedPdfPath;
   const activePdfUrl = pdfView === "marked" && hasMarkedPdf ? markedPdfUrl : pdfUrl;
   const toggleStudentPanel = () => {
     const panel = studentPanelRef.current;
@@ -635,12 +691,127 @@ export default function SubmissionDetailPage() {
         : !(latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR")
           ? "Run extraction before grading."
           : "";
+  const pdfViewportClass =
+    pdfViewport === "compact"
+      ? "h-[52vh] min-h-[420px] md:h-[62vh] xl:h-[68vh]"
+      : pdfViewport === "full"
+        ? "h-[72vh] min-h-[620px] md:h-[82vh] xl:h-[90vh]"
+        : "h-[62vh] min-h-[540px] md:h-[72vh] xl:h-[82vh]";
 
   useEffect(() => {
     if (pdfView === "marked" && !hasMarkedPdf) {
       setPdfView("original");
     }
   }, [pdfView, hasMarkedPdf]);
+
+  useEffect(() => {
+    if (!gradingHistory.length) {
+      if (selectedAssessmentId) setSelectedAssessmentId("");
+      return;
+    }
+    if (!selectedAssessmentId || !gradingHistory.some((a) => a.id === selectedAssessmentId)) {
+      setSelectedAssessmentId(gradingHistory[0].id);
+    }
+  }, [gradingHistory, selectedAssessmentId]);
+
+  useEffect(() => {
+    const a = selectedAssessment;
+    if (!a) {
+      setFeedbackDraft("");
+      setFeedbackStudentName("");
+      setFeedbackAssessorName("");
+      setFeedbackMarkedDate("");
+      return;
+    }
+    const rj: any = a.resultJson || {};
+    const override = rj?.feedbackOverride || {};
+    const studentName = String(override?.studentName || rj?.studentFirstNameUsed || submission?.student?.fullName || coverStudentName || "").trim();
+    const assessorName = String(override?.assessorName || rj?.gradedBy || "").trim();
+    const dateCandidate = String(override?.markedDate || "").trim();
+    const iso = dateCandidate || String(a.createdAt || "");
+    const d = new Date(iso);
+    const dateInput = Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+    setFeedbackDraft(String(a.feedbackText || ""));
+    setFeedbackStudentName(studentName);
+    setFeedbackAssessorName(assessorName);
+    setFeedbackMarkedDate(dateInput);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAssessment?.id]);
+
+  async function saveAssessmentFeedback() {
+    if (!submissionId || !selectedAssessment?.id) return;
+    if (!feedbackDraft.trim()) {
+      setErr("Feedback text cannot be empty.");
+      return;
+    }
+    setFeedbackEditorBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await jsonFetch(`/api/submissions/${submissionId}/assessments/${selectedAssessment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedbackText: feedbackDraft,
+          studentName: feedbackStudentName,
+          assessorName: feedbackAssessorName,
+          markedDate: feedbackMarkedDate || null,
+        }),
+      });
+      await refresh();
+      setMsg("Audit feedback updated and marked PDF regenerated.");
+      notifyToast("success", "Feedback applied to marked PDF.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to update feedback.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setFeedbackEditorBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!latestRun) return;
+    if (!coverEditorRef.current?.open) return;
+    const t = setTimeout(() => {
+      void saveCoverMetadata({ silent: true });
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coverStudentName, coverStudentId, coverUnitCode, coverAssignmentCode, coverSubmissionDate, latestRun?.id]);
+
+  useEffect(() => {
+    if (!runGradeWhenReady) return;
+    if (!canRunGrading) return;
+    void runGrading();
+    setRunGradeWhenReady(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runGradeWhenReady, canRunGrading]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = String(target?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      const k = e.key.toLowerCase();
+      if (k === "?") {
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+      } else if (k === "e") {
+        e.preventDefault();
+        void runExtraction();
+      } else if (k === "g") {
+        e.preventDefault();
+        if (canRunGrading) void runGrading();
+      } else if (k === "s") {
+        e.preventDefault();
+        toggleStudentPanel();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canRunGrading]);
 
   return (
     <main className="py-2">
@@ -780,14 +951,49 @@ export default function SubmissionDetailPage() {
           </div>
         </div>
       ) : null}
+      {shortcutsOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Keyboard shortcuts</div>
+                <div className="mt-1 text-sm text-zinc-700">Quick actions for this submission page.</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShortcutsOpen(false)}
+                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
+              <div><span className="font-semibold text-zinc-900">?</span> Toggle this shortcuts panel</div>
+              <div><span className="font-semibold text-zinc-900">E</span> Run extraction</div>
+              <div><span className="font-semibold text-zinc-900">G</span> Run grading (when ready)</div>
+              <div><span className="font-semibold text-zinc-900">S</span> Toggle student panel</div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="mb-3 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => scrollToPanel(workflowPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Checklist</button>
-        <button type="button" onClick={() => scrollToPanel(studentPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Student</button>
-        <button type="button" onClick={() => scrollToPanel(assignmentPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Assignment</button>
-        <button type="button" onClick={() => scrollToPanel(extractionPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Extraction</button>
-        <button type="button" onClick={() => scrollToPanel(gradingPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Grading</button>
-        <button type="button" onClick={() => scrollToPanel(outputsPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Outputs</button>
+        {[
+          { key: "checklist", label: "Checklist", ok: checklist.readyToUpload, onClick: () => scrollToPanel(workflowPanelRef.current) },
+          { key: "student", label: "Student", ok: checklist.studentLinked, onClick: () => scrollToPanel(studentPanelRef.current) },
+          { key: "assignment", label: "Assignment", ok: checklist.assignmentLinked, onClick: () => scrollToPanel(assignmentPanelRef.current) },
+          { key: "extraction", label: "Extraction", ok: checklist.extractionComplete, onClick: () => scrollToPanel(extractionPanelRef.current) },
+          { key: "grading", label: "Grading", ok: checklist.gradeGenerated, onClick: () => scrollToPanel(gradingPanelRef.current) },
+          { key: "outputs", label: "Outputs", ok: checklist.feedbackGenerated && checklist.markedPdfGenerated, onClick: () => scrollToPanel(outputsPanelRef.current) },
+        ].map((nav) => (
+          <button key={nav.key} type="button" onClick={nav.onClick} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+            <span className={cx("h-1.5 w-1.5 rounded-full", nav.ok ? "bg-emerald-500" : "bg-amber-500")} />
+            {nav.label}
+          </button>
+        ))}
+        <button type="button" onClick={() => setShortcutsOpen(true)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+          Shortcuts (?)
+        </button>
       </section>
 
       <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
@@ -882,6 +1088,15 @@ export default function SubmissionDetailPage() {
           ))}
         </div>
       </section>
+      {changeChips.length ? (
+        <section className="mb-3 flex flex-wrap items-center gap-1.5">
+          {changeChips.map((chip) => (
+            <span key={chip} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-semibold text-zinc-700">
+              {chip}
+            </span>
+          ))}
+        </section>
+      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-3">
         {/* RIGHT: PDF */}
@@ -920,12 +1135,26 @@ export default function SubmissionDetailPage() {
                   </button>
                 </div>
               </div>
-              <div className="text-xs text-zinc-500">
-                {pdfView === "marked" && hasMarkedPdf ? "Marked PDF" : "Source PDF"}
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-zinc-500">
+                  Viewport
+                  <select
+                    value={pdfViewport}
+                    onChange={(e) => setPdfViewport(e.target.value as any)}
+                    className="ml-1 rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs"
+                  >
+                    <option value="compact">Compact</option>
+                    <option value="comfort">Comfort</option>
+                    <option value="full">Full</option>
+                  </select>
+                </label>
+                <div className="text-xs text-zinc-500">
+                  {pdfView === "marked" && hasMarkedPdf ? "Marked PDF" : "Source PDF"}
+                </div>
               </div>
             </div>
 
-            <div className="h-[62vh] min-h-[540px] w-full bg-zinc-50 md:h-[72vh] xl:h-[82vh]">
+            <div className={`${pdfViewportClass} w-full bg-zinc-50`}>
               {/* PDF render (works for scanned + digital PDFs) */}
               {submissionId ? (
                 <iframe
@@ -942,6 +1171,54 @@ export default function SubmissionDetailPage() {
 
         {/* LEFT: Metadata + extraction */}
         <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Quick actions</div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={runExtraction}
+                disabled={busy}
+                className={cx(
+                  "rounded-md px-2.5 py-1 text-xs font-semibold",
+                  busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-zinc-900 text-white hover:bg-zinc-800"
+                )}
+              >
+                Run extraction
+              </button>
+              <button
+                type="button"
+                onClick={runGrading}
+                disabled={!canRunGrading}
+                className={cx(
+                  "rounded-md px-2.5 py-1 text-xs font-semibold",
+                  canRunGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                )}
+              >
+                Run grading
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveCoverMetadata()}
+                disabled={coverEditBusy || !latestRun}
+                className={cx(
+                  "rounded-md px-2.5 py-1 text-xs font-semibold",
+                  coverEditBusy || !latestRun ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-emerald-700 text-white hover:bg-emerald-800"
+                )}
+              >
+                Save cover
+              </button>
+            </div>
+            <label className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-700">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-zinc-300"
+                checked={runGradeWhenReady}
+                onChange={(e) => setRunGradeWhenReady(e.target.checked)}
+              />
+              Run grading when ready
+            </label>
+          </div>
+
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div ref={workflowPanelRef} />
             <div className="flex items-start justify-between gap-3">
@@ -1253,10 +1530,10 @@ export default function SubmissionDetailPage() {
                           {Number(coverMeta?.confidence || 0).toFixed(2)}
                         </div>
                       </div>
-                      <div className="mt-2">
+                  <div className="mt-2">
                         <button
                           type="button"
-                          onClick={saveCoverMetadata}
+                          onClick={() => void saveCoverMetadata()}
                           disabled={coverEditBusy}
                           className={cx(
                             "inline-flex h-8 items-center rounded-lg px-3 text-xs font-semibold",
@@ -1267,6 +1544,13 @@ export default function SubmissionDetailPage() {
                         >
                           {coverEditBusy ? "Saving..." : "Save cover metadata"}
                         </button>
+                        <span className="ml-2 text-[11px] text-emerald-900/80">
+                          {coverSaveState === "saving"
+                            ? "Autosaving…"
+                            : coverSaveState === "saved"
+                              ? "Saved"
+                              : "Autosave idle"}
+                        </span>
                       </div>
                       </div>
                     </details>
@@ -1288,6 +1572,28 @@ export default function SubmissionDetailPage() {
                     <div className="ml-auto text-xs text-zinc-500">Started: {safeDate(latestRun.startedAt)}</div>
                   </div>
 
+                  {pagesSorted.length ? (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {pagesSorted.map((p, idx) => (
+                        <button
+                          key={`thumb-${p.id}`}
+                          type="button"
+                          onClick={() => setActivePage(idx)}
+                          className={cx(
+                            "min-w-[120px] rounded-lg border px-2 py-1.5 text-left",
+                            idx === activePage ? "border-sky-300 bg-sky-50" : "border-zinc-200 bg-white hover:bg-zinc-50"
+                          )}
+                        >
+                          <div className="text-[11px] font-semibold text-zinc-800">Page {p.pageNumber}</div>
+                          <div className="text-[10px] text-zinc-500">Conf {Math.round((p.confidence || 0) * 100)}%</div>
+                          <div className="mt-1 line-clamp-2 text-[10px] text-zinc-600">
+                            {String(p.text || "").trim() || "(No text preview)"}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
                   <div className="max-h-[42vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
                     <div className="whitespace-pre-wrap font-mono text-xs text-zinc-800">
                       {active?.text?.trim() ? active.text : "(No meaningful text on this page yet)"}
@@ -1305,13 +1611,34 @@ export default function SubmissionDetailPage() {
           <details ref={outputsPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Audit & outputs</summary>
             <div className="mt-3 grid gap-2 text-sm">
+              {gradingHistory.length ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+                  <span className="text-xs font-semibold text-zinc-700">Assessment run</span>
+                  <select
+                    value={selectedAssessmentId}
+                    onChange={(e) => setSelectedAssessmentId(e.target.value)}
+                    className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs"
+                  >
+                    {gradingHistory.map((g, idx) => (
+                      <option key={g.id} value={g.id}>
+                        {idx === 0 ? "Latest" : `Run ${gradingHistory.length - idx}`} · {safeDate(g.createdAt)} · {g.overallGrade || "—"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              {previousAssessment && selectedAssessment?.id === latestAssessment?.id ? (
+                <div className="text-[11px] text-zinc-500">
+                  Previous run: {previousAssessment.overallGrade || "—"} at {safeDate(previousAssessment.createdAt)}
+                </div>
+              ) : null}
               <div className="flex items-center justify-between">
-                <span className="text-zinc-700">Latest grade</span>
-                <span className="font-semibold text-zinc-900">{latestAssessment?.overallGrade || "—"}</span>
+                <span className="text-zinc-700">Selected grade</span>
+                <span className="font-semibold text-zinc-900">{selectedAssessment?.overallGrade || "—"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Graded by</span>
-                <span className="font-semibold text-zinc-900">{String(latestAssessment?.resultJson?.gradedBy || "—")}</span>
+                <span className="font-semibold text-zinc-900">{String(selectedAssessment?.resultJson?.gradedBy || "—")}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <a
@@ -1328,7 +1655,7 @@ export default function SubmissionDetailPage() {
                   rel="noreferrer"
                   className={cx(
                     "rounded-lg border px-3 py-1.5 text-xs font-semibold",
-                    latestAssessment?.annotatedPdfPath
+                    selectedAssessment?.annotatedPdfPath
                       ? "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
                       : "pointer-events-none border-zinc-200 bg-zinc-100 text-zinc-400"
                   )}
@@ -1336,9 +1663,79 @@ export default function SubmissionDetailPage() {
                   Marked PDF
                 </a>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
-                {latestAssessment?.feedbackText || "No feedback generated yet."}
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-600">Feedback editor</div>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <label className="text-xs text-zinc-700">
+                    Student name
+                    <input
+                      value={feedbackStudentName}
+                      onChange={(e) => setFeedbackStudentName(e.target.value)}
+                      className="mt-1 h-8 w-full rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                    />
+                  </label>
+                  <label className="text-xs text-zinc-700">
+                    Assessor
+                    <input
+                      value={feedbackAssessorName}
+                      onChange={(e) => setFeedbackAssessorName(e.target.value)}
+                      className="mt-1 h-8 w-full rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                    />
+                  </label>
+                  <label className="text-xs text-zinc-700">
+                    Date
+                    <input
+                      type="date"
+                      value={feedbackMarkedDate}
+                      onChange={(e) => setFeedbackMarkedDate(e.target.value)}
+                      className="mt-1 h-8 w-full rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                    />
+                  </label>
+                </div>
+                <textarea
+                  value={feedbackDraft}
+                  onChange={(e) => setFeedbackDraft(e.target.value)}
+                  rows={10}
+                  className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs text-zinc-900"
+                  placeholder="Edit the feedback text shown in audit and marked PDF."
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={saveAssessmentFeedback}
+                    disabled={!selectedAssessment?.id || feedbackEditorBusy}
+                    className={cx(
+                      "rounded-lg px-3 py-1.5 text-xs font-semibold",
+                      !selectedAssessment?.id || feedbackEditorBusy
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                        : "bg-zinc-900 text-white hover:bg-zinc-800"
+                    )}
+                  >
+                    {feedbackEditorBusy ? "Applying…" : "Apply to marked version"}
+                  </button>
+                  <span className="text-[11px] text-zinc-500">
+                    Saves audit output and regenerates marked PDF for this run.
+                  </span>
+                </div>
               </div>
+
+              {feedbackHistory.length ? (
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Feedback Summary History ({feedbackHistory.length})
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {feedbackHistory.map((row) => (
+                      <div key={`fb-${row.id}`} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                        <div className="text-[11px] font-semibold text-zinc-800">
+                          {row.index === 0 ? "Latest" : `Run ${feedbackHistory.length - row.index}`} · {row.grade} · {row.when}
+                        </div>
+                        <div className="mt-1 text-xs text-zinc-700">{row.summary}</div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
 
               {structuredGrading ? (
                 <details className="rounded-xl border border-zinc-200 bg-white p-3">

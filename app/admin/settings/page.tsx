@@ -89,6 +89,7 @@ type GradingConfigPayload = {
   strictness: "lenient" | "balanced" | "strict";
   useRubricIfAvailable: boolean;
   maxFeedbackBullets: number;
+  feedbackTemplate: string;
 };
 
 type AppUser = {
@@ -633,6 +634,18 @@ export default function AdminSettingsPage() {
               />
               Use rubric when attached to brief
             </label>
+            <label className="md:col-span-2 text-sm text-zinc-700">
+              Feedback template
+              <textarea
+                value={gradingCfg.feedbackTemplate || ""}
+                onChange={(e) => setGradingCfg((v) => (v ? { ...v, feedbackTemplate: e.target.value } : v))}
+                rows={9}
+                className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+              />
+              <div className="mt-1 text-xs text-zinc-500">
+                Placeholders: {"{studentFirstName}"}, {"{feedbackSummary}"}, {"{feedbackBullets}"}, {"{overallGrade}"}, {"{assessorName}"}, {"{date}"}.
+              </div>
+            </label>
             <div className="md:col-span-2">
               <button
                 onClick={saveGradingConfig}
@@ -655,6 +668,7 @@ export default function AdminSettingsPage() {
           <li>Tutor-facing tone and strictness defaults on submission grading runs.</li>
           <li>Whether rubric hints are included when a rubric is attached to the locked brief.</li>
           <li>Maximum number of feedback bullets saved into audit output and marked PDF overlay.</li>
+          <li>Feedback template used to build feedback text and assessor/date signature blocks.</li>
         </ul>
       </section>
       </>

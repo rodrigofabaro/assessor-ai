@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { getDefaultFeedbackTemplate } from "@/lib/grading/feedbackDocument";
 
 const FILE_PATH = path.join(process.cwd(), ".grading-config.json");
 
@@ -13,6 +14,7 @@ export type GradingConfig = {
   strictness: GradingStrictness;
   useRubricIfAvailable: boolean;
   maxFeedbackBullets: number;
+  feedbackTemplate: string;
   updatedAt: string;
 };
 
@@ -24,6 +26,7 @@ export function defaultGradingConfig(): GradingConfig {
     strictness: "balanced",
     useRubricIfAvailable: true,
     maxFeedbackBullets: 6,
+    feedbackTemplate: getDefaultFeedbackTemplate(),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -51,6 +54,11 @@ function normalizeModel(v: unknown): string {
   return model || readOpenAiModel().model || "gpt-4.1-mini";
 }
 
+function normalizeTemplate(v: unknown): string {
+  const value = String(v || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  return value || getDefaultFeedbackTemplate();
+}
+
 function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
   const base = defaultGradingConfig();
   return {
@@ -62,6 +70,7 @@ function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
         ? input.useRubricIfAvailable
         : base.useRubricIfAvailable,
     maxFeedbackBullets: normalizeBullets(input.maxFeedbackBullets ?? base.maxFeedbackBullets),
+    feedbackTemplate: normalizeTemplate(input.feedbackTemplate ?? base.feedbackTemplate),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -82,4 +91,3 @@ export function writeGradingConfig(next: Partial<GradingConfig>) {
   fs.writeFileSync(FILE_PATH, JSON.stringify(merged, null, 2), "utf8");
   return merged;
 }
-

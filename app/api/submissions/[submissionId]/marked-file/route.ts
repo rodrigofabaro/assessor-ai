@@ -6,15 +6,22 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const { submissionId } = await ctx.params;
-  const latest = await prisma.assessment.findFirst({
-    where: { submissionId },
-    orderBy: { createdAt: "desc" },
-    select: { annotatedPdfPath: true },
-  });
+  const url = new URL(req.url);
+  const assessmentId = String(url.searchParams.get("assessmentId") || "").trim();
+  const latest = assessmentId
+    ? await prisma.assessment.findFirst({
+        where: { id: assessmentId, submissionId },
+        select: { annotatedPdfPath: true },
+      })
+    : await prisma.assessment.findFirst({
+        where: { submissionId },
+        orderBy: { createdAt: "desc" },
+        select: { annotatedPdfPath: true },
+      });
   const rel = String(latest?.annotatedPdfPath || "").trim();
   if (!rel) return NextResponse.json({ error: "No marked PDF generated yet." }, { status: 404 });
 
@@ -32,4 +39,3 @@ export async function GET(
     },
   });
 }
-

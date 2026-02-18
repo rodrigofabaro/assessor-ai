@@ -8,6 +8,9 @@ export type MarkedPdfPayload = {
   feedbackBullets: string[];
   tone: string;
   strictness: string;
+  studentName?: string;
+  assessorName?: string;
+  markedDate?: string;
 };
 
 export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPayload) {
@@ -23,7 +26,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   const boxW = Math.min(380, width - margin * 2);
   const lineH = 14;
   const titleH = 20;
-  const metaH = 16;
+  const metaH = 28;
   const bulletCount = Math.max(1, Math.min(8, payload.feedbackBullets.length || 1));
   const boxH = titleH + metaH + bulletCount * lineH + 18;
   const x = width - boxW - margin;
@@ -56,9 +59,22 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     color: rgb(0.25, 0.25, 0.25),
   });
 
+  const studentLabel = String(payload.studentName || "Student").trim();
+  const assessorLabel = String(payload.assessorName || "Assessor").trim();
+  const dateLabel = String(payload.markedDate || new Date().toLocaleDateString("en-GB")).trim();
+  first.drawText(`Student: ${studentLabel}  |  Assessor: ${assessorLabel}  |  Date: ${dateLabel}`, {
+    x: x + 10,
+    y: y + boxH - 42,
+    size: 8,
+    font,
+    color: rgb(0.25, 0.25, 0.25),
+    maxWidth: boxW - 20,
+    lineHeight: 8.8,
+  });
+
   const bullets = payload.feedbackBullets.slice(0, 8);
   for (let i = 0; i < bullets.length; i += 1) {
-    const by = y + boxH - 49 - i * lineH;
+    const by = y + boxH - 61 - i * lineH;
     first.drawRectangle({
       x: x + 10,
       y: by - 1,

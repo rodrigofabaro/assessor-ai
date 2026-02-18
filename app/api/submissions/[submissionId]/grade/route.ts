@@ -9,6 +9,7 @@ import { validateGradeDecision } from "@/lib/grading/decisionValidation";
 import { buildStructuredGradingV2 } from "@/lib/grading/assessmentResult";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/grading/feedbackPersonalization";
+import { renderFeedbackTemplate } from "@/lib/grading/feedbackDocument";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
@@ -254,6 +255,12 @@ function buildPageSampleContext(pages: Array<{ pageNumber: number; text: string 
 
   if (!selected.length) return "(No page samples available.)";
   return selected.map((p) => `Page ${p.pageNumber}\n${p.text}`).join("\n\n---\n\n");
+}
+
+function toUkDate(iso?: string | Date | null) {
+  const d = iso ? new Date(iso) : new Date();
+  if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-GB");
+  return d.toLocaleDateString("en-GB");
 }
 
 export async function POST(
@@ -652,7 +659,16 @@ export async function POST(
       startedAtIso: gradingStartedAt.toISOString(),
       completedAtIso,
     });
-    const feedbackText = [feedbackSummary, ...feedbackBullets.map((b: string) => `- ${b}`)].filter(Boolean).join("\n");
+    const feedbackDate = toUkDate(completedAtIso);
+    const feedbackText = renderFeedbackTemplate({
+      template: cfg.feedbackTemplate,
+      studentFirstName: studentFirstName || "Student",
+      feedbackSummary,
+      feedbackBullets: feedbackBullets.length ? feedbackBullets : ["Feedback generated."],
+      overallGrade,
+      assessorName: actor,
+      markedDate: feedbackDate,
+    });
 
     const marked = await createMarkedPdf(submission.storagePath, {
       submissionId: submission.id,
@@ -660,6 +676,9 @@ export async function POST(
       feedbackBullets: feedbackBullets.length ? feedbackBullets : [feedbackSummary || "Feedback generated."],
       tone,
       strictness,
+      studentName: studentFirstName || submission?.student?.fullName || "Student",
+      assessorName: actor,
+      markedDate: feedbackDate,
     });
 
     const assessment = await prisma.assessment.create({
@@ -688,6 +707,8 @@ export async function POST(
           extractionMode: extractionMode || "UNKNOWN",
           coverReady,
           studentFirstNameUsed: studentFirstName || null,
+          feedbackTemplateUsed: cfg.feedbackTemplate,
+          feedbackRenderedDate: feedbackDate,
           modalityEvidenceSource,
           assessmentRequirements,
           submissionAssessmentEvidence,
