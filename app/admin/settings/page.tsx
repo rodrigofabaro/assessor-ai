@@ -720,6 +720,43 @@ export default function AdminSettingsPage() {
                   />
                 </label>
               </div>
+              <div className="mt-3 rounded-lg border border-zinc-200 bg-white p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tone preview</div>
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
+                  {[
+                    {
+                      tone: "supportive",
+                      lines: [
+                        "P2 (NOT_ACHIEVED): Add clearer evidence to secure this criterion.",
+                        "M1 (UNCLEAR): Clarify this section to strengthen evidence.",
+                      ],
+                    },
+                    {
+                      tone: "professional",
+                      lines: [
+                        "P2 (NOT_ACHIEVED): More evidence is required.",
+                        "M1 (UNCLEAR): Evidence needs clarification.",
+                      ],
+                    },
+                    {
+                      tone: "strict",
+                      lines: [
+                        "P2 (NOT_ACHIEVED): Insufficient evidence; provide explicit criterion evidence.",
+                        "M1 (UNCLEAR): Evidence unclear; tighten technical clarity.",
+                      ],
+                    },
+                  ].map((ex) => (
+                    <div key={ex.tone} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
+                      <div className="font-semibold uppercase tracking-wide text-zinc-600">{ex.tone}</div>
+                      <ul className="mt-1 list-disc pl-4">
+                        {ex.lines.map((l, i) => (
+                          <li key={`${ex.tone}-${i}`}>{l}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="md:col-span-2">
               <button

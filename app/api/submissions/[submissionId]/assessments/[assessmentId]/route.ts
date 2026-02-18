@@ -78,6 +78,14 @@ export async function PATCH(
         resultJson: {
           ...resultJson,
           gradedBy: actor,
+          pageNotesGenerated: pageNotes,
+          pageNotesConfigUsed: {
+            enabled: gradingCfg.pageNotesEnabled,
+            tone: gradingCfg.pageNotesTone,
+            maxPages: gradingCfg.pageNotesMaxPages,
+            maxLinesPerPage: gradingCfg.pageNotesMaxLinesPerPage,
+            includeCriterionCode: gradingCfg.pageNotesIncludeCriterionCode,
+          },
           feedbackOverride: {
             edited: true,
             editedAt: new Date().toISOString(),

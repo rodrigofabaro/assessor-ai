@@ -203,6 +203,7 @@ export default function SubmissionDetailPage() {
   const [feedbackBaseline, setFeedbackBaseline] = useState({ text: "", studentName: "", date: "" });
   const [activeAuditActorName, setActiveAuditActorName] = useState("system");
   const [lastActionNote, setLastActionNote] = useState("");
+  const [pdfJumpPage, setPdfJumpPage] = useState<number | null>(null);
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
   const [coverUnitCode, setCoverUnitCode] = useState("");
@@ -307,6 +308,36 @@ export default function SubmissionDetailPage() {
     const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
     return buildPageNotesFromCriterionChecks(rows, { maxPages: 20, maxLinesPerPage: 8 });
   }, [structuredGrading]);
+  const notePages = useMemo(() => pageFeedbackMap.map((p) => p.page).filter((n) => Number.isInteger(n) && n > 0), [pageFeedbackMap]);
+  const selectedAssessmentDiff = useMemo(() => {
+    const idx = gradingHistory.findIndex((a) => a.id === selectedAssessment?.id);
+    if (idx < 0 || idx >= gradingHistory.length - 1) return null;
+    const older = gradingHistory[idx + 1];
+    const newer = selectedAssessment;
+    const diff: string[] = [];
+    if (String(newer?.overallGrade || "") !== String(older?.overallGrade || "")) {
+      diff.push(`Grade changed: ${older?.overallGrade || "—"} -> ${newer?.overallGrade || "—"}`);
+    }
+    if (String(newer?.feedbackText || "").trim() !== String(older?.feedbackText || "").trim()) {
+      diff.push("Feedback text changed");
+    }
+    const newerNotes = buildPageNotesFromCriterionChecks(
+      Array.isArray((newer as any)?.resultJson?.response?.criterionChecks)
+        ? (newer as any).resultJson.response.criterionChecks
+        : [],
+      { maxPages: 20, maxLinesPerPage: 8 }
+    );
+    const olderNotes = buildPageNotesFromCriterionChecks(
+      Array.isArray((older as any)?.resultJson?.response?.criterionChecks)
+        ? (older as any).resultJson.response.criterionChecks
+        : [],
+      { maxPages: 20, maxLinesPerPage: 8 }
+    );
+    if (JSON.stringify(newerNotes) !== JSON.stringify(olderNotes)) {
+      diff.push("Page notes changed");
+    }
+    return diff.length ? diff : null;
+  }, [gradingHistory, selectedAssessment]);
 
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
@@ -675,7 +706,8 @@ export default function SubmissionDetailPage() {
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
   const markedPdfUrl = submissionId ? buildMarkedPdfUrl(submissionId, selectedAssessmentId, Date.now()) : "";
   const hasMarkedPdf = !!selectedAssessment?.annotatedPdfPath;
-  const activePdfUrl = pdfView === "marked" && hasMarkedPdf ? markedPdfUrl : pdfUrl;
+  const activePdfBaseUrl = pdfView === "marked" && hasMarkedPdf ? markedPdfUrl : pdfUrl;
+  const activePdfUrl = `${activePdfBaseUrl}${pdfJumpPage ? `#page=${pdfJumpPage}` : ""}`;
   const toggleStudentPanel = () => {
     const panel = studentPanelRef.current;
     if (!panel) return;
@@ -866,6 +898,41 @@ export default function SubmissionDetailPage() {
 
   async function rebuildMarkedPdf() {
     await saveAssessmentFeedback();
+  }
+
+  async function regenerateMarkedFromCurrentRun() {
+    if (!submissionId || !selectedAssessment?.id) return;
+    const rj: any = selectedAssessment.resultJson || {};
+    const override = rj?.feedbackOverride || {};
+    const currentFeedback = String(selectedAssessment.feedbackText || "").trim();
+    if (!currentFeedback) {
+      notifyToast("error", "No feedback text available to regenerate marked PDF.");
+      return;
+    }
+    setFeedbackEditorBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await jsonFetch(`/api/submissions/${submissionId}/assessments/${selectedAssessment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedbackText: currentFeedback,
+          studentName: String(override?.studentName || feedbackStudentName || "").trim() || "Student",
+          markedDate: String(override?.markedDate || feedbackMarkedDate || "").trim() || null,
+        }),
+      });
+      await refresh();
+      setMsg("Marked PDF regenerated with current note settings.");
+      notifyToast("success", "Marked PDF regenerated.");
+      setLastActionNote(`Marked PDF regenerated at ${new Date().toLocaleString()} by ${activeAuditActorName}`);
+    } catch (e: any) {
+      const message = e?.message || "Failed to regenerate marked PDF.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setFeedbackEditorBusy(false);
+    }
   }
 
   async function copyText(label: string, text: string) {
@@ -1266,6 +1333,26 @@ export default function SubmissionDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {notePages.length ? (
+                  <div className="hidden items-center gap-1 md:flex">
+                    <span className="text-[11px] text-zinc-500">Notes:</span>
+                    {notePages.slice(0, 8).map((p) => (
+                      <button
+                        key={`np-${p}`}
+                        type="button"
+                        onClick={() => setPdfJumpPage(p)}
+                        className={cx(
+                          "inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold",
+                          pdfJumpPage === p
+                            ? "border-sky-300 bg-sky-50 text-sky-900"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                        )}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <label className="text-xs text-zinc-500">
                   Viewport
                   <select
@@ -1775,6 +1862,19 @@ export default function SubmissionDetailPage() {
                 >
                   Copy criterion decisions
                 </button>
+                <button
+                  type="button"
+                  onClick={() => void regenerateMarkedFromCurrentRun()}
+                  disabled={!selectedAssessment?.id || feedbackEditorBusy}
+                  className={cx(
+                    "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+                    !selectedAssessment?.id || feedbackEditorBusy
+                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  )}
+                >
+                  Regenerate with current settings
+                </button>
               </div>
               {previousAssessment && selectedAssessment?.id === latestAssessment?.id ? (
                 <div className="text-[11px] text-zinc-500">
@@ -1782,6 +1882,16 @@ export default function SubmissionDetailPage() {
                 </div>
               ) : null}
               {lastActionNote ? <div className="text-[11px] text-zinc-500">{lastActionNote}</div> : null}
+              {selectedAssessmentDiff?.length ? (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                  <div className="font-semibold text-zinc-800">Diff vs previous run</div>
+                  <ul className="mt-1 list-disc pl-4">
+                    {selectedAssessmentDiff.map((d, i) => (
+                      <li key={`diff-${i}`}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Selected grade</span>
                 <span className="font-semibold text-zinc-900">{selectedAssessment?.overallGrade || "—"}</span>
