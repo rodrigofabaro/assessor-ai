@@ -24,6 +24,7 @@ export type ExtractionReadinessResult = {
     overallConfidence: number;
     runStatus: string;
     coverMetadataReady: boolean;
+    extractionMode: string;
   };
 };
 
@@ -55,6 +56,9 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   const pageCount = Number(run?.pageCount || 0);
   const overallConfidence = Number(run?.overallConfidence || 0);
   const runWarnings = parseWarnings(run?.warnings);
+  const extractionMode = String((run?.sourceMeta as any)?.extractionMode || "")
+    .trim()
+    .toUpperCase();
   const coverReady = isCoverMetadataReady((run?.sourceMeta as any)?.coverMetadata);
 
   if (!run) blockers.push("No extraction run found.");
@@ -63,6 +67,9 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   if (runStatus === "RUNNING" || runStatus === "PENDING") blockers.push("Extraction is still in progress.");
   if (runStatus && !["DONE", "NEEDS_OCR", "FAILED", "RUNNING", "PENDING"].includes(runStatus)) {
     warnings.push(`Unknown extraction status: ${runStatus}.`);
+  }
+  if (extractionMode === "COVER_ONLY" && !coverReady) {
+    blockers.push("Cover-only extraction requires ready cover metadata before grading.");
   }
 
   if (extractedChars < minChars) {
@@ -95,6 +102,7 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
       overallConfidence: Number.isFinite(overallConfidence) ? overallConfidence : 0,
       runStatus,
       coverMetadataReady: coverReady,
+      extractionMode: extractionMode || "UNKNOWN",
     },
   };
 }

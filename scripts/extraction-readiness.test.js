@@ -122,6 +122,34 @@ function run() {
     "expected warning indicating cover-ready short-text mode"
   );
   assert(coverReadyShortText.metrics.coverMetadataReady === true, "expected coverMetadataReady metric true");
+  assert(
+    String(coverReadyShortText.metrics.extractionMode || "UNKNOWN") === "UNKNOWN",
+    "expected extraction mode metric to default to UNKNOWN when not provided"
+  );
+
+  const coverOnlyWithoutCoverReady = evaluateExtractionReadiness({
+    submissionStatus: "EXTRACTED",
+    extractedText: "A".repeat(1800),
+    latestRun: {
+      status: "DONE",
+      overallConfidence: 0.92,
+      pageCount: 2,
+      warnings: [],
+      sourceMeta: {
+        extractionMode: "COVER_ONLY",
+        coverMetadata: { confidence: 0.3 },
+      },
+    },
+  });
+  assert(!coverOnlyWithoutCoverReady.ok, "expected cover-only without ready cover metadata to fail gate");
+  assert(
+    coverOnlyWithoutCoverReady.blockers.some((b) => /cover-only extraction requires ready cover metadata/i.test(b)),
+    "expected explicit cover-only readiness blocker"
+  );
+  assert(
+    String(coverOnlyWithoutCoverReady.metrics.extractionMode || "") === "COVER_ONLY",
+    "expected extraction mode metric to preserve COVER_ONLY"
+  );
 
   console.log("extraction readiness gate tests passed.");
 }

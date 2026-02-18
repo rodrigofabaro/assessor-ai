@@ -19,6 +19,7 @@ export type ExtractionQualityResult = {
     overallConfidence: number;
     runStatus: string;
     coverMetadataReady: boolean;
+    extractionMode: string;
   };
 };
 

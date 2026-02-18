@@ -48,6 +48,7 @@ export type SubmissionRow = {
       overallConfidence: number;
       runStatus: string;
       coverMetadataReady: boolean;
+      extractionMode: string;
     };
   } | null;
 };
