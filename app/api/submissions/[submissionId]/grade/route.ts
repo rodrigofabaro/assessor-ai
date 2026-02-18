@@ -245,6 +245,23 @@ function parseModelJson(text: string) {
   }
 }
 
+function extractStructuredModelJson(responseJson: any) {
+  const directParsed = responseJson?.output_parsed;
+  if (directParsed && typeof directParsed === "object") return directParsed;
+
+  const out = Array.isArray(responseJson?.output) ? responseJson.output : [];
+  for (const block of out) {
+    const content = Array.isArray(block?.content) ? block.content : [];
+    for (const c of content) {
+      if (c?.parsed && typeof c.parsed === "object") return c.parsed;
+      if (c?.json && typeof c.json === "object") return c.json;
+    }
+  }
+
+  const outputText = extractOutputText(responseJson);
+  return parseModelJson(outputText);
+}
+
 function buildPageSampleContext(pages: Array<{ pageNumber: number; text: string }>, maxCharsPerPage: number, maxPages: number) {
   const selected = (Array.isArray(pages) ? pages : [])
     .slice(0, Math.max(1, maxPages))
@@ -262,6 +279,27 @@ function toUkDate(iso?: string | Date | null) {
   const d = iso ? new Date(iso) : new Date();
   if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-GB");
   return d.toLocaleDateString("en-GB");
+}
+
+function normalizeAssignmentRef(value: unknown): string | null {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const canonical = raw.match(/^A\s*([1-9]\d?)$/i);
+  if (canonical) return `A${canonical[1]}`;
+  const labeled = raw.match(/\b(?:Assignment|A)\s*([1-9]\d?)\b/i);
+  if (labeled) return `A${labeled[1]}`;
+  const bare = raw.match(/\b([1-9]\d?)\b/);
+  if (bare) return `A${bare[1]}`;
+  return null;
+}
+
+function extractCoverAssignmentSignals(sourceMeta: any) {
+  const cover = sourceMeta?.coverMetadata || {};
+  const unitCodeRaw = String(cover?.unitCode?.value || "").trim();
+  const assignmentRaw = String(cover?.assignmentCode?.value || "").trim();
+  const unitCode = unitCodeRaw.match(/\b(4\d{3})\b/)?.[1] || null;
+  const assignmentRef = normalizeAssignmentRef(assignmentRaw);
+  return { unitCode, assignmentRef };
 }
 
 export async function POST(
@@ -299,46 +337,48 @@ export async function POST(
     });
   }
 
-  const submission = await prisma.submission.findUnique({
-    where: { id: submissionId },
-    include: {
-      assignment: {
-        include: {
-          assignmentBrief: {
-            include: {
-              unit: {
-                include: {
-                  learningOutcomes: {
-                    include: { criteria: true },
-                  },
+  const submissionInclude = {
+    assignment: {
+      include: {
+        assignmentBrief: {
+          include: {
+            unit: {
+              include: {
+                learningOutcomes: {
+                  include: { criteria: true },
                 },
               },
-              briefDocument: true,
-              criteriaMaps: {
-                include: {
-                  assessmentCriterion: {
-                    include: { learningOutcome: true },
-                  },
+            },
+            briefDocument: true,
+            criteriaMaps: {
+              include: {
+                assessmentCriterion: {
+                  include: { learningOutcome: true },
                 },
               },
             },
           },
         },
       },
-      student: true,
-      extractionRuns: {
-        orderBy: { startedAt: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          status: true,
-          overallConfidence: true,
-          pageCount: true,
-          warnings: true,
-          sourceMeta: true,
-        },
+    },
+    student: true,
+    extractionRuns: {
+      orderBy: { startedAt: "desc" as const },
+      take: 1,
+      select: {
+        id: true,
+        status: true,
+        overallConfidence: true,
+        pageCount: true,
+        warnings: true,
+        sourceMeta: true,
       },
     },
+  } as const;
+
+  let submission = await prisma.submission.findUnique({
+    where: { id: submissionId },
+    include: submissionInclude,
   });
   if (!submission) {
     return apiError({
@@ -370,14 +410,86 @@ export async function POST(
       },
     });
   }
+
+  // Recovery path: if triage linked a placeholder assignment (or missed assignment link),
+  // attempt to resolve to a mapped brief by unitCode + assignmentRef before failing.
+  let relinked = false;
+  const coverSignals = extractCoverAssignmentSignals(submission.extractionRuns?.[0]?.sourceMeta);
+
+  if (!submission.assignment && coverSignals.unitCode && coverSignals.assignmentRef) {
+    const preferred = await prisma.assignment.findFirst({
+      where: {
+        unitCode: coverSignals.unitCode,
+        assignmentRef: coverSignals.assignmentRef,
+        assignmentBriefId: { not: null },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    });
+    const fallback =
+      preferred ||
+      (await prisma.assignment.findFirst({
+        where: {
+          unitCode: coverSignals.unitCode,
+          assignmentRef: coverSignals.assignmentRef,
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { id: true },
+      }));
+    if (fallback?.id) {
+      await prisma.submission.update({
+        where: { id: submissionId },
+        data: { assignmentId: fallback.id },
+      });
+      relinked = true;
+    }
+  }
+
+  if (submission.assignment && !submission.assignment.assignmentBrief) {
+    const unitCode = String(submission.assignment.unitCode || "").trim() || coverSignals.unitCode;
+    const assignmentRef = normalizeAssignmentRef(submission.assignment.assignmentRef) || coverSignals.assignmentRef;
+    if (unitCode && assignmentRef) {
+      const candidates = await prisma.assignmentBrief.findMany({
+        where: {
+          unit: { unitCode },
+          assignmentCode: assignmentRef,
+        },
+        select: { id: true },
+        take: 2,
+      });
+      if (candidates.length === 1) {
+        await prisma.assignment.update({
+          where: { id: submission.assignment.id },
+          data: { assignmentBriefId: candidates[0].id },
+        });
+        relinked = true;
+      }
+    }
+  }
+
+  if (relinked) {
+    submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: submissionInclude,
+    });
+  }
+
   if (!submission.assignment || !submission.assignment.assignmentBrief) {
+    const missingUnitCode = submission.assignment?.unitCode || coverSignals.unitCode || null;
+    const missingAssignmentRef =
+      normalizeAssignmentRef(submission.assignment?.assignmentRef) || coverSignals.assignmentRef || null;
     return apiError({
       status: 422,
       code: "GRADE_ASSIGNMENT_BINDING_MISSING",
-      userMessage: "Submission is not linked to a mapped assignment brief.",
+      userMessage: `No mapped assignment brief found for ${missingUnitCode || "unknown unit"} ${missingAssignmentRef || "unknown assignment"}. Map this in Admin > Bindings.`,
       route: "/api/submissions/[submissionId]/grade",
       requestId,
-      details: { submissionId },
+      details: {
+        submissionId,
+        assignmentId: submission.assignment?.id || null,
+        unitCode: missingUnitCode,
+        assignmentRef: missingAssignmentRef,
+      },
     });
   }
 
@@ -459,18 +571,15 @@ export async function POST(
     .map((p) => normalizeText(p.text))
     .filter(Boolean)
     .join("\n\n");
-  const modalityEvidenceText =
-    extractionMode === "COVER_ONLY"
-      ? sampledPageText
-      : [String(submission.extractedText || ""), sampledPageText].filter(Boolean).join("\n\n");
-  const modalityEvidenceSource = extractionMode === "COVER_ONLY" ? "PAGE_SAMPLES_ONLY" : "BODY_PLUS_PAGE_SAMPLES";
+  const modalityEvidenceText = [String(submission.extractedText || ""), sampledPageText].filter(Boolean).join("\n\n");
+  const modalityEvidenceSource = "BODY_PLUS_PAGE_SAMPLES";
   const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
-  const maxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
+  const configuredMaxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
+  const criteriaDrivenMinOutputTokens = Math.max(900, Math.min(3800, 500 + criteriaCodes.length * 140));
+  const maxOutputTokens = Math.max(configuredMaxOutputTokens, criteriaDrivenMinOutputTokens);
   const bodyFallbackText =
-    extractionMode === "COVER_ONLY"
-      ? "(Cover-only extraction mode active. Do not assume missing body text means missing student work; rely on page-sample evidence.)"
-      : String(submission.extractedText || "").slice(0, inputCharLimit) ||
-        "(No substantial extracted body text available. Use evidence-based caution.)";
+    String(submission.extractedText || "").slice(0, inputCharLimit) ||
+    "(No substantial extracted body text available. Use evidence-based caution.)";
   const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(modalityEvidenceText);
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
@@ -507,10 +616,10 @@ export async function POST(
     "Criteria:",
     JSON.stringify(criteria.slice(0, 120), null, 2),
     "",
-    "Student submission page samples (preferred for evidence grounding):",
+    "Student submission page samples (supporting evidence):",
     pageContext,
     "",
-    "Submission extracted body text fallback (secondary context):",
+    "Submission extracted body text (primary context):",
     bodyFallbackText,
   ].join("\n");
   const promptHash = createHash("sha256").update(prompt).digest("hex");
@@ -562,10 +671,10 @@ export async function POST(
                           additionalProperties: false,
                           properties: {
                             page: { type: "number" },
-                            quote: { type: "string" },
-                            visualDescription: { type: "string" },
+                            quote: { type: ["string", "null"] },
+                            visualDescription: { type: ["string", "null"] },
                           },
-                          required: ["page"],
+                          required: ["page", "quote", "visualDescription"],
                         },
                       },
                     },
@@ -574,7 +683,7 @@ export async function POST(
                 },
                 confidence: { type: "number" },
               },
-              required: ["overallGradeWord", "resubmissionRequired", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
+              required: ["overallGrade", "overallGradeWord", "resubmissionRequired", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
             },
           },
         },
@@ -598,14 +707,32 @@ export async function POST(
       });
     }
 
-    const outputText = extractOutputText(json);
-    const parsed = parseModelJson(outputText) || {};
+    const parsed = extractStructuredModelJson(json) || {};
     const validated = validateGradeDecision(parsed, criteriaCodes);
-    if ("errors" in validated) {
-      const errorText = validated.errors.join(" | ");
-      throw new Error(`Model output failed schema validation: ${errorText}`);
-    }
-    const achievedWithoutEvidence = validated.data.criterionChecks.find(
+    const decision =
+      "errors" in validated
+        ? {
+            overallGradeWord: "REFER" as const,
+            overallGrade: "REFER" as const,
+            resubmissionRequired: true,
+            feedbackSummary:
+              "Automated grading output was invalid for this submission. This run is flagged for manual review.",
+            feedbackBullets: [
+              "Automated grading output failed schema validation.",
+              "A conservative REFER fallback has been applied.",
+              "Review criterion decisions and rerun grading after extraction/model checks.",
+            ],
+            criterionChecks: criteriaCodes.map((code) => ({
+              code,
+              decision: "UNCLEAR" as const,
+              rationale: "Fallback decision: model output invalid; manual review required.",
+              confidence: 0.25,
+              evidence: [{ page: 1, visualDescription: "Fallback placeholder due to invalid model output." }],
+            })),
+            confidence: 0.25,
+          }
+        : validated.data;
+    const achievedWithoutEvidence = decision.criterionChecks.find(
       (row) => row.decision === "ACHIEVED" && (!Array.isArray(row.evidence) || row.evidence.length === 0)
     );
     if (achievedWithoutEvidence) {
@@ -627,7 +754,7 @@ export async function POST(
       0.2,
       Math.min(0.95, Number(process.env.GRADE_MODALITY_MISSING_CONFIDENCE_CAP || 0.65))
     );
-    const modelConfidenceRaw = Number(validated.data.confidence);
+    const modelConfidenceRaw = Number(decision.confidence);
     const modelConfidence = Number.isFinite(modelConfidenceRaw)
       ? Math.max(0, Math.min(1, modelConfidenceRaw))
       : 0.5;
@@ -635,9 +762,9 @@ export async function POST(
       modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
-    const overallGrade = validated.data.overallGradeWord;
-    const feedbackSummary = personalizeFeedbackSummary(validated.data.feedbackSummary, studentFirstName);
-    const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
+    const overallGrade = decision.overallGradeWord;
+    const feedbackSummary = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
+    const feedbackBullets = decision.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
     if (modalityCompliance.missingCount > 0) {
       feedbackBullets.unshift(
         `Automated review: required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
@@ -647,7 +774,7 @@ export async function POST(
       feedbackBullets.unshift("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
     }
     const responseWithPolicy = {
-      ...validated.data,
+      ...decision,
       confidence: finalConfidence,
     };
     const completedAtIso = new Date().toISOString();
@@ -670,7 +797,7 @@ export async function POST(
       markedDate: feedbackDate,
     });
     const pageNotes = cfg.pageNotesEnabled
-      ? buildPageNotesFromCriterionChecks(validated.data.criterionChecks, {
+      ? buildPageNotesFromCriterionChecks(decision.criterionChecks, {
           maxPages: cfg.pageNotesMaxPages,
           maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
           tone: cfg.pageNotesTone,
@@ -678,25 +805,41 @@ export async function POST(
         })
       : [];
 
-    const marked = await createMarkedPdf(submission.storagePath, {
-      submissionId: submission.id,
-      overallGrade,
-      feedbackBullets: feedbackBullets.length ? feedbackBullets : [feedbackSummary || "Feedback generated."],
-      tone,
-      strictness,
-      studentName: studentFirstName || submission?.student?.fullName || "Student",
-      assessorName: actor,
-      markedDate: feedbackDate,
-      overallPlacement: "last",
-      pageNotes,
-    });
+    let marked: { storagePath: string; absolutePath: string } | null = null;
+    let markedPdfWarning: string | null = null;
+    try {
+      marked = await createMarkedPdf(submission.storagePath, {
+        submissionId: submission.id,
+        overallGrade,
+        feedbackBullets: feedbackBullets.length ? feedbackBullets : [feedbackSummary || "Feedback generated."],
+        tone,
+        strictness,
+        studentName: studentFirstName || submission?.student?.fullName || "Student",
+        assessorName: actor,
+        markedDate: feedbackDate,
+        overallPlacement: "last",
+        pageNotes,
+      });
+    } catch (markErr: any) {
+      markedPdfWarning = String(markErr?.message || markErr || "Marked PDF generation failed.");
+      console.error(
+        JSON.stringify({
+          level: "warn",
+          route: "/api/submissions/[submissionId]/grade",
+          requestId,
+          code: "GRADE_MARKED_PDF_FAILED",
+          submissionId,
+          message: markedPdfWarning,
+        })
+      );
+    }
 
     const assessment = await prisma.assessment.create({
       data: {
         submissionId: submission.id,
         overallGrade,
         feedbackText: feedbackText || "No feedback generated.",
-        annotatedPdfPath: marked.storagePath,
+        annotatedPdfPath: marked?.storagePath || null,
         resultJson: {
           requestId,
           gradingTimeline: {
@@ -742,6 +885,10 @@ export async function POST(
           response: responseWithPolicy,
           usage,
           extractionGate,
+          markedPdf: {
+            generated: !!marked?.storagePath,
+            warning: markedPdfWarning,
+          },
         } as any,
       },
     });
@@ -767,17 +914,24 @@ export async function POST(
       { headers: { "x-request-id": requestId } }
     );
   } catch (e: any) {
+    const causeMessage = String(e?.message || e || "Unknown grading error").slice(0, 600);
+    const isModelOutputError = /model output failed schema validation/i.test(causeMessage);
+    const status = isModelOutputError ? 422 : 500;
+    const code = isModelOutputError ? "GRADE_MODEL_OUTPUT_INVALID" : "GRADE_FAILED";
+    const userMessage = isModelOutputError
+      ? "Grading model output did not match required schema. Retry grading or adjust model/settings."
+      : `Grading failed: ${causeMessage}`;
     await prisma.submission.update({
       where: { id: submission.id },
       data: { status: "FAILED" },
     });
     return apiError({
-      status: 500,
-      code: "GRADE_FAILED",
-      userMessage: "Grading failed.",
+      status,
+      code,
+      userMessage,
       route: "/api/submissions/[submissionId]/grade",
       requestId,
-      details: { submissionId },
+      details: { submissionId, cause: causeMessage },
       cause: e,
     });
   }

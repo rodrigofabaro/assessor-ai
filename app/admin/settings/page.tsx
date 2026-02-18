@@ -488,7 +488,7 @@ export default function AdminSettingsPage() {
         </article>
       </section>
 
-      <section id="grading-defaults" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Agent model</h2>
         <p className="mt-1 text-sm text-zinc-600">Select which OpenAI model the agent should use.</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -535,7 +535,7 @@ export default function AdminSettingsPage() {
         </section>
       ) : null}
 
-      <section id="app-settings" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Usage breakdown</h2>
         {loading ? <p className="mt-2 text-sm text-zinc-600">Loading usage...</p> : null}
         {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
@@ -656,7 +656,7 @@ export default function AdminSettingsPage() {
 
       {data?.generatedAt ? <p className="text-xs text-zinc-500">Last updated: {new Date(data.generatedAt).toLocaleString()}</p> : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section id="grading-defaults" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
         <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
         <p className="mt-1 text-sm text-zinc-600">Controls default tone/strictness/rubric behavior when tutors run grading.</p>
         {gradingCfg ? (
@@ -841,7 +841,7 @@ export default function AdminSettingsPage() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section id="app-settings" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
         <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
         <p className="mt-1 text-sm text-zinc-600">
           Choose who appears as actor in upload/link/grading audit records when no explicit actor is provided.

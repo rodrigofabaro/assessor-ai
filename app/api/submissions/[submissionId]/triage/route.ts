@@ -457,6 +457,7 @@ export async function POST(
       const shouldAutoGrade =
         !!result?.studentId &&
         !!result?.assignmentId &&
+        !!result?.assignment?.assignmentBriefId &&
         String(result?.status || "").toUpperCase() === "EXTRACTED";
       if (shouldAutoGrade) {
         const counts = await prisma.submission.findUnique({

@@ -146,10 +146,7 @@ export function validateGradeDecision(input: unknown, criteriaCodes: string[]): 
     seenCodes.add(code);
     if (!decision) errors.push(`criterionChecks[${code}].decision is required and must be ACHIEVED/NOT_ACHIEVED/UNCLEAR.`);
     if (!rationale) errors.push(`criterionChecks[${code}].rationale is required.`);
-    if (!Array.isArray(row?.evidence) || !evidence.length) {
-      errors.push(`criterionChecks[${code}].evidence must contain at least one page-linked item (quote or visualDescription).`);
-    }
-    if (decision === "ACHIEVED" && evidence.length === 0) {
+    if (decision === "ACHIEVED" && (!Array.isArray(row?.evidence) || evidence.length === 0)) {
       errors.push(`criterionChecks[${code}] cannot be ACHIEVED without evidence.`);
     }
     if (!Number.isFinite(rowConfidence)) {

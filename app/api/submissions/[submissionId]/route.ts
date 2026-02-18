@@ -98,11 +98,17 @@ export async function PATCH(
               status: true,
               studentId: true,
               assignmentId: true,
+              assignment: {
+                select: {
+                  assignmentBriefId: true,
+                },
+              },
             },
           });
           const canRegrade =
             !!s?.studentId &&
             !!s?.assignmentId &&
+            !!s?.assignment?.assignmentBriefId &&
             ["EXTRACTED", "DONE"].includes(String(s?.status || "").toUpperCase());
           if (canRegrade) {
             const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, req.url);

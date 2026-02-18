@@ -45,6 +45,7 @@ export async function POST(
   const { submissionId } = await ctx.params;
   const { searchParams } = new URL(request.url);
   const force = ["1", "true", "yes"].includes(String(searchParams.get("force") || "").toLowerCase());
+  const mode = String(searchParams.get("mode") || "").trim().toLowerCase();
 
   if (!submissionId) {
     return apiError({
@@ -161,7 +162,12 @@ export async function POST(
 
   try {
     const res = await extractFile(submission.storagePath, submission.filename);
-    const coverOnlyMode = envBool("SUBMISSION_EXTRACT_COVER_ONLY", true);
+    const coverOnlyMode =
+      mode === "full"
+        ? false
+        : mode === "cover" || mode === "cover_only"
+          ? true
+          : envBool("SUBMISSION_EXTRACT_COVER_ONLY", true);
     const coverPageLimit = Math.max(1, Math.min(3, Number(process.env.SUBMISSION_EXTRACT_COVER_PAGE_LIMIT || 2)));
 
     // Ensure we always have at least one page for UI consistency
@@ -318,12 +324,18 @@ export async function POST(
             status: true,
             studentId: true,
             assignmentId: true,
+            assignment: {
+              select: {
+                assignmentBriefId: true,
+              },
+            },
             _count: { select: { assessments: true } },
           },
         });
         const eligibleForAutoGrade =
           !!latestSubmission?.studentId &&
           !!latestSubmission?.assignmentId &&
+          !!latestSubmission?.assignment?.assignmentBriefId &&
           String(latestSubmission?.status || "").toUpperCase() === "EXTRACTED" &&
           Number(latestSubmission?._count?.assessments || 0) === 0;
         if (eligibleForAutoGrade) {

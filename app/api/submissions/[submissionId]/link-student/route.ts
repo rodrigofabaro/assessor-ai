@@ -45,12 +45,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ submissionId: 
           status: true,
           studentId: true,
           assignmentId: true,
+          assignment: {
+            select: {
+              assignmentBriefId: true,
+            },
+          },
           _count: { select: { assessments: true } },
         },
       });
       const shouldAutoGrade =
         !!eligible?.studentId &&
         !!eligible?.assignmentId &&
+        !!eligible?.assignment?.assignmentBriefId &&
         String(eligible?.status || "").toUpperCase() === "EXTRACTED" &&
         Number(eligible?._count?.assessments || 0) === 0;
       if (shouldAutoGrade) {
