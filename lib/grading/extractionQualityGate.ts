@@ -62,7 +62,13 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   const coverReady = isCoverMetadataReady((run?.sourceMeta as any)?.coverMetadata);
 
   if (!run) blockers.push("No extraction run found.");
-  if (runStatus === "NEEDS_OCR") blockers.push("Extraction flagged as NEEDS_OCR. Run OCR/correction before grading.");
+  if (runStatus === "NEEDS_OCR") {
+    if (extractionMode === "COVER_ONLY") {
+      warnings.push("Extraction flagged as NEEDS_OCR, but cover-only mode is allowed to continue.");
+    } else {
+      blockers.push("Extraction flagged as NEEDS_OCR. Run OCR/correction before grading.");
+    }
+  }
   if (runStatus === "FAILED") blockers.push("Latest extraction run failed.");
   if (runStatus === "RUNNING" || runStatus === "PENDING") blockers.push("Extraction is still in progress.");
   if (runStatus && !["DONE", "NEEDS_OCR", "FAILED", "RUNNING", "PENDING"].includes(runStatus)) {
@@ -94,7 +100,13 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   if (runWarnings.length) warnings.push(...runWarnings.map((w) => `Extraction warning: ${w}`));
 
   const status = String(input.submissionStatus || "").toUpperCase();
-  if (status === "NEEDS_OCR") blockers.push("Submission status is NEEDS_OCR.");
+  if (status === "NEEDS_OCR") {
+    if (extractionMode === "COVER_ONLY") {
+      warnings.push("Submission status is NEEDS_OCR, but cover-only mode is allowed to continue.");
+    } else {
+      blockers.push("Submission status is NEEDS_OCR.");
+    }
+  }
 
   return {
     ok: blockers.length === 0,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 
 export async function GET(
   _req: Request,
@@ -48,6 +49,35 @@ export async function PATCH(
   try {
     const { submissionId } = await ctx.params;
     const body = await req.json().catch(() => ({}));
+
+    const coverMetadata = body?.coverMetadata;
+    if (coverMetadata && typeof coverMetadata === "object") {
+      const latestRun = await prisma.submissionExtractionRun.findFirst({
+        where: { submissionId },
+        orderBy: { startedAt: "desc" },
+        select: { id: true, sourceMeta: true },
+      });
+      if (!latestRun) {
+        return NextResponse.json({ error: "No extraction run found for this submission." }, { status: 404 });
+      }
+      const prevMeta = (latestRun.sourceMeta && typeof latestRun.sourceMeta === "object" ? latestRun.sourceMeta : {}) as Record<
+        string,
+        unknown
+      >;
+      const nextCover = coverMetadata as Record<string, unknown>;
+      const nextSourceMeta = {
+        ...prevMeta,
+        coverMetadata: nextCover,
+        coverReady: isCoverMetadataReady(nextCover),
+      };
+
+      const updatedRun = await prisma.submissionExtractionRun.update({
+        where: { id: latestRun.id },
+        data: { sourceMeta: nextSourceMeta as any },
+        select: { id: true, sourceMeta: true },
+      });
+      return NextResponse.json({ ok: true, extractionRun: updatedRun });
+    }
 
     const studentId = typeof body.studentId === "string" ? body.studentId.trim() : "";
     if (!studentId) {

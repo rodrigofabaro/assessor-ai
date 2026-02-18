@@ -85,6 +85,27 @@ function run() {
   assert(!needsOcr.ok, "expected NEEDS_OCR to fail gate");
   assert(needsOcr.blockers.some((b) => /NEEDS_OCR/i.test(b)), "expected NEEDS_OCR blocker");
 
+  const needsOcrCoverOnly = evaluateExtractionReadiness({
+    submissionStatus: "NEEDS_OCR",
+    extractedText: "short text",
+    latestRun: {
+      status: "NEEDS_OCR",
+      overallConfidence: 0.9,
+      pageCount: 2,
+      warnings: [],
+      sourceMeta: {
+        extractionMode: "COVER_ONLY",
+        coverMetadata: {
+          studentName: { value: "Jane Doe", confidence: 0.8, page: 1, snippet: "Student Name: Jane Doe" },
+          unitCode: { value: "4003", confidence: 0.9, page: 1, snippet: "Unit: 4003" },
+          assignmentCode: { value: "A1", confidence: 0.86, page: 1, snippet: "Assignment: A1" },
+          confidence: 0.85,
+        },
+      },
+    },
+  });
+  assert(needsOcrCoverOnly.ok, "expected cover-only NEEDS_OCR to pass gate with warnings");
+
   const lowText = evaluateExtractionReadiness({
     submissionStatus: "EXTRACTED",
     extractedText: "short text",
