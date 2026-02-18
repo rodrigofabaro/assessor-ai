@@ -173,6 +173,9 @@ export default function SubmissionDetailPage() {
   const [coverUnitCode, setCoverUnitCode] = useState("");
   const [coverAssignmentCode, setCoverAssignmentCode] = useState("");
   const [coverSubmissionDate, setCoverSubmissionDate] = useState("");
+  const [rightPanel, setRightPanel] = useState<
+    "workflow" | "student" | "assignment" | "extraction" | "grading" | "outputs"
+  >("workflow");
 
   /* ---------- Extraction view state ---------- */
   const [activePage, setActivePage] = useState(0);
@@ -685,7 +688,34 @@ export default function SubmissionDetailPage() {
         </div>
 
         {/* RIGHT: Metadata + extraction */}
-        <div className="grid gap-4">
+        <div className="grid gap-4 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Panel</div>
+            <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+              {[
+                { key: "workflow", label: "Workflow" },
+                { key: "student", label: "Student" },
+                { key: "assignment", label: "Assignment" },
+                { key: "extraction", label: "Extraction" },
+                { key: "grading", label: "Grading" },
+                { key: "outputs", label: "Outputs" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setRightPanel(item.key as any)}
+                  className={cx(
+                    "rounded-lg px-2 py-1.5 text-[11px] font-semibold",
+                    rightPanel === item.key ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-white"
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {rightPanel === "workflow" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -748,7 +778,9 @@ export default function SubmissionDetailPage() {
               </div>
             ) : null}
           </div>
+          ) : null}
 
+          {rightPanel === "student" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold text-zinc-500">Student</div>
             <div className="mt-1 flex items-start justify-between gap-3">
@@ -869,7 +901,9 @@ export default function SubmissionDetailPage() {
               </div>
             ) : null}
           </div>
+          ) : null}
 
+          {rightPanel === "assignment" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold text-zinc-500">Assignment</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
@@ -884,7 +918,9 @@ export default function SubmissionDetailPage() {
               </div>
             ) : null}
           </div>
+          ) : null}
 
+          {rightPanel === "extraction" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div className="border-b border-zinc-200 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -1032,7 +1068,9 @@ export default function SubmissionDetailPage() {
               )}
             </div>
           </div>
+          ) : null}
 
+          {rightPanel === "grading" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold text-zinc-500">Grading config</div>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -1072,7 +1110,9 @@ export default function SubmissionDetailPage() {
             </label>
             <div className="mt-2 text-xs text-zinc-500">Model: {gradingCfg?.model || "default"} · Feedback bullets: {gradingCfg?.maxFeedbackBullets ?? 6}</div>
           </div>
+          ) : null}
 
+          {rightPanel === "outputs" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold text-zinc-500">Audit & outputs</div>
             <div className="mt-2 grid gap-2 text-sm">
@@ -1112,17 +1152,11 @@ export default function SubmissionDetailPage() {
               </div>
 
               {structuredGrading ? (
-                <div className="rounded-xl border border-zinc-200 bg-white p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Criterion Decisions</div>
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
-                      {String(structuredGrading?.overallGradeWord || structuredGrading?.overallGrade || "—")}
-                    </span>
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
-                      Resubmission: {Boolean(structuredGrading?.resubmissionRequired) ? "Yes" : "No"}
-                    </span>
-                  </div>
-                  <div className="mt-2 space-y-2">
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Criterion Decisions · {String(structuredGrading?.overallGradeWord || structuredGrading?.overallGrade || "—")} · Resubmission: {Boolean(structuredGrading?.resubmissionRequired) ? "Yes" : "No"}
+                  </summary>
+                  <div className="mt-3 space-y-2">
                     {(Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : []).slice(0, 24).map((row: any, idx: number) => {
                       const decision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase();
                       const tone =
@@ -1156,23 +1190,15 @@ export default function SubmissionDetailPage() {
                       );
                     })}
                   </div>
-                </div>
+                </details>
               ) : null}
 
               {modalityCompliance.hasData ? (
-                <div className="rounded-xl border border-zinc-200 bg-white p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
-                      Modality Compliance (Automated)
-                    </div>
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
-                      Pass {modalityCompliance.passCount}
-                    </span>
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
-                      Review {modalityCompliance.failCount}
-                    </span>
-                  </div>
-                  <div className="mt-2 overflow-x-auto">
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Modality Compliance · Pass {modalityCompliance.passCount} · Review {modalityCompliance.failCount}
+                  </summary>
+                  <div className="mt-3 overflow-x-auto">
                     <table className="min-w-full border-collapse text-left text-xs">
                       <thead className="bg-zinc-50 text-zinc-600">
                         <tr>
@@ -1212,10 +1238,11 @@ export default function SubmissionDetailPage() {
                   <div className="mt-2 text-[11px] text-zinc-500">
                     Signals: table={String(modalityCompliance.foundSignals.table)}; bar={String(modalityCompliance.foundSignals.bar)}; pie={String(modalityCompliance.foundSignals.pie)}; image={String(modalityCompliance.foundSignals.image)}; equation={String(modalityCompliance.foundSignals.equation)}; percentage={String(modalityCompliance.foundSignals.percentage)}
                   </div>
-                </div>
+                </details>
               ) : null}
             </div>
           </div>
+          ) : null}
         </div>
       </section>
     </main>
