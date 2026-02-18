@@ -2,18 +2,20 @@
 
 ## Purpose
 
-Admin operations home for references, bindings, audit, and system controls.
+Admin control tower for operations.
+Use this page to monitor blockers, jump into QA research, and open audit/locking workflows.
 
-## Sections
+## Key Areas
 
-- Specs
-- Briefs
-- Students
-- Settings/System
-- Attention widgets and recent activity
+- Header quick actions
+- KPI metrics
+- Attention queue
+- Grade distribution snapshot
+- Recent references and recent submissions
 
-## How to use
+## Recommended Flow
 
-1. Check `Needs attention` cards.
-2. Resolve lock/readiness blockers first.
-3. Move into the relevant admin section from quick cards.
+1. Check `Open blockers` and `Needs attention now`.
+2. Resolve locking and extraction issues first.
+3. Open `/admin/qa` for outcome analysis and report export.
+4. Open `/admin/audit` to verify event-level evidence for any anomalies.

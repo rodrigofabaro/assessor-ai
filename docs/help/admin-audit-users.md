@@ -3,18 +3,19 @@
 ## `/admin/audit`
 
 ### Purpose
-Unified audit trail for submission and reference operations.
+Operational event log for submission and reference workflows.
+Use `/admin/qa` for trend analysis and reporting; use `/admin/audit` for event-level trace evidence.
 
 ### Main actions
-- filter/search events
-- inspect event metadata
-- open linked submission/reference records
+- Filter and search events
+- Inspect event metadata
+- Open linked submission/reference records
 
 ### Notable events
-- extraction transitions
-- grading completed
-- feedback edited (`FEEDBACK_EDITED`)
-- reference lock/failure activity
+- Extraction transitions
+- Grading completed
+- Feedback edited (`FEEDBACK_EDITED`)
+- Reference lock/failure activity
 
 ## `/admin/users`
 
@@ -22,8 +23,9 @@ Unified audit trail for submission and reference operations.
 Manage app users and active audit actor identity.
 
 ### Main actions
-- create/edit active users
-- set active audit user
+- Create/edit active users
+- Set active audit user
+- Monitor active user count and role spread
 
 ### Important behavior
-Assessor identity in grading/feedback workflows is derived from active audit user policy.
+Assessor identity in grading and feedback workflows is derived from active audit user policy.

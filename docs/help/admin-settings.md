@@ -3,25 +3,22 @@
 ## Purpose
 
 Configure AI and grading defaults plus app-level identity settings.
+This page now acts as a control panel with quick operational indicators and direct links to Users and QA.
 
 ## Areas
 
 1. AI Usage
-- OpenAI connectivity and usage/cost diagnostics
-- active model selection
+OpenAI connectivity and usage/cost diagnostics.
+Active model selection.
 
 2. Grading
-- tone/strictness/rubric defaults
-- feedback template
-- page-note controls:
-  - enable notes
-  - note tone
-  - max pages and max notes/page
-  - include criterion code flag
+Tone/strictness/rubric defaults.
+Feedback template.
+Page-note controls (enable notes, tone, limits, and criterion-code inclusion).
 
 3. App
-- active audit user (assessor source)
-- favicon/branding controls
+Active audit user (assessor identity source).
+Favicon/branding controls.
 
 ## How to use
 
