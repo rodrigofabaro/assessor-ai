@@ -122,7 +122,7 @@ export default function TopNav() {
           </Link>
 
           {isAdminRoute ? (
-            <nav className="hidden items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
+            <nav className="hidden max-w-[56vw] items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
               {ADMIN_ITEMS.map((it) => {
                 const active = isAdminItemActive(pathname, it.href);
                 return (
@@ -130,7 +130,7 @@ export default function TopNav() {
                     key={it.href}
                     href={it.href}
                     className={
-                      "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold transition " +
+                      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition " +
                       (active ? accentClasses(it.accent) : "border-transparent text-zinc-600 hover:bg-white hover:text-zinc-900")
                     }
                   >
