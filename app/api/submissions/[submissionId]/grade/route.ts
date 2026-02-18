@@ -8,6 +8,7 @@ import { apiError, makeRequestId } from "@/lib/api/errors";
 import { validateGradeDecision } from "@/lib/grading/decisionValidation";
 import { buildStructuredGradingV2 } from "@/lib/grading/assessmentResult";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
+import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/grading/feedbackPersonalization";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
@@ -426,6 +427,10 @@ export async function POST(
   const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
   const latestRunMeta = (submission.extractionRuns?.[0]?.sourceMeta as any) || {};
   const coverMetadata = latestRunMeta?.coverMetadata || null;
+  const studentFirstName = extractFirstNameForFeedback({
+    studentFullName: submission?.student?.fullName || null,
+    coverStudentName: coverMetadata?.studentName?.value || null,
+  });
   const extractionMode = String(latestRunMeta?.extractionMode || "").toUpperCase();
   const coverReady = Boolean(latestRunMeta?.coverReady);
   const latestRunId = String(submission.extractionRuns?.[0]?.id || "");
@@ -480,6 +485,7 @@ export async function POST(
     "Assignment context:",
     `Unit: ${brief.unit.unitCode} ${brief.unit.unitTitle}`,
     `Assignment code: ${brief.assignmentCode}`,
+    `Feedback addressee first name: ${studentFirstName || "Unknown (infer if possible)"}`,
     rubricHint,
     "",
     "Detected modality requirements from assignment brief (chart/table/image/equation):",
@@ -623,7 +629,7 @@ export async function POST(
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
     const overallGrade = validated.data.overallGradeWord;
-    const feedbackSummary = validated.data.feedbackSummary;
+    const feedbackSummary = personalizeFeedbackSummary(validated.data.feedbackSummary, studentFirstName);
     const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
     if (modalityCompliance.missingCount > 0) {
       feedbackBullets.unshift(
@@ -681,6 +687,7 @@ export async function POST(
           pageSampleCount: sampledPages.length,
           extractionMode: extractionMode || "UNKNOWN",
           coverReady,
+          studentFirstNameUsed: studentFirstName || null,
           modalityEvidenceSource,
           assessmentRequirements,
           submissionAssessmentEvidence,
