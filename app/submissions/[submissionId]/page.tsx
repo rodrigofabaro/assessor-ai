@@ -161,6 +161,11 @@ export default function SubmissionDetailPage() {
   const autoStartedRef = useRef(false);
   const studentSearchInputRef = useRef<HTMLInputElement | null>(null);
   const studentPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const workflowPanelRef = useRef<HTMLDivElement | null>(null);
+  const assignmentPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const extractionPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const gradingPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const outputsPanelRef = useRef<HTMLDetailsElement | null>(null);
   const coverEditorRef = useRef<HTMLDetailsElement | null>(null);
   const coverStudentNameRef = useRef<HTMLInputElement | null>(null);
   const coverStudentIdRef = useRef<HTMLInputElement | null>(null);
@@ -591,6 +596,10 @@ export default function SubmissionDetailPage() {
       window.setTimeout(() => studentSearchInputRef.current?.focus(), 180);
     }
   };
+  const scrollToPanel = (panel: HTMLElement | null) => {
+    if (!panel) return;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const openCoverEditorAndFocus = (
     field: "studentName" | "studentId" | "unitCode" | "assignmentCode" | "submissionDate"
   ) => {
@@ -613,6 +622,15 @@ export default function SubmissionDetailPage() {
     !!submission?.assignment &&
     (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
     !gradingBusy;
+  const gradingDisabledReason = gradingBusy
+    ? "Grading is already running."
+    : !submission?.student
+      ? "Link a student first."
+      : !submission?.assignment
+        ? "Link assignment/brief first."
+        : !(latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR")
+          ? "Run extraction before grading."
+          : "";
 
   return (
     <main className="py-2">
@@ -660,6 +678,11 @@ export default function SubmissionDetailPage() {
           </button>
         </div>
       </div>
+      {!canRunGrading && gradingDisabledReason ? (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+          Grading blocked: {gradingDisabledReason}
+        </div>
+      ) : null}
 
       {(err || msg) && (
         <div
@@ -671,6 +694,15 @@ export default function SubmissionDetailPage() {
           {err || msg}
         </div>
       )}
+
+      <section className="mb-3 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => scrollToPanel(workflowPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Checklist</button>
+        <button type="button" onClick={() => scrollToPanel(studentPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Student</button>
+        <button type="button" onClick={() => scrollToPanel(assignmentPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Assignment</button>
+        <button type="button" onClick={() => scrollToPanel(extractionPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Extraction</button>
+        <button type="button" onClick={() => scrollToPanel(gradingPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Grading</button>
+        <button type="button" onClick={() => scrollToPanel(outputsPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Outputs</button>
+      </section>
 
       <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -711,9 +743,11 @@ export default function SubmissionDetailPage() {
                 submission?.assignment?.assignmentRef ||
                 triageInfo?.assignmentRef ||
                 String(coverMeta?.assignmentCode?.value || "—"),
-              actionable: !String(coverMeta?.assignmentCode?.value || "").trim(),
-              actionLabel: "Add",
-              onAction: () => openCoverEditorAndFocus("assignmentCode"),
+              actionable: true,
+              actionLabel: submission?.assignment ? "Open assignment panel" : "Add",
+              onAction: submission?.assignment
+                ? () => scrollToPanel(assignmentPanelRef.current)
+                : () => openCoverEditorAndFocus("assignmentCode"),
             },
             {
               key: "submissionDate",
@@ -723,11 +757,25 @@ export default function SubmissionDetailPage() {
               actionLabel: "Add",
               onAction: () => openCoverEditorAndFocus("submissionDate"),
             },
-            { key: "grade", label: "Grade", value: latestAssessment?.overallGrade || "Pending", actionable: false },
+            {
+              key: "grade",
+              label: "Grade",
+              value: latestAssessment?.overallGrade || "Pending",
+              actionable: true,
+              actionLabel: canRunGrading ? "Run grading" : "Open checklist",
+              onAction: canRunGrading ? () => void runGrading() : () => scrollToPanel(workflowPanelRef.current),
+            },
             { key: "gradedBy", label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—"), actionable: false },
             { key: "uploaded", label: "Uploaded", value: safeDate(submission?.uploadedAt), actionable: false },
             { key: "gradedWhen", label: "Graded when", value: safeDate(latestAssessment?.createdAt), actionable: false },
-            { key: "status", label: "Status", value: submission?.status || "—", actionable: false },
+            {
+              key: "status",
+              label: "Status",
+              value: submission?.status || "—",
+              actionable: true,
+              actionLabel: "Open checklist",
+              onAction: () => scrollToPanel(workflowPanelRef.current),
+            },
           ].map((item) => (
             <button
               key={item.key}
@@ -779,6 +827,7 @@ export default function SubmissionDetailPage() {
         {/* RIGHT: Metadata + extraction */}
         <div className="grid gap-4 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div ref={workflowPanelRef} />
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-semibold text-zinc-500">Totara upload checklist</div>
@@ -940,7 +989,7 @@ export default function SubmissionDetailPage() {
             ) : null}
           </details>
 
-          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <details ref={assignmentPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Assignment</summary>
             <div className="mt-3 text-lg font-semibold text-zinc-900">
               {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
@@ -955,7 +1004,7 @@ export default function SubmissionDetailPage() {
             ) : null}
           </details>
 
-          <details open className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <details ref={extractionPanelRef} open className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <summary className="cursor-pointer border-b border-zinc-200 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1111,7 +1160,7 @@ export default function SubmissionDetailPage() {
             </div>
           </details>
 
-          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <details ref={gradingPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Grading config</summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <label className="text-sm text-zinc-700">
@@ -1151,7 +1200,7 @@ export default function SubmissionDetailPage() {
             <div className="mt-2 text-xs text-zinc-500">Model: {gradingCfg?.model || "default"} · Feedback bullets: {gradingCfg?.maxFeedbackBullets ?? 6}</div>
           </details>
 
-          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <details ref={outputsPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Audit & outputs</summary>
             <div className="mt-3 grid gap-2 text-sm">
               <div className="flex items-center justify-between">
