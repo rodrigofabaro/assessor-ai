@@ -24,6 +24,14 @@ Each file explains:
 - `admin-settings.md` -> `/admin/settings`
 - `admin-audit-users.md` -> `/admin/audit`, `/admin/users`
 
+## Navigation note
+
+- Primary admin top-nav sections are:
+  - `Audit`, `Briefs`, `Library`, `Overview`, `QA`, `Settings`, `Specs`, `Students`, `Users`
+- Advanced admin pages are still available via direct URL:
+  - `/admin/reference`
+  - `/admin/bindings`
+
 ## Notes
 
 - This is user-facing operational help, not implementation internals.
