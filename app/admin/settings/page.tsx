@@ -360,9 +360,6 @@ export default function AdminSettingsPage() {
             <Link href="/admin/users" className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
               Users
             </Link>
-            <Link href="/admin/qa" className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
-              QA
-            </Link>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
               {loading ? "Loading..." : "Ready"}
             </span>
