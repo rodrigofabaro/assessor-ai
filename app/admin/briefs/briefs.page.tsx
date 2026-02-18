@@ -8,6 +8,16 @@ import { Btn } from "./components/ui";
 import BriefExtractWorkbench from "./components/BriefExtractWorkbench";
 import BriefLibraryTable from "./components/BriefLibraryTable";
 
+function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="mt-1 text-xl font-semibold text-zinc-900">{value}</div>
+      <div className="mt-1 text-xs text-zinc-600">{hint}</div>
+    </div>
+  );
+}
+
 export default function AdminBriefsPage() {
   // Library/register VM (your briefs register)
   const vm = useBriefsAdmin();
@@ -36,6 +46,11 @@ export default function AdminBriefsPage() {
   const busy = vm.tab === "extract" ? !!rx.busy : vm.busy;
   const err = vm.tab === "extract" ? rx.error : vm.error;
   const [refreshing, setRefreshing] = useState(false);
+  const totalBriefs = vm.rows.length;
+  const lockedBriefs = vm.libraryRows.length;
+  const readyBriefs = vm.rows.filter((r) => r.readiness === "READY").length;
+  const attentionBriefs = vm.rows.filter((r) => r.readiness === "ATTN" || r.readiness === "BLOCKED").length;
+  const mappedDocs = vm.rows.filter((r) => !!r.linkedDoc).length;
 
   const refresh = async () => {
     setRefreshing(true);
@@ -59,10 +74,7 @@ export default function AdminBriefsPage() {
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
-                Brief Operations
-              </div>
-              <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Briefs</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Briefs</h1>
               <p className="mt-2 text-sm text-zinc-700">
                 A <span className="font-semibold">Brief</span> is the assignment question paper + context. A{" "}
                 <span className="font-semibold">Spec</span> is the criteria universe (the law). Locking binds a brief to a
@@ -81,6 +93,14 @@ export default function AdminBriefsPage() {
               {busy ? "Working..." : "Ready"}
             </span>
           </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <MetricCard label="Total briefs" value={totalBriefs} hint="Brief rows in the current register." />
+            <MetricCard label="Mapped docs" value={mappedDocs} hint="Rows with a linked brief document." />
+            <MetricCard label="Ready" value={readyBriefs} hint="Rows that meet readiness policy." />
+            <MetricCard label="Attention" value={attentionBriefs} hint="Rows blocked or needing intervention." />
+            <MetricCard label="Locked" value={lockedBriefs} hint="Reference-locked briefs in library view." />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">

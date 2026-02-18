@@ -12,6 +12,16 @@ function toneCls(tone: "success" | "error" | "warn"): string {
   return "border-rose-200 bg-rose-50 text-rose-900";
 }
 
+function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="mt-1 text-xl font-semibold text-zinc-900">{value}</div>
+      <div className="mt-1 text-xs text-zinc-600">{hint}</div>
+    </div>
+  );
+}
+
 export default function SpecsAdminPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const admin = useSpecsAdmin();
@@ -42,6 +52,10 @@ export default function SpecsAdminPage() {
 
   const canExtract = !!selectedDoc && !vm.busy && !isLocked;
   const selectedLabel = selectedDoc?.title || "No document selected";
+  const totalDocs = vm.documents.length;
+  const lockedDocs = vm.documents.filter((d: any) => !!d.lockedAt || String(d.status || "").toUpperCase() === "LOCKED").length;
+  const extractedDocs = vm.documents.filter((d: any) => ["EXTRACTED", "REVIEWED", "LOCKED"].includes(String(d.status || "").toUpperCase())).length;
+  const failedDocs = vm.documents.filter((d: any) => String(d.status || "").toUpperCase() === "FAILED").length;
 
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8">
@@ -69,9 +83,9 @@ export default function SpecsAdminPage() {
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Specification Library</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Specifications</h1>
             <p className="mt-2 text-sm text-zinc-700">
-              Upload, extract, and approve unit specifications used as grading reference truth.
+              Manage the specification register used as grading reference truth: upload, extract, review, and lock.
             </p>
           </div>
 
@@ -84,25 +98,26 @@ export default function SpecsAdminPage() {
             >
               Refresh
             </button>
+            <button
+              type="button"
+              onClick={() => setUploadOpen((prev) => !prev)}
+              disabled={admin.uploading}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              {uploadOpen ? "Hide upload" : "Upload specs"}
+            </button>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
               {admin.uploading ? admin.uploadStatus : vm.busy ? `Processing: ${vm.busy}` : "Ready"}
             </span>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Total specifications</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{admin.counts.total}</div>
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Filtered results</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{admin.counts.shown}</div>
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Selected specification</div>
-            <div className="mt-1 truncate text-sm font-semibold text-zinc-900" title={selectedLabel}>{selectedLabel}</div>
-          </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <MetricCard label="Total specs" value={totalDocs} hint="All uploaded specification documents." />
+          <MetricCard label="Extracted" value={extractedDocs} hint="Documents ready for review/locking." />
+          <MetricCard label="Locked" value={lockedDocs} hint="Reference-locked specs in the register." />
+          <MetricCard label="Failed" value={failedDocs} hint="Specs needing extraction recovery." />
+          <MetricCard label="Selected" value={selectedLabel} hint="Current item in workspace context." />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
