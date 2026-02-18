@@ -100,7 +100,7 @@ export default function TopNav() {
                 href={it.href}
                 aria-current={active ? "page" : undefined}
                 className={
-                  "hidden h-9 items-center justify-center border-b-2 px-0 text-sm font-semibold transition sm:inline-flex " +
+                  "hidden h-9 items-center justify-center border-b-2 px-0 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 sm:inline-flex " +
                   (active
                     ? "border-zinc-900 text-zinc-900"
                     : "border-transparent text-zinc-600 hover:border-zinc-300 hover:text-zinc-900")
@@ -114,7 +114,7 @@ export default function TopNav() {
             href="/admin"
             aria-current={isActive(pathname, "/admin") ? "page" : undefined}
             className={
-              "inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition " +
+              "inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 " +
               (isActive(pathname, "/admin")
                 ? accentClasses(activeAdminAccent)
                 : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900")
@@ -133,7 +133,7 @@ export default function TopNav() {
                     href={it.href}
                     aria-current={active ? "page" : undefined}
                     className={
-                      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition " +
+                      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1 " +
                       (active ? accentClasses(it.accent) : "border-transparent text-zinc-600 hover:bg-white hover:text-zinc-900")
                     }
                   >
@@ -157,7 +157,7 @@ export default function TopNav() {
                   href={it.href}
                   aria-current={active ? "page" : undefined}
                   className={
-                    "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
+                    "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1 " +
                     (active ? "bg-sky-50 text-sky-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
                   }
                 >
@@ -173,7 +173,7 @@ export default function TopNav() {
                   href={it.href}
                   aria-current={active ? "page" : undefined}
                   className={
-                    "inline-flex shrink-0 items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold transition " +
+                    "inline-flex shrink-0 items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1 " +
                     (active
                       ? accentClasses(it.accent)
                       : "border-transparent text-zinc-600 hover:bg-white hover:text-zinc-900")
