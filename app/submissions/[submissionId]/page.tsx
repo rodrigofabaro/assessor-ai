@@ -1134,14 +1134,6 @@ export default function SubmissionDetailPage() {
                 : toggleStudentPanel,
             },
             {
-              key: "studentId",
-              label: "Student ID",
-              value: String(coverMeta?.studentId?.value || "Missing"),
-              actionable: !String(coverMeta?.studentId?.value || "").trim(),
-              actionLabel: "Add",
-              onAction: () => openCoverEditorAndFocus("studentId"),
-            },
-            {
               key: "unit",
               label: "Unit",
               value:
@@ -1191,14 +1183,6 @@ export default function SubmissionDetailPage() {
               actionable: true,
               actionLabel: "Open checklist",
               onAction: () => scrollToPanel(workflowPanelRef.current),
-            },
-            {
-              key: "reviewPack",
-              label: "Review pack",
-              value: "Open full summary",
-              actionable: true,
-              actionLabel: "Open",
-              onAction: () => setReviewPackOpen(true),
             },
           ].map((item) => (
             <button
@@ -1303,15 +1287,15 @@ export default function SubmissionDetailPage() {
 
         {/* LEFT: Metadata + extraction */}
         <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
-          <div className="order-1 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="order-1 rounded-2xl border border-zinc-200 bg-white p-2.5 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Quick actions</div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={runExtraction}
                 disabled={busy}
                 className={cx(
-                  "rounded-md px-2.5 py-1 text-xs font-semibold",
+                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
                   busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-blue-700 text-white hover:bg-blue-800"
                 )}
               >
@@ -1320,16 +1304,23 @@ export default function SubmissionDetailPage() {
               <button
                 type="button"
                 onClick={() => setGradingConfigOpen(true)}
-                className="rounded-md bg-teal-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-teal-800"
+                className="h-7 rounded-md bg-teal-700 px-2.5 text-[11px] font-semibold text-white hover:bg-teal-800"
               >
                 Grading config
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewPackOpen(true)}
+                className="h-7 rounded-md bg-violet-700 px-2.5 text-[11px] font-semibold text-white hover:bg-violet-800"
+              >
+                Review pack
               </button>
               <button
                 type="button"
                 onClick={runGrading}
                 disabled={!canRunGrading}
                 className={cx(
-                  "rounded-md px-2.5 py-1 text-xs font-semibold",
+                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
                   canRunGrading ? "bg-indigo-700 text-white hover:bg-indigo-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
               >
@@ -1340,17 +1331,17 @@ export default function SubmissionDetailPage() {
                 onClick={() => void saveCoverMetadata()}
                 disabled={coverEditBusy || !latestRun}
                 className={cx(
-                  "rounded-md px-2.5 py-1 text-xs font-semibold",
+                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
                   coverEditBusy || !latestRun ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-emerald-700 text-white hover:bg-emerald-800"
                 )}
               >
                 Save cover
               </button>
             </div>
-            <label className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-700">
+            <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
               <input
                 type="checkbox"
-                className="h-3.5 w-3.5 rounded border-zinc-300"
+                className="h-3 w-3 rounded border-zinc-300"
                 checked={runGradeWhenReady}
                 onChange={(e) => setRunGradeWhenReady(e.target.checked)}
               />
@@ -1361,21 +1352,24 @@ export default function SubmissionDetailPage() {
           <details
             ref={studentPanelRef}
             id="student-link-panel"
-            className="order-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm"
+            className="group order-3 rounded-2xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("student");
             }}
           >
-            <summary className="cursor-pointer">
+            <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                <span>Student</span>
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
+                  <span className="truncate">Student</span>
+                </span>
                 <span className={cx("rounded-full px-2 py-0.5 text-[10px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                   {checklist.studentLinked ? "Linked" : "Pending"}
                 </span>
               </div>
             </summary>
-            <div className="mt-2 flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 border-t border-zinc-200 px-3 pb-3 pt-2">
               <div>
                 <div className="text-base font-semibold text-zinc-900">
                   {submission?.student?.fullName || "Unlinked"}
@@ -1406,118 +1400,123 @@ export default function SubmissionDetailPage() {
               ) : null}
             </div>
 
-            {!submission?.student ? (
-              <div className="mt-4 grid gap-3">
-                <div>
-                  <div className="text-sm font-semibold">Find existing student</div>
-                  <input
-                    ref={studentSearchInputRef}
-                    value={studentQuery}
-                    onChange={(e) => setStudentQuery(e.target.value)}
-                    placeholder="Search by name, email, AB number…"
-                    className="mt-2 h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
-                  />
-                  <div className="mt-2 max-h-44 overflow-auto rounded-xl border border-zinc-200">
-                    {studentResults.length === 0 ? (
-                      <div className="p-3 text-sm text-zinc-600">No results yet.</div>
-                    ) : (
-                      <div className="divide-y divide-zinc-100">
-                        {studentResults.slice(0, 10).map((st) => (
-                          <label key={st.id} className="flex cursor-pointer items-start gap-3 p-3">
-                            <input
-                              type="radio"
-                              name="student"
-                              className="mt-1"
-                              checked={selectedStudentId === st.id}
-                              onChange={() => setSelectedStudentId(st.id)}
-                            />
-                            <div>
-                              <div className="text-sm font-semibold text-zinc-900">{st.fullName}</div>
-                              <div className="mt-0.5 text-xs text-zinc-600">{[st.email, st.externalRef].filter(Boolean).join(" · ") || "—"}</div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => linkStudent(selectedStudentId)}
-                    disabled={!selectedStudentId || studentBusy}
-                    className={cx(
-                      "mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
-                      !selectedStudentId || studentBusy
-                        ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                        : "bg-zinc-900 text-white hover:bg-zinc-800"
-                    )}
-                  >
-                    Link selected
-                  </button>
-                </div>
-
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <div className="text-sm font-semibold text-zinc-900">Quick create</div>
-                  <div className="mt-2 grid gap-2">
+            <div className="px-3 pb-3">
+              {!submission?.student ? (
+                <div className="mt-3 grid gap-3">
+                  <div>
+                    <div className="text-sm font-semibold">Find existing student</div>
                     <input
-                      value={newStudentName}
-                      onChange={(e) => setNewStudentName(e.target.value)}
-                      placeholder="New student full name"
-                      className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                      ref={studentSearchInputRef}
+                      value={studentQuery}
+                      onChange={(e) => setStudentQuery(e.target.value)}
+                      placeholder="Search by name, email, AB number…"
+                      className="mt-2 h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
                     />
-                    <input
-                      value={newStudentEmail}
-                      onChange={(e) => setNewStudentEmail(e.target.value)}
-                      placeholder="Email (optional)"
-                      className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
-                    />
+                    <div className="mt-2 max-h-44 overflow-auto rounded-xl border border-zinc-200">
+                      {studentResults.length === 0 ? (
+                        <div className="p-3 text-sm text-zinc-600">No results yet.</div>
+                      ) : (
+                        <div className="divide-y divide-zinc-100">
+                          {studentResults.slice(0, 10).map((st) => (
+                            <label key={st.id} className="flex cursor-pointer items-start gap-3 p-3">
+                              <input
+                                type="radio"
+                                name="student"
+                                className="mt-1"
+                                checked={selectedStudentId === st.id}
+                                onChange={() => setSelectedStudentId(st.id)}
+                              />
+                              <div>
+                                <div className="text-sm font-semibold text-zinc-900">{st.fullName}</div>
+                                <div className="mt-0.5 text-xs text-zinc-600">{[st.email, st.externalRef].filter(Boolean).join(" · ") || "—"}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
-                      onClick={createStudentAndLink}
-                      disabled={!newStudentName.trim() || studentBusy}
+                      onClick={() => linkStudent(selectedStudentId)}
+                      disabled={!selectedStudentId || studentBusy}
                       className={cx(
-                        "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
-                        !newStudentName.trim() || studentBusy
+                        "mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
+                        !selectedStudentId || studentBusy
                           ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                          : "bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+                          : "bg-zinc-900 text-white hover:bg-zinc-800"
                       )}
                     >
-                      Create & link
+                      Link selected
                     </button>
                   </div>
-                </div>
-              </div>
-            ) : null}
 
-            {submission?.studentLinkedAt ? (
-              <div className="mt-3 text-xs text-zinc-500">
-                Linked: {safeDate(submission.studentLinkedAt)}{submission.studentLinkedBy ? ` · by ${submission.studentLinkedBy}` : ""}
-              </div>
-            ) : null}
+                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                    <div className="text-sm font-semibold text-zinc-900">Quick create</div>
+                    <div className="mt-2 grid gap-2">
+                      <input
+                        value={newStudentName}
+                        onChange={(e) => setNewStudentName(e.target.value)}
+                        placeholder="New student full name"
+                        className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                      />
+                      <input
+                        value={newStudentEmail}
+                        onChange={(e) => setNewStudentEmail(e.target.value)}
+                        placeholder="Email (optional)"
+                        className="h-10 w-full rounded-xl border border-zinc-300 px-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={createStudentAndLink}
+                        disabled={!newStudentName.trim() || studentBusy}
+                        className={cx(
+                          "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
+                          !newStudentName.trim() || studentBusy
+                            ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                            : "bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+                        )}
+                      >
+                        Create & link
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {submission?.studentLinkedAt ? (
+                <div className="mt-3 text-xs text-zinc-500">
+                  Linked: {safeDate(submission.studentLinkedAt)}{submission.studentLinkedBy ? ` · by ${submission.studentLinkedBy}` : ""}
+                </div>
+              ) : null}
+            </div>
           </details>
 
           <details
             ref={assignmentPanelRef}
-            className="order-2 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm"
+            className="group order-2 rounded-2xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("assignment");
             }}
           >
-            <summary className="cursor-pointer">
+            <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                <span>Assignment</span>
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
+                  <span className="truncate">Assignment</span>
+                </span>
                 <span className={cx("rounded-full px-2 py-0.5 text-[10px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                   {checklist.assignmentLinked ? "Linked" : "Pending"}
                 </span>
               </div>
             </summary>
-            <div className="mt-2 text-base font-semibold text-zinc-900">
+            <div className="border-t border-zinc-200 px-3 pb-3 pt-2 text-base font-semibold text-zinc-900">
               {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
             </div>
-            <div className="mt-0.5 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
+            <div className="px-3 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
 
             {triageInfo?.coverage?.missing?.length ? (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="mx-3 mb-3 mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <div className="text-xs font-semibold uppercase tracking-wide">Reference coverage</div>
                 <div className="mt-2">Missing: {triageInfo.coverage.missing.join(", ")}</div>
               </div>
@@ -1526,26 +1525,23 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={extractionPanelRef}
-            className="order-4 rounded-2xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-4 rounded-2xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("extraction");
             }}
           >
-            <summary className="cursor-pointer border-b border-zinc-200 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Cover extraction</div>
-                  <div className="mt-1 text-sm font-semibold text-zinc-900">
-                    {latestRun ? `Latest run · ${latestRun.engineVersion}` : "Not run yet"}
-                  </div>
-                </div>
-                {latestRun ? (
-                  <div className="text-xs text-zinc-500">
-                    {latestRun.status} · Confidence {Math.round((latestRun.overallConfidence || 0) * 100)}%
-                    {extractionMode ? ` · Mode ${extractionMode}` : ""}
-                  </div>
-                ) : null}
+            <summary className="cursor-pointer list-none border-b border-zinc-200 p-3 [&::-webkit-details-marker]:hidden">
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
+                  <span className="truncate">Cover extraction</span>
+                </span>
+                <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] normal-case text-zinc-700">
+                  {latestRun
+                    ? `${latestRun.status} · ${Math.round((latestRun.overallConfidence || 0) * 100)}%`
+                    : "Not run"}
+                </span>
               </div>
             </summary>
 
@@ -1721,15 +1717,18 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={outputsPanelRef}
-            className="order-5 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+            className="group order-5 rounded-2xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("outputs");
             }}
           >
-            <summary className="cursor-pointer">
+            <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                <span>Audit & outputs</span>
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
+                  <span className="truncate">Audit & outputs</span>
+                </span>
                 <span
                   className={cx(
                     "rounded-full px-2 py-0.5 text-[10px]",
@@ -1740,7 +1739,7 @@ export default function SubmissionDetailPage() {
                 </span>
               </div>
             </summary>
-            <div className="mt-3 grid gap-2 text-sm">
+            <div className="grid gap-2 border-t border-zinc-200 px-3 pb-3 pt-2 text-sm">
               {gradingHistory.length ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
                   <span className="text-xs font-semibold text-zinc-700">Assessment run</span>
