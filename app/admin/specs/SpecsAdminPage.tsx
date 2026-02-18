@@ -56,6 +56,10 @@ export default function SpecsAdminPage() {
   const lockedDocs = vm.documents.filter((d: any) => !!d.lockedAt || String(d.status || "").toUpperCase() === "LOCKED").length;
   const extractedDocs = vm.documents.filter((d: any) => ["EXTRACTED", "REVIEWED", "LOCKED"].includes(String(d.status || "").toUpperCase())).length;
   const failedDocs = vm.documents.filter((d: any) => String(d.status || "").toUpperCase() === "FAILED").length;
+  const needsReviewDocs = vm.documents.filter((d: any) => {
+    const s = String(d.status || "").toUpperCase();
+    return !d.lockedAt && (s === "EXTRACTED" || s === "REVIEWED");
+  }).length;
 
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8">
@@ -106,6 +110,15 @@ export default function SpecsAdminPage() {
             >
               {uploadOpen ? "Hide upload" : "Upload specs"}
             </button>
+            <button
+              type="button"
+              onClick={vm.extractSelected}
+              disabled={!canExtract}
+              title={!vm.selectedDoc ? "Select a specification first." : isLocked ? "Selected specification is locked." : ""}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              Extract selected
+            </button>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
               {admin.uploading ? admin.uploadStatus : vm.busy ? `Processing: ${vm.busy}` : "Ready"}
             </span>
@@ -115,9 +128,9 @@ export default function SpecsAdminPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Total specs" value={totalDocs} hint="All uploaded specification documents." />
           <MetricCard label="Extracted" value={extractedDocs} hint="Documents ready for review/locking." />
+          <MetricCard label="Needs review" value={needsReviewDocs} hint="Extracted/reviewed specs not yet locked." />
           <MetricCard label="Locked" value={lockedDocs} hint="Reference-locked specs in the register." />
           <MetricCard label="Failed" value={failedDocs} hint="Specs needing extraction recovery." />
-          <MetricCard label="Selected" value={selectedLabel} hint="Current item in workspace context." />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
