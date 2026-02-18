@@ -243,6 +243,16 @@ export default function SubmissionDetailPage() {
       feedbackGenerated &&
       markedPdfGenerated;
 
+    const items = [
+      { key: "student", label: "Student linked", ok: studentLinked, hint: "Link or create student profile." },
+      { key: "assignment", label: "Assignment linked", ok: assignmentLinked, hint: "Confirm brief/spec binding." },
+      { key: "extraction", label: "Extraction complete", ok: extractionComplete, hint: "Run extraction and review warnings." },
+      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Run grading." },
+      { key: "feedback", label: "Feedback generated", ok: feedbackGenerated, hint: "Ensure feedback text is present." },
+      { key: "marked", label: "Marked PDF", ok: markedPdfGenerated, hint: "Generate marked PDF from grading run." },
+    ];
+    const firstPending = items.find((i) => !i.ok);
+
     return {
       studentLinked,
       assignmentLinked,
@@ -251,6 +261,9 @@ export default function SubmissionDetailPage() {
       feedbackGenerated,
       markedPdfGenerated,
       readyToUpload,
+      items,
+      pendingCount: items.filter((i) => !i.ok).length,
+      nextBlockingAction: firstPending ? `${firstPending.label}: ${firstPending.hint}` : "Ready to upload to Totara.",
     };
   }, [submission, latestRun, latestAssessment]);
 
@@ -625,24 +638,34 @@ export default function SubmissionDetailPage() {
       )}
 
       <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
-            Submission {submission?.id?.slice(0, 8) || "—"}
-          </span>
-          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
-            Uploaded {safeDate(submission?.uploadedAt)}
-          </span>
-          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
-            Status {submission?.status || "—"}
-          </span>
-          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
-            Next {nextAction(String(submission?.status || ""))}
-          </span>
-          {latestAssessment?.overallGrade ? (
-            <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
-              Grade {latestAssessment.overallGrade}
-            </span>
-          ) : null}
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { label: "Student", value: submission?.student?.fullName || triageInfo?.studentName || "Unlinked" },
+            {
+              label: "Unit",
+              value:
+                submission?.assignment?.unitCode ||
+                triageInfo?.unitCode ||
+                String(coverMeta?.unitCode?.value || "—"),
+            },
+            {
+              label: "Assignment",
+              value:
+                submission?.assignment?.assignmentRef ||
+                triageInfo?.assignmentRef ||
+                String(coverMeta?.assignmentCode?.value || "—"),
+            },
+            { label: "Grade", value: latestAssessment?.overallGrade || "Pending" },
+            { label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—") },
+            { label: "Uploaded", value: safeDate(submission?.uploadedAt) },
+            { label: "Graded when", value: safeDate(latestAssessment?.createdAt) },
+            { label: "Status", value: submission?.status || "—" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{item.label}</div>
+              <div className="mt-1 text-sm font-semibold text-zinc-900">{item.value}</div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -679,7 +702,7 @@ export default function SubmissionDetailPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-semibold text-zinc-500">Totara upload checklist</div>
-                <div className="mt-1 text-sm text-zinc-600">Quick sanity check before you upload results back.</div>
+                <div className="mt-1 text-sm text-zinc-600">Smart readiness check with next blocking action.</div>
               </div>
               {checklist.readyToUpload ? (
                 <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900">
@@ -687,55 +710,32 @@ export default function SubmissionDetailPage() {
                 </span>
               ) : (
                 <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900">
-                  In progress
+                  {checklist.pendingCount} pending
                 </span>
               )}
             </div>
 
             <ul className="mt-3 space-y-2 text-sm">
-              <li className="flex items-center justify-between gap-3">
-                <span className="text-zinc-700">Student linked</span>
-                <span className={cx("font-semibold", checklist.studentLinked ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.studentLinked ? "Yes" : "No"}
-                </span>
-              </li>
-              <li className="flex items-center justify-between gap-3">
-                <span className="text-zinc-700">Assignment linked</span>
-                <span className={cx("font-semibold", checklist.assignmentLinked ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.assignmentLinked ? "Yes" : "No"}
-                </span>
-              </li>
-              <li className="flex items-center justify-between gap-3">
-                <span className="text-zinc-700">Extraction complete</span>
-                <span className={cx("font-semibold", checklist.extractionComplete ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.extractionComplete ? "Yes" : "No"}
-                </span>
-              </li>
-              <li className="flex items-center justify-between gap-3">
-                <span className="text-zinc-700">Grade generated</span>
-                <span className={cx("font-semibold", checklist.gradeGenerated ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.gradeGenerated ? (latestAssessment?.overallGrade || "Yes") : "No"}
-                </span>
-              </li>
-              <li className="flex items-center justify-between gap-3">
-                <span className="text-zinc-700">Feedback generated</span>
-                <span className={cx("font-semibold", checklist.feedbackGenerated ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.feedbackGenerated ? "Yes" : "No"}
-                </span>
-              </li>
-              <li className="flex items-center justify-between gap-3">
-                <span className="text-zinc-700">Marked PDF</span>
-                <span className={cx("font-semibold", checklist.markedPdfGenerated ? "text-emerald-700" : "text-zinc-400")}>
-                  {checklist.markedPdfGenerated ? "Yes" : "No"}
-                </span>
-              </li>
+              {checklist.items.map((item) => (
+                <li key={item.key} className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-700">{item.label}</span>
+                  <span className={cx("font-semibold", item.ok ? "text-emerald-700" : "text-amber-700")}>
+                    {item.ok ? "OK" : "Pending"}
+                  </span>
+                </li>
+              ))}
             </ul>
 
-            {!checklist.readyToUpload ? (
-              <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
-                Tip: export is enabled only when student/assignment, extraction, grade, feedback, and marked PDF are all present.
-              </div>
-            ) : null}
+            <div
+              className={cx(
+                "mt-3 rounded-xl border p-3 text-xs",
+                checklist.readyToUpload
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  : "border-amber-200 bg-amber-50 text-amber-900"
+              )}
+            >
+              {checklist.nextBlockingAction}
+            </div>
           </div>
 
           <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
