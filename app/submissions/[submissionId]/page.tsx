@@ -627,36 +627,25 @@ export default function SubmissionDetailPage() {
         </div>
       )}
 
-      <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Student</div>
-          <div className="mt-1 text-sm font-semibold text-zinc-900">
-            {submission?.student?.fullName || "Unlinked"}
-          </div>
-          <div className="mt-1 text-xs text-zinc-600">{submission?.student?.email || "No email"}</div>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Assignment</div>
-          <div className="mt-1 text-sm font-semibold text-zinc-900">
-            {submission?.assignment
-              ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim()
-              : "Unassigned"}
-          </div>
-          <div className="mt-1 text-xs text-zinc-600">{submission?.assignment?.title || "No assignment linked"}</div>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Extraction</div>
-          <div className="mt-1 text-sm font-semibold text-zinc-900">{latestRun?.status || "Not started"}</div>
-          <div className="mt-1 text-xs text-zinc-600">
-            {latestRun ? `Confidence ${Math.round((latestRun.overallConfidence || 0) * 100)}%` : "Run extraction to continue"}
-          </div>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Grade</div>
-          <div className="mt-1 text-sm font-semibold text-zinc-900">{latestAssessment?.overallGrade || "Pending"}</div>
-          <div className="mt-1 text-xs text-zinc-600">
-            {latestAssessment?.annotatedPdfPath ? "Marked PDF available" : "No marked PDF yet"}
-          </div>
+      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
+            Submission {submission?.id?.slice(0, 8) || "—"}
+          </span>
+          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
+            Uploaded {safeDate(submission?.uploadedAt)}
+          </span>
+          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
+            Status {submission?.status || "—"}
+          </span>
+          <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-semibold text-zinc-700">
+            Next {nextAction(String(submission?.status || ""))}
+          </span>
+          {latestAssessment?.overallGrade ? (
+            <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 font-semibold text-sky-800">
+              Grade {latestAssessment.overallGrade}
+            </span>
+          ) : null}
         </div>
       </section>
 
@@ -667,9 +656,9 @@ export default function SubmissionDetailPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-4">
               <div className="flex items-center gap-3">
                 <StatusPill>{submission?.status || "—"}</StatusPill>
-                <div className="text-sm text-zinc-600">Next action: <span className="font-semibold text-zinc-900">{nextAction(String(submission?.status || ""))}</span></div>
+                <div className="text-sm text-zinc-600">Submission document preview</div>
               </div>
-              <div className="text-xs text-zinc-500">Uploaded: {safeDate(submission?.uploadedAt)}</div>
+              <div className="text-xs text-zinc-500">Source PDF</div>
             </div>
 
             <div className="aspect-[4/3] w-full bg-zinc-50">
