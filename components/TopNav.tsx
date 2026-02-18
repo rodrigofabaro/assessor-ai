@@ -124,7 +124,7 @@ export default function TopNav() {
           </Link>
 
           {isAdminRoute ? (
-            <nav aria-label="Admin sections" className="hidden max-w-[56vw] items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
+            <nav aria-label="Admin sections" className="hidden max-w-[56vw] items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex xl:max-w-none xl:overflow-visible">
               {ADMIN_ITEMS.map((it) => {
                 const active = isAdminItemActive(pathname, it.href);
                 return (
