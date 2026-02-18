@@ -351,7 +351,7 @@ export default function AdminSettingsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={load}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               disabled={loading}
             >
               {loading ? "Refreshing..." : "Refresh"}
@@ -825,7 +825,7 @@ export default function AdminSettingsPage() {
             </button>
             <Link
               href="/admin/users"
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-700 px-4 text-sm font-semibold text-white hover:bg-slate-800"
             >
               Manage users
             </Link>
