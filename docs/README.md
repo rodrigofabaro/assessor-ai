@@ -16,6 +16,7 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you operate Phase 1 grading flow: **`operations/phase1-submission-grading-runbook.md`**
 - If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
 - If you’re enabling local-first AI with fallback: **`operations/hybrid-ai-local-runbook.md`**
+- If you need route-by-route operator help content: **`help/README.md`**
 - Roadmap tracker: **`Milestones.md`**
 
 ## Quick start (local)
@@ -35,6 +36,26 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If port 3000 is already in use, Next.js will choose another port (for example `http://localhost:3001`).
 
 ## Recent updates
+
+### 2026-02-18
+
+- Submission detail and grading UX finalization:
+  - compact left rail with collapsed-by-default operational cards
+  - top blocker strip + single primary run action
+  - outputs-first workflow after grading (auto-opens `Audit & outputs`)
+  - copy actions for feedback and criterion decisions
+- Marked PDF upgrades:
+  - overall grading summary moved to final page
+  - constructive note overlays mapped to evidence pages from criterion decisions
+  - note pages visible in PDF header via clickable page chips
+- Admin grading settings extended:
+  - page-note controls: enable flag, tone, max pages, max notes/page, include criterion-code flag
+  - tone preview panel for note styles
+- Audit/output defensibility improvements:
+  - feedback edits log enhanced in admin audit feed (`FEEDBACK_EDITED`)
+  - page-note payload/config are stored in assessment result JSON for reproducibility
+- Assessor identity policy:
+  - assessor is always current active audit user; submission UI no longer allows manual assessor override
 
 ### 2026-02-17
 

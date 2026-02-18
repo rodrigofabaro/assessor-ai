@@ -1,11 +1,15 @@
 # Stable App Baseline
 
 - Branch: main
-- Baseline merge commit: 2ac97a0
-- Purpose: marks a stable merged state after UI/UX, docs, and OpenAI reliability improvements.
+- Baseline merge commit: 921a901
+- Purpose: marks a stable merged state after submission workspace hardening, editable audit outputs, and evidence-mapped marked PDF notes.
 
 ## Included areas
-- Admin and student/submission UX updates
-- OpenAI client hardening (timeouts/retries/key resolution)
-- Documentation cleanup and operations notes
+- Submission detail UX upgrades (compact rail, blocker strip, run history, diff view)
+- Editable audit feedback with marked-PDF regeneration
+- Marked PDF overlays:
+  - overall summary on last page
+  - page-level constructive notes from criterion evidence mapping
+- Admin grading controls for feedback template + page-note behavior
+- Audit timeline enrichment (`FEEDBACK_EDITED`) and reproducibility metadata
 

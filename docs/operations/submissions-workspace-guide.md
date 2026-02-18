@@ -1,6 +1,6 @@
 # Submissions Workspace Guide (`/submissions`)
 
-Date: 2026-02-16  
+Date: 2026-02-18  
 Route: `/submissions`
 
 ## Phase 1 Operating Mode (Current)
@@ -62,6 +62,39 @@ This page is designed as the "queue board" between upload and final marked outpu
 - Searches student records
 - Links selected student to submission
 
+## Submission Detail Workspace (`/submissions/[submissionId]`)
+
+Current operating layout:
+
+1. Top blocker strip
+- readiness chip (`Ready to upload` or pending count)
+- next blocking action text
+- `Fix next blocker` shortcut
+- assessor-source chip (active audit user)
+
+2. Compact info grid
+- student, unit, assignment, submission date, grade, graded by, uploaded, graded when, status
+- click-to-action for missing/linked operational fields
+
+3. PDF workspace
+- toggle between source PDF and marked PDF
+- viewport modes
+- note-page chips (when page-note overlays exist) for fast jump to marked pages
+
+4. Left operations rail (collapsed by default)
+- quick actions
+- assignment
+- student
+- cover extraction
+- audit & outputs
+
+5. Audit & outputs
+- assessment-run selector/history
+- feedback editor (regenerates marked PDF)
+- criterion decisions
+- page feedback map (page-numbered small notes)
+- run-to-run diff summary
+
 ## Operational Flow (How To Use)
 
 1. Upload files via `/upload` or `Upload` button.
@@ -76,6 +109,7 @@ This page is designed as the "queue board" between upload and final marked outpu
 - Short/missing body text is expected in `COVER_ONLY` mode and should not be treated as automatic failure.
 - Triage now uses latest extraction run `sourceMeta.coverMetadata` before falling back to filename-only heuristics.
 - If linking fails, operator action is still required (manual resolve), but false negatives are reduced.
+- Cover extraction panel is now operationally compact; full page text preview is optional/expandable.
 
 ## Strengths
 
@@ -85,6 +119,8 @@ This page is designed as the "queue board" between upload and final marked outpu
 - Batch actions reduce repetitive grading clicks.
 - Derived readiness checks prevent premature export actions.
 - Backend returns latest assessment summary fields directly (`grade`, `feedback`, `markedPdfPath`).
+- Submission detail now supports low-friction post-grade iteration (feedback edit + regenerate without regrade).
+- Page-note navigation and page feedback map improve explainability for student-facing review.
 
 ## Flaws / Gaps
 
@@ -95,6 +131,7 @@ This page is designed as the "queue board" between upload and final marked outpu
 - Batch grade controls are broad; no "safe auto-run policy" presets.
 - Limited exception workflows for `NEEDS_OCR` and assignment mismatch handling.
 - Copy-summary is useful but still a manual export handoff.
+- `/submissions` queue page and `/submissions/[submissionId]` detail page still rely on refresh/polling patterns (no live event stream).
 
 ## Recommended UI Improvements For A More Automated Version
 

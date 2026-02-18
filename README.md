@@ -39,6 +39,8 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Extraction integrity test: `pnpm run test:extraction-integrity`
 - Brief readiness test: `pnpm run test:brief-readiness`
 - Draft artifact integrity test: `node scripts/draft-integrity.test.js`
+- Marked PDF URL test: `node scripts/marked-pdf-url.test.js`
+- Page notes logic test: `node scripts/page-notes.test.js`
 
 ## Current behavior notes (briefs)
 
@@ -57,3 +59,13 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Grading auto-starts after extraction/triage when submission linking is complete.
 - Cover metadata can be edited in submission detail without blocking grading.
 - Feedback summary uses student first name and updates on re-grade after name corrections.
+- Marked PDF behavior:
+  - overall feedback summary is rendered on the last page
+  - constructive page notes are rendered on evidence-linked pages
+  - page note behavior is admin-configurable (enable/tone/limits/code flag)
+- Assessor identity:
+  - assessor is always the active current audit user (not manually editable in submission view)
+- Submission detail (`/submissions/[submissionId]`) now includes:
+  - compact top blocker strip + primary run action
+  - editable audit feedback with marked-PDF regenerate path
+  - assessment run history, page feedback map, and run-to-run diffs

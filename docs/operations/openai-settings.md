@@ -66,6 +66,27 @@ These are runtime env controls used by grading:
 
 In Phase 1 cover-only mode, page samples are the primary grounding context and body text is secondary.
 
+## Grading Config Controls (admin UI)
+
+In `/admin/settings` -> `Grading`, operators can configure:
+
+- core grading defaults:
+  - tone
+  - strictness
+  - rubric usage flag
+  - feedback bullet cap
+  - feedback template
+- page-note overlay defaults for marked PDFs:
+  - enable/disable page notes
+  - page-note tone
+  - max pages with notes
+  - max notes per page
+  - include criterion code flag
+
+These settings are persisted via:
+- `GET /api/admin/grading-config`
+- `PUT /api/admin/grading-config`
+
 ## Required scopes and common permission errors
 
 1. Org usage/cost endpoints
@@ -90,3 +111,5 @@ In Phase 1 cover-only mode, page samples are the primary grounding context and b
 - Historical usage table
 - Endpoint diagnostics
 - Agent model dropdown
+- Grading defaults and feedback template controls
+- Page-note overlay controls + tone preview

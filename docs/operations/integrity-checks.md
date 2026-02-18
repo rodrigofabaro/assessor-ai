@@ -22,6 +22,8 @@ Assessor‑AI treats these as “health gates”, not optional suggestions.
   - `node scripts/extraction-readiness.test.js`
   - `node scripts/tasks-tab.logic.test.js`
   - `node scripts/draft-integrity.test.js`
+  - `node scripts/marked-pdf-url.test.js`
+  - `node scripts/page-notes.test.js`
 
 4) Build gate
 - `pnpm run build`

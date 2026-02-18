@@ -1,6 +1,6 @@
 # Phase 1 Submission Grading Runbook
 
-Date: 2026-02-17  
+Date: 2026-02-18  
 Scope: Cover extraction + direct document grading (no full body reconstruction)
 
 ## Purpose
@@ -26,6 +26,20 @@ Set in `.env`:
 Optional override:
 
 - Set `SUBMISSION_EXTRACT_COVER_ONLY=false` only for exceptional troubleshooting.
+
+## Required Admin Settings (Grading)
+
+In `/admin/settings` -> `Grading`:
+
+- feedback template must include:
+  - `{overallGrade}`
+  - `{feedbackBullets}`
+- page-note controls:
+  - enable/disable page notes
+  - note tone (`supportive`, `professional`, `strict`)
+  - max pages with notes
+  - max notes per page
+  - include criterion code flag
 
 ## Grade Vocabulary (Pearson HN)
 
@@ -55,6 +69,9 @@ Only these overall grades are valid:
 8. Validate output:
 - criterion decisions include page-linked evidence
 - overall grade is from allowed vocabulary
+ - marked PDF includes:
+   - overall summary on final page
+   - constructive notes only on mapped evidence pages (when enabled)
 9. Lock/continue workflow only after evidence + grade are coherent.
 
 ## Warning Handling Matrix
@@ -75,6 +92,10 @@ Only these overall grades are valid:
 - Action: update fields directly in submission detail and save.
 - System re-runs grading automatically to refresh personalized feedback (first-name greeting).
 
+`page note mismatch`
+- Action: use `Regenerate with current settings` in `Audit & outputs`.
+- This rebuilds the marked PDF without re-running AI grading.
+
 `assignment binding missing`
 - Action: block grading until linked to locked brief/spec.
 
@@ -87,6 +108,7 @@ Only these overall grades are valid:
 - Do not promote confidence purely from heuristics.
 - Do not treat extraction confidence alone as grading validity.
 - If warnings remain visible, either resolve them or classify as non-actionable with rationale.
+- Assessor identity is from active audit user (system policy), not manual entry in submission detail.
 
 ## Audit Checklist (Before Finalization)
 

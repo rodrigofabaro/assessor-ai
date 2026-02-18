@@ -72,7 +72,7 @@ Status labels:
 
 ---
 
-## 🔜 M5 — Grading engine v1 (Explainable JSON)
+## 🟨 M5 — Grading engine v1 (Explainable JSON)
 **Outcome**
 - Strict per‑criterion decisions with evidence pointers
 - Overall word grade calculated from criteria
@@ -84,9 +84,14 @@ Status labels:
   - store model + prompt version
   - store evidence mapping to pages/snippets
 
+**Current state (2026-02-18)**
+- Structured grading JSON is live in submission assessments.
+- Evidence-linked criterion decisions are rendered in `Audit & outputs`.
+- Grade vocabulary is constrained to Pearson HN path.
+
 ---
 
-## 🔜 M6 — Marked PDF generator
+## 🟨 M6 — Marked PDF generator
 **Outcome**
 - Annotated PDF linked to criteria decisions
 - Original layout preserved
@@ -94,6 +99,12 @@ Status labels:
 **Acceptance**
 - Downloadable marked PDF attached to submission record
 - Annotation log stored for audit
+
+**Current state (2026-02-18)**
+- Marked PDF generation is live in grading/rebuild flows.
+- Overall summary is placed on final page.
+- Constructive page notes are mapped from criterion evidence pages.
+- Note payload/config are stored in assessment JSON for audit replay.
 
 ---
 
