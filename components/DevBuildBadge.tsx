@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type BuildInfo = {
   branch: string;
@@ -38,6 +39,14 @@ type BuildInfo = {
     visionModel: string;
     modelCount?: number;
   };
+  diagnostics: {
+    pollHintMs: number;
+    recentErrors: Array<{
+      ts: number;
+      source: string;
+      message: string;
+    }>;
+  };
   timestamp: number;
 };
 
@@ -56,16 +65,26 @@ export default function DevBuildBadge() {
   const [offline, setOffline] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [position, setPosition] = useState<"right" | "left">("right");
+  const [clickThrough, setClickThrough] = useState(false);
+  const [copyMsg, setCopyMsg] = useState("");
 
   const MIN_KEY = "assessor.devBadge.minimized";
   const EXP_KEY = "assessor.devBadge.expanded";
+  const POS_KEY = "assessor.devBadge.position";
+  const CLICK_KEY = "assessor.devBadge.clickThrough";
+  const AUTO_MIN_IDLE_MS = 3 * 60 * 1000;
 
   useEffect(() => {
     try {
       const m = window.localStorage.getItem(MIN_KEY);
       const e = window.localStorage.getItem(EXP_KEY);
+      const p = window.localStorage.getItem(POS_KEY);
+      const c = window.localStorage.getItem(CLICK_KEY);
       if (m === "1") setMinimized(true);
       if (e === "1") setExpanded(true);
+      if (p === "left" || p === "right") setPosition(p);
+      if (c === "1") setClickThrough(true);
     } catch {}
   }, []);
 
@@ -82,12 +101,24 @@ export default function DevBuildBadge() {
   }, [expanded]);
 
   useEffect(() => {
-    let cancelled = false;
-    let intervalId: number | null = null;
+    try {
+      window.localStorage.setItem(POS_KEY, position);
+    } catch {}
+  }, [position]);
 
-    const POLL_MS = 15000;
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CLICK_KEY, clickThrough ? "1" : "0");
+    } catch {}
+  }, [clickThrough]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timerId: number | null = null;
+    let failBackoffMs = 0;
 
     const fetchBuildInfo = async () => {
+      let nextHintMs = 15000;
       try {
         const res = await fetch("/api/dev/build-info", { cache: "no-store" });
         if (!res.ok) throw new Error("build-info unavailable");
@@ -96,41 +127,39 @@ export default function DevBuildBadge() {
           if (!isBuildInfo(json)) {
             setData(null);
             setApiError(json.error || "unknown error");
+            failBackoffMs = Math.min(failBackoffMs ? failBackoffMs * 2 : 20000, 90000);
           } else {
             setData(json);
             setApiError(null);
+            failBackoffMs = 0;
+            nextHintMs = Math.max(5000, Number(json.diagnostics?.pollHintMs || 15000));
           }
           setOffline(false);
         }
       } catch {
         if (!cancelled) setOffline(true);
+        failBackoffMs = Math.min(failBackoffMs ? failBackoffMs * 2 : 20000, 90000);
+      } finally {
+        if (cancelled) return;
+        const hiddenHint = document.hidden ? 60000 : 0;
+        const nextMs = Math.max(failBackoffMs || nextHintMs, hiddenHint || 0, 5000);
+        if (timerId !== null) window.clearTimeout(timerId);
+        timerId = window.setTimeout(fetchBuildInfo, nextMs);
       }
-    };
-
-    const startPolling = () => {
-      if (intervalId !== null) window.clearInterval(intervalId);
-      fetchBuildInfo();
-      intervalId = window.setInterval(fetchBuildInfo, POLL_MS);
     };
 
     const onVisibilityChange = () => {
-      // Skip polling in hidden tabs to avoid redundant git work.
-      if (document.hidden) {
-        if (intervalId !== null) {
-          window.clearInterval(intervalId);
-          intervalId = null;
-        }
-        return;
-      }
-      startPolling();
+      if (document.hidden) return;
+      if (timerId !== null) window.clearTimeout(timerId);
+      timerId = window.setTimeout(fetchBuildInfo, 1000);
     };
 
-    startPolling();
+    fetchBuildInfo();
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       cancelled = true;
-      if (intervalId !== null) window.clearInterval(intervalId);
+      if (timerId !== null) window.clearTimeout(timerId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
@@ -143,6 +172,8 @@ export default function DevBuildBadge() {
   const statusTone = isAttention ? "text-amber-300" : activeWorkCount > 0 ? "text-emerald-300" : "text-sky-300";
   const statusDot = isAttention ? "bg-amber-400" : activeWorkCount > 0 ? "bg-emerald-400" : "bg-sky-400";
   const statusLabel = offline || apiError ? "attention" : activeWorkCount > 0 ? "processing" : "idle";
+  const statusFlag = offline || apiError ? "[!]" : activeWorkCount > 0 ? "[~]" : "[OK]";
+  const dockClass = position === "right" ? "right-3" : "left-3";
 
   function formatUptime(totalSec: number) {
     const hours = Math.floor(totalSec / 3600);
@@ -150,25 +181,63 @@ export default function DevBuildBadge() {
     return `${hours}h ${mins}m`;
   }
 
+  useEffect(() => {
+    if (minimized) return;
+    if (!data) return;
+    if (isAttention) return;
+    if (activeWorkCount > 0) return;
+    const t = window.setTimeout(() => setMinimized(true), AUTO_MIN_IDLE_MS);
+    return () => window.clearTimeout(t);
+  }, [AUTO_MIN_IDLE_MS, activeWorkCount, data, isAttention, minimized]);
+
+  useEffect(() => {
+    if (!copyMsg) return;
+    const t = window.setTimeout(() => setCopyMsg(""), 1400);
+    return () => window.clearTimeout(t);
+  }, [copyMsg]);
+
+  async function copyDiagnostics() {
+    if (!data) return;
+    const lines = [
+      `status=${statusLabel}`,
+      `branch=${data.branch}`,
+      `commit=${data.commit}`,
+      `dirty=${data.dirty}`,
+      `queue=runs:${data.queue.extractionRunsRunning},extract:${data.queue.submissionsExtracting},assess:${data.queue.submissionsAssessing},failed:${data.queue.submissionsFailed}`,
+      `localAi=enabled:${data.localAi.enabled},reachable:${data.localAi.reachable},status:${data.localAi.status},base:${data.localAi.baseUrl}`,
+      `aiMode=global:${data.aiModes.global},cleanup:${data.aiModes.cleanup},ocr:${data.aiModes.ocr},equation:${data.aiModes.equation},graph:${data.aiModes.graph}`,
+      `updated=${new Date(data.timestamp).toISOString()}`,
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopyMsg("Copied");
+    } catch {
+      setCopyMsg("Copy failed");
+    }
+  }
+
   if (minimized) {
     return (
       <button
         type="button"
         onClick={() => setMinimized(false)}
-        className="fixed bottom-3 right-3 z-[1000] inline-flex h-8 items-center gap-2 rounded-full border border-zinc-700/70 bg-zinc-950/58 px-2.5 text-[11px] font-semibold text-zinc-100 shadow-sm backdrop-blur hover:bg-zinc-900/70"
+        className={`fixed bottom-3 ${dockClass} z-[1000] pointer-events-auto inline-flex h-8 items-center gap-2 rounded-full border border-zinc-700/70 bg-zinc-950/58 px-2.5 text-[11px] font-semibold text-zinc-100 shadow-sm backdrop-blur hover:bg-zinc-900/70`}
         title="Show developer status"
       >
         <span className={`h-2 w-2 rounded-full ${statusDot}`} />
-        Dev
+        {statusFlag} Dev
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-3 right-3 z-[1000] w-[240px] max-w-[calc(100vw-24px)] rounded-xl border border-zinc-700/70 bg-zinc-950/62 p-1.5 text-[11px] leading-4 text-zinc-100 shadow-sm backdrop-blur">
+    <div className={`fixed bottom-3 ${dockClass} z-[1000] ${clickThrough ? "pointer-events-none" : "pointer-events-auto"}`}>
+      <div className="w-[240px] max-w-[calc(100vw-24px)] rounded-xl border border-zinc-700/70 bg-zinc-950/62 p-1.5 text-[11px] leading-4 text-zinc-100 shadow-sm backdrop-blur">
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 rounded-full ${statusDot}`} />
-        <div className="truncate text-xs font-semibold uppercase tracking-wide text-zinc-200">Dev Runtime</div>
+        <div className="truncate text-xs font-semibold uppercase tracking-wide text-zinc-200">
+          {statusFlag} Dev Runtime
+        </div>
         <div className={`ml-auto text-[10px] font-semibold uppercase tracking-wide ${statusTone}`}>{statusLabel}</div>
       </div>
 
@@ -197,13 +266,36 @@ export default function DevBuildBadge() {
         <div className="mt-1 text-zinc-300">Loading status...</div>
       )}
 
-      <div className="mt-1 flex items-center justify-end gap-1">
+      <div className="mt-1 flex flex-wrap items-center justify-end gap-1 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => setPosition((v) => (v === "right" ? "left" : "right"))}
+          className="inline-flex h-6 items-center rounded-md border border-zinc-700 px-2 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+          title="Toggle badge side"
+        >
+          {position === "right" ? "Left" : "Right"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setClickThrough((v) => !v)}
+          className="inline-flex h-6 items-center rounded-md border border-zinc-700 px-2 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+          title="Pass clicks through info area"
+        >
+          {clickThrough ? "Interactive" : "Pass-through"}
+        </button>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className="inline-flex h-6 items-center rounded-md border border-zinc-700 px-2 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
         >
           {expanded ? "Less" : "More"}
+        </button>
+        <button
+          type="button"
+          onClick={copyDiagnostics}
+          className="inline-flex h-6 items-center rounded-md border border-zinc-700 px-2 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+        >
+          {copyMsg || "Copy"}
         </button>
         <button
           type="button"
@@ -242,13 +334,32 @@ export default function DevBuildBadge() {
             <div className="text-[10px] uppercase tracking-wide text-zinc-400">Git</div>
             <div className="text-zinc-200">{data.dirty ? `dirty (${data.changedFilesCount})` : "clean"}</div>
           </div>
+          {data.diagnostics?.recentErrors?.length ? (
+            <div className="rounded-md border border-zinc-700 bg-zinc-900/70 px-2 py-1">
+              <div className="text-[10px] uppercase tracking-wide text-zinc-400">Recent Errors</div>
+              <div className="mt-1 grid gap-1">
+                {data.diagnostics.recentErrors.slice(0, 3).map((e, idx) => (
+                  <div key={`${e.ts}-${idx}`} className="text-[10px] text-zinc-300">
+                    [{new Date(e.ts).toLocaleTimeString()}] {e.source}: {e.message}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {data.dirty && data.changedFiles.length > 0 ? (
             <div className="max-h-16 overflow-auto whitespace-pre-wrap break-words rounded-md border border-zinc-700 bg-zinc-900/70 px-2 py-1 font-mono text-[10px] text-zinc-300">
               {data.changedFiles.join("\n")}
             </div>
           ) : null}
+          <Link
+            href="/admin/settings#ai-usage"
+            className="pointer-events-auto inline-flex h-6 items-center justify-center rounded-md border border-zinc-700 px-2 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+          >
+            Open full diagnostics
+          </Link>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

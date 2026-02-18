@@ -40,6 +40,12 @@ type QueueInfo = {
   submissionsFailed: number;
 };
 
+type DevDiagError = {
+  ts: number;
+  source: string;
+  message: string;
+};
+
 type BuildInfoPayload = {
   branch: string;
   commit: string;
@@ -50,10 +56,16 @@ type BuildInfoPayload = {
   queue: QueueInfo;
   aiModes: AiModes;
   localAi: LocalAiHealth;
+  diagnostics: {
+    pollHintMs: number;
+    recentErrors: DevDiagError[];
+  };
   timestamp: number;
 };
 
 let cachedBuildInfo: BuildInfoPayload | null = null;
+const RECENT_ERROR_LIMIT = 10;
+const recentErrors: DevDiagError[] = [];
 
 function runGit(args: string[]): string {
   return execFileSync("git", args, {
@@ -61,6 +73,15 @@ function runGit(args: string[]): string {
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
   }).trim();
+}
+
+function pushDiagError(source: string, message: string) {
+  recentErrors.unshift({
+    ts: Date.now(),
+    source,
+    message: String(message || "unknown error"),
+  });
+  if (recentErrors.length > RECENT_ERROR_LIMIT) recentErrors.length = RECENT_ERROR_LIMIT;
 }
 
 function parseBool(value: string | undefined, fallback: boolean) {
@@ -136,6 +157,7 @@ async function probeLocalAi(enabled: boolean): Promise<LocalAiHealth> {
     };
   } catch (e: any) {
     const aborted = e?.name === "AbortError";
+    pushDiagError("local-ai", aborted ? "Probe timed out." : String(e?.message || "Probe failed."));
     return {
       enabled,
       baseUrl,
@@ -148,6 +170,15 @@ async function probeLocalAi(enabled: boolean): Promise<LocalAiHealth> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function computePollHintMs(queue: QueueInfo, localAi: LocalAiHealth): number {
+  const active =
+    queue.extractionRunsRunning + queue.submissionsExtracting + queue.submissionsAssessing;
+  if (active > 0) return 8000;
+  if (queue.submissionsFailed > 0) return 10000;
+  if (localAi.enabled && !localAi.reachable) return 12000;
+  return 25000;
 }
 
 export async function GET() {
@@ -185,6 +216,10 @@ export async function GET() {
       })(),
     ]);
 
+    if (localAi.enabled && !localAi.reachable) {
+      pushDiagError("local-ai", `${localAi.message} (${localAi.status || 0})`);
+    }
+
     const payload: BuildInfoPayload = {
       branch,
       commit,
@@ -200,6 +235,10 @@ export async function GET() {
       queue,
       aiModes: buildAiModes(),
       localAi,
+      diagnostics: {
+        pollHintMs: computePollHintMs(queue, localAi),
+        recentErrors: recentErrors.slice(0, 6),
+      },
       timestamp: now,
     };
     cachedBuildInfo = payload;
@@ -214,6 +253,7 @@ export async function GET() {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
+    pushDiagError("build-info", message);
     return NextResponse.json(
       {
         ok: false,
