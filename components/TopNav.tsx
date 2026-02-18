@@ -13,16 +13,15 @@ const MAIN_ITEMS: MainItem[] = [
 ];
 
 const ADMIN_ITEMS: AdminItem[] = [
+  { label: "Overview", href: "/admin", accent: "sky" },
   { label: "Audit", href: "/admin/audit", accent: "amber" },
   { label: "Briefs", href: "/admin/briefs", accent: "emerald" },
   { label: "Library", href: "/admin/library", accent: "teal" },
-  { label: "Overview", href: "/admin", accent: "sky" },
   { label: "QA", href: "/admin/qa", accent: "indigo" },
   { label: "Settings", href: "/admin/settings", accent: "slate" },
   { label: "Specs", href: "/admin/specs", accent: "cyan" },
   { label: "Students", href: "/admin/students", accent: "violet" },
-  { label: "Users", href: "/admin/users", accent: "fuchsia" },
-].sort((a, b) => a.label.localeCompare(b.label));
+];
 
 function accentClasses(accent: string) {
   switch (accent) {
