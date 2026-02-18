@@ -196,6 +196,7 @@ export default function SubmissionDetailPage() {
     const m = String(latestRun?.sourceMeta?.extractionMode || "").toUpperCase();
     return m === "COVER_ONLY" ? "COVER_ONLY" : m === "FULL" ? "FULL" : "";
   }, [latestRun]);
+  const coverReady = useMemo(() => Boolean(latestRun?.sourceMeta?.coverReady), [latestRun]);
 
   const latestAssessment = useMemo(() => {
     const a = submission?.assessments ?? [];
@@ -512,6 +513,7 @@ export default function SubmissionDetailPage() {
     !!submission?.student &&
     !!submission?.assignment &&
     (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
+    !(extractionMode === "COVER_ONLY" && !coverReady) &&
     !gradingBusy;
 
   return (
@@ -872,6 +874,15 @@ export default function SubmissionDetailPage() {
                           <li key={i}>{w}</li>
                         ))}
                       </ul>
+                    </div>
+                  ) : null}
+
+                  {extractionMode === "COVER_ONLY" && !coverReady ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                      <div className="text-xs font-semibold uppercase tracking-wide">Action required</div>
+                      <div className="mt-1">
+                        Cover-only extraction is active, but cover metadata is not ready yet. Re-run extraction or use full mode temporarily before grading.
+                      </div>
                     </div>
                   ) : null}
 
