@@ -164,7 +164,7 @@ export default function SubmissionDetailPage() {
   const workflowPanelRef = useRef<HTMLDivElement | null>(null);
   const assignmentPanelRef = useRef<HTMLDetailsElement | null>(null);
   const extractionPanelRef = useRef<HTMLDetailsElement | null>(null);
-  const gradingPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const gradingPanelRef = useRef<HTMLDivElement | null>(null);
   const outputsPanelRef = useRef<HTMLDetailsElement | null>(null);
   const coverEditorRef = useRef<HTMLDetailsElement | null>(null);
   const coverStudentNameRef = useRef<HTMLInputElement | null>(null);
@@ -182,6 +182,7 @@ export default function SubmissionDetailPage() {
   const [studentBusy, setStudentBusy] = useState(false);
   const [coverEditBusy, setCoverEditBusy] = useState(false);
   const [pdfView, setPdfView] = useState<"original" | "marked">("original");
+  const [gradingConfigOpen, setGradingConfigOpen] = useState(false);
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
   const [coverUnitCode, setCoverUnitCode] = useState("");
@@ -645,48 +646,67 @@ export default function SubmissionDetailPage() {
     <main className="py-2">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold text-zinc-500">Submissions</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{submission?.filename || "Submission"}</h1>
+          <div className="text-xs font-semibold text-zinc-500">Submission Review Workspace</div>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            {submission?.student?.fullName || triageInfo?.studentName || "Unlinked student"} · {submission?.filename || "Submission"}
+          </h1>
           <p className="mt-2 max-w-3xl text-sm text-zinc-600">
-            Goal: produce an audit-safe grade + human feedback + a marked PDF you can upload back to Totara.
+            Unit {submission?.assignment?.unitCode || triageInfo?.unitCode || "—"} · Assignment {submission?.assignment?.assignmentRef || triageInfo?.assignmentRef || "—"} · Status {submission?.status || "—"}.
+            Review evidence, complete metadata, and finalize grade-ready outputs.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/submissions"
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50"
-          >
-            ← Back
-          </Link>
-          <button
-            type="button"
-            onClick={runExtraction}
-            disabled={busy || submission?.status === "EXTRACTING"}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm",
-              busy || submission?.status === "EXTRACTING"
-                ? "cursor-not-allowed bg-zinc-300 text-zinc-700"
-                : "bg-zinc-900 text-white hover:bg-zinc-800"
-            )}
-          >
-            {busy || submission?.status === "EXTRACTING" ? "Processing…" : "Run extraction"}
-          </button>
-          <button
-            type="button"
-            onClick={runGrading}
-            disabled={!canRunGrading}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm",
-              canRunGrading
-                ? "bg-sky-700 text-white hover:bg-sky-800"
-                : "cursor-not-allowed bg-zinc-300 text-zinc-700"
-            )}
-          >
-            {gradingBusy ? "Grading…" : "Run grading"}
-          </button>
+        <div className="flex flex-wrap items-start gap-2">
+          <div className="flex flex-col items-start">
+            <Link
+              href="/submissions"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
+            >
+              ← Back
+            </Link>
+            <span className="mt-1 text-xs opacity-0">placeholder</span>
+          </div>
+          <div className="flex flex-col items-start">
+            <button
+              type="button"
+              onClick={runExtraction}
+              disabled={busy || submission?.status === "EXTRACTING"}
+              className={cx(
+                "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm",
+                busy || submission?.status === "EXTRACTING"
+                  ? "cursor-not-allowed bg-zinc-300 text-zinc-700"
+                  : "bg-zinc-900 text-white hover:bg-zinc-800"
+              )}
+            >
+              {busy || submission?.status === "EXTRACTING" ? "Processing…" : "Run extraction"}
+            </button>
+            <span className="mt-1 text-xs opacity-0">placeholder</span>
+          </div>
+          <div ref={gradingPanelRef} className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={runGrading}
+              disabled={!canRunGrading}
+              className={cx(
+                "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm",
+                canRunGrading
+                  ? "bg-sky-700 text-white hover:bg-sky-800"
+                  : "cursor-not-allowed bg-zinc-300 text-zinc-700"
+              )}
+            >
+              {gradingBusy ? "Grading…" : "Run grading"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setGradingConfigOpen(true)}
+              className="mt-1 text-xs font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-800"
+            >
+              Grading config
+            </button>
+          </div>
         </div>
       </div>
+
       {!canRunGrading && gradingDisabledReason ? (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
           Grading blocked: {gradingDisabledReason}
@@ -703,6 +723,63 @@ export default function SubmissionDetailPage() {
           {err || msg}
         </div>
       )}
+      {gradingConfigOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Grading config</div>
+                <div className="mt-1 text-sm text-zinc-700">Configure settings used when you run grading.</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGradingConfigOpen(false)}
+                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <label className="text-sm text-zinc-700">
+                Tone
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value as any)}
+                  className="mt-1 h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                >
+                  <option value="supportive">Supportive</option>
+                  <option value="professional">Professional</option>
+                  <option value="strict">Strict</option>
+                </select>
+              </label>
+              <label className="text-sm text-zinc-700">
+                Strictness
+                <select
+                  value={strictness}
+                  onChange={(e) => setStrictness(e.target.value as any)}
+                  className="mt-1 h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                >
+                  <option value="lenient">Lenient</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="strict">Strict</option>
+                </select>
+              </label>
+            </div>
+            <label className="mt-3 inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-zinc-300"
+                checked={useRubric}
+                onChange={(e) => setUseRubric(e.target.checked)}
+              />
+              Use rubric when linked to this brief
+            </label>
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+              Model: {gradingCfg?.model || "default"} · Feedback bullets: {gradingCfg?.maxFeedbackBullets ?? 6}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="mb-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => scrollToPanel(workflowPanelRef.current)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">Checklist</button>
@@ -886,10 +963,36 @@ export default function SubmissionDetailPage() {
             <ul className="mt-3 space-y-2 text-sm">
               {checklist.items.map((item) => (
                 <li key={item.key} className="flex items-center justify-between gap-3">
-                  <span className="text-zinc-700">{item.label}</span>
-                  <span className={cx("font-semibold", item.ok ? "text-emerald-700" : "text-amber-700")}>
-                    {item.ok ? "OK" : "Pending"}
-                  </span>
+                  <div className="min-w-0">
+                    <span className="text-zinc-700">{item.label}</span>
+                    {!item.ok ? <div className="text-[11px] text-zinc-500">{item.hint}</div> : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cx("font-semibold", item.ok ? "text-emerald-700" : "text-amber-700")}>
+                      {item.ok ? "OK" : "Pending"}
+                    </span>
+                    {!item.ok ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (item.key === "student") return toggleStudentPanel();
+                          if (item.key === "assignment") return scrollToPanel(assignmentPanelRef.current);
+                          if (item.key === "extraction") return void runExtraction();
+                          if (item.key === "grade") {
+                            if (canRunGrading) return void runGrading();
+                            return scrollToPanel(gradingPanelRef.current);
+                          }
+                          if (item.key === "feedback" || item.key === "marked") {
+                            if (canRunGrading) return void runGrading();
+                            return scrollToPanel(outputsPanelRef.current);
+                          }
+                        }}
+                        className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                      >
+                        Fix now
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -906,7 +1009,7 @@ export default function SubmissionDetailPage() {
             </div>
           </div>
 
-          <details ref={studentPanelRef} id="student-link-panel" open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <details ref={studentPanelRef} id="student-link-panel" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Student</summary>
             <div className="mt-3 flex items-start justify-between gap-3">
               <div>
@@ -1197,46 +1300,6 @@ export default function SubmissionDetailPage() {
                 </div>
               )}
             </div>
-          </details>
-
-          <details ref={gradingPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Grading config</summary>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <label className="text-sm text-zinc-700">
-                Tone
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value as any)}
-                  className="mt-1 h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-                >
-                  <option value="supportive">Supportive</option>
-                  <option value="professional">Professional</option>
-                  <option value="strict">Strict</option>
-                </select>
-              </label>
-              <label className="text-sm text-zinc-700">
-                Strictness
-                <select
-                  value={strictness}
-                  onChange={(e) => setStrictness(e.target.value as any)}
-                  className="mt-1 h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-                >
-                  <option value="lenient">Lenient</option>
-                  <option value="balanced">Balanced</option>
-                  <option value="strict">Strict</option>
-                </select>
-              </label>
-            </div>
-            <label className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300"
-                checked={useRubric}
-                onChange={(e) => setUseRubric(e.target.checked)}
-              />
-              Use rubric when linked to this brief
-            </label>
-            <div className="mt-2 text-xs text-zinc-500">Model: {gradingCfg?.model || "default"} · Feedback bullets: {gradingCfg?.maxFeedbackBullets ?? 6}</div>
           </details>
 
           <details ref={outputsPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
