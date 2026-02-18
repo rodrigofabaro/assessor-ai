@@ -181,6 +181,7 @@ export default function SubmissionDetailPage() {
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
   const [coverEditBusy, setCoverEditBusy] = useState(false);
+  const [pdfView, setPdfView] = useState<"original" | "marked">("original");
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
   const [coverUnitCode, setCoverUnitCode] = useState("");
@@ -586,6 +587,8 @@ export default function SubmissionDetailPage() {
 
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
   const markedPdfUrl = submissionId ? `/api/submissions/${submissionId}/marked-file?t=${Date.now()}` : "";
+  const hasMarkedPdf = !!latestAssessment?.annotatedPdfPath;
+  const activePdfUrl = pdfView === "marked" && hasMarkedPdf ? markedPdfUrl : pdfUrl;
   const toggleStudentPanel = () => {
     const panel = studentPanelRef.current;
     if (!panel) return;
@@ -631,6 +634,12 @@ export default function SubmissionDetailPage() {
         : !(latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR")
           ? "Run extraction before grading."
           : "";
+
+  useEffect(() => {
+    if (pdfView === "marked" && !hasMarkedPdf) {
+      setPdfView("original");
+    }
+  }, [pdfView, hasMarkedPdf]);
 
   return (
     <main className="py-2">
@@ -798,15 +807,45 @@ export default function SubmissionDetailPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        {/* LEFT: PDF */}
-        <div className="lg:col-span-2">
+        {/* RIGHT: PDF */}
+        <div className="order-2 lg:order-2 lg:col-span-2">
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-4">
               <div className="flex items-center gap-3">
                 <StatusPill>{submission?.status || "—"}</StatusPill>
                 <div className="text-sm text-zinc-600">Submission document preview</div>
+                <div className="ml-2 inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setPdfView("original")}
+                    className={cx(
+                      "rounded-md px-2 py-1 text-xs font-semibold",
+                      pdfView === "original" ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-white"
+                    )}
+                  >
+                    Student submission
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => hasMarkedPdf && setPdfView("marked")}
+                    disabled={!hasMarkedPdf}
+                    className={cx(
+                      "rounded-md px-2 py-1 text-xs font-semibold",
+                      !hasMarkedPdf
+                        ? "cursor-not-allowed text-zinc-400"
+                        : pdfView === "marked"
+                          ? "bg-zinc-900 text-white"
+                          : "text-zinc-700 hover:bg-white"
+                    )}
+                    title={!hasMarkedPdf ? "Run grading to generate a marked PDF." : "View graded PDF with feedback overlays."}
+                  >
+                    Marked version
+                  </button>
+                </div>
               </div>
-              <div className="text-xs text-zinc-500">Source PDF</div>
+              <div className="text-xs text-zinc-500">
+                {pdfView === "marked" && hasMarkedPdf ? "Marked PDF" : "Source PDF"}
+              </div>
             </div>
 
             <div className="h-[62vh] min-h-[540px] w-full bg-zinc-50 md:h-[72vh] xl:h-[82vh]">
@@ -814,7 +853,7 @@ export default function SubmissionDetailPage() {
               {submissionId ? (
                 <iframe
                   title="Submission PDF"
-                  src={pdfUrl}
+                  src={activePdfUrl}
                   className="h-full w-full"
                 />
               ) : (
@@ -824,8 +863,8 @@ export default function SubmissionDetailPage() {
           </div>
         </div>
 
-        {/* RIGHT: Metadata + extraction */}
-        <div className="grid gap-4 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
+        {/* LEFT: Metadata + extraction */}
+        <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div ref={workflowPanelRef} />
             <div className="flex items-start justify-between gap-3">
