@@ -150,6 +150,7 @@ export default function AdminBriefsPage() {
               onClick={() => {
                 goToTab("library");
               }}
+              className={vm.tab === "library" ? "!bg-emerald-700 hover:!bg-emerald-800" : ""}
             >
               Library
             </Btn>
@@ -159,6 +160,7 @@ export default function AdminBriefsPage() {
                 goToTab("extract");
                 rx.refreshAll({ keepSelection: true });
               }}
+              className={vm.tab === "extract" ? "!bg-emerald-700 hover:!bg-emerald-800" : ""}
             >
               Extract
             </Btn>

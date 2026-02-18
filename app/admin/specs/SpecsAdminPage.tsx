@@ -329,7 +329,7 @@ export default function SpecsAdminPage() {
             onClick={() => setTab("library")}
             className={
               "rounded-lg px-3 py-1.5 text-xs font-semibold transition " +
-              (tab === "library" ? "bg-sky-700 text-white" : "text-zinc-700 hover:bg-zinc-100")
+              (tab === "library" ? "bg-cyan-700 text-white" : "text-zinc-700 hover:bg-zinc-100")
             }
           >
             Library
@@ -339,7 +339,7 @@ export default function SpecsAdminPage() {
             onClick={() => setTab("extract")}
             className={
               "rounded-lg px-3 py-1.5 text-xs font-semibold transition " +
-              (tab === "extract" ? "bg-sky-700 text-white" : "text-zinc-700 hover:bg-zinc-100")
+              (tab === "extract" ? "bg-cyan-700 text-white" : "text-zinc-700 hover:bg-zinc-100")
             }
           >
             Extract
