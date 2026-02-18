@@ -11,6 +11,7 @@ export const HELP_PAGES: HelpPageMeta[] = [
   { slug: "submission-detail", title: "Submission Detail", route: "/submissions/[submissionId]" },
   { slug: "students-pages", title: "Students Pages", route: "/students/[id], /admin/students" },
   { slug: "admin-index", title: "Admin Overview", route: "/admin" },
+  { slug: "admin-qa", title: "Admin QA", route: "/admin/qa" },
   { slug: "admin-specs", title: "Admin Specs", route: "/admin/specs" },
   { slug: "admin-briefs", title: "Admin Briefs", route: "/admin/briefs, /admin/briefs/[briefId]" },
   { slug: "admin-reference", title: "Admin Reference", route: "/admin/reference" },
