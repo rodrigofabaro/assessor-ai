@@ -230,7 +230,7 @@ export async function POST(
     // Derived truth beats heuristic flags. In cover-only mode, strong cover metadata
     // is enough to mark the run ready even when body text is intentionally short.
     const coverReady = coverOnlyMode && isCoverMetadataReady(coverMetadata);
-    const finalIsScanned = coverReady ? false : !hasMeaningfulText;
+    const finalIsScanned = coverOnlyMode ? false : !hasMeaningfulText;
     const finalRunStatus = finalIsScanned ? "NEEDS_OCR" : "DONE";
     const finalSubmissionStatus = finalIsScanned ? "NEEDS_OCR" : "EXTRACTED";
 
@@ -240,8 +240,11 @@ export async function POST(
 
     const finishedAt = new Date();
     const mergedWarnings = [...(res.warnings || []), ...((ocrMeta.warnings as string[]) || [])];
-    if (coverReady && combinedText.length < MIN_MEANINGFUL_TEXT_CHARS) {
-      mergedWarnings.push("cover-ready mode: body extraction intentionally limited.");
+    if (coverOnlyMode && combinedText.length < MIN_MEANINGFUL_TEXT_CHARS) {
+      mergedWarnings.push("cover-only mode: body extraction intentionally limited.");
+    }
+    if (coverOnlyMode && !coverReady) {
+      mergedWarnings.push("cover metadata incomplete: can be completed manually in submission review.");
     }
 
     // Save pages + finalize run + update submission atomically
@@ -301,6 +304,35 @@ export async function POST(
       await fetch(triageUrl.toString(), { method: "POST" });
     } catch (e) {
       console.warn("AUTO_TRIAGE_FAILED", e);
+    }
+
+    // Best-effort grading kickoff: upload -> extraction -> grading without manual stop.
+    // Missing cover metadata is non-blocking in cover-only mode and can be completed later.
+    try {
+      const autoGradeEnabled = envBool("SUBMISSION_AUTO_GRADE_ON_EXTRACT", true);
+      if (autoGradeEnabled) {
+        const latestSubmission = await prisma.submission.findUnique({
+          where: { id: submissionId },
+          select: {
+            id: true,
+            status: true,
+            studentId: true,
+            assignmentId: true,
+            _count: { select: { assessments: true } },
+          },
+        });
+        const eligibleForAutoGrade =
+          !!latestSubmission?.studentId &&
+          !!latestSubmission?.assignmentId &&
+          String(latestSubmission?.status || "").toUpperCase() === "EXTRACTED" &&
+          Number(latestSubmission?._count?.assessments || 0) === 0;
+        if (eligibleForAutoGrade) {
+          const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, request.url);
+          await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
+        }
+      }
+    } catch (e) {
+      console.warn("AUTO_GRADE_FAILED", e);
     }
 
     return NextResponse.json({

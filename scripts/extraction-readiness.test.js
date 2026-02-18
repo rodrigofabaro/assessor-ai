@@ -141,10 +141,10 @@ function run() {
       },
     },
   });
-  assert(!coverOnlyWithoutCoverReady.ok, "expected cover-only without ready cover metadata to fail gate");
+  assert(coverOnlyWithoutCoverReady.ok, "expected cover-only without ready cover metadata to remain gradable");
   assert(
-    coverOnlyWithoutCoverReady.blockers.some((b) => /cover-only extraction requires ready cover metadata/i.test(b)),
-    "expected explicit cover-only readiness blocker"
+    coverOnlyWithoutCoverReady.warnings.some((w) => /cover-only extraction has incomplete cover metadata/i.test(w)),
+    "expected explicit cover-only metadata warning"
   );
   assert(
     String(coverOnlyWithoutCoverReady.metrics.extractionMode || "") === "COVER_ONLY",

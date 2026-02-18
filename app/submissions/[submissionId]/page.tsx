@@ -513,7 +513,6 @@ export default function SubmissionDetailPage() {
     !!submission?.student &&
     !!submission?.assignment &&
     (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
-    !(extractionMode === "COVER_ONLY" && !coverReady) &&
     !gradingBusy;
 
   return (
@@ -878,10 +877,10 @@ export default function SubmissionDetailPage() {
                   ) : null}
 
                   {extractionMode === "COVER_ONLY" && !coverReady ? (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                      <div className="text-xs font-semibold uppercase tracking-wide">Action required</div>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <div className="text-xs font-semibold uppercase tracking-wide">Cover metadata incomplete</div>
                       <div className="mt-1">
-                        Cover-only extraction is active, but cover metadata is not ready yet. Re-run extraction or use full mode temporarily before grading.
+                        Grading can continue. Add or correct cover details in this page if needed for record quality.
                       </div>
                     </div>
                   ) : null}

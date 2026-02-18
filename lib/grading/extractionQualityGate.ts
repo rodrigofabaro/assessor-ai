@@ -69,11 +69,15 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
     warnings.push(`Unknown extraction status: ${runStatus}.`);
   }
   if (extractionMode === "COVER_ONLY" && !coverReady) {
-    blockers.push("Cover-only extraction requires ready cover metadata before grading.");
+    warnings.push("Cover-only extraction has incomplete cover metadata; complete it in submission review if needed.");
   }
 
   if (extractedChars < minChars) {
-    if (coverReady) {
+    if (extractionMode === "COVER_ONLY") {
+      warnings.push(
+        `Cover-only extraction has short body text (${extractedChars} chars), which is expected for this mode.`
+      );
+    } else if (coverReady) {
       warnings.push(
         `Extracted body text is short (${extractedChars} chars), but cover metadata is available.`
       );
