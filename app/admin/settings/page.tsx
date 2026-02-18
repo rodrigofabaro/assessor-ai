@@ -159,7 +159,6 @@ function isEndpointError(value: AnyEndpoint): value is EndpointError {
 }
 
 export default function AdminSettingsPage() {
-  const [tab, setTab] = useState<"ai" | "grading" | "app">("ai");
   const [data, setData] = useState<UsagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -346,8 +345,8 @@ export default function AdminSettingsPage() {
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
               System Configuration
             </div>
-            <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Settings Control</h1>
-            <p className="mt-1 text-sm text-zinc-700">Central controls for AI configuration, grading defaults, and app identity behavior.</p>
+            <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Settings</h1>
+            <p className="mt-1 text-xs text-zinc-700">AI, grading defaults, and app identity controls.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -365,64 +364,30 @@ export default function AdminSettingsPage() {
             </span>
           </div>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">AI connection</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{aiConnectionLabel}</div>
-            <div className="mt-1 text-xs text-zinc-600">OpenAI API availability status.</div>
-          </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Token usage</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{effectiveUsageTotal}</div>
-            <div className="mt-1 text-xs text-zinc-600">{usageSource}</div>
-          </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Grading profile</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{gradingProfileLabel}</div>
-            <div className="mt-1 text-xs text-zinc-600">Current default tone and strictness.</div>
-          </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Active assessor</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{activeAuditLabel}</div>
-            <div className="mt-1 text-xs text-zinc-600">{activeUsersCount} active users available.</div>
-          </article>
-        </div>
-        <div className="mt-4 inline-flex rounded-xl border border-zinc-200 bg-zinc-50 p-1">
-          <button
-            type="button"
-            onClick={() => setTab("ai")}
-            className={
-              "rounded-lg px-3 py-1.5 text-sm font-semibold transition " +
-              (tab === "ai" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")
-            }
-          >
-            AI Usage
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("grading")}
-            className={
-              "rounded-lg px-3 py-1.5 text-sm font-semibold transition " +
-              (tab === "grading" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")
-            }
-          >
-            Grading
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("app")}
-            className={
-              "rounded-lg px-3 py-1.5 text-sm font-semibold transition " +
-              (tab === "app" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")
-            }
-          >
-            App
-          </button>
+        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+            <span className="text-zinc-500">AI connection</span>
+            <span className="text-zinc-900">{aiConnectionLabel}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+            <span className="text-zinc-500">Token usage</span>
+            <span className="text-zinc-900">{effectiveUsageTotal}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+            <span className="text-zinc-500">Grading profile</span>
+            <span className="text-zinc-900">{gradingProfileLabel}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+            <span className="text-zinc-500">Active assessor</span>
+            <span className="text-zinc-900">{activeAuditLabel}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+            <span className="text-zinc-500">Active users</span>
+            <span className="text-zinc-900">{activeUsersCount}</span>
+          </span>
         </div>
       </section>
 
-      {tab === "ai" ? (
-      <>
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
@@ -637,11 +602,7 @@ export default function AdminSettingsPage() {
       </section>
 
       {data?.generatedAt ? <p className="text-xs text-zinc-500">Last updated: {new Date(data.generatedAt).toLocaleString()}</p> : null}
-      </>
-      ) : null}
 
-      {tab === "grading" ? (
-      <>
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
         <p className="mt-1 text-sm text-zinc-600">Controls default tone/strictness/rubric behavior when tutors run grading.</p>
@@ -826,11 +787,7 @@ export default function AdminSettingsPage() {
           <li>Small page-note overlays (enabled, tone, page limits, and criterion-code flag).</li>
         </ul>
       </section>
-      </>
-      ) : null}
 
-      {tab === "app" ? (
-      <>
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
         <p className="mt-1 text-sm text-zinc-600">
@@ -911,8 +868,6 @@ export default function AdminSettingsPage() {
         </p>
         {appMsg ? <p className="mt-2 text-xs text-zinc-600">{appMsg}</p> : null}
       </section>
-      </>
-      ) : null}
     </div>
   );
 }
