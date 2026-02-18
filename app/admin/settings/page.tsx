@@ -644,6 +644,7 @@ export default function AdminSettingsPage() {
               />
               <div className="mt-1 text-xs text-zinc-500">
                 Placeholders: {"{studentFirstName}"}, {"{feedbackSummary}"}, {"{feedbackBullets}"}, {"{overallGrade}"}, {"{assessorName}"}, {"{date}"}.
+                Required: {"{overallGrade}"} and {"{feedbackBullets}"}.
               </div>
             </label>
             <div className="md:col-span-2">

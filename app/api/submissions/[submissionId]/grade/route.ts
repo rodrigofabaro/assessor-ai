@@ -284,9 +284,8 @@ export async function POST(
     tone?: string;
     strictness?: string;
     useRubricIfAvailable?: boolean;
-    actor?: string;
   };
-  const actor = await getCurrentAuditActor(body?.actor);
+  const actor = await getCurrentAuditActor();
 
   const { apiKey } = resolveOpenAiApiKey("preferStandard");
   if (!apiKey) {

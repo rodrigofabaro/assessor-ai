@@ -22,7 +22,6 @@ export async function PATCH(
     const body = (await req.json().catch(() => ({}))) as {
       feedbackText?: string;
       studentName?: string;
-      assessorName?: string;
       markedDate?: string;
     };
 
@@ -43,7 +42,7 @@ export async function PATCH(
     const resultJson = (assessment.resultJson && typeof assessment.resultJson === "object" ? assessment.resultJson : {}) as Record<string, any>;
     const tone = String(resultJson.tone || gradingCfg.tone || "professional");
     const strictness = String(resultJson.strictness || gradingCfg.strictness || "balanced");
-    const actor = await getCurrentAuditActor(String(body.assessorName || resultJson.gradedBy || ""));
+    const actor = await getCurrentAuditActor();
     const markedDate = toUkDate(body.markedDate || null);
     const studentName = String(body.studentName || resultJson.studentFirstNameUsed || "Student");
     const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText, gradingCfg.maxFeedbackBullets);

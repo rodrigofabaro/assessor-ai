@@ -81,6 +81,10 @@ type GradingConfig = {
   feedbackTemplate?: string;
 };
 
+type AppConfigPayload = {
+  activeAuditUser?: { fullName?: string | null } | null;
+};
+
 type StudentSearchResult = {
   id: string;
   fullName: string;
@@ -163,7 +167,7 @@ export default function SubmissionDetailPage() {
   const autoStartedRef = useRef(false);
   const studentSearchInputRef = useRef<HTMLInputElement | null>(null);
   const studentPanelRef = useRef<HTMLDetailsElement | null>(null);
-  const workflowPanelRef = useRef<HTMLDivElement | null>(null);
+  const workflowPanelRef = useRef<HTMLElement | null>(null);
   const assignmentPanelRef = useRef<HTMLDetailsElement | null>(null);
   const extractionPanelRef = useRef<HTMLDetailsElement | null>(null);
   const gradingPanelRef = useRef<HTMLDivElement | null>(null);
@@ -193,8 +197,10 @@ export default function SubmissionDetailPage() {
   const [feedbackEditorBusy, setFeedbackEditorBusy] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState("");
   const [feedbackStudentName, setFeedbackStudentName] = useState("");
-  const [feedbackAssessorName, setFeedbackAssessorName] = useState("");
   const [feedbackMarkedDate, setFeedbackMarkedDate] = useState("");
+  const [feedbackBaseline, setFeedbackBaseline] = useState({ text: "", studentName: "", date: "" });
+  const [reviewPackOpen, setReviewPackOpen] = useState(false);
+  const [activeAuditActorName, setActiveAuditActorName] = useState("system");
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
   const [coverUnitCode, setCoverUnitCode] = useState("");
@@ -264,6 +270,10 @@ export default function SubmissionDetailPage() {
       })),
     [gradingHistory]
   );
+  const feedbackDirty =
+    feedbackDraft !== feedbackBaseline.text ||
+    feedbackStudentName !== feedbackBaseline.studentName ||
+    feedbackMarkedDate !== feedbackBaseline.date;
   const changeChips = useMemo(() => {
     const out: string[] = [];
     if ((submission?.assessments?.length || 0) > 1) out.push(`Regraded ${Math.max(0, (submission?.assessments?.length || 1) - 1)}x`);
@@ -424,6 +434,13 @@ export default function SubmissionDetailPage() {
         setUseRubric(!!res.useRubricIfAvailable);
       } catch {
         // keep defaults
+      }
+      try {
+        const cfg = await jsonFetch<AppConfigPayload>("/api/admin/app-config", { cache: "no-store" });
+        const name = String(cfg?.activeAuditUser?.fullName || "").trim();
+        if (!cancelled) setActiveAuditActorName(name || "system");
+      } catch {
+        if (!cancelled) setActiveAuditActorName("system");
       }
     }
     loadCfg();
@@ -682,6 +699,8 @@ export default function SubmissionDetailPage() {
     !!submission?.assignment &&
     (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
     !gradingBusy;
+  const extractionComplete = latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR";
+  const extractionRunning = busy || submission?.status === "EXTRACTING";
   const gradingDisabledReason = gradingBusy
     ? "Grading is already running."
     : !submission?.student
@@ -691,6 +710,33 @@ export default function SubmissionDetailPage() {
         : !(latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR")
           ? "Run extraction before grading."
           : "";
+  const primaryActionLabel = gradingBusy
+    ? "Grading…"
+    : canRunGrading
+      ? "Run grading"
+      : !extractionComplete
+        ? extractionRunning
+          ? "Extracting…"
+          : "Run extraction"
+        : "Review blockers";
+  const primaryActionDisabled = gradingBusy || extractionRunning;
+  const runPrimaryAction = () => {
+    if (canRunGrading) return void runGrading();
+    if (!extractionComplete) return void runExtraction();
+    scrollToPanel(workflowPanelRef.current);
+  };
+  const jumpToNextBlocker = () => {
+    const item = checklist.items.find((i) => !i.ok);
+    if (!item) return;
+    if (item.key === "student") return toggleStudentPanel();
+    if (item.key === "assignment") return scrollToPanel(assignmentPanelRef.current);
+    if (item.key === "extraction") return void runExtraction();
+    if (item.key === "grade") {
+      if (canRunGrading) return void runGrading();
+      return scrollToPanel(gradingPanelRef.current);
+    }
+    if (item.key === "feedback" || item.key === "marked") return scrollToPanel(outputsPanelRef.current);
+  };
   const pdfViewportClass =
     pdfViewport === "compact"
       ? "h-[52vh] min-h-[420px] md:h-[62vh] xl:h-[68vh]"
@@ -719,24 +765,32 @@ export default function SubmissionDetailPage() {
     if (!a) {
       setFeedbackDraft("");
       setFeedbackStudentName("");
-      setFeedbackAssessorName("");
       setFeedbackMarkedDate("");
       return;
     }
     const rj: any = a.resultJson || {};
     const override = rj?.feedbackOverride || {};
     const studentName = String(override?.studentName || rj?.studentFirstNameUsed || submission?.student?.fullName || coverStudentName || "").trim();
-    const assessorName = String(override?.assessorName || rj?.gradedBy || "").trim();
     const dateCandidate = String(override?.markedDate || "").trim();
     const iso = dateCandidate || String(a.createdAt || "");
     const d = new Date(iso);
     const dateInput = Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
     setFeedbackDraft(String(a.feedbackText || ""));
     setFeedbackStudentName(studentName);
-    setFeedbackAssessorName(assessorName);
     setFeedbackMarkedDate(dateInput);
+    setFeedbackBaseline({ text: String(a.feedbackText || ""), studentName, date: dateInput });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAssessment?.id]);
+  }, [selectedAssessment?.id, selectedAssessment?.feedbackText, selectedAssessment?.resultJson, selectedAssessment?.createdAt]);
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!feedbackDirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [feedbackDirty]);
 
   async function saveAssessmentFeedback() {
     if (!submissionId || !selectedAssessment?.id) return;
@@ -754,7 +808,6 @@ export default function SubmissionDetailPage() {
         body: JSON.stringify({
           feedbackText: feedbackDraft,
           studentName: feedbackStudentName,
-          assessorName: feedbackAssessorName,
           markedDate: feedbackMarkedDate || null,
         }),
       });
@@ -768,6 +821,10 @@ export default function SubmissionDetailPage() {
     } finally {
       setFeedbackEditorBusy(false);
     }
+  }
+
+  async function rebuildMarkedPdf() {
+    await saveAssessmentFeedback();
   }
 
   useEffect(() => {
@@ -837,52 +894,52 @@ export default function SubmissionDetailPage() {
             </Link>
             <span className="mt-1 text-xs opacity-0">placeholder</span>
           </div>
-          <div className="flex flex-col items-start">
+          <div ref={gradingPanelRef} className="flex flex-col items-start">
             <button
               type="button"
-              onClick={runExtraction}
-              disabled={busy || submission?.status === "EXTRACTING"}
+              onClick={runPrimaryAction}
+              disabled={primaryActionDisabled}
               className={cx(
                 "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm",
-                busy || submission?.status === "EXTRACTING"
-                  ? "cursor-not-allowed bg-zinc-300 text-zinc-700"
-                  : "bg-zinc-900 text-white hover:bg-zinc-800"
-              )}
-            >
-              {busy || submission?.status === "EXTRACTING" ? "Processing…" : "Run extraction"}
-            </button>
-            <span className="mt-1 text-xs opacity-0">placeholder</span>
-          </div>
-          <div ref={gradingPanelRef} className="flex flex-col items-center">
-            <button
-              type="button"
-              onClick={runGrading}
-              disabled={!canRunGrading}
-              className={cx(
-                "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm",
-                canRunGrading
+                !primaryActionDisabled
                   ? "bg-sky-700 text-white hover:bg-sky-800"
                   : "cursor-not-allowed bg-zinc-300 text-zinc-700"
               )}
             >
-              {gradingBusy ? "Grading…" : "Run grading"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setGradingConfigOpen(true)}
-              className="mt-1 text-xs font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-800"
-            >
-              Grading config
+              {primaryActionLabel}
             </button>
           </div>
         </div>
       </div>
 
-      {!canRunGrading && gradingDisabledReason ? (
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-          Grading blocked: {gradingDisabledReason}
+      <section ref={workflowPanelRef} className="mb-3 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={cx(
+              "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
+              checklist.readyToUpload ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
+            )}
+          >
+            {checklist.readyToUpload ? "Ready to upload" : `${checklist.pendingCount} pending`}
+          </span>
+          <div className="min-w-[240px] flex-1 text-xs text-zinc-600">{checklist.nextBlockingAction}</div>
+          {!checklist.readyToUpload ? (
+            <button
+              type="button"
+              onClick={jumpToNextBlocker}
+              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+            >
+              Fix next blocker
+            </button>
+          ) : null}
+          {!canRunGrading && gradingDisabledReason ? (
+            <span className="text-xs font-semibold text-amber-800">Grading blocked: {gradingDisabledReason}</span>
+          ) : null}
+          <span className="ml-auto inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+            Assessor source: {activeAuditActorName}
+          </span>
         </div>
-      ) : null}
+      </section>
 
       {(err || msg) && (
         <div
@@ -972,6 +1029,46 @@ export default function SubmissionDetailPage() {
               <div><span className="font-semibold text-zinc-900">E</span> Run extraction</div>
               <div><span className="font-semibold text-zinc-900">G</span> Run grading (when ready)</div>
               <div><span className="font-semibold text-zinc-900">S</span> Toggle student panel</div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {reviewPackOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Submission review pack</div>
+                <div className="mt-1 text-sm text-zinc-700">Operational summary, audit details, and feedback history.</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewPackOpen(false)}
+                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 grid gap-2 text-xs md:grid-cols-2">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Student:</span> {submission?.student?.fullName || triageInfo?.studentName || "—"}</div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Unit:</span> {submission?.assignment?.unitCode || triageInfo?.unitCode || "—"}</div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Assignment:</span> {submission?.assignment?.assignmentRef || triageInfo?.assignmentRef || "—"}</div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Status:</span> {submission?.status || "—"}</div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Grade:</span> {selectedAssessment?.overallGrade || "Pending"}</div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Assessor source:</span> {activeAuditActorName}</div>
+            </div>
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Feedback summary history</div>
+              <div className="mt-2 space-y-2">
+                {feedbackHistory.length ? feedbackHistory.map((row) => (
+                  <div key={`pack-${row.id}`} className="rounded-lg border border-zinc-200 bg-white p-2">
+                    <div className="text-[11px] font-semibold text-zinc-800">
+                      {row.index === 0 ? "Latest" : `Run ${feedbackHistory.length - row.index}`} · {row.grade} · {row.when}
+                    </div>
+                    <div className="mt-1 text-xs text-zinc-700">{row.summary}</div>
+                  </div>
+                )) : <div className="text-xs text-zinc-600">No feedback history yet.</div>}
+              </div>
             </div>
           </div>
         </div>
@@ -1067,6 +1164,14 @@ export default function SubmissionDetailPage() {
               actionable: true,
               actionLabel: "Open checklist",
               onAction: () => scrollToPanel(workflowPanelRef.current),
+            },
+            {
+              key: "reviewPack",
+              label: "Review pack",
+              value: "Open full summary",
+              actionable: true,
+              actionLabel: "Open",
+              onAction: () => setReviewPackOpen(true),
             },
           ].map((item) => (
             <button
@@ -1180,10 +1285,17 @@ export default function SubmissionDetailPage() {
                 disabled={busy}
                 className={cx(
                   "rounded-md px-2.5 py-1 text-xs font-semibold",
-                  busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-zinc-900 text-white hover:bg-zinc-800"
+                  busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-blue-700 text-white hover:bg-blue-800"
                 )}
               >
                 Run extraction
+              </button>
+              <button
+                type="button"
+                onClick={() => setGradingConfigOpen(true)}
+                className="rounded-md bg-teal-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-teal-800"
+              >
+                Grading config
               </button>
               <button
                 type="button"
@@ -1191,7 +1303,7 @@ export default function SubmissionDetailPage() {
                 disabled={!canRunGrading}
                 className={cx(
                   "rounded-md px-2.5 py-1 text-xs font-semibold",
-                  canRunGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                  canRunGrading ? "bg-indigo-700 text-white hover:bg-indigo-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
               >
                 Run grading
@@ -1217,73 +1329,6 @@ export default function SubmissionDetailPage() {
               />
               Run grading when ready
             </label>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div ref={workflowPanelRef} />
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold text-zinc-500">Totara upload checklist</div>
-                <div className="mt-1 text-sm text-zinc-600">Smart readiness check with next blocking action.</div>
-              </div>
-              {checklist.readyToUpload ? (
-                <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900">
-                  ✓ Ready
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900">
-                  {checklist.pendingCount} pending
-                </span>
-              )}
-            </div>
-
-            <ul className="mt-3 space-y-2 text-sm">
-              {checklist.items.map((item) => (
-                <li key={item.key} className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="text-zinc-700">{item.label}</span>
-                    {!item.ok ? <div className="text-[11px] text-zinc-500">{item.hint}</div> : null}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cx("font-semibold", item.ok ? "text-emerald-700" : "text-amber-700")}>
-                      {item.ok ? "OK" : "Pending"}
-                    </span>
-                    {!item.ok ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (item.key === "student") return toggleStudentPanel();
-                          if (item.key === "assignment") return scrollToPanel(assignmentPanelRef.current);
-                          if (item.key === "extraction") return void runExtraction();
-                          if (item.key === "grade") {
-                            if (canRunGrading) return void runGrading();
-                            return scrollToPanel(gradingPanelRef.current);
-                          }
-                          if (item.key === "feedback" || item.key === "marked") {
-                            if (canRunGrading) return void runGrading();
-                            return scrollToPanel(outputsPanelRef.current);
-                          }
-                        }}
-                        className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
-                      >
-                        Fix now
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            <div
-              className={cx(
-                "mt-3 rounded-xl border p-3 text-xs",
-                checklist.readyToUpload
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
-              )}
-            >
-              {checklist.nextBlockingAction}
-            </div>
           </div>
 
           <details ref={studentPanelRef} id="student-link-panel" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -1616,7 +1661,14 @@ export default function SubmissionDetailPage() {
                   <span className="text-xs font-semibold text-zinc-700">Assessment run</span>
                   <select
                     value={selectedAssessmentId}
-                    onChange={(e) => setSelectedAssessmentId(e.target.value)}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      if (feedbackDirty) {
+                        const ok = window.confirm("You have unsaved feedback changes. Switch assessment anyway?");
+                        if (!ok) return;
+                      }
+                      setSelectedAssessmentId(nextId);
+                    }}
                     className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs"
                   >
                     {gradingHistory.map((g, idx) => (
@@ -1665,20 +1717,12 @@ export default function SubmissionDetailPage() {
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-600">Feedback editor</div>
-                <div className="grid gap-2 md:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-2">
                   <label className="text-xs text-zinc-700">
                     Student name
                     <input
                       value={feedbackStudentName}
                       onChange={(e) => setFeedbackStudentName(e.target.value)}
-                      className="mt-1 h-8 w-full rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
-                    />
-                  </label>
-                  <label className="text-xs text-zinc-700">
-                    Assessor
-                    <input
-                      value={feedbackAssessorName}
-                      onChange={(e) => setFeedbackAssessorName(e.target.value)}
                       className="mt-1 h-8 w-full rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
                     />
                   </label>
@@ -1713,8 +1757,21 @@ export default function SubmissionDetailPage() {
                   >
                     {feedbackEditorBusy ? "Applying…" : "Apply to marked version"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => void rebuildMarkedPdf()}
+                    disabled={!selectedAssessment?.id || feedbackEditorBusy}
+                    className={cx(
+                      "rounded-lg border px-3 py-1.5 text-xs font-semibold",
+                      !selectedAssessment?.id || feedbackEditorBusy
+                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                        : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
+                    )}
+                  >
+                    Rebuild marked PDF
+                  </button>
                   <span className="text-[11px] text-zinc-500">
-                    Saves audit output and regenerates marked PDF for this run.
+                    Assessor uses current active user. Saves audit output and regenerates marked PDF for this run.
                   </span>
                 </div>
               </div>
