@@ -229,6 +229,12 @@ export default function AdminSettingsPage() {
       : localEstimatedCost > 0
         ? `${formatMoney(localEstimatedCost, "usd")} (local estimate)`
         : "Unavailable";
+  const activeUsersCount = appUsers.filter((u) => u.isActive).length;
+  const activeAuditLabel = appCfg?.activeAuditUser?.fullName || "system";
+  const aiConnectionLabel = data?.connection?.reachable ? "Connected" : data?.connection ? "Issue" : "Checking";
+  const gradingProfileLabel = gradingCfg
+    ? `${gradingCfg.tone}/${gradingCfg.strictness}`
+    : "Loading";
   const saveModel = useCallback(async () => {
     if (!model) return;
     setSavingModel(true);
@@ -318,20 +324,56 @@ export default function AdminSettingsPage() {
   }, [faviconFile, load]);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">System settings</h1>
-            <p className="mt-1 text-sm text-zinc-700">Separate controls for AI telemetry and grading behavior.</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              System Configuration
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Settings Control</h1>
+            <p className="mt-1 text-sm text-zinc-700">Central controls for AI configuration, grading defaults, and app identity behavior.</p>
           </div>
-          <button
-            onClick={load}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={load}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+              disabled={loading}
+            >
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
+            <Link href="/admin/users" className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
+              Users
+            </Link>
+            <Link href="/admin/qa" className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
+              QA
+            </Link>
+            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              {loading ? "Loading..." : "Ready"}
+            </span>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">AI connection</div>
+            <div className="mt-1 text-xl font-semibold text-zinc-900">{aiConnectionLabel}</div>
+            <div className="mt-1 text-xs text-zinc-600">OpenAI API availability status.</div>
+          </article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Token usage</div>
+            <div className="mt-1 text-xl font-semibold text-zinc-900">{effectiveUsageTotal}</div>
+            <div className="mt-1 text-xs text-zinc-600">{usageSource}</div>
+          </article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Grading profile</div>
+            <div className="mt-1 text-xl font-semibold text-zinc-900">{gradingProfileLabel}</div>
+            <div className="mt-1 text-xs text-zinc-600">Current default tone and strictness.</div>
+          </article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Active assessor</div>
+            <div className="mt-1 text-xl font-semibold text-zinc-900">{activeAuditLabel}</div>
+            <div className="mt-1 text-xs text-zinc-600">{activeUsersCount} active users available.</div>
+          </article>
         </div>
         <div className="mt-4 inline-flex rounded-xl border border-zinc-200 bg-zinc-50 p-1">
           <button

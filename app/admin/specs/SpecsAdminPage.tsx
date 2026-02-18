@@ -85,15 +85,15 @@ export default function SpecsAdminPage() {
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Total specifications</div>
             <div className="mt-1 text-xl font-semibold text-zinc-900">{admin.counts.total}</div>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Filtered results</div>
             <div className="mt-1 text-xl font-semibold text-zinc-900">{admin.counts.shown}</div>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Selected specification</div>
             <div className="mt-1 truncate text-sm font-semibold text-zinc-900" title={selectedLabel}>{selectedLabel}</div>
           </div>
@@ -184,7 +184,7 @@ export default function SpecsAdminPage() {
           className={
             "rounded-lg px-4 py-2 text-sm font-semibold transition " +
             (admin.tab === "library"
-              ? "bg-zinc-900 text-white"
+              ? "bg-sky-700 text-white"
               : "text-zinc-700 hover:bg-zinc-100")
           }
         >
@@ -196,7 +196,7 @@ export default function SpecsAdminPage() {
           className={
             "rounded-lg px-4 py-2 text-sm font-semibold transition " +
             (admin.tab === "extract"
-              ? "bg-zinc-900 text-white"
+              ? "bg-sky-700 text-white"
               : "text-zinc-700 hover:bg-zinc-100")
           }
         >

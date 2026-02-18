@@ -266,41 +266,49 @@ export default function AdminStudentsPage() {
   }
 
   return (
-    <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Students</h1>
-          <p className="mt-1 text-sm text-zinc-600">
-            Search and open a student profile. Bulk import is available, but kept tucked away to reduce noise.
-          </p>
-        </div>
+    <div className="grid min-w-0 gap-4">
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              Student Records
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Students</h1>
+            <p className="mt-1 text-sm text-zinc-700">
+              Search and open a student profile. Bulk import is available, but kept tucked away to reduce noise.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            ref={toolsBtnRef}
-            type="button"
-            onClick={() => setToolsOpen(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
-          >
-            <Icon name="filter" />
-            Student tools
-          </button>
-          <Link
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
-            href="/submissions/new"
-          >
-            Upload submission
-          </Link>
-          <Link
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
-            href="/submissions"
-          >
-            Submissions
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              ref={toolsBtnRef}
+              type="button"
+              onClick={() => setToolsOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
+            >
+              <Icon name="filter" />
+              Student tools
+            </button>
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800"
+              href="/submissions/new"
+            >
+              Upload submission
+            </Link>
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
+              href="/submissions"
+            >
+              Submissions
+            </Link>
+            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              {busy || searching ? "Working..." : "Ready"}
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center gap-2">
             <input
@@ -318,7 +326,7 @@ export default function AdminStudentsPage() {
             <button
               onClick={() => refresh().catch((e) => setErr(e?.message || String(e)))}
               disabled={searching}
-              className="h-10 shrink-0 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="h-10 shrink-0 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800"
             >
               {searching ? "Searching..." : "Search"}
             </button>

@@ -9,11 +9,14 @@ export default function ReferenceAdminPage() {
   const vm = useReferenceAdmin();
 
   return (
-    <div className="grid gap-4">
-      <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <div className="grid min-w-0 gap-4">
+      <header className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Reference library</h1>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              Reference Operations
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Reference library</h1>
             <p className="mt-1 text-sm text-zinc-700">
               Upload a <span className="font-semibold">SPEC</span> or <span className="font-semibold">BRIEF</span>, run{" "}
               <span className="font-semibold">Extract</span>, review learning outcomes/criteria, then{" "}
@@ -22,7 +25,9 @@ export default function ReferenceAdminPage() {
             <p className="mt-1 text-xs text-zinc-500">Workflow: Upload → Select → Extract → Review → Lock</p>
           </div>
 
-          <div className="text-xs text-zinc-600">{vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}</div>
+          <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+            {vm.busy ? `Working: ${vm.busy}` : "Ready"}
+          </span>
         </div>
 
         {vm.error ? (

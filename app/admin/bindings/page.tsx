@@ -129,22 +129,32 @@ export default function AssignmentBindingsAdminPage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Phase 2.5 — Assignment Reference Binding</h1>
-          <p className="mt-2 max-w-3xl text-sm text-zinc-600">
-            Bind each operational assignment (A1/A2/etc.) to a <span className="font-semibold">LOCKED</span> brief and its{" "}
-            <span className="font-semibold">LOCKED</span> unit/spec. No question/task extraction, no grading.
-          </p>
+    <div className="grid min-w-0 gap-6">
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              Binding Governance
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Phase 2.5 — Assignment Reference Binding</h1>
+            <p className="mt-2 max-w-3xl text-sm text-zinc-700">
+              Bind each operational assignment (A1/A2/etc.) to a <span className="font-semibold">LOCKED</span> brief and its{" "}
+              <span className="font-semibold">LOCKED</span> unit/spec. No question/task extraction, no grading.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={load}
+              className="h-10 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+            >
+              Refresh
+            </button>
+            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              {savingId ? "Saving..." : "Ready"}
+            </span>
+          </div>
         </div>
-        <button
-          onClick={load}
-          className="h-10 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
-        >
-          Refresh
-        </button>
-      </div>
+      </section>
 
       {err && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
 

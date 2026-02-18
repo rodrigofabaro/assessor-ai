@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type AppUser = {
@@ -15,6 +16,16 @@ type AppConfig = {
   activeAuditUserId?: string | null;
 };
 
+function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
+  return (
+    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900">{value}</div>
+      <p className="mt-1 text-xs text-zinc-600">{hint}</p>
+    </article>
+  );
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [activeAuditUserId, setActiveAuditUserId] = useState<string>("");
@@ -26,10 +37,13 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("ADMIN");
 
-  const activeUser = useMemo(
-    () => users.find((u) => u.id === activeAuditUserId) || null,
-    [users, activeAuditUserId]
-  );
+  const activeUser = useMemo(() => users.find((u) => u.id === activeAuditUserId) || null, [users, activeAuditUserId]);
+  const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
+  const byRole = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const u of users) map.set(u.role, (map.get(u.role) || 0) + 1);
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [users]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,11 +75,7 @@ export default function AdminUsersPage() {
     const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fullName: fullName.trim(),
-        email: email.trim() || null,
-        role: role.trim() || "ADMIN",
-      }),
+      body: JSON.stringify({ fullName: fullName.trim(), email: email.trim() || null, role: role.trim() || "ADMIN" }),
     });
     const json = await res.json();
     if (!res.ok || !json?.ok) {
@@ -113,12 +123,42 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="grid gap-4">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Users</h1>
-        <p className="mt-1 text-sm text-zinc-700">
-          Manage audit users now; these identities are used as actor names in upload/link/grading events.
-        </p>
+    <div className="grid min-w-0 gap-4">
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              Identity Operations
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Users & Audit Identity</h1>
+            <p className="mt-1 text-sm text-zinc-700">
+              Manage assessor identities and choose the active audit actor used across grading and feedback records.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={load}
+              disabled={loading}
+              className="inline-flex h-10 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+            >
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
+            <Link href="/admin/settings" className="inline-flex h-10 items-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
+              Open settings
+            </Link>
+            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              {loading ? "Loading users..." : "Ready"}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Users total" value={users.length} hint="All system user identities." />
+          <MetricCard label="Users active" value={activeUsers.length} hint="Users currently available for actor selection." />
+          <MetricCard label="Roles in use" value={byRole.length} hint="Distinct role groups assigned." />
+          <MetricCard label="Active auditor" value={activeUser?.fullName || "system"} hint="Current actor used in audit/grading metadata." />
+        </div>
       </section>
 
       {(err || msg) && (
@@ -127,61 +167,45 @@ export default function AdminUsersPage() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="text-sm font-semibold text-zinc-900">Active audit user</div>
-        <div className="mt-1 text-sm text-zinc-600">
-          Current: {activeUser ? `${activeUser.fullName} (${activeUser.role})` : "system"}
-        </div>
-      </section>
+      <section className="grid gap-3 lg:grid-cols-2">
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-900">Active audit user</h2>
+          <p className="mt-1 text-sm text-zinc-600">This identity appears as assessor/audit actor when no explicit actor is supplied.</p>
+          <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-zinc-500">Current</div>
+            <div className="mt-1 text-sm font-semibold text-zinc-900">
+              {activeUser ? `${activeUser.fullName} (${activeUser.role})` : "system"}
+            </div>
+          </div>
+        </article>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="text-sm font-semibold text-zinc-900">Create user</div>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Full name"
-            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-          />
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (optional)"
-            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
-          />
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-900">Create user</h2>
+          <div className="mt-3 grid gap-3">
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-zinc-300 px-3 text-sm" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" className="h-10 rounded-xl border border-zinc-300 px-3 text-sm" />
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 rounded-xl border border-zinc-300 px-3 text-sm">
+              <option value="ADMIN">ADMIN</option>
+              <option value="TUTOR">TUTOR</option>
+              <option value="IV">IV</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={createUser}
+            disabled={!fullName.trim()}
+            className="mt-3 inline-flex h-10 items-center rounded-lg bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-700"
           >
-            <option value="ADMIN">ADMIN</option>
-            <option value="TUTOR">TUTOR</option>
-            <option value="IV">IV</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          onClick={createUser}
-          disabled={!fullName.trim()}
-          className="mt-3 rounded-xl border border-zinc-200 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-700"
-        >
-          Create user
-        </button>
+            Create user
+          </button>
+        </article>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="text-sm font-semibold text-zinc-900">User directory</div>
-          <button
-            type="button"
-            onClick={load}
-            disabled={loading}
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60"
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
+          <div className="text-xs text-zinc-600">Set active assessor and enable/disable accounts.</div>
         </div>
-
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -209,10 +233,10 @@ export default function AdminUsersPage() {
                           "rounded-lg border px-2 py-1 text-xs font-semibold " +
                           (activeAuditUserId === u.id
                             ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                            : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                            : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100")
                         }
                       >
-                        {activeAuditUserId === u.id ? "Active auditor" : "Set active"}
+                        {activeAuditUserId === u.id ? "Active assessor" : "Set active"}
                       </button>
                       <button
                         type="button"
@@ -232,4 +256,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
