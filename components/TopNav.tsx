@@ -124,7 +124,7 @@ export default function TopNav() {
           </Link>
 
           {isAdminRoute ? (
-            <nav className="hidden max-w-[56vw] items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
+            <nav aria-label="Admin sections" className="hidden max-w-[56vw] items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
               {ADMIN_ITEMS.map((it) => {
                 const active = isAdminItemActive(pathname, it.href);
                 return (
@@ -148,7 +148,7 @@ export default function TopNav() {
 
       {isAdminRoute ? (
         <div className="border-t border-zinc-200 bg-zinc-50/80 md:hidden">
-          <div className={LANE + " flex items-center gap-2 overflow-x-auto py-1.5"}>
+          <nav aria-label="Admin sections mobile" className={LANE + " flex items-center gap-2 overflow-x-auto py-1.5"}>
             {MAIN_ITEMS.map((it) => {
               const active = isActive(pathname, it.href);
               return (
@@ -183,7 +183,7 @@ export default function TopNav() {
                 </Link>
               );
             })}
-          </div>
+          </nav>
         </div>
       ) : null}
     </header>
