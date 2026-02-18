@@ -517,7 +517,7 @@ export default function AdminStudentsPage() {
                         "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm",
                         busy || !newName.trim()
                           ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
-                          : "bg-zinc-900 text-white hover:bg-zinc-800"
+                          : "bg-sky-700 text-white hover:bg-sky-800"
                       )}
                     >
                       {busy ? "Saving…" : "Create"}
@@ -544,7 +544,7 @@ export default function AdminStudentsPage() {
                       "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm",
                       importBusy || !importFile
                         ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
-                        : "bg-zinc-900 text-white hover:bg-zinc-800"
+                        : "bg-sky-700 text-white hover:bg-sky-800"
                     )}
                   >
                     {importBusy ? "Importing…" : "Import"}
@@ -615,7 +615,7 @@ export default function AdminStudentsPage() {
                 type="button"
                 onClick={saveEdit}
                 disabled={busy || !editName.trim()}
-                className="h-10 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+                className="h-10 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
               >
                 {busy ? "Saving…" : "Save"}
               </button>
@@ -626,3 +626,4 @@ export default function AdminStudentsPage() {
     </div>
   );
 }
+

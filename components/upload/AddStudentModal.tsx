@@ -146,7 +146,7 @@ export function AddStudentModal({
             type="button"
             onClick={addStudent}
             disabled={studentBusy}
-            className="h-10 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="h-10 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
           >
             {studentBusy ? "Saving…" : "Save"}
           </button>

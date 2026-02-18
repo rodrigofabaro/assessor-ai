@@ -102,7 +102,7 @@ export function StudentPicker({
         <label className="text-sm font-medium" htmlFor="studentQuery">
           Student <span className="text-xs font-normal text-zinc-500">(optional)</span>
         </label>
-        <button type="button" onClick={onAddStudent} className="text-xs font-medium text-blue-700 hover:underline">
+        <button type="button" onClick={onAddStudent} className="text-xs font-medium text-sky-700 hover:underline">
           + Add student
         </button>
       </div>

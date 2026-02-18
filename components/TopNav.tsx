@@ -34,7 +34,7 @@ export default function TopNav() {
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur">
       <div className={LANE + " flex items-center justify-between gap-3 py-2.5"}>
         <Link href="/" className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-300 bg-zinc-100 text-sm font-bold text-zinc-900">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sm font-bold text-sky-900">
             AI
           </span>
           <span className="text-base font-semibold tracking-tight">Assessor AI</span>
@@ -63,7 +63,7 @@ export default function TopNav() {
             className={
               "inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition " +
               (isActive(pathname, "/admin")
-                ? "border-zinc-300 bg-zinc-100 text-zinc-900"
+                ? "border-sky-200 bg-sky-50 text-sky-900"
                 : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900")
             }
           >
@@ -80,7 +80,7 @@ export default function TopNav() {
                     href={it.href}
                     className={
                       "inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
-                      (active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
+                      (active ? "bg-sky-50 text-sky-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
                     }
                   >
                     {it.label}
@@ -103,7 +103,7 @@ export default function TopNav() {
                   href={it.href}
                   className={
                     "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
-                    (active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
+                    (active ? "bg-sky-50 text-sky-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
                   }
                 >
                   {it.label}
@@ -119,7 +119,7 @@ export default function TopNav() {
                   className={
                     "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
                     (active
-                      ? "bg-white text-zinc-900 shadow-sm"
+                      ? "bg-sky-50 text-sky-900 shadow-sm"
                       : "text-zinc-600 hover:bg-white hover:text-zinc-900")
                   }
                 >

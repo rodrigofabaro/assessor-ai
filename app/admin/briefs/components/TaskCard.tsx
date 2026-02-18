@@ -2101,7 +2101,7 @@ export function TaskCard({
                 type="button"
                 onClick={saveTaskLatexEditor}
                 disabled={savingTaskLatex || !onSaveTaskLatexOverrides || !taskNumber}
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+                className="rounded-lg bg-sky-700 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-800 disabled:opacity-50"
               >
                 {savingTaskLatex ? "Saving..." : "Save task LaTeX"}
               </button>

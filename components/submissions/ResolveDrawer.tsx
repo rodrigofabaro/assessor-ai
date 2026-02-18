@@ -215,7 +215,7 @@ export function ResolveDrawer({
                       <button
                         type="button"
                         onClick={() => linkStudent(st.id)}
-                        className="h-9 rounded-xl bg-zinc-900 px-3 text-sm font-semibold text-white hover:bg-zinc-800"
+                        className="h-9 rounded-xl bg-sky-700 px-3 text-sm font-semibold text-white hover:bg-sky-800"
                       >
                         Link
                       </button>

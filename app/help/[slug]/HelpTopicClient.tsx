@@ -134,7 +134,7 @@ export default function HelpTopicClient(props: {
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${role === r ? "border-zinc-300 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"}`}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${role === r ? "border-sky-200 bg-sky-50 text-sky-900" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"}`}
               >
                 {r.toUpperCase()}
               </button>
@@ -246,7 +246,7 @@ export default function HelpTopicClient(props: {
             <a
               key={s.id}
               href={`#${s.id}`}
-              className={`rounded-md px-2 py-1 text-xs font-semibold ${activeId === s.id ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"}`}
+              className={`rounded-md px-2 py-1 text-xs font-semibold ${activeId === s.id ? "bg-sky-50 text-sky-900" : "text-zinc-700 hover:bg-zinc-50"}`}
             >
               {s.title}
             </a>

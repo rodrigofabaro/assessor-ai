@@ -101,7 +101,7 @@ export function SubmissionsToolbar({
               onClick={() => setTimeframe("today")}
               className={cx(
                 "px-3 py-2 text-sm font-semibold",
-                timeframe === "today" ? "bg-zinc-100 text-zinc-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                timeframe === "today" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
               )}
             >
               Today
@@ -111,7 +111,7 @@ export function SubmissionsToolbar({
               onClick={() => setTimeframe("week")}
               className={cx(
                 "px-3 py-2 text-sm font-semibold",
-                timeframe === "week" ? "bg-zinc-100 text-zinc-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                timeframe === "week" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
               )}
             >
               This week
@@ -121,7 +121,7 @@ export function SubmissionsToolbar({
               onClick={() => setTimeframe("all")}
               className={cx(
                 "px-3 py-2 text-sm font-semibold",
-                timeframe === "all" ? "bg-zinc-100 text-zinc-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                timeframe === "all" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
               )}
             >
               All
@@ -214,7 +214,7 @@ export function SubmissionsToolbar({
           </IconButton>
           <Link
             href="/submissions/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
+            className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-800"
             title="Upload"
           >
             ⬆ <span>Upload</span>

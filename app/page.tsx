@@ -72,11 +72,11 @@ function Pill({
   tone = "zinc",
 }: {
   children: React.ReactNode;
-  tone?: "zinc" | "indigo" | "cyan" | "emerald" | "amber";
+  tone?: "zinc" | "sky" | "cyan" | "emerald" | "amber";
 }) {
   const tones: Record<string, string> = {
     zinc: "border-zinc-200 bg-zinc-50 text-zinc-700",
-    indigo: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    sky: "border-sky-200 bg-sky-50 text-sky-900",
     cyan: "border-cyan-200 bg-cyan-50 text-cyan-800",
     emerald: "border-emerald-200 bg-emerald-50 text-emerald-800",
     amber: "border-amber-200 bg-amber-50 text-amber-900",
@@ -99,11 +99,11 @@ function CardLink({
   href: string;
   title: string;
   desc: string;
-  tone: "indigo" | "cyan" | "emerald" | "amber";
+  tone: "sky" | "cyan" | "emerald" | "amber";
   icon: "upload" | "book" | "doc" | "users";
 }) {
   const toneMap: Record<string, { ring: string; badge: string; iconBg: string }> = {
-    indigo: { ring: "hover:ring-indigo-200", badge: "bg-indigo-50 text-indigo-900 border-indigo-200", iconBg: "bg-indigo-100 text-indigo-900" },
+    sky: { ring: "hover:ring-sky-200", badge: "bg-sky-50 text-sky-900 border-sky-200", iconBg: "bg-sky-100 text-sky-900" },
     cyan: { ring: "hover:ring-cyan-200", badge: "bg-cyan-50 text-cyan-900 border-cyan-200", iconBg: "bg-cyan-100 text-cyan-900" },
     emerald: { ring: "hover:ring-emerald-200", badge: "bg-emerald-50 text-emerald-900 border-emerald-200", iconBg: "bg-emerald-100 text-emerald-900" },
     amber: { ring: "hover:ring-amber-200", badge: "bg-amber-50 text-amber-950 border-amber-200", iconBg: "bg-amber-100 text-amber-950" },
@@ -249,7 +249,7 @@ export default async function HomePage() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/upload"
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800"
               >
                 Go to Upload
               </Link>
@@ -281,7 +281,7 @@ export default async function HomePage() {
               href="/upload"
               title="Upload"
               desc="Upload student submissions (single or batch). When grading runs, it uses the locked references."
-              tone="indigo"
+              tone="sky"
               icon="upload"
             />
             <CardLink

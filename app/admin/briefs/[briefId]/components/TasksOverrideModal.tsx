@@ -238,7 +238,7 @@ export function TasksOverrideModal(props: {
 
             <button
               type="button"
-              className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-50"
               disabled={disabled}
               onClick={async () => {
                 setSaving(true);

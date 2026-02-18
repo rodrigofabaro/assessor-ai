@@ -40,7 +40,7 @@ export default function LibraryShell({
                 className={
                   "inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-semibold transition " +
                   (active
-                    ? "bg-zinc-900 text-white shadow-sm"
+                    ? "bg-sky-700 text-white shadow-sm"
                     : "border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
                 }
               >

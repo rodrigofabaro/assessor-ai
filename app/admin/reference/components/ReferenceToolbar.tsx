@@ -118,7 +118,7 @@ export function ReferenceToolbar({
               className={
                 "rounded-full border px-3 py-1 font-semibold " +
                 (filters.status === s
-                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  ? "border-sky-700 bg-sky-700 text-white"
                   : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
               }
             >

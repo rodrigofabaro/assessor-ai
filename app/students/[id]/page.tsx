@@ -157,7 +157,7 @@ export default async function StudentPage({
 
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               <Link
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 sm:flex-none"
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800 sm:flex-none"
                 href={`/submissions/new?studentId=${encodeURIComponent(student.id)}`}
               >
                 Upload submission
@@ -230,7 +230,7 @@ export default async function StudentPage({
                   placeholder="Status"
                   defaultValue={activeStatus}
                 />
-                <button className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto" type="submit">
+                <button className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800 sm:w-auto" type="submit">
                   Apply filters
                 </button>
                 <Link

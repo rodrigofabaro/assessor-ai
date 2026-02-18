@@ -21,7 +21,7 @@ export function FilePicker({
           const next = Array.from(e.target.files || []);
           setFiles(() => next);
         }}
-        className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
+        className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-sky-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-sky-800"
       />
 
       {files.length > 0 && (

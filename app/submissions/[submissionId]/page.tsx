@@ -1288,7 +1288,7 @@ export default function SubmissionDetailPage() {
                     onClick={() => setPdfView("original")}
                     className={cx(
                       "rounded-md px-2 py-1 text-xs font-semibold",
-                      pdfView === "original" ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-white"
+                      pdfView === "original" ? "bg-sky-700 text-white" : "text-zinc-700 hover:bg-white"
                     )}
                   >
                     Student submission
@@ -1302,7 +1302,7 @@ export default function SubmissionDetailPage() {
                       !hasMarkedPdf
                         ? "cursor-not-allowed text-zinc-400"
                         : pdfView === "marked"
-                          ? "bg-zinc-900 text-white"
+                          ? "bg-sky-700 text-white"
                           : "text-zinc-700 hover:bg-white"
                     )}
                     title={!hasMarkedPdf ? "Run grading to generate a marked PDF." : "View graded PDF with feedback overlays."}
@@ -1395,7 +1395,7 @@ export default function SubmissionDetailPage() {
                 disabled={!canRunGrading}
                 className={cx(
                   "h-7 rounded-md px-2.5 text-[11px] font-semibold",
-                  canRunGrading ? "bg-indigo-700 text-white hover:bg-indigo-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                  canRunGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
               >
                 Run grading
@@ -1506,7 +1506,7 @@ export default function SubmissionDetailPage() {
                         "mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
                         !selectedStudentId || studentBusy
                           ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                          : "bg-zinc-900 text-white hover:bg-zinc-800"
+                          : "bg-sky-700 text-white hover:bg-sky-800"
                       )}
                     >
                       Link selected
@@ -1939,7 +1939,7 @@ export default function SubmissionDetailPage() {
                       "rounded-lg px-3 py-1.5 text-xs font-semibold",
                       !selectedAssessment?.id || feedbackEditorBusy
                         ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
-                        : "bg-zinc-900 text-white hover:bg-zinc-800"
+                        : "bg-sky-700 text-white hover:bg-sky-800"
                     )}
                   >
                     {feedbackEditorBusy ? "Applying…" : "Apply to marked version"}

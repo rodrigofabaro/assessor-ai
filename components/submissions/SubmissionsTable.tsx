@@ -245,7 +245,7 @@ export function SubmissionsTable({
                                   <button
                                     type="button"
                                     onClick={() => onOpenResolve(s.id)}
-                                    className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+                                    className="rounded-xl border border-sky-200 bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800"
                                     title="Resolve student"
                                   >
                                     Resolve

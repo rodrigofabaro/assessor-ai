@@ -173,7 +173,7 @@ export default function BriefExtractWorkbench({
                     onClick={() => rx.setSelectedDocId(d.id)}
                     className={
                       "w-full rounded-xl border p-3 text-left transition " +
-                      (active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white hover:bg-zinc-50")
+                      (active ? "border-sky-700 bg-sky-700 text-white" : "border-zinc-200 bg-white hover:bg-zinc-50")
                     }
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -271,7 +271,7 @@ export default function BriefExtractWorkbench({
                     className={
                       "rounded-full border px-3 py-1 font-semibold " +
                       (f.status === s
-                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        ? "border-sky-700 bg-sky-700 text-white"
                         : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
                     }
                   >
