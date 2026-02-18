@@ -112,6 +112,21 @@ type AppConfigPayload = {
   activeAuditUser?: AppUser | null;
 };
 
+const TONE_PREVIEW: Record<"supportive" | "professional" | "strict", string[]> = {
+  supportive: [
+    "P2 (NOT_ACHIEVED): Add clearer evidence to secure this criterion.",
+    "M1 (UNCLEAR): Clarify this section to strengthen evidence.",
+  ],
+  professional: [
+    "P2 (NOT_ACHIEVED): More evidence is required.",
+    "M1 (UNCLEAR): Evidence needs clarification.",
+  ],
+  strict: [
+    "P2 (NOT_ACHIEVED): Insufficient evidence; provide explicit criterion evidence.",
+    "M1 (UNCLEAR): Evidence unclear; tighten technical clarity.",
+  ],
+};
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
 }
@@ -764,39 +779,27 @@ export default function AdminSettingsPage() {
               </div>
               <div className="mt-3 rounded-lg border border-zinc-200 bg-white p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tone preview</div>
-                <div className="mt-2 grid gap-2 md:grid-cols-3">
-                  {[
-                    {
-                      tone: "supportive",
-                      lines: [
-                        "P2 (NOT_ACHIEVED): Add clearer evidence to secure this criterion.",
-                        "M1 (UNCLEAR): Clarify this section to strengthen evidence.",
-                      ],
-                    },
-                    {
-                      tone: "professional",
-                      lines: [
-                        "P2 (NOT_ACHIEVED): More evidence is required.",
-                        "M1 (UNCLEAR): Evidence needs clarification.",
-                      ],
-                    },
-                    {
-                      tone: "strict",
-                      lines: [
-                        "P2 (NOT_ACHIEVED): Insufficient evidence; provide explicit criterion evidence.",
-                        "M1 (UNCLEAR): Evidence unclear; tighten technical clarity.",
-                      ],
-                    },
-                  ].map((ex) => (
-                    <div key={ex.tone} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
-                      <div className="font-semibold uppercase tracking-wide text-zinc-600">{ex.tone}</div>
-                      <ul className="mt-1 list-disc pl-4">
-                        {ex.lines.map((l, i) => (
-                          <li key={`${ex.tone}-${i}`}>{l}</li>
-                        ))}
-                      </ul>
+                <div className="mt-2 grid gap-2 md:grid-cols-2">
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
+                    <div className="font-semibold uppercase tracking-wide text-zinc-600">
+                      Feedback tone: {gradingCfg.tone}
                     </div>
-                  ))}
+                    <ul className="mt-1 list-disc pl-4">
+                      {TONE_PREVIEW[gradingCfg.tone].map((line, i) => (
+                        <li key={`feedback-tone-${i}`}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
+                    <div className="font-semibold uppercase tracking-wide text-zinc-600">
+                      Page-note tone: {gradingCfg.pageNotesTone}
+                    </div>
+                    <ul className="mt-1 list-disc pl-4">
+                      {TONE_PREVIEW[gradingCfg.pageNotesTone].map((line, i) => (
+                        <li key={`page-note-tone-${i}`}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
