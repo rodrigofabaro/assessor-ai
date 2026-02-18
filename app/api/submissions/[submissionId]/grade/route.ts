@@ -10,6 +10,7 @@ import { buildStructuredGradingV2 } from "@/lib/grading/assessmentResult";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/grading/feedbackPersonalization";
 import { renderFeedbackTemplate } from "@/lib/grading/feedbackDocument";
+import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
@@ -668,6 +669,10 @@ export async function POST(
       assessorName: actor,
       markedDate: feedbackDate,
     });
+    const pageNotes = buildPageNotesFromCriterionChecks(validated.data.criterionChecks, {
+      maxPages: 6,
+      maxLinesPerPage: 3,
+    });
 
     const marked = await createMarkedPdf(submission.storagePath, {
       submissionId: submission.id,
@@ -678,6 +683,8 @@ export async function POST(
       studentName: studentFirstName || submission?.student?.fullName || "Student",
       assessorName: actor,
       markedDate: feedbackDate,
+      overallPlacement: "last",
+      pageNotes,
     });
 
     const assessment = await prisma.assessment.create({

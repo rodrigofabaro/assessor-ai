@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
 import { summarizeFeedbackText } from "@/lib/grading/feedbackDocument";
+import { buildMarkedPdfUrl } from "@/lib/submissions/markedPdfUrl";
 
 type ExtractedPage = {
   id: string;
@@ -199,8 +200,8 @@ export default function SubmissionDetailPage() {
   const [feedbackStudentName, setFeedbackStudentName] = useState("");
   const [feedbackMarkedDate, setFeedbackMarkedDate] = useState("");
   const [feedbackBaseline, setFeedbackBaseline] = useState({ text: "", studentName: "", date: "" });
-  const [reviewPackOpen, setReviewPackOpen] = useState(false);
   const [activeAuditActorName, setActiveAuditActorName] = useState("system");
+  const [lastActionNote, setLastActionNote] = useState("");
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
   const [coverUnitCode, setCoverUnitCode] = useState("");
@@ -270,6 +271,12 @@ export default function SubmissionDetailPage() {
       })),
     [gradingHistory]
   );
+  const selectedRunLabel = useMemo(() => {
+    const idx = gradingHistory.findIndex((a) => a.id === selectedAssessmentId);
+    if (idx < 0) return "—";
+    if (idx === 0) return "Latest";
+    return `#${Math.max(1, gradingHistory.length - idx)}`;
+  }, [gradingHistory, selectedAssessmentId]);
   const feedbackDirty =
     feedbackDraft !== feedbackBaseline.text ||
     feedbackStudentName !== feedbackBaseline.studentName ||
@@ -507,6 +514,9 @@ export default function SubmissionDetailPage() {
       await refresh();
       setMsg(`Grading complete: ${String(res?.assessment?.overallGrade || "done")}`);
       notifyToast("success", "Grading complete.");
+      setPdfView("marked");
+      openAndScroll("outputs");
+      setLastActionNote(`Grading completed at ${new Date().toLocaleString()}`);
     } catch (e: any) {
       const message = e?.message || "Grading failed.";
       setErr(message);
@@ -658,9 +668,7 @@ export default function SubmissionDetailPage() {
   }
 
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
-  const markedPdfUrl = submissionId
-    ? `/api/submissions/${submissionId}/marked-file?assessmentId=${encodeURIComponent(selectedAssessmentId || "")}&t=${Date.now()}`
-    : "";
+  const markedPdfUrl = submissionId ? buildMarkedPdfUrl(submissionId, selectedAssessmentId, Date.now()) : "";
   const hasMarkedPdf = !!selectedAssessment?.annotatedPdfPath;
   const activePdfUrl = pdfView === "marked" && hasMarkedPdf ? markedPdfUrl : pdfUrl;
   const toggleStudentPanel = () => {
@@ -841,6 +849,7 @@ export default function SubmissionDetailPage() {
       await refresh();
       setMsg("Audit feedback updated and marked PDF regenerated.");
       notifyToast("success", "Feedback applied to marked PDF.");
+      setLastActionNote(`Feedback updated at ${new Date().toLocaleString()} by ${activeAuditActorName}`);
     } catch (e: any) {
       const message = e?.message || "Failed to update feedback.";
       setErr(message);
@@ -852,6 +861,33 @@ export default function SubmissionDetailPage() {
 
   async function rebuildMarkedPdf() {
     await saveAssessmentFeedback();
+  }
+
+  async function copyText(label: string, text: string) {
+    const payload = String(text || "").trim();
+    if (!payload) {
+      notifyToast("error", `Nothing to copy for ${label}.`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(payload);
+      notifyToast("success", `${label} copied.`);
+    } catch {
+      notifyToast("error", `Failed to copy ${label}.`);
+    }
+  }
+
+  function buildCriterionDecisionsText() {
+    const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
+    if (!rows.length) return "";
+    return rows
+      .map((row: any) => {
+        const code = String(row?.code || "—");
+        const decision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase();
+        const rationale = String(row?.rationale || row?.comment || "").trim();
+        return `${code}: ${decision}${rationale ? ` - ${rationale}` : ""}`;
+      })
+      .join("\n");
   }
 
   useEffect(() => {
@@ -943,7 +979,7 @@ export default function SubmissionDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cx(
-              "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
+              "inline-flex h-5 items-center rounded-full border px-2.5 text-xs font-semibold",
               checklist.readyToUpload ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
             )}
           >
@@ -1056,46 +1092,6 @@ export default function SubmissionDetailPage() {
               <div><span className="font-semibold text-zinc-900">E</span> Run extraction</div>
               <div><span className="font-semibold text-zinc-900">G</span> Run grading (when ready)</div>
               <div><span className="font-semibold text-zinc-900">S</span> Toggle student panel</div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {reviewPackOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Submission review pack</div>
-                <div className="mt-1 text-sm text-zinc-700">Operational summary, audit details, and feedback history.</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setReviewPackOpen(false)}
-                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-              >
-                Close
-              </button>
-            </div>
-            <div className="mt-3 grid gap-2 text-xs md:grid-cols-2">
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Student:</span> {submission?.student?.fullName || triageInfo?.studentName || "—"}</div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Unit:</span> {submission?.assignment?.unitCode || triageInfo?.unitCode || "—"}</div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Assignment:</span> {submission?.assignment?.assignmentRef || triageInfo?.assignmentRef || "—"}</div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Status:</span> {submission?.status || "—"}</div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Grade:</span> {selectedAssessment?.overallGrade || "Pending"}</div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2"><span className="font-semibold text-zinc-600">Assessor source:</span> {activeAuditActorName}</div>
-            </div>
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Feedback summary history</div>
-              <div className="mt-2 space-y-2">
-                {feedbackHistory.length ? feedbackHistory.map((row) => (
-                  <div key={`pack-${row.id}`} className="rounded-lg border border-zinc-200 bg-white p-2">
-                    <div className="text-[11px] font-semibold text-zinc-800">
-                      {row.index === 0 ? "Latest" : `Run ${feedbackHistory.length - row.index}`} · {row.grade} · {row.when}
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-700">{row.summary}</div>
-                  </div>
-                )) : <div className="text-xs text-zinc-600">No feedback history yet.</div>}
-              </div>
             </div>
           </div>
         </div>
@@ -1217,6 +1213,19 @@ export default function SubmissionDetailPage() {
       <section className="grid gap-4 lg:grid-cols-3">
         {/* RIGHT: PDF */}
         <div className="order-2 lg:order-2 lg:col-span-2">
+          <div className="sticky top-2 z-10 mb-2 rounded-xl border border-zinc-200 bg-white/95 px-3 py-1.5 shadow-sm backdrop-blur">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex h-5 items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 font-semibold text-zinc-700">
+                Run: {selectedRunLabel}
+              </span>
+              <span className="inline-flex h-5 items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 font-semibold text-zinc-700">
+                Grade: {selectedAssessment?.overallGrade || "Pending"}
+              </span>
+              <span className={cx("inline-flex h-5 items-center rounded-full border px-2 font-semibold", feedbackDirty ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900")}>
+                {feedbackDirty ? "Unsaved feedback" : "Feedback saved"}
+              </span>
+            </div>
+          </div>
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-4">
               <div className="flex items-center gap-3">
@@ -1287,8 +1296,9 @@ export default function SubmissionDetailPage() {
 
         {/* LEFT: Metadata + extraction */}
         <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
-          <div className="order-1 rounded-2xl border border-zinc-200 bg-white p-2.5 shadow-sm">
+          <div className="order-1 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Quick actions</div>
+            <div className="mt-1 text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> grade, <span className="font-semibold">?</span> help</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
@@ -1310,13 +1320,6 @@ export default function SubmissionDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setReviewPackOpen(true)}
-                className="h-7 rounded-md bg-violet-700 px-2.5 text-[11px] font-semibold text-white hover:bg-violet-800"
-              >
-                Review pack
-              </button>
-              <button
-                type="button"
                 onClick={runGrading}
                 disabled={!canRunGrading}
                 className={cx(
@@ -1325,17 +1328,6 @@ export default function SubmissionDetailPage() {
                 )}
               >
                 Run grading
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveCoverMetadata()}
-                disabled={coverEditBusy || !latestRun}
-                className={cx(
-                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
-                  coverEditBusy || !latestRun ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-emerald-700 text-white hover:bg-emerald-800"
-                )}
-              >
-                Save cover
               </button>
             </div>
             <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
@@ -1352,19 +1344,19 @@ export default function SubmissionDetailPage() {
           <details
             ref={studentPanelRef}
             id="student-link-panel"
-            className="group order-3 rounded-2xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-3 rounded-xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("student");
             }}
           >
-            <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none px-3 py-1.5 group-open:py-2 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Student</span>
                 </span>
-                <span className={cx("rounded-full px-2 py-0.5 text-[10px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                <span className={cx("inline-flex h-5 items-center rounded-full px-2 text-[10px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                   {checklist.studentLinked ? "Linked" : "Pending"}
                 </span>
               </div>
@@ -1493,19 +1485,19 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={assignmentPanelRef}
-            className="group order-2 rounded-2xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-2 rounded-xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("assignment");
             }}
           >
-            <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none px-3 py-1.5 group-open:py-2 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Assignment</span>
                 </span>
-                <span className={cx("rounded-full px-2 py-0.5 text-[10px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                <span className={cx("inline-flex h-5 items-center rounded-full px-2 text-[10px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                   {checklist.assignmentLinked ? "Linked" : "Pending"}
                 </span>
               </div>
@@ -1525,13 +1517,13 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={extractionPanelRef}
-            className="group order-4 rounded-2xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-4 rounded-xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("extraction");
             }}
           >
-            <summary className="cursor-pointer list-none border-b border-zinc-200 p-3 [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none border-b border-transparent px-3 py-1.5 group-open:border-zinc-200 group-open:py-3 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
@@ -1717,13 +1709,13 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={outputsPanelRef}
-            className="group order-5 rounded-2xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-5 rounded-xl border border-zinc-200 bg-white shadow-sm"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("outputs");
             }}
           >
-            <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none px-3 py-1.5 group-open:py-2 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
@@ -1731,7 +1723,7 @@ export default function SubmissionDetailPage() {
                 </span>
                 <span
                   className={cx(
-                    "rounded-full px-2 py-0.5 text-[10px]",
+                    "inline-flex h-5 items-center rounded-full px-2 text-[10px]",
                     feedbackDirty ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-700"
                   )}
                 >
@@ -1763,11 +1755,28 @@ export default function SubmissionDetailPage() {
                   </select>
                 </div>
               ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void copyText("Feedback", feedbackDraft)}
+                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  Copy feedback
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void copyText("Criterion decisions", buildCriterionDecisionsText())}
+                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  Copy criterion decisions
+                </button>
+              </div>
               {previousAssessment && selectedAssessment?.id === latestAssessment?.id ? (
                 <div className="text-[11px] text-zinc-500">
                   Previous run: {previousAssessment.overallGrade || "—"} at {safeDate(previousAssessment.createdAt)}
                 </div>
               ) : null}
+              {lastActionNote ? <div className="text-[11px] text-zinc-500">{lastActionNote}</div> : null}
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Selected grade</span>
                 <span className="font-semibold text-zinc-900">{selectedAssessment?.overallGrade || "—"}</span>

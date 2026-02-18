@@ -4,6 +4,7 @@ import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import { deriveBulletsFromFeedbackText } from "@/lib/grading/feedbackDocument";
 import { readGradingConfig } from "@/lib/grading/config";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { buildPageNotesFromCriterionChecks, extractCriterionChecksFromResultJson } from "@/lib/grading/pageNotes";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,11 @@ export async function PATCH(
     const markedDate = toUkDate(body.markedDate || null);
     const studentName = String(body.studentName || resultJson.studentFirstNameUsed || "Student");
     const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText, gradingCfg.maxFeedbackBullets);
+    const criterionChecks = extractCriterionChecksFromResultJson(resultJson);
+    const pageNotes = buildPageNotesFromCriterionChecks(criterionChecks, {
+      maxPages: 6,
+      maxLinesPerPage: 3,
+    });
 
     const marked = await createMarkedPdf(assessment.submission.storagePath, {
       submissionId: assessment.submission.id,
@@ -56,6 +62,8 @@ export async function PATCH(
       studentName,
       assessorName: actor,
       markedDate,
+      overallPlacement: "last",
+      pageNotes,
     });
 
     const updated = await prisma.assessment.update({
