@@ -14,10 +14,11 @@ const MAIN_ITEMS: MainItem[] = [
 
 const ADMIN_ITEMS: AdminItem[] = [
   { label: "Overview", href: "/admin" },
+  { label: "QA", href: "/admin/qa" },
+  { label: "Audit", href: "/admin/audit" },
   { label: "Specs", href: "/admin/specs" },
   { label: "Briefs", href: "/admin/briefs" },
   { label: "Students", href: "/admin/students" },
-  { label: "Audit", href: "/admin/audit" },
 ];
 
 function isActive(pathname: string, href: string) {

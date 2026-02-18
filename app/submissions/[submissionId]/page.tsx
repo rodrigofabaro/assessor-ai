@@ -1188,8 +1188,8 @@ export default function SubmissionDetailPage() {
         </button>
       </section>
 
-      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm">
+        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-9">
           {[
             {
               key: "student",
@@ -1258,16 +1258,16 @@ export default function SubmissionDetailPage() {
               type="button"
               onClick={item.actionable ? item.onAction : undefined}
               className={cx(
-                "flex h-16 min-w-[150px] flex-col justify-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-left",
+                "min-w-0 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-left",
                 item.actionable ? "cursor-pointer hover:border-sky-300 hover:bg-sky-50" : "cursor-default"
               )}
               title={item.actionable ? item.actionLabel : undefined}
             >
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{item.label}</div>
-              <div className="max-w-[170px] truncate text-[12px] font-semibold text-zinc-900">{item.value}</div>
-              {item.actionable ? (
-                <div className="text-[10px] font-semibold text-sky-700">Click to {item.actionLabel?.toLowerCase() || "update"}</div>
-              ) : null}
+              <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="truncate">{item.label}</span>
+                {item.actionable ? <span className="text-sky-700">•</span> : null}
+              </div>
+              <div className="truncate text-[12px] font-semibold text-zinc-900">{item.value}</div>
             </button>
           ))}
         </div>

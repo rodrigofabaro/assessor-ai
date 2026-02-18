@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
+  { href: "/admin/qa", label: "QA", desc: "Research + reports" },
+  { href: "/admin/audit", label: "Audit", desc: "Operational logs" },
   { href: "/admin/reference", label: "Reference", desc: "Specs / briefs" },
   { href: "/admin/bindings", label: "Bindings", desc: "Brief ↔ unit map" },
   { href: "/admin/students", label: "Students", desc: "Student records" },
