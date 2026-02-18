@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
 import { summarizeFeedbackText } from "@/lib/grading/feedbackDocument";
+import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { buildMarkedPdfUrl } from "@/lib/submissions/markedPdfUrl";
 
 type ExtractedPage = {
@@ -302,6 +303,10 @@ export default function SubmissionDetailPage() {
     if (fallback && typeof fallback === "object") return fallback;
     return null;
   }, [selectedAssessment]);
+  const pageFeedbackMap = useMemo(() => {
+    const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
+    return buildPageNotesFromCriterionChecks(rows, { maxPages: 20, maxLinesPerPage: 8 });
+  }, [structuredGrading]);
 
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
@@ -1925,6 +1930,26 @@ export default function SubmissionDetailPage() {
                         </div>
                       );
                     })}
+                  </div>
+                </details>
+              ) : null}
+
+              {pageFeedbackMap.length ? (
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Page Feedback Map ({pageFeedbackMap.length} pages)
+                  </summary>
+                  <div className="mt-3 space-y-2">
+                    {pageFeedbackMap.map((p) => (
+                      <div key={`pf-${p.page}`} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                        <div className="text-[11px] font-semibold text-zinc-800">Page {p.page}</div>
+                        <ul className="mt-1 list-disc pl-4 text-xs text-zinc-700">
+                          {p.lines.map((line, i) => (
+                            <li key={`pfl-${p.page}-${i}`}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
                 </details>
               ) : null}

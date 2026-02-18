@@ -48,10 +48,14 @@ export async function PATCH(
     const studentName = String(body.studentName || resultJson.studentFirstNameUsed || "Student");
     const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText, gradingCfg.maxFeedbackBullets);
     const criterionChecks = extractCriterionChecksFromResultJson(resultJson);
-    const pageNotes = buildPageNotesFromCriterionChecks(criterionChecks, {
-      maxPages: 6,
-      maxLinesPerPage: 3,
-    });
+    const pageNotes = gradingCfg.pageNotesEnabled
+      ? buildPageNotesFromCriterionChecks(criterionChecks, {
+          maxPages: gradingCfg.pageNotesMaxPages,
+          maxLinesPerPage: gradingCfg.pageNotesMaxLinesPerPage,
+          tone: gradingCfg.pageNotesTone,
+          includeCriterionCode: gradingCfg.pageNotesIncludeCriterionCode,
+        })
+      : [];
 
     const marked = await createMarkedPdf(assessment.submission.storagePath, {
       submissionId: assessment.submission.id,

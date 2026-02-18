@@ -669,10 +669,14 @@ export async function POST(
       assessorName: actor,
       markedDate: feedbackDate,
     });
-    const pageNotes = buildPageNotesFromCriterionChecks(validated.data.criterionChecks, {
-      maxPages: 6,
-      maxLinesPerPage: 3,
-    });
+    const pageNotes = cfg.pageNotesEnabled
+      ? buildPageNotesFromCriterionChecks(validated.data.criterionChecks, {
+          maxPages: cfg.pageNotesMaxPages,
+          maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
+          tone: cfg.pageNotesTone,
+          includeCriterionCode: cfg.pageNotesIncludeCriterionCode,
+        })
+      : [];
 
     const marked = await createMarkedPdf(submission.storagePath, {
       submissionId: submission.id,

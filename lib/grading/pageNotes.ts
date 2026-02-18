@@ -42,24 +42,44 @@ export function extractCriterionChecksFromResultJson(resultJson: any): Criterion
 
 export function buildPageNotesFromCriterionChecks(
   rows: CriterionCheckLike[],
-  options?: { maxPages?: number; maxLinesPerPage?: number }
+  options?: {
+    maxPages?: number;
+    maxLinesPerPage?: number;
+    tone?: "supportive" | "professional" | "strict";
+    includeCriterionCode?: boolean;
+  }
 ): MarkedPageNote[] {
-  const maxPages = Math.max(1, Math.min(12, Number(options?.maxPages || 6)));
-  const maxLinesPerPage = Math.max(1, Math.min(6, Number(options?.maxLinesPerPage || 3)));
+  const maxPages = Math.max(1, Math.min(20, Number(options?.maxPages || 6)));
+  const maxLinesPerPage = Math.max(1, Math.min(8, Number(options?.maxLinesPerPage || 3)));
+  const tone = String(options?.tone || "professional").toLowerCase();
+  const includeCode = options?.includeCriterionCode !== false;
   const byPage = new Map<number, string[]>();
 
   for (const row of Array.isArray(rows) ? rows : []) {
     const code = normalizeText(row?.code || "Criterion");
     const decision = decisionLabel(row);
     const rationale = normalizeText(row?.rationale || row?.comment || "");
-    const guidance =
-      rationale ||
-      (decision === "ACHIEVED"
-        ? "Evidence is present."
+    const guidance = rationale || (
+      decision === "ACHIEVED"
+        ? tone === "supportive"
+          ? "Clear evidence shown; keep this standard."
+          : tone === "strict"
+            ? "Evidence present; maintain specification accuracy."
+            : "Evidence is present."
         : decision === "NOT_ACHIEVED"
-          ? "More evidence is required."
-          : "Evidence needs clarification.");
-    const line = compactLine(`${code} (${decision}): ${guidance}`);
+          ? tone === "supportive"
+            ? "Add clearer evidence to secure this criterion."
+            : tone === "strict"
+              ? "Insufficient evidence; provide explicit criterion evidence."
+              : "More evidence is required."
+          : tone === "supportive"
+            ? "Clarify this section to strengthen evidence."
+            : tone === "strict"
+              ? "Evidence unclear; tighten technical clarity."
+              : "Evidence needs clarification."
+    );
+    const prefix = includeCode ? `${code} (${decision}): ` : "";
+    const line = compactLine(`${prefix}${guidance}`);
     const pages = Array.from(
       new Set(
         (Array.isArray(row?.evidence) ? row.evidence : [])

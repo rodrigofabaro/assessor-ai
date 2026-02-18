@@ -30,6 +30,11 @@ export async function PUT(req: Request) {
       useRubricIfAvailable: body.useRubricIfAvailable as any,
       maxFeedbackBullets: body.maxFeedbackBullets as any,
       feedbackTemplate: typeof body.feedbackTemplate === "string" ? body.feedbackTemplate : undefined,
+      pageNotesEnabled: body.pageNotesEnabled as any,
+      pageNotesTone: body.pageNotesTone as any,
+      pageNotesMaxPages: body.pageNotesMaxPages as any,
+      pageNotesMaxLinesPerPage: body.pageNotesMaxLinesPerPage as any,
+      pageNotesIncludeCriterionCode: body.pageNotesIncludeCriterionCode as any,
     });
     return NextResponse.json({ ok: true, config: saved });
   } catch (e) {

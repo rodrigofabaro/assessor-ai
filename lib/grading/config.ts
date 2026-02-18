@@ -15,6 +15,11 @@ export type GradingConfig = {
   useRubricIfAvailable: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate: string;
+  pageNotesEnabled: boolean;
+  pageNotesTone: GradingTone;
+  pageNotesMaxPages: number;
+  pageNotesMaxLinesPerPage: number;
+  pageNotesIncludeCriterionCode: boolean;
   updatedAt: string;
 };
 
@@ -27,6 +32,11 @@ export function defaultGradingConfig(): GradingConfig {
     useRubricIfAvailable: true,
     maxFeedbackBullets: 6,
     feedbackTemplate: getDefaultFeedbackTemplate(),
+    pageNotesEnabled: true,
+    pageNotesTone: "professional",
+    pageNotesMaxPages: 6,
+    pageNotesMaxLinesPerPage: 3,
+    pageNotesIncludeCriterionCode: true,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -47,6 +57,12 @@ function normalizeBullets(v: unknown): number {
   const n = Number(v);
   if (!Number.isFinite(n)) return 6;
   return Math.max(3, Math.min(12, Math.round(n)));
+}
+
+function normalizeSmallInt(v: unknown, fallback: number, min: number, max: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
 }
 
 function normalizeModel(v: unknown): string {
@@ -71,6 +87,20 @@ function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
         : base.useRubricIfAvailable,
     maxFeedbackBullets: normalizeBullets(input.maxFeedbackBullets ?? base.maxFeedbackBullets),
     feedbackTemplate: normalizeTemplate(input.feedbackTemplate ?? base.feedbackTemplate),
+    pageNotesEnabled:
+      typeof input.pageNotesEnabled === "boolean" ? input.pageNotesEnabled : base.pageNotesEnabled,
+    pageNotesTone: normalizeTone(input.pageNotesTone ?? base.pageNotesTone),
+    pageNotesMaxPages: normalizeSmallInt(input.pageNotesMaxPages, base.pageNotesMaxPages, 1, 20),
+    pageNotesMaxLinesPerPage: normalizeSmallInt(
+      input.pageNotesMaxLinesPerPage,
+      base.pageNotesMaxLinesPerPage,
+      1,
+      8
+    ),
+    pageNotesIncludeCriterionCode:
+      typeof input.pageNotesIncludeCriterionCode === "boolean"
+        ? input.pageNotesIncludeCriterionCode
+        : base.pageNotesIncludeCriterionCode,
     updatedAt: new Date().toISOString(),
   };
 }

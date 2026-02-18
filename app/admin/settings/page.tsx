@@ -90,6 +90,11 @@ type GradingConfigPayload = {
   useRubricIfAvailable: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate: string;
+  pageNotesEnabled: boolean;
+  pageNotesTone: "supportive" | "professional" | "strict";
+  pageNotesMaxPages: number;
+  pageNotesMaxLinesPerPage: number;
+  pageNotesIncludeCriterionCode: boolean;
 };
 
 type AppUser = {
@@ -647,6 +652,75 @@ export default function AdminSettingsPage() {
                 Required: {"{overallGrade}"} and {"{feedbackBullets}"}.
               </div>
             </label>
+            <div className="md:col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-sm font-semibold text-zinc-900">Small page feedback notes</div>
+              <div className="mt-2 grid gap-3 md:grid-cols-2">
+                <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={gradingCfg.pageNotesEnabled}
+                    onChange={(e) => setGradingCfg((v) => (v ? { ...v, pageNotesEnabled: e.target.checked } : v))}
+                    className="h-4 w-4 rounded border-zinc-300"
+                  />
+                  Enable page notes in marked PDF
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={gradingCfg.pageNotesIncludeCriterionCode}
+                    onChange={(e) =>
+                      setGradingCfg((v) => (v ? { ...v, pageNotesIncludeCriterionCode: e.target.checked } : v))
+                    }
+                    className="h-4 w-4 rounded border-zinc-300"
+                  />
+                  Include criterion code in note text
+                </label>
+                <label className="text-sm text-zinc-700">
+                  Note tone
+                  <select
+                    value={gradingCfg.pageNotesTone}
+                    onChange={(e) => setGradingCfg((v) => (v ? { ...v, pageNotesTone: e.target.value as any } : v))}
+                    className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  >
+                    <option value="supportive">Supportive</option>
+                    <option value="professional">Professional</option>
+                    <option value="strict">Strict</option>
+                  </select>
+                </label>
+                <label className="text-sm text-zinc-700">
+                  Max pages with notes
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={gradingCfg.pageNotesMaxPages}
+                    onChange={(e) =>
+                      setGradingCfg((v) =>
+                        v ? { ...v, pageNotesMaxPages: Math.max(1, Math.min(20, Number(e.target.value || 6))) } : v
+                      )
+                    }
+                    className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  />
+                </label>
+                <label className="text-sm text-zinc-700">
+                  Max notes per page
+                  <input
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={gradingCfg.pageNotesMaxLinesPerPage}
+                    onChange={(e) =>
+                      setGradingCfg((v) =>
+                        v
+                          ? { ...v, pageNotesMaxLinesPerPage: Math.max(1, Math.min(8, Number(e.target.value || 3))) }
+                          : v
+                      )
+                    }
+                    className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  />
+                </label>
+              </div>
+            </div>
             <div className="md:col-span-2">
               <button
                 onClick={saveGradingConfig}
@@ -670,6 +744,7 @@ export default function AdminSettingsPage() {
           <li>Whether rubric hints are included when a rubric is attached to the locked brief.</li>
           <li>Maximum number of feedback bullets saved into audit output and marked PDF overlay.</li>
           <li>Feedback template used to build feedback text and assessor/date signature blocks.</li>
+          <li>Small page-note overlays (enabled, tone, page limits, and criterion-code flag).</li>
         </ul>
       </section>
       </>
