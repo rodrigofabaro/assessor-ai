@@ -98,6 +98,7 @@ export default function TopNav() {
               <Link
                 key={it.href}
                 href={it.href}
+                aria-current={active ? "page" : undefined}
                 className={
                   "hidden h-9 items-center justify-center border-b-2 px-0 text-sm font-semibold transition sm:inline-flex " +
                   (active
@@ -111,6 +112,7 @@ export default function TopNav() {
           })}
           <Link
             href="/admin"
+            aria-current={isActive(pathname, "/admin") ? "page" : undefined}
             className={
               "inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition " +
               (isActive(pathname, "/admin")
@@ -129,6 +131,7 @@ export default function TopNav() {
                   <Link
                     key={it.href}
                     href={it.href}
+                    aria-current={active ? "page" : undefined}
                     className={
                       "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition " +
                       (active ? accentClasses(it.accent) : "border-transparent text-zinc-600 hover:bg-white hover:text-zinc-900")
@@ -152,6 +155,7 @@ export default function TopNav() {
                 <Link
                   key={it.href}
                   href={it.href}
+                  aria-current={active ? "page" : undefined}
                   className={
                     "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold transition " +
                     (active ? "bg-sky-50 text-sky-900 shadow-sm" : "text-zinc-600 hover:bg-white hover:text-zinc-900")
@@ -167,6 +171,7 @@ export default function TopNav() {
                 <Link
                   key={it.href}
                   href={it.href}
+                  aria-current={active ? "page" : undefined}
                   className={
                     "inline-flex shrink-0 items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold transition " +
                     (active
