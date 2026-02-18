@@ -173,9 +173,6 @@ export default function SubmissionDetailPage() {
   const [coverUnitCode, setCoverUnitCode] = useState("");
   const [coverAssignmentCode, setCoverAssignmentCode] = useState("");
   const [coverSubmissionDate, setCoverSubmissionDate] = useState("");
-  const [rightPanel, setRightPanel] = useState<
-    "workflow" | "student" | "assignment" | "extraction" | "grading" | "outputs"
-  >("workflow");
 
   /* ---------- Extraction view state ---------- */
   const [activePage, setActivePage] = useState(0);
@@ -678,33 +675,6 @@ export default function SubmissionDetailPage() {
 
         {/* RIGHT: Metadata + extraction */}
         <div className="grid gap-4 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Panel</div>
-            <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1">
-              {[
-                { key: "workflow", label: "Workflow" },
-                { key: "student", label: "Student" },
-                { key: "assignment", label: "Assignment" },
-                { key: "extraction", label: "Extraction" },
-                { key: "grading", label: "Grading" },
-                { key: "outputs", label: "Outputs" },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setRightPanel(item.key as any)}
-                  className={cx(
-                    "rounded-lg px-2 py-1.5 text-[11px] font-semibold",
-                    rightPanel === item.key ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-white"
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {rightPanel === "workflow" ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -767,12 +737,10 @@ export default function SubmissionDetailPage() {
               </div>
             ) : null}
           </div>
-          ) : null}
 
-          {rightPanel === "student" ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500">Student</div>
-            <div className="mt-1 flex items-start justify-between gap-3">
+          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Student</summary>
+            <div className="mt-3 flex items-start justify-between gap-3">
               <div>
                 <div className="text-lg font-semibold text-zinc-900">
                   {submission?.student?.fullName || "Unlinked"}
@@ -889,13 +857,11 @@ export default function SubmissionDetailPage() {
                 Linked: {safeDate(submission.studentLinkedAt)}{submission.studentLinkedBy ? ` · by ${submission.studentLinkedBy}` : ""}
               </div>
             ) : null}
-          </div>
-          ) : null}
+          </details>
 
-          {rightPanel === "assignment" ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500">Assignment</div>
-            <div className="mt-1 text-lg font-semibold text-zinc-900">
+          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Assignment</summary>
+            <div className="mt-3 text-lg font-semibold text-zinc-900">
               {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
             </div>
             <div className="mt-1 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
@@ -906,15 +872,13 @@ export default function SubmissionDetailPage() {
                 <div className="mt-2">Missing: {triageInfo.coverage.missing.join(", ")}</div>
               </div>
             ) : null}
-          </div>
-          ) : null}
+          </details>
 
-          {rightPanel === "extraction" ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-            <div className="border-b border-zinc-200 p-4">
+          <details open className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+            <summary className="cursor-pointer border-b border-zinc-200 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-xs font-semibold text-zinc-500">Extraction</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Extraction</div>
                   <div className="mt-1 text-sm font-semibold text-zinc-900">
                     {latestRun ? `Latest run · ${latestRun.engineVersion}` : "Not run yet"}
                   </div>
@@ -926,7 +890,7 @@ export default function SubmissionDetailPage() {
                   </div>
                 ) : null}
               </div>
-            </div>
+            </summary>
 
             <div className="p-4">
               {!latestRun ? (
@@ -1056,13 +1020,11 @@ export default function SubmissionDetailPage() {
                 </div>
               )}
             </div>
-          </div>
-          ) : null}
+          </details>
 
-          {rightPanel === "grading" ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500">Grading config</div>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Grading config</summary>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <label className="text-sm text-zinc-700">
                 Tone
                 <select
@@ -1098,13 +1060,11 @@ export default function SubmissionDetailPage() {
               Use rubric when linked to this brief
             </label>
             <div className="mt-2 text-xs text-zinc-500">Model: {gradingCfg?.model || "default"} · Feedback bullets: {gradingCfg?.maxFeedbackBullets ?? 6}</div>
-          </div>
-          ) : null}
+          </details>
 
-          {rightPanel === "outputs" ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500">Audit & outputs</div>
-            <div className="mt-2 grid gap-2 text-sm">
+          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Audit & outputs</summary>
+            <div className="mt-3 grid gap-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Latest grade</span>
                 <span className="font-semibold text-zinc-900">{latestAssessment?.overallGrade || "—"}</span>
@@ -1230,8 +1190,7 @@ export default function SubmissionDetailPage() {
                 </details>
               ) : null}
             </div>
-          </div>
-          ) : null}
+          </details>
         </div>
       </section>
     </main>
