@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
 import { prisma } from "@/lib/prisma";
+import { getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
+import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED = new Set(["image/x-icon", "image/vnd.microsoft.icon", "image/png", "image/svg+xml"]);
 
 export async function POST(req: Request) {
+  const ctx = await getSettingsWriteContext();
+  if (!ctx.canWrite) {
+    return NextResponse.json({ error: "Insufficient role for branding settings." }, { status: 403 });
+  }
+
   const formData = await req.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) {
@@ -28,6 +36,17 @@ export async function POST(req: Request) {
     create: { id: 1, faviconUpdatedAt: new Date() },
     update: { faviconUpdatedAt: new Date() },
   });
+  appendSettingsAuditEvent({
+    actor: await getCurrentAuditActor(),
+    role: ctx.role,
+    action: "FAVICON_UPDATED",
+    target: "favicon",
+    changes: {
+      filename: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    },
+  });
 
   return NextResponse.json({
     ok: true,
@@ -35,4 +54,3 @@ export async function POST(req: Request) {
     note: "Favicon updated. Hard refresh may be required due to browser cache.",
   });
 }
-

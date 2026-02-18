@@ -15,7 +15,11 @@ export type SubmissionRow = {
   extractedText?: string | null;
 
   assignmentId: string | null;
-  assignment?: { title: string | null } | null;
+  assignment?: {
+    title: string | null;
+    unitCode?: string | null;
+    assignmentRef?: string | null;
+  } | null;
 
   studentId: string | null;
   student?: Student | null;

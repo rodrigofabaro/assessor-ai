@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { readGradingConfig, writeGradingConfig } from "@/lib/grading/config";
+import { getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
+import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
+import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 export const runtime = "nodejs";
 
@@ -12,6 +15,11 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
+    const ctx = await getSettingsWriteContext();
+    if (!ctx.canWrite) {
+      return NextResponse.json({ error: "Insufficient role for grading settings." }, { status: 403 });
+    }
+
     const body = (await req.json()) as Record<string, unknown>;
     if (typeof body.feedbackTemplate === "string") {
       const tpl = body.feedbackTemplate;
@@ -23,6 +31,7 @@ export async function PUT(req: Request) {
         );
       }
     }
+    const prev = readGradingConfig().config;
     const saved = writeGradingConfig({
       model: typeof body.model === "string" ? body.model : undefined,
       tone: body.tone as any,
@@ -35,6 +44,22 @@ export async function PUT(req: Request) {
       pageNotesMaxPages: body.pageNotesMaxPages as any,
       pageNotesMaxLinesPerPage: body.pageNotesMaxLinesPerPage as any,
       pageNotesIncludeCriterionCode: body.pageNotesIncludeCriterionCode as any,
+    });
+    appendSettingsAuditEvent({
+      actor: await getCurrentAuditActor(),
+      role: ctx.role,
+      action: "GRADING_CONFIG_UPDATED",
+      target: "grading-config",
+      changes: {
+        toneFrom: prev.tone,
+        toneTo: saved.tone,
+        strictnessFrom: prev.strictness,
+        strictnessTo: saved.strictness,
+        maxFeedbackBulletsFrom: prev.maxFeedbackBullets,
+        maxFeedbackBulletsTo: saved.maxFeedbackBullets,
+        pageNotesEnabledFrom: prev.pageNotesEnabled,
+        pageNotesEnabledTo: saved.pageNotesEnabled,
+      },
     });
     return NextResponse.json({ ok: true, config: saved });
   } catch (e) {

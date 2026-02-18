@@ -24,7 +24,8 @@ export function SubmissionsTable({
   onRetryFailedLane,
   onOpenResolve,
   onCopySummary,
-  copiedId,
+  onDownloadMarkedFile,
+  copiedKey,
 }: {
   laneGroups: LaneGroup[];
   batchBusy: boolean;
@@ -33,7 +34,8 @@ export function SubmissionsTable({
   onRetryFailedLane: (laneKey: LaneKey) => void;
   onOpenResolve: (submissionId: string) => void;
   onCopySummary: (s: SubmissionRow) => void;
-  copiedId: string | null;
+  onDownloadMarkedFile: (s: SubmissionRow) => void;
+  copiedKey: string | null;
 }) {
   const [collapsed, setCollapsed] = useState<Record<LaneKey, boolean>>({
     AUTO_READY: false,
@@ -136,8 +138,8 @@ export function SubmissionsTable({
               <table className="min-w-full border-separate border-spacing-0">
                 <thead>
                   <tr className="text-left text-xs font-semibold text-zinc-700">
-                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Submission</th>
                     <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Candidate & Assignment</th>
+                    <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
                     <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Workflow</th>
                     <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
                     <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-right">Actions</th>
@@ -156,13 +158,6 @@ export function SubmissionsTable({
                         const a = deriveNextAction(s);
                         return (
                           <tr key={s.id} className="text-sm transition hover:bg-zinc-50/70">
-                            <td className="border-b border-zinc-100 px-4 py-3 align-top">
-                              <Link className="font-medium text-zinc-900 underline underline-offset-4 hover:opacity-80" href={`/submissions/${s.id}`}>
-                                {s.filename}
-                              </Link>
-                              <div className="mt-1 font-mono text-[11px] text-zinc-500">{s.id.slice(0, 8)}</div>
-                            </td>
-
                             <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-800">
                               {s.studentId && s.student?.fullName ? (
                                 <Link className="font-medium underline underline-offset-4 hover:opacity-80" href={`/students/${s.studentId}`}>
@@ -173,7 +168,19 @@ export function SubmissionsTable({
                                   Unlinked student
                                 </span>
                               )}
+                              <div className="mt-1 text-xs text-zinc-600">
+                                Unit: {String(s.assignment?.unitCode || "—")}
+                              </div>
+                              <div className="mt-0.5 text-xs text-zinc-600">
+                                Assignment: {String(s.assignment?.assignmentRef || "—")}
+                              </div>
                               <div className="mt-1 text-xs text-zinc-600">{s.assignment?.title || s.assignmentId || "No assignment linked"}</div>
+                            </td>
+
+                            <td className="border-b border-zinc-100 px-4 py-3 align-top text-zinc-800">
+                              <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
+                                {String(s.grade || s.overallGrade || "—").toUpperCase()}
+                              </span>
                             </td>
 
                             <td className="border-b border-zinc-100 px-4 py-3 align-top">
@@ -219,36 +226,51 @@ export function SubmissionsTable({
                               <div className="flex items-center justify-end gap-2">
                                 <Link
                                   href={`/submissions/${s.id}`}
-                                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-50"
+                                  className="inline-flex h-9 min-w-[96px] items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100"
                                   title="Open submission"
                                 >
-                                  Open
+                                  Open record
                                 </Link>
 
                                 {ready ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => onCopySummary(s)}
-                                    className={cx(
-                                      "rounded-xl border px-3 py-2 text-sm font-semibold",
-                                      copiedId === s.id
-                                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                                        : "border-zinc-200 bg-white hover:bg-zinc-50"
-                                    )}
-                                    title="Copy summary (Totara notes)"
-                                  >
-                                    {copiedId === s.id ? "Copied ✓" : "Copy summary"}
-                                  </button>
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => onCopySummary(s)}
+                                      className={cx(
+                                        "inline-flex h-9 min-w-[96px] items-center justify-center rounded-lg border px-3 text-xs font-semibold",
+                                        copiedKey === `summary-${s.id}`
+                                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                                          : "border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"
+                                      )}
+                                      title="Copy overall feedback for Totara"
+                                    >
+                                      {copiedKey === `summary-${s.id}` ? "Copied ✓" : "Feedback"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onDownloadMarkedFile(s)}
+                                      className={cx(
+                                        "inline-flex h-9 min-w-[96px] items-center justify-center rounded-lg border px-3 text-xs font-semibold",
+                                        copiedKey === `file-${s.id}`
+                                          ? "border-cyan-200 bg-cyan-50 text-cyan-900"
+                                          : "border-cyan-200 bg-white text-cyan-900 hover:bg-cyan-50"
+                                      )}
+                                      title="Download marked PDF"
+                                    >
+                                      {copiedKey === `file-${s.id}` ? "Done ✓" : "File"}
+                                    </button>
+                                  </>
                                 ) : null}
 
                                 {!s.studentId ? (
                                   <button
                                     type="button"
                                     onClick={() => onOpenResolve(s.id)}
-                                    className="rounded-xl border border-sky-200 bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800"
+                                    className="inline-flex h-9 min-w-[96px] items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 text-xs font-semibold text-amber-900 hover:bg-amber-200"
                                     title="Resolve student"
                                   >
-                                    Resolve
+                                    Resolve student
                                   </button>
                                 ) : null}
                               </div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 type EndpointOkUsage = {
   available: true;
@@ -112,6 +113,18 @@ type AppConfigPayload = {
   activeAuditUser?: AppUser | null;
 };
 
+type SettingsAuditEvent = {
+  id: string;
+  ts: string;
+  actor: string;
+  role: string;
+  action: string;
+  target: "openai-model" | "grading-config" | "app-config" | "favicon";
+  changes?: Record<string, unknown>;
+};
+
+export type SettingsScope = "all" | "ai" | "grading" | "app";
+
 const TONE_PREVIEW: Record<"supportive" | "professional" | "strict", string[]> = {
   supportive: [
     "P2 (NOT_ACHIEVED): Add clearer evidence to secure this criterion.",
@@ -158,7 +171,8 @@ function isEndpointError(value: AnyEndpoint): value is EndpointError {
   return value.available === false;
 }
 
-export default function AdminSettingsPage() {
+export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) {
+  const pathname = usePathname();
   const [data, setData] = useState<UsagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -177,14 +191,25 @@ export default function AdminSettingsPage() {
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [faviconBusy, setFaviconBusy] = useState(false);
   const [activeSectionHash, setActiveSectionHash] = useState("#ai-usage");
+  const [settingsAudit, setSettingsAudit] = useState<SettingsAuditEvent[]>([]);
+
+  const [baseModel, setBaseModel] = useState("");
+  const [baseAutoCleanupApproved, setBaseAutoCleanupApproved] = useState(false);
+  const [baseGradingCfgJson, setBaseGradingCfgJson] = useState("");
+  const [baseActiveAuditUserId, setBaseActiveAuditUserId] = useState("");
+
+  const isAll = scope === "all";
+  const showAi = scope === "all" || scope === "ai";
+  const showGrading = scope === "all" || scope === "grading";
+  const showApp = scope === "all" || scope === "app";
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !isAll) return;
     const sync = () => setActiveSectionHash(window.location.hash || "#ai-usage");
     sync();
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
-  }, []);
+  }, [isAll]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -203,6 +228,8 @@ export default function AdminSettingsPage() {
         const modelJson = (await modelRes.json()) as ModelPayload;
         setAllowedModels(modelJson.allowedModels || []);
         setAutoCleanupApproved(!!modelJson.autoCleanupApproved);
+        setBaseAutoCleanupApproved(!!modelJson.autoCleanupApproved);
+        setBaseModel(modelJson.model || "");
         if (!json.model && modelJson.model) setModel(modelJson.model);
       }
 
@@ -210,19 +237,26 @@ export default function AdminSettingsPage() {
       if (gradingRes.ok) {
         const gradingJson = (await gradingRes.json()) as GradingConfigPayload;
         setGradingCfg(gradingJson);
+        setBaseGradingCfgJson(JSON.stringify(gradingJson));
       }
 
-      const [appCfgRes, appUsersRes] = await Promise.all([
+      const [appCfgRes, appUsersRes, settingsAuditRes] = await Promise.all([
         fetch("/api/admin/app-config", { method: "GET", cache: "no-store" }),
         fetch("/api/admin/users", { method: "GET", cache: "no-store" }),
+        fetch("/api/admin/settings-audit?take=30", { method: "GET", cache: "no-store" }),
       ]);
       if (appCfgRes.ok) {
         const appCfgJson = (await appCfgRes.json()) as AppConfigPayload;
         setAppCfg(appCfgJson);
+        setBaseActiveAuditUserId(String(appCfgJson.activeAuditUserId || ""));
       }
       if (appUsersRes.ok) {
         const usersJson = (await appUsersRes.json()) as { users?: AppUser[] };
         setAppUsers(Array.isArray(usersJson.users) ? usersJson.users : []);
+      }
+      if (settingsAuditRes.ok) {
+        const settingsAuditJson = (await settingsAuditRes.json()) as { events?: SettingsAuditEvent[] };
+        setSettingsAudit(Array.isArray(settingsAuditJson.events) ? settingsAuditJson.events : []);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
@@ -254,10 +288,27 @@ export default function AdminSettingsPage() {
         : "Unavailable";
   const activeUsersCount = appUsers.filter((u) => u.isActive).length;
   const activeAuditLabel = appCfg?.activeAuditUser?.fullName || "system";
+  const activeAuditRole = String(appCfg?.activeAuditUser?.role || "SYSTEM").toUpperCase();
+  const canWriteSensitive = ["ADMIN", "OWNER", "SUPERADMIN"].includes(activeAuditRole);
   const aiConnectionLabel = data?.connection?.reachable ? "Connected" : data?.connection ? "Issue" : "Checking";
   const gradingProfileLabel = gradingCfg
     ? `${gradingCfg.tone}/${gradingCfg.strictness}`
     : "Loading";
+  const dirtyAi = model !== baseModel || autoCleanupApproved !== baseAutoCleanupApproved;
+  const dirtyGrading = !!gradingCfg && JSON.stringify(gradingCfg) !== baseGradingCfgJson;
+  const dirtyApp = String(appCfg?.activeAuditUserId || "") !== baseActiveAuditUserId || !!faviconFile;
+  const anyDirty = dirtyAi || dirtyGrading || dirtyApp;
+  const sectionStatusForAi =
+    data?.connection?.reachable && !isEndpointError(data?.usage as AnyEndpoint) ? "Healthy" : "Check endpoints";
+  const gradingSchemaStatus = "Ready";
+  const currentSectionFromPath =
+    pathname?.startsWith("/admin/settings/ai")
+      ? "#ai-usage"
+      : pathname?.startsWith("/admin/settings/grading")
+        ? "#grading-defaults"
+        : pathname?.startsWith("/admin/settings/app")
+          ? "#app-settings"
+          : activeSectionHash;
   const saveModel = useCallback(async () => {
     if (!model) return;
     setSavingModel(true);
@@ -346,6 +397,16 @@ export default function AdminSettingsPage() {
     }
   }, [faviconFile, load]);
 
+  const saveAll = useCallback(async () => {
+    if (!canWriteSensitive) return;
+    if (dirtyAi) await saveModel();
+    if (dirtyGrading) await saveGradingConfig();
+    if (dirtyApp) {
+      await saveAppConfig();
+      if (faviconFile) await uploadFavicon();
+    }
+  }, [canWriteSensitive, dirtyAi, dirtyApp, dirtyGrading, faviconFile, saveAppConfig, saveGradingConfig, saveModel, uploadFavicon]);
+
   return (
     <div className="grid min-w-0 gap-4">
       <section className="rounded-2xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white p-3 shadow-sm">
@@ -394,53 +455,80 @@ export default function AdminSettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-        <nav aria-label="Settings sections" className="flex flex-wrap gap-2">
+      <section className="sticky top-2 z-20 rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <nav aria-label="Settings sections" className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/settings/ai"
+            aria-current={currentSectionFromPath === "#ai-usage" ? "location" : undefined}
+            className={
+              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              (currentSectionFromPath === "#ai-usage"
+                ? "border-slate-300 bg-slate-100 text-slate-900"
+                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+            }
+          >
+            AI {dirtyAi ? "•" : ""}
+          </Link>
+          <Link
+            href="/admin/settings/app"
+            aria-current={currentSectionFromPath === "#app-settings" ? "location" : undefined}
+            className={
+              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              (currentSectionFromPath === "#app-settings"
+                ? "border-slate-300 bg-slate-100 text-slate-900"
+                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+            }
+          >
+            App {dirtyApp ? "•" : ""}
+          </Link>
+          <Link
+            href="/admin/settings/grading"
+            aria-current={currentSectionFromPath === "#grading-defaults" ? "location" : undefined}
+            className={
+              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              (currentSectionFromPath === "#grading-defaults"
+                ? "border-slate-300 bg-slate-100 text-slate-900"
+                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+            }
+          >
+            Grading {dirtyGrading ? "•" : ""}
+          </Link>
           <Link
             href="/admin/users"
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-700 px-3 text-xs font-semibold text-white hover:bg-slate-800"
           >
             Users
           </Link>
-          <a
-            href="#ai-usage"
-            aria-current={activeSectionHash === "#ai-usage" ? "location" : undefined}
-            className={
-              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
-              (activeSectionHash === "#ai-usage"
-                ? "border-slate-300 bg-slate-100 text-slate-900"
-                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
-            }
-          >
-            AI Usage
-          </a>
-          <a
-            href="#grading-defaults"
-            aria-current={activeSectionHash === "#grading-defaults" ? "location" : undefined}
-            className={
-              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
-              (activeSectionHash === "#grading-defaults"
-                ? "border-slate-300 bg-slate-100 text-slate-900"
-                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
-            }
-          >
-            Grading
-          </a>
-          <a
-            href="#app-settings"
-            aria-current={activeSectionHash === "#app-settings" ? "location" : undefined}
-            className={
-              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
-              (activeSectionHash === "#app-settings"
-                ? "border-slate-300 bg-slate-100 text-slate-900"
-                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
-            }
-          >
-            App
-          </a>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+              Role: {activeAuditRole}
+            </span>
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+              AI: {sectionStatusForAi}
+            </span>
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+              Schema: {gradingSchemaStatus}
+            </span>
+            {isAll ? (
+              <button
+                onClick={saveAll}
+                disabled={!canWriteSensitive || !anyDirty || savingModel || gradingSaving || appSaving || faviconBusy}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save all
+              </button>
+            ) : null}
+          </div>
         </nav>
+        {!canWriteSensitive ? (
+          <p className="mt-2 text-xs text-amber-700">
+            Read-only mode. Active audit role must be ADMIN/OWNER/SUPERADMIN to change settings.
+          </p>
+        ) : null}
       </section>
 
+      {showAi ? (
+      <>
       <section id="ai-usage" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 scroll-mt-20">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
@@ -495,6 +583,7 @@ export default function AdminSettingsPage() {
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
+            disabled={!canWriteSensitive}
             className="h-10 min-w-[220px] rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
           >
             {(allowedModels.length ? allowedModels : ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o", "gpt-5-mini"]).map((m) => (
@@ -505,7 +594,7 @@ export default function AdminSettingsPage() {
           </select>
           <button
             onClick={saveModel}
-            disabled={savingModel || !model}
+            disabled={!canWriteSensitive || savingModel || !model}
             className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
           >
             {savingModel ? "Saving..." : "Save model"}
@@ -516,6 +605,7 @@ export default function AdminSettingsPage() {
             type="checkbox"
             checked={autoCleanupApproved}
             onChange={(e) => setAutoCleanupApproved(e.target.checked)}
+            disabled={!canWriteSensitive}
             className="h-4 w-4 rounded border-zinc-300"
           />
           Approve automatic OpenAI cleanup for warning tasks
@@ -655,7 +745,11 @@ export default function AdminSettingsPage() {
       </section>
 
       {data?.generatedAt ? <p className="text-xs text-zinc-500">Last updated: {new Date(data.generatedAt).toLocaleString()}</p> : null}
+      </>
+      ) : null}
 
+      {showGrading ? (
+      <>
       <section id="grading-defaults" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
         <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
         <p className="mt-1 text-sm text-zinc-600">Controls default tone/strictness/rubric behavior when tutors run grading.</p>
@@ -666,6 +760,7 @@ export default function AdminSettingsPage() {
               <select
                 value={gradingCfg.tone}
                 onChange={(e) => setGradingCfg((v) => (v ? { ...v, tone: e.target.value as any } : v))}
+                disabled={!canWriteSensitive}
                 className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
               >
                 <option value="supportive">Supportive</option>
@@ -678,6 +773,7 @@ export default function AdminSettingsPage() {
               <select
                 value={gradingCfg.strictness}
                 onChange={(e) => setGradingCfg((v) => (v ? { ...v, strictness: e.target.value as any } : v))}
+                disabled={!canWriteSensitive}
                 className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
               >
                 <option value="lenient">Lenient</option>
@@ -695,6 +791,7 @@ export default function AdminSettingsPage() {
                 onChange={(e) =>
                   setGradingCfg((v) => (v ? { ...v, maxFeedbackBullets: Math.max(3, Math.min(12, Number(e.target.value || 6))) } : v))
                 }
+                disabled={!canWriteSensitive}
                 className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
               />
             </label>
@@ -703,6 +800,7 @@ export default function AdminSettingsPage() {
                 type="checkbox"
                 checked={gradingCfg.useRubricIfAvailable}
                 onChange={(e) => setGradingCfg((v) => (v ? { ...v, useRubricIfAvailable: e.target.checked } : v))}
+                disabled={!canWriteSensitive}
                 className="h-4 w-4 rounded border-zinc-300"
               />
               Use rubric when attached to brief
@@ -712,6 +810,7 @@ export default function AdminSettingsPage() {
               <textarea
                 value={gradingCfg.feedbackTemplate || ""}
                 onChange={(e) => setGradingCfg((v) => (v ? { ...v, feedbackTemplate: e.target.value } : v))}
+                disabled={!canWriteSensitive}
                 rows={9}
                 className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
               />
@@ -728,6 +827,7 @@ export default function AdminSettingsPage() {
                     type="checkbox"
                     checked={gradingCfg.pageNotesEnabled}
                     onChange={(e) => setGradingCfg((v) => (v ? { ...v, pageNotesEnabled: e.target.checked } : v))}
+                    disabled={!canWriteSensitive}
                     className="h-4 w-4 rounded border-zinc-300"
                   />
                   Enable page notes in marked PDF
@@ -739,6 +839,7 @@ export default function AdminSettingsPage() {
                     onChange={(e) =>
                       setGradingCfg((v) => (v ? { ...v, pageNotesIncludeCriterionCode: e.target.checked } : v))
                     }
+                    disabled={!canWriteSensitive}
                     className="h-4 w-4 rounded border-zinc-300"
                   />
                   Include criterion code in note text
@@ -748,6 +849,7 @@ export default function AdminSettingsPage() {
                   <select
                     value={gradingCfg.pageNotesTone}
                     onChange={(e) => setGradingCfg((v) => (v ? { ...v, pageNotesTone: e.target.value as any } : v))}
+                    disabled={!canWriteSensitive}
                     className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
                   >
                     <option value="supportive">Supportive</option>
@@ -767,6 +869,7 @@ export default function AdminSettingsPage() {
                         v ? { ...v, pageNotesMaxPages: Math.max(1, Math.min(20, Number(e.target.value || 6))) } : v
                       )
                     }
+                    disabled={!canWriteSensitive}
                     className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
                   />
                 </label>
@@ -784,6 +887,7 @@ export default function AdminSettingsPage() {
                           : v
                       )
                     }
+                    disabled={!canWriteSensitive}
                     className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
                   />
                 </label>
@@ -817,7 +921,7 @@ export default function AdminSettingsPage() {
             <div className="md:col-span-2">
               <button
                 onClick={saveGradingConfig}
-                disabled={gradingSaving}
+                disabled={!canWriteSensitive || gradingSaving}
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
               >
                 {gradingSaving ? "Saving..." : "Save grading defaults"}
@@ -840,7 +944,11 @@ export default function AdminSettingsPage() {
           <li>Small page-note overlays (enabled, tone, page limits, and criterion-code flag).</li>
         </ul>
       </section>
+      </>
+      ) : null}
 
+      {showApp ? (
+      <>
       <section id="app-settings" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
         <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
         <p className="mt-1 text-sm text-zinc-600">
@@ -857,6 +965,7 @@ export default function AdminSettingsPage() {
                   : v
               )
             }
+            disabled={!canWriteSensitive}
             className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
           >
             <option value="">system (no active user)</option>
@@ -871,7 +980,7 @@ export default function AdminSettingsPage() {
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               onClick={saveAppConfig}
-              disabled={appSaving || !appCfg}
+              disabled={!canWriteSensitive || appSaving || !appCfg}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
             >
               {appSaving ? "Saving..." : "Save actor setting"}
@@ -900,12 +1009,13 @@ export default function AdminSettingsPage() {
           <input
             type="file"
             accept=".ico,image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml"
+            disabled={!canWriteSensitive}
             onChange={(e) => setFaviconFile(e.target.files?.[0] || null)}
             className="block text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border file:border-zinc-200 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-zinc-900 hover:file:bg-zinc-50"
           />
           <button
             onClick={uploadFavicon}
-            disabled={!faviconFile || faviconBusy}
+            disabled={!canWriteSensitive || !faviconFile || faviconBusy}
             className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
           >
             {faviconBusy ? "Uploading..." : "Upload favicon"}
@@ -921,6 +1031,34 @@ export default function AdminSettingsPage() {
         </p>
         {appMsg ? <p className="mt-2 text-xs text-zinc-600">{appMsg}</p> : null}
       </section>
+      </>
+      ) : null}
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">Settings audit trail</h2>
+        <p className="mt-1 text-sm text-zinc-600">Recent changes to AI model, grading, app identity, and branding settings.</p>
+        {settingsAudit.length ? (
+          <div className="mt-3 space-y-2">
+            {settingsAudit.map((evt) => (
+              <div key={evt.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
+                <div className="font-semibold text-zinc-900">
+                  {new Date(evt.ts).toLocaleString()} · {evt.action} · {evt.target}
+                </div>
+                <div>
+                  Actor: {evt.actor} ({evt.role})
+                </div>
+                {evt.changes ? <div className="mt-1 text-zinc-600">{JSON.stringify(evt.changes)}</div> : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-600">No settings changes logged yet.</p>
+        )}
+      </section>
     </div>
   );
+}
+
+export default function AdminSettingsPageRoute() {
+  return <AdminSettingsPage scope="all" />;
 }

@@ -5,6 +5,7 @@ import { buildCopySummary } from "@/lib/submissionReady";
 import { isReadyToUpload } from "@/lib/submissionReady";
 import { useSubmissionsList, type LaneKey } from "@/lib/submissions/useSubmissionsList";
 import type { SubmissionRow } from "@/lib/submissions/types";
+import { buildMarkedPdfUrl } from "@/lib/submissions/markedPdfUrl";
 import { SubmissionsToolbar } from "@/components/submissions/SubmissionsToolbar";
 import { SubmissionsTable } from "@/components/submissions/SubmissionsTable";
 import { ResolveDrawer } from "@/components/submissions/ResolveDrawer";
@@ -50,7 +51,7 @@ export default function SubmissionsPage() {
     laneGroups,
   } = useSubmissionsList();
 
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
 
   // Resolve drawer state lives here; drawer owns its internal state.
@@ -71,13 +72,45 @@ export default function SubmissionsPage() {
   const exportReady = flatRows.filter((s) => isReadyToUpload(s)).length;
   const failedVisibleCount = flatRows.filter((s) => String(s.status || "").toUpperCase() === "FAILED").length;
 
+  function toAbsoluteUrl(url: string) {
+    const src = String(url || "").trim();
+    if (!src) return "";
+    if (/^https?:\/\//i.test(src)) return src;
+    if (typeof window === "undefined") return src;
+    try {
+      return new URL(src, window.location.origin).toString();
+    } catch {
+      return src;
+    }
+  }
+
   async function onCopySummary(s: SubmissionRow) {
     try {
-      await navigator.clipboard.writeText(buildCopySummary(s));
-      setCopiedId(s.id);
-      window.setTimeout(() => setCopiedId(null), 1400);
+      const feedback = String(s.feedback || "").trim();
+      const markedLink = toAbsoluteUrl(buildMarkedPdfUrl(s.id, null, Date.now()));
+      const payload = feedback ? `${feedback}\n\nMarked version link: ${markedLink}` : buildCopySummary(s);
+      await navigator.clipboard.writeText(payload);
+      setCopiedKey(`summary-${s.id}`);
+      window.setTimeout(() => setCopiedKey(null), 1400);
     } catch (e: any) {
       setErr(e?.message || "Could not copy to clipboard.");
+    }
+  }
+
+  async function onDownloadMarkedFile(s: SubmissionRow) {
+    try {
+      const href = buildMarkedPdfUrl(s.id, null, Date.now());
+      const baseName = String(s.filename || "submission").replace(/\.[^/.]+$/, "");
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `${baseName}-marked.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setCopiedKey(`file-${s.id}`);
+      window.setTimeout(() => setCopiedKey(null), 1400);
+    } catch (e: any) {
+      setErr(e?.message || "Could not download marked PDF.");
     }
   }
 
@@ -241,7 +274,8 @@ export default function SubmissionsPage() {
           onRetryFailedLane={onRetryFailedLane}
           onOpenResolve={onOpenResolve}
           onCopySummary={onCopySummary}
-          copiedId={copiedId}
+          onDownloadMarkedFile={onDownloadMarkedFile}
+          copiedKey={copiedKey}
         />
       </section>
       </div>

@@ -928,6 +928,29 @@ export default function SubmissionDetailPage() {
     }
   }
 
+  function toAbsoluteUrl(url: string) {
+    const src = String(url || "").trim();
+    if (!src) return "";
+    if (/^https?:\/\//i.test(src)) return src;
+    if (typeof window === "undefined") return src;
+    try {
+      return new URL(src, window.location.origin).toString();
+    } catch {
+      return src;
+    }
+  }
+
+  async function copyOverallFeedbackPack() {
+    const feedback = String(feedbackDraft || "").trim();
+    if (!feedback) {
+      notifyToast("error", "Nothing to copy for overall feedback.");
+      return;
+    }
+    const markedLink = selectedAssessment?.annotatedPdfPath ? toAbsoluteUrl(markedPdfUrl) : "";
+    const payload = markedLink ? `${feedback}\n\nMarked version link: ${markedLink}` : feedback;
+    await copyText("Overall feedback", payload);
+  }
+
   function buildCriterionDecisionsText() {
     const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
     if (!rows.length) return "";
@@ -1829,11 +1852,26 @@ export default function SubmissionDetailPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => void copyText("Feedback", feedbackDraft)}
+                  onClick={() => void (checklist.readyToUpload ? copyOverallFeedbackPack() : copyText("Feedback", feedbackDraft))}
                   className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
                 >
-                  Copy feedback
+                  {checklist.readyToUpload ? "Copy overall feedback" : "Copy feedback"}
                 </button>
+                {checklist.readyToUpload ? (
+                  <button
+                    type="button"
+                    onClick={() => void copyText("Marked version link", toAbsoluteUrl(markedPdfUrl))}
+                    disabled={!selectedAssessment?.annotatedPdfPath}
+                    className={cx(
+                      "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+                      !selectedAssessment?.annotatedPdfPath
+                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                    )}
+                  >
+                    Copy marked link
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => void copyText("Criterion decisions", buildCriterionDecisionsText())}

@@ -15,6 +15,7 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you operate the submission queue UI: **`operations/submissions-workspace-guide.md`**
 - If you operate Phase 1 grading flow: **`operations/phase1-submission-grading-runbook.md`**
 - If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
+- If you’re tracking operational bottlenecks and priorities: **`operations/areas-of-improvement.md`**
 - If you’re enabling local-first AI with fallback: **`operations/hybrid-ai-local-runbook.md`**
 - If you need route-by-route operator help content: **`help/README.md`**
 - Roadmap tracker: **`Milestones.md`**
