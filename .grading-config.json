@@ -1,0 +1,14 @@
+{
+  "model": "gpt-4.1-mini",
+  "tone": "professional",
+  "strictness": "balanced",
+  "useRubricIfAvailable": true,
+  "maxFeedbackBullets": 6,
+  "feedbackTemplate": "Hello {studentFirstName},\n\n{feedbackSummary}\n\n{feedbackBullets}\n\nFinal grade: {overallGrade}\n\nAssessor: {assessorName}\nDate: {date}",
+  "pageNotesEnabled": true,
+  "pageNotesTone": "professional",
+  "pageNotesMaxPages": 6,
+  "pageNotesMaxLinesPerPage": 3,
+  "pageNotesIncludeCriterionCode": true,
+  "updatedAt": "2026-02-18T13:48:26.3131822Z"
+}

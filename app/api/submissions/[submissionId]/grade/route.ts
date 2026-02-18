@@ -14,6 +14,8 @@ import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
+import { appendOpsEvent } from "@/lib/ops/eventLog";
+import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 
 export const runtime = "nodejs";
 
@@ -294,6 +296,47 @@ function normalizeAssignmentRef(value: unknown): string | null {
   return null;
 }
 
+function pickBriefCriteriaCodes(briefExtractedJson: any): string[] {
+  const ex = briefExtractedJson || {};
+  const candidates: unknown[][] = [
+    Array.isArray(ex?.criteriaCodes) ? ex.criteriaCodes : [],
+    Array.isArray(ex?.criteriaRefs) ? ex.criteriaRefs : [],
+    Array.isArray(ex?.detectedCriterionCodes) ? ex.detectedCriterionCodes : [],
+  ];
+  for (const arr of candidates) {
+    const normalized: string[] = Array.from(
+      new Set(
+        arr
+          .map((v: unknown) => String(v || "").trim().toUpperCase())
+          .filter((v: string) => /^[PMD]\d{1,2}$/.test(v))
+      )
+    );
+    if (normalized.length) return normalized;
+  }
+  return [];
+}
+
+function compareCriteriaAlignment(mappedCodes: string[], briefCodes: string[]) {
+  const mapped = Array.from(new Set((mappedCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
+  const brief = Array.from(new Set((briefCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
+  const mappedSet = new Set(mapped);
+  const briefSet = new Set(brief);
+  const intersection = mapped.filter((c) => briefSet.has(c));
+  const missingInMap = brief.filter((c) => !mappedSet.has(c));
+  const extraInMap = mapped.filter((c) => !briefSet.has(c));
+  const denominator = Math.max(1, Math.max(mapped.length, brief.length));
+  const overlapRatio = intersection.length / denominator;
+  return {
+    mapped,
+    brief,
+    intersection,
+    missingInMap,
+    extraInMap,
+    mismatchCount: missingInMap.length + extraInMap.length,
+    overlapRatio,
+  };
+}
+
 function extractCoverAssignmentSignals(sourceMeta: any) {
   const cover = sourceMeta?.coverMetadata || {};
   const unitCodeRaw = String(cover?.unitCode?.value || "").trim();
@@ -308,6 +351,16 @@ export async function POST(
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const requestId = makeRequestId();
+  const perm = await isAdminMutationAllowed();
+  if (!perm.ok) {
+    return apiError({
+      status: 403,
+      code: "ADMIN_PERMISSION_REQUIRED",
+      userMessage: perm.reason || "Admin permission required.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+    });
+  }
   const gradingStartedAt = new Date();
   const { submissionId } = await ctx.params;
   if (!submissionId) {
@@ -540,6 +593,50 @@ export async function POST(
           }))
         );
   const criteriaCodes = Array.from(new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean)));
+  const briefCriteriaCodes = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson);
+  const criteriaAlignment = compareCriteriaAlignment(criteriaCodes, briefCriteriaCodes);
+  const minAlignmentRatio = Math.max(0.3, Math.min(0.95, Number(process.env.GRADE_MAPPING_ALIGNMENT_MIN_RATIO || 0.65)));
+  const mismatchThreshold = Math.max(1, Math.min(8, Number(process.env.GRADE_MAPPING_MISMATCH_MAX || 2)));
+  const mappingMismatchBlocked =
+    briefCriteriaCodes.length >= 2 &&
+    criteriaAlignment.mismatchCount >= mismatchThreshold &&
+    criteriaAlignment.overlapRatio < minAlignmentRatio;
+  if (mappingMismatchBlocked) {
+    appendOpsEvent({
+      type: "GRADE_BLOCKED_MAPPING_MISMATCH",
+      actor,
+      route: "/api/submissions/[submissionId]/grade",
+      status: 422,
+      details: {
+        requestId,
+        submissionId,
+        briefId: brief.id,
+        assignmentCode: brief.assignmentCode,
+        mismatchCount: criteriaAlignment.mismatchCount,
+        overlapRatio: criteriaAlignment.overlapRatio,
+        missingInMap: criteriaAlignment.missingInMap,
+        extraInMap: criteriaAlignment.extraInMap,
+      },
+    });
+    return apiError({
+      status: 422,
+      code: "GRADE_CRITERIA_MAPPING_MISMATCH",
+      userMessage: "Brief extracted criteria and mapped criteria are out of sync. Re-lock brief mapping before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: {
+        submissionId,
+        briefId: brief.id,
+        assignmentCode: brief.assignmentCode,
+        mappedCriteriaCodes: criteriaAlignment.mapped,
+        briefCriteriaCodes: criteriaAlignment.brief,
+        missingInMap: criteriaAlignment.missingInMap,
+        extraInMap: criteriaAlignment.extraInMap,
+        overlapRatio: criteriaAlignment.overlapRatio,
+        mismatchCount: criteriaAlignment.mismatchCount,
+      },
+    });
+  }
 
   const rubricAttachment = (brief.briefDocument?.sourceMeta as any)?.rubricAttachment || null;
   const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
@@ -616,6 +713,17 @@ export async function POST(
     "",
     "Criteria:",
     JSON.stringify(criteria.slice(0, 120), null, 2),
+    "",
+    "Criteria mapping snapshot (for audit traceability):",
+    JSON.stringify(
+      {
+        mappedCriteriaCodes: criteriaAlignment.mapped,
+        briefExtractedCriteriaCodes: criteriaAlignment.brief,
+        overlapRatio: criteriaAlignment.overlapRatio,
+      },
+      null,
+      2
+    ),
     "",
     "Student submission page samples (supporting evidence):",
     pageContext,
@@ -858,6 +966,17 @@ export async function POST(
           rubricAttachment,
           promptHash,
           promptChars: prompt.length,
+          criteriaSnapshot: {
+            source: criteriaFromMap.length > 0 ? "assignmentBriefMap" : "unitFallback",
+            mappedCriteriaCodes: criteriaAlignment.mapped,
+            briefExtractedCriteriaCodes: criteriaAlignment.brief,
+            intersection: criteriaAlignment.intersection,
+            missingInMap: criteriaAlignment.missingInMap,
+            extraInMap: criteriaAlignment.extraInMap,
+            overlapRatio: criteriaAlignment.overlapRatio,
+            mismatchCount: criteriaAlignment.mismatchCount,
+            blockedByPolicy: mappingMismatchBlocked,
+          },
           criteriaCount: criteria.length,
           pageSampleCount: sampledPages.length,
           extractionMode: extractionMode || "UNKNOWN",
@@ -902,6 +1021,27 @@ export async function POST(
       data: { status: "DONE" },
     });
 
+    appendOpsEvent({
+      type: "GRADE_COMPLETED",
+      actor,
+      route: "/api/submissions/[submissionId]/grade",
+      status: 200,
+      details: {
+        requestId,
+        submissionId,
+        assessmentId: assessment.id,
+        overallGrade: assessment.overallGrade,
+        briefId: brief.id,
+        assignmentCode: brief.assignmentCode,
+        criteriaSnapshot: {
+          mappedCriteriaCodes: criteriaAlignment.mapped,
+          briefExtractedCriteriaCodes: criteriaAlignment.brief,
+          overlapRatio: criteriaAlignment.overlapRatio,
+          mismatchCount: criteriaAlignment.mismatchCount,
+        },
+      },
+    });
+
     return NextResponse.json(
       {
         ok: true,
@@ -928,6 +1068,13 @@ export async function POST(
     await prisma.submission.update({
       where: { id: submission.id },
       data: { status: "FAILED" },
+    });
+    appendOpsEvent({
+      type: "GRADE_FAILED",
+      actor,
+      route: "/api/submissions/[submissionId]/grade",
+      status,
+      details: { requestId, submissionId, code, message: causeMessage },
     });
     return apiError({
       status,

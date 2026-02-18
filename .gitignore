@@ -78,3 +78,4 @@ reference_uploads/
 .tmp-mock-submissions/
 .codex-dev.log
 .codex-dev.err
+submission_marked/

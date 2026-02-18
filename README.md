@@ -38,16 +38,20 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Extraction readiness test: `pnpm run test:extraction-readiness`
 - Extraction integrity test: `pnpm run test:extraction-integrity`
 - Brief readiness test: `pnpm run test:brief-readiness`
+- Brief mapping codes regression: `pnpm run test:brief-mapping-codes`
+- Regression pack: `pnpm run test:regression-pack`
 - Draft artifact integrity test: `node scripts/draft-integrity.test.js`
 - Marked PDF URL test: `node scripts/marked-pdf-url.test.js`
 - Page notes logic test: `node scripts/page-notes.test.js`
+- Mapping drift check: `pnpm run ops:mapping-drift`
 
 ## Current behavior notes (briefs)
 
 - Criteria mapping UI is extraction-driven (read-only); no manual criteria checkbox mapping.
 - Locking a brief uses detected criteria from extraction (`AUTO_FROM_BRIEF` path).
-- Current-brief criteria display is LO-scoped and ordered `P -> M -> D`.
+- Current-brief criteria display is grouped by LO and ordered `P -> M -> D`.
 - Stale extraction/task warnings are auto-filtered when resolved.
+- Mapping health is surfaced after lock attempts (blockers/warnings/metrics).
 
 ## Current navigation notes (admin)
 
@@ -67,11 +71,14 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Cover metadata can be edited in submission detail without blocking grading.
 - Feedback summary uses student first name and updates on re-grade after name corrections.
 - Marked PDF behavior:
-  - overall feedback summary is rendered on the last page
-  - constructive page notes are rendered on evidence-linked pages
+  - overall feedback summary is rendered on a dedicated summary page
+  - constructive page notes are rendered on evidence-linked pages using tinted callout boxes
   - page note behavior is admin-configurable (enable/tone/limits/code flag)
 - Assessor identity:
   - assessor is always the active current audit user (not manually editable in submission view)
+- Grading safety:
+  - grading blocks when mapped criteria and brief-extracted criteria are materially out of sync
+  - assessment audit JSON stores a criteria snapshot (`mapped/extracted/intersection/mismatch`)
 - Submission detail (`/submissions/[submissionId]`) now includes:
   - compact top blocker strip + primary run action
   - editable audit feedback with marked-PDF regenerate path

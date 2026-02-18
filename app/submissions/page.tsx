@@ -169,7 +169,13 @@ export default function SubmissionsPage() {
 
   function onBulkDownloadMarked(rows: SubmissionRow[]) {
     const completed = rows.filter((r) => isReadyToUpload(r));
-    for (const r of completed) void onDownloadMarkedFile(r);
+    if (!completed.length) return;
+    // Stagger download triggers to reduce browser multi-download throttling.
+    completed.forEach((r, idx) => {
+      window.setTimeout(() => {
+        void onDownloadMarkedFile(r);
+      }, idx * 180);
+    });
   }
 
   function onOpenResolve(id: string) {
@@ -206,6 +212,53 @@ export default function SubmissionsPage() {
       }
     } catch (e: any) {
       setErr(e?.message || "Batch grading failed.");
+    } finally {
+      setBatchBusy(false);
+    }
+  }
+
+  async function onRegradeByBriefMapping() {
+    const input = window.prompt(
+      "Enter Assignment Brief ID, or UnitCode + Assignment (example: 4014 A2)",
+      ""
+    );
+    const raw = String(input || "").trim();
+    if (!raw) return;
+    const byId = /^[a-z0-9-]{16,}$/i.test(raw) && raw.includes("-");
+    const unitMatch = raw.match(/^(\d{4})\s+([aA]\d{1,2})$/);
+    const reason = window.prompt("Reason for impacted regrade (audit log)", "brief mapping updated") || "";
+
+    setBatchBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const body = byId
+        ? { assignmentBriefId: raw, forceRetry: true, concurrency: 1, operationReason: reason }
+        : unitMatch
+          ? {
+              unitCode: unitMatch[1],
+              assignmentRef: unitMatch[2].toUpperCase(),
+              forceRetry: true,
+              concurrency: 1,
+              operationReason: reason,
+            }
+          : null;
+      if (!body) {
+        setErr("Invalid format. Use brief id or format like: 4014 A2");
+        return;
+      }
+      const res = await jsonFetch<BatchGradeResponse>("/api/submissions/batch-grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const s = res.summary;
+      await refresh();
+      if (s) {
+        setMsg(`Impacted regrade complete: ${s.succeeded} succeeded, ${s.failed} failed, ${s.skipped} skipped.`);
+      }
+    } catch (e: any) {
+      setErr(e?.message || "Impacted regrade failed.");
     } finally {
       setBatchBusy(false);
     }
@@ -365,6 +418,7 @@ export default function SubmissionsPage() {
         onBatchGradeAutoReady={onBatchGradeAutoReady}
         onBatchGradeVisible={onBatchGradeVisible}
         onRetryFailed={onRetryFailed}
+        onRegradeByBriefMapping={onRegradeByBriefMapping}
         unlinkedOnly={unlinkedOnly}
         setUnlinkedOnly={setUnlinkedOnly}
         readyOnly={readyOnly}
@@ -403,7 +457,6 @@ export default function SubmissionsPage() {
           showColUploaded={showColUploaded}
           showColGrade={showColGrade}
           showColAssignmentTitle={showColAssignmentTitle}
-          handoffOnly={handoffOnly}
           copiedKey={copiedKey}
         />
       </section>

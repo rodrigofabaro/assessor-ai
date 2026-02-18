@@ -48,6 +48,8 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
 
   const minChars = Math.max(200, Math.floor(envNumber("GRADING_MIN_EXTRACTED_CHARS", 700)));
   const minConfidence = Math.max(0.4, Math.min(0.99, envNumber("GRADING_MIN_EXTRACTION_CONFIDENCE", 0.68)));
+  const minPages = Math.max(1, Math.floor(envNumber("GRADING_MIN_PAGE_COUNT", 1)));
+  const maxWarningsBeforeBlock = Math.max(2, Math.floor(envNumber("GRADING_MAX_WARNINGS_BEFORE_BLOCK", 8)));
 
   const extractedText = String(input.extractedText || "");
   const extractedChars = extractedText.trim().length;
@@ -97,7 +99,15 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
     );
   }
   if (pageCount <= 0) warnings.push("Extraction page count is missing.");
+  if (pageCount > 0 && pageCount < minPages) {
+    blockers.push(`Extraction page count too low (${pageCount}; minimum ${minPages}).`);
+  }
   if (runWarnings.length) warnings.push(...runWarnings.map((w) => `Extraction warning: ${w}`));
+  if (runWarnings.length >= maxWarningsBeforeBlock) {
+    blockers.push(
+      `Extraction produced too many warnings (${runWarnings.length}; maximum ${maxWarningsBeforeBlock - 1}).`
+    );
+  }
 
   const status = String(input.submissionStatus || "").toUpperCase();
   if (status === "NEEDS_OCR") {

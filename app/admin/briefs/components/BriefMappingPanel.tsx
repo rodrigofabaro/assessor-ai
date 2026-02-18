@@ -11,6 +11,12 @@ type Props = {
   criteria: Criterion[];
   assignmentCodeInput: string;
   setAssignmentCodeInput: (v: string) => void;
+  qualityGate?: {
+    ok?: boolean;
+    blockers?: string[];
+    warnings?: string[];
+    metrics?: Record<string, any>;
+  } | null;
 };
 
 function cx(...xs: Array<string | false | null | undefined>) {
@@ -44,6 +50,7 @@ export default function BriefMappingPanel({
   criteria,
   assignmentCodeInput,
   setAssignmentCodeInput,
+  qualityGate,
 }: Props) {
   const kind = draft?.kind || "";
   const detectedCodes: string[] = (draft?.detectedCriterionCodes || []).map((x: any) => normCode(x));
@@ -215,6 +222,39 @@ export default function BriefMappingPanel({
       </div>
 
       <div className="mt-5 border-t border-zinc-200 pt-4">
+        {qualityGate ? (
+          <div
+            className={cx(
+              "mb-3 rounded-xl border p-3 text-xs",
+              qualityGate.ok ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
+            )}
+          >
+            <div className="font-semibold uppercase tracking-wide">Mapping Health</div>
+            {qualityGate.metrics ? (
+              <div className="mt-1 text-[11px]">
+                selected: {String((qualityGate.metrics as any)?.selectedCount ?? "—")} · matched:{" "}
+                {String((qualityGate.metrics as any)?.matchedCount ?? "—")} · P/M/D:{" "}
+                {String((qualityGate.metrics as any)?.passCount ?? "—")}/
+                {String((qualityGate.metrics as any)?.meritCount ?? "—")}/
+                {String((qualityGate.metrics as any)?.distinctionCount ?? "—")}
+              </div>
+            ) : null}
+            {Array.isArray(qualityGate.blockers) && qualityGate.blockers.length ? (
+              <ul className="mt-1 list-disc pl-4">
+                {qualityGate.blockers.map((item, i) => (
+                  <li key={`qh-b-${i}`}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+            {Array.isArray(qualityGate.warnings) && qualityGate.warnings.length ? (
+              <ul className="mt-1 list-disc pl-4">
+                {qualityGate.warnings.map((item, i) => (
+                  <li key={`qh-w-${i}`}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="font-semibold text-zinc-900">Criteria mapping</div>

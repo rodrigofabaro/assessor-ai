@@ -18,6 +18,7 @@ export function SubmissionsToolbar({
   onBatchGradeAutoReady,
   onBatchGradeVisible,
   onRetryFailed,
+  onRegradeByBriefMapping,
 
   unlinkedOnly,
   setUnlinkedOnly,
@@ -56,6 +57,7 @@ export function SubmissionsToolbar({
   onBatchGradeAutoReady: () => void;
   onBatchGradeVisible: () => void;
   onRetryFailed: () => void;
+  onRegradeByBriefMapping: () => void;
 
   unlinkedOnly: boolean;
   setUnlinkedOnly: (v: boolean) => void;
@@ -252,6 +254,18 @@ export function SubmissionsToolbar({
             title="Retry failed submissions in current view"
           >
             {`Retry failed (${failedVisibleCount})`}
+          </button>
+          <button
+            type="button"
+            onClick={onRegradeByBriefMapping}
+            disabled={batchBusy}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy ? "cursor-not-allowed bg-zinc-200 text-zinc-600" : "bg-violet-700 text-white hover:bg-violet-800"
+            )}
+            title="Regrade all submissions affected by a changed brief mapping"
+          >
+            Regrade impacted
           </button>
           <IconButton title="Refresh" onClick={refresh} disabled={busy}>
             ↻ <span>Refresh</span>

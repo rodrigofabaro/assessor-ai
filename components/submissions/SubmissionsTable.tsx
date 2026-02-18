@@ -32,7 +32,6 @@ export function SubmissionsTable({
   showColUploaded,
   showColGrade,
   showColAssignmentTitle,
-  handoffOnly,
   copiedKey,
 }: {
   laneGroups: LaneGroup[];
@@ -50,7 +49,6 @@ export function SubmissionsTable({
   showColUploaded: boolean;
   showColGrade: boolean;
   showColAssignmentTitle: boolean;
-  handoffOnly: boolean;
   copiedKey: string | null;
 }) {
   const [collapsed, setCollapsed] = useState<Record<LaneKey, boolean>>({

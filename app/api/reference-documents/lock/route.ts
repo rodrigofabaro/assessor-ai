@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { evaluateBriefLockQuality } from "@/lib/briefs/lockQualityGate";
 import { selectBriefMappingCodes } from "@/lib/briefs/mappingCodes";
+import { appendOpsEvent } from "@/lib/ops/eventLog";
+import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 
 import type { ExtractDraft, SpecDraft, BriefDraft, GradeBand } from "@/lib/referenceParser";
 
@@ -23,6 +25,10 @@ function inferBand(acCode: string): GradeBand {
  */
 export async function POST(req: Request) {
   try {
+    const perm = await isAdminMutationAllowed();
+    if (!perm.ok) {
+      return NextResponse.json({ error: "ADMIN_PERMISSION_REQUIRED", message: perm.reason }, { status: 403 });
+    }
     const body = await req.json();
     const documentId = body?.documentId as string | undefined;
     const draftOverride = body?.draft as ExtractDraft | undefined;
@@ -31,6 +37,7 @@ export async function POST(req: Request) {
     const assignmentCodeOverride = body?.assignmentCode as string | undefined;
     const allowOverwrite = body?.allowOverwrite as boolean | undefined;
     const allowQualityGateBypass = body?.allowQualityGateBypass as boolean | undefined;
+    const reviewConfirmed = body?.reviewConfirmed as boolean | undefined;
     const lockedBy = body?.lockedBy as string | undefined;
 
     if (!documentId) {
@@ -172,6 +179,18 @@ export async function POST(req: Request) {
 
     if (draft.kind === "BRIEF") {
       const brief = draft as BriefDraft;
+      const requireReviewConfirm = ["1", "true", "yes", "on"].includes(
+        String(process.env.REQUIRE_BRIEF_REVIEW_CONFIRM || "false").toLowerCase()
+      );
+      if (requireReviewConfirm && !reviewConfirmed) {
+        return NextResponse.json(
+          {
+            error: "BRIEF_REVIEW_CONFIRM_REQUIRED",
+            message: "Review confirmation is required before locking this brief.",
+          },
+          { status: 422 }
+        );
+      }
       const assignmentCode = (assignmentCodeOverride || brief.assignmentCode || "").trim().toUpperCase();
       if (!assignmentCode) {
         return NextResponse.json(
@@ -227,6 +246,19 @@ export async function POST(req: Request) {
         unitCriteria: mappedUnitCriteria,
       });
       if (!qualityGate.ok && !allowQualityGateBypass) {
+        appendOpsEvent({
+          type: "BRIEF_LOCK_BLOCKED_QUALITY_GATE",
+          actor: lockedBy || null,
+          route: "/api/reference-documents/lock",
+          status: 422,
+          details: {
+            documentId: doc.id,
+            assignmentCode,
+            blockers: qualityGate.blockers,
+            warnings: qualityGate.warnings,
+            metrics: qualityGate.metrics,
+          },
+        });
         return NextResponse.json(
           {
             error: "BRIEF_EXTRACTION_QUALITY_GATE_FAILED",
@@ -326,7 +358,31 @@ export async function POST(req: Request) {
           status: "LOCKED" as any,
           lockedAt: now,
           lockedBy: lockedBy || null,
+          sourceMeta: {
+            ...((doc.sourceMeta && typeof doc.sourceMeta === "object" ? doc.sourceMeta : {}) as any),
+            reviewApproval: {
+              confirmed: !!reviewConfirmed,
+              confirmedAt: now.toISOString(),
+              confirmedBy: lockedBy || null,
+            },
+          },
           extractedJson: draft as any,
+        },
+      });
+
+      appendOpsEvent({
+        type: "BRIEF_LOCKED",
+        actor: lockedBy || null,
+        route: "/api/reference-documents/lock",
+        status: 200,
+        details: {
+          documentId: doc.id,
+          briefId: briefRec.id,
+          assignmentCode,
+          mappedCount: criteria.length,
+          qualityGate,
+          allowOverwrite: !!allowOverwrite,
+          allowQualityGateBypass: !!allowQualityGateBypass,
         },
       });
 

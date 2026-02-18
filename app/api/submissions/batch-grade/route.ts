@@ -2,15 +2,21 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
+import { appendOpsEvent } from "@/lib/ops/eventLog";
+import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 
 type BatchGradeBody = {
   submissionIds?: string[];
+  assignmentBriefId?: string;
+  unitCode?: string;
+  assignmentRef?: string;
   retryFailedOnly?: boolean;
   forceRetry?: boolean;
   tone?: "supportive" | "professional" | "strict";
   strictness?: "lenient" | "balanced" | "strict";
   useRubricIfAvailable?: boolean;
   concurrency?: number;
+  operationReason?: string;
 };
 
 type BatchResult = {
@@ -50,16 +56,50 @@ async function runWithConcurrency<T>(jobs: Array<() => Promise<T>>, concurrency:
 export async function POST(req: Request) {
   const requestId = makeRequestId();
   try {
+    const perm = await isAdminMutationAllowed();
+    if (!perm.ok) {
+      return apiError({
+        status: 403,
+        code: "ADMIN_PERMISSION_REQUIRED",
+        userMessage: perm.reason || "Admin permission required.",
+        route: "/api/submissions/batch-grade",
+        requestId,
+      });
+    }
     const body = (await req.json().catch(() => ({}))) as BatchGradeBody;
-    const ids = Array.isArray(body.submissionIds)
+    const explicitIds = Array.isArray(body.submissionIds)
       ? body.submissionIds.map((x) => String(x || "").trim()).filter(Boolean)
       : [];
+    const assignmentBriefId = String(body.assignmentBriefId || "").trim();
+    const unitCode = String(body.unitCode || "").trim();
+    const assignmentRef = String(body.assignmentRef || "").trim().toUpperCase();
+
+    let ids = explicitIds;
+    if (!ids.length && (assignmentBriefId || (unitCode && assignmentRef))) {
+      const assignments = await prisma.assignment.findMany({
+        where: assignmentBriefId
+          ? { assignmentBriefId }
+          : {
+              unitCode,
+              assignmentRef,
+            },
+        select: { id: true },
+      });
+      const assignmentIds = assignments.map((a) => a.id);
+      if (assignmentIds.length) {
+        const rows = await prisma.submission.findMany({
+          where: { assignmentId: { in: assignmentIds } },
+          select: { id: true },
+        });
+        ids = rows.map((r) => r.id);
+      }
+    }
 
     if (!ids.length) {
       return apiError({
         status: 400,
         code: "BATCH_GRADE_IDS_REQUIRED",
-        userMessage: "No submissions selected for batch grading.",
+        userMessage: "No submissions selected for batch grading. Provide submissionIds or a brief mapping target.",
         route: "/api/submissions/batch-grade",
         requestId,
       });
@@ -99,6 +139,7 @@ export async function POST(req: Request) {
 
     const retryFailedOnly = !!body.retryFailedOnly;
     const forceRetry = !!body.forceRetry;
+    const operationReason = String(body.operationReason || "").trim();
 
     const targets = uniqueIds.filter((id) => {
       const status = statusById.get(id) || "";
@@ -168,6 +209,25 @@ export async function POST(req: Request) {
     const results = await runWithConcurrency(jobs, concurrency);
     const okCount = results.filter((r) => r.ok).length;
     const failCount = results.length - okCount;
+    appendOpsEvent({
+      type: "BATCH_GRADE_RUN",
+      route: "/api/submissions/batch-grade",
+      status: 200,
+      details: {
+        requestId,
+        requested: uniqueIds.length,
+        targeted: targets.length,
+        skipped: skipped.length,
+        succeeded: okCount,
+        failed: failCount,
+        retryFailedOnly,
+        forceRetry,
+        assignmentBriefId: assignmentBriefId || null,
+        unitCode: unitCode || null,
+        assignmentRef: assignmentRef || null,
+        reason: operationReason || null,
+      },
+    });
 
     return NextResponse.json(
       {

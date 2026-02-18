@@ -30,14 +30,25 @@ Last updated: 2026-02-18
 6. Error observability
 - Generic `GRADE_FAILED` responses made root-cause diagnosis slow.
 - Impact: longer operator resolution loops.
-- Status: improved diagnostic details now include concrete failure causes.
+- Status: improved. Diagnostic causes are richer and operational events are written to `.ops-events.jsonl` with API visibility (`/api/admin/ops/events`).
 
 7. Reference coverage dependency
 - If a unit has only `A1` mapped and submission is detected as `A2`, grading cannot proceed.
 - Impact: valid student submissions remain blocked until reference coverage is completed.
+- Status: partially mitigated. Mapping quality gate blocks bad lock state, and impacted submissions can be bulk regraded after mapping fixes.
+
+8. Mapping drift between extracted brief criteria and locked mapping
+- Drift can happen after manual edits/re-extract or noisy extraction artifacts.
+- Impact: grading on stale/incorrect criteria sets.
+- Status: mitigated with:
+  - brief lock quality gate
+  - grading-time mismatch guard (`GRADE_CRITERIA_MAPPING_MISMATCH`)
+  - drift report endpoint: `/api/admin/ops/mapping-drift`
 
 ## Priority actions
 
 1. Ensure all active assignment refs (`A1`, `A2`, etc.) are extracted, locked, and mapped before live intake.
 2. Keep auto-grade gating strict (`student + assignment + mapped brief + extraction ready`).
-3. Continue monitoring model validity rates and tune retry/output-token policy from production telemetry.
+3. Run scheduled drift checks (`pnpm run ops:mapping-drift`) and regression pack (`pnpm run test:regression-pack`) before release.
+4. Enable `REQUIRE_BRIEF_REVIEW_CONFIRM=true` and `ENFORCE_ADMIN_MUTATIONS=true` in production.
+5. Monitor `/api/admin/ops/metrics` and define SLO thresholds for extraction success/failure trends.

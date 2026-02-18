@@ -16,6 +16,9 @@
     "test:extraction-readiness": "node scripts/extraction-readiness.test.js",
     "test:extraction-integrity": "node scripts/extraction-integrity.test.js",
     "test:brief-readiness": "node scripts/brief-readiness.test.js",
+    "test:brief-mapping-codes": "node scripts/brief-mapping-codes.test.js",
+    "test:regression-pack": "node scripts/regression-pack.js",
+    "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"

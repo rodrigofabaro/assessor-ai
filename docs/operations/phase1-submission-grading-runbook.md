@@ -27,6 +27,15 @@ Optional override:
 
 - Set `SUBMISSION_EXTRACT_COVER_ONLY=false` only for exceptional troubleshooting.
 
+Additional safeguards:
+
+- `GRADE_MAPPING_ALIGNMENT_MIN_RATIO` (default `0.65`)
+- `GRADE_MAPPING_MISMATCH_MAX` (default `2`)
+- `GRADING_MIN_PAGE_COUNT` (default `1`)
+- `GRADING_MAX_WARNINGS_BEFORE_BLOCK` (default `8`)
+- `REQUIRE_BRIEF_REVIEW_CONFIRM` (optional, `true` to require review confirmation on brief lock)
+- `ENFORCE_ADMIN_MUTATIONS` (optional, `true` to restrict sensitive mutations to active ADMIN user)
+
 ## Required Admin Settings (Grading)
 
 In `/admin/settings` -> `Grading`:
@@ -99,6 +108,10 @@ Only these overall grades are valid:
 `assignment binding missing`
 - Action: block grading until linked to locked brief/spec.
 
+`criteria mapping mismatch`
+- Error code: `GRADE_CRITERIA_MAPPING_MISMATCH`
+- Action: re-open brief mapping, re-lock brief, then regrade impacted submissions.
+
 `student unresolved`
 - Action: run resolve flow and link student before grading.
 
@@ -119,6 +132,17 @@ Only these overall grades are valid:
 - structured grading JSON stored
 - model + prompt hash stored
 - grading timestamp stored
+- criteria mapping snapshot stored (`mapped vs extracted`, overlap, mismatch count)
+- ops event written for lock/grade/batch operations
+
+## Operations Endpoints
+
+- Mapping drift report:
+  - `GET /api/admin/ops/mapping-drift`
+- Operational metrics:
+  - `GET /api/admin/ops/metrics`
+- Ops event log tail:
+  - `GET /api/admin/ops/events?limit=100`
 
 ## When To Escalate To Manual Review
 

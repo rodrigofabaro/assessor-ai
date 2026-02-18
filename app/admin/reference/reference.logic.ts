@@ -94,6 +94,13 @@ type LockConflict = {
   retryPayload: any;
 };
 
+type MappingHealth = {
+  ok?: boolean;
+  blockers?: string[];
+  warnings?: string[];
+  metrics?: Record<string, any>;
+} | null;
+
 const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
 
 function isPdfFile(file: File): boolean {
@@ -254,6 +261,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lockConflict, setLockConflict] = useState<LockConflict | null>(null);
+  const [mappingHealth, setMappingHealth] = useState<MappingHealth>(null);
   const [unitNotice, setUnitNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   // Upload
@@ -434,6 +442,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       setMapSelected({});
       setAssignmentCodeInput("");
       setSelectedDocUsage(null);
+      setMappingHealth(null);
       return;
     }
 
@@ -813,6 +822,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   async function lockSelected() {
     setError(null);
     setLockConflict(null);
+    setMappingHealth(null);
     if (!selectedDoc) return;
 
     setBusy("Locking...");
@@ -828,6 +838,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       }
 
       const body: any = { documentId: selectedDoc.id };
+      if (selectedDoc.type === "BRIEF") body.reviewConfirmed = true;
       if (draft) body.draft = draft;
 
       if (selectedDoc.type === "BRIEF") {
@@ -843,6 +854,14 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       const data = await readResponseData(res);
 
       if (!res.ok) {
+        if (data?.error === "BRIEF_EXTRACTION_QUALITY_GATE_FAILED") {
+          setMappingHealth({
+            ok: false,
+            blockers: Array.isArray(data?.blockers) ? data.blockers : [],
+            warnings: Array.isArray(data?.warnings) ? data.warnings : [],
+            metrics: data?.metrics || {},
+          });
+        }
         if (res.status === 409 && data?.error === "BRIEF_ALREADY_LOCKED") {
           const unit = units.find((u) => u.id === briefUnitId);
           const fallbackAssignment = assignmentCodeInput.trim() || draft?.assignmentCode || "";
@@ -864,6 +883,14 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         return;
       }
 
+      if (data?.qualityGate && typeof data.qualityGate === "object") {
+        setMappingHealth({
+          ok: !!data.qualityGate.ok,
+          blockers: Array.isArray(data.qualityGate.blockers) ? data.qualityGate.blockers : [],
+          warnings: Array.isArray(data.qualityGate.warnings) ? data.qualityGate.warnings : [],
+          metrics: data.qualityGate.metrics || {},
+        });
+      }
       if (data?.document) applyUpdatedDocument(data.document);
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Reference document locked.");
@@ -880,6 +907,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     if (!lockConflict?.retryPayload) return;
     setError(null);
     setLockConflict(null);
+    setMappingHealth(null);
     setBusy("Locking...");
     try {
       const res = await fetch("/api/reference-documents/lock", {
@@ -889,10 +917,26 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       });
       const data = await readResponseData(res);
       if (!res.ok) {
+        if (data?.error === "BRIEF_EXTRACTION_QUALITY_GATE_FAILED") {
+          setMappingHealth({
+            ok: false,
+            blockers: Array.isArray(data?.blockers) ? data.blockers : [],
+            warnings: Array.isArray(data?.warnings) ? data.warnings : [],
+            metrics: data?.metrics || {},
+          });
+        }
         const message = data?.message || data?.error || `Lock failed (${res.status}).`;
         setError(message);
         notifyToast("error", message);
         return;
+      }
+      if (data?.qualityGate && typeof data.qualityGate === "object") {
+        setMappingHealth({
+          ok: !!data.qualityGate.ok,
+          blockers: Array.isArray(data.qualityGate.blockers) ? data.qualityGate.blockers : [],
+          warnings: Array.isArray(data.qualityGate.warnings) ? data.qualityGate.warnings : [],
+          metrics: data.qualityGate.metrics || {},
+        });
       }
       if (data?.document) applyUpdatedDocument(data.document);
       await refreshAll({ keepSelection: true });
@@ -1257,5 +1301,6 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     unitNotice,
     lockConflict,
     setLockConflict,
+    mappingHealth,
   };
 }

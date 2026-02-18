@@ -488,6 +488,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             criteria={rx.criteriaForSelectedUnit as unknown as Criterion[]}
             assignmentCodeInput={rx.assignmentCodeInput}
             setAssignmentCodeInput={rx.setAssignmentCodeInput}
+            qualityGate={rx.mappingHealth}
           />
 
           <div id="brief-raw-json" className="rounded-2xl border border-zinc-200 bg-white p-4 max-w-full overflow-hidden">
