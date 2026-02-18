@@ -159,6 +159,14 @@ export default function SubmissionDetailPage() {
 
   // Auto-run extraction once for freshly uploaded submissions.
   const autoStartedRef = useRef(false);
+  const studentSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const studentPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const coverEditorRef = useRef<HTMLDetailsElement | null>(null);
+  const coverStudentNameRef = useRef<HTMLInputElement | null>(null);
+  const coverStudentIdRef = useRef<HTMLInputElement | null>(null);
+  const coverUnitCodeRef = useRef<HTMLInputElement | null>(null);
+  const coverAssignmentCodeRef = useRef<HTMLInputElement | null>(null);
+  const coverSubmissionDateRef = useRef<HTMLInputElement | null>(null);
 
   /* ---------- Student linking state ---------- */
   const [studentQuery, setStudentQuery] = useState("");
@@ -573,6 +581,33 @@ export default function SubmissionDetailPage() {
 
   const pdfUrl = submissionId ? `/api/submissions/${submissionId}/file?t=${Date.now()}` : "";
   const markedPdfUrl = submissionId ? `/api/submissions/${submissionId}/marked-file?t=${Date.now()}` : "";
+  const toggleStudentPanel = () => {
+    const panel = studentPanelRef.current;
+    if (!panel) return;
+    const nextOpen = !panel.open;
+    panel.open = nextOpen;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (nextOpen) {
+      window.setTimeout(() => studentSearchInputRef.current?.focus(), 180);
+    }
+  };
+  const openCoverEditorAndFocus = (
+    field: "studentName" | "studentId" | "unitCode" | "assignmentCode" | "submissionDate"
+  ) => {
+    const panel = coverEditorRef.current;
+    if (panel) {
+      panel.open = true;
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    const focusMap = {
+      studentName: coverStudentNameRef,
+      studentId: coverStudentIdRef,
+      unitCode: coverUnitCodeRef,
+      assignmentCode: coverAssignmentCodeRef,
+      submissionDate: coverSubmissionDateRef,
+    } as const;
+    window.setTimeout(() => focusMap[field].current?.focus(), 180);
+  };
   const canRunGrading =
     !!submission?.student &&
     !!submission?.assignment &&
@@ -637,34 +672,79 @@ export default function SubmissionDetailPage() {
         </div>
       )}
 
-      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5">
           {[
-            { label: "Student", value: submission?.student?.fullName || triageInfo?.studentName || "Unlinked" },
             {
+              key: "student",
+              label: "Student",
+              value: submission?.student?.fullName || triageInfo?.studentName || "Unlinked",
+              actionable: true,
+              actionLabel: !String(coverMeta?.studentName?.value || "").trim() ? "Add cover name" : "Toggle student panel",
+              onAction: !String(coverMeta?.studentName?.value || "").trim()
+                ? () => openCoverEditorAndFocus("studentName")
+                : toggleStudentPanel,
+            },
+            {
+              key: "studentId",
+              label: "Student ID",
+              value: String(coverMeta?.studentId?.value || "Missing"),
+              actionable: !String(coverMeta?.studentId?.value || "").trim(),
+              actionLabel: "Add",
+              onAction: () => openCoverEditorAndFocus("studentId"),
+            },
+            {
+              key: "unit",
               label: "Unit",
               value:
                 submission?.assignment?.unitCode ||
                 triageInfo?.unitCode ||
                 String(coverMeta?.unitCode?.value || "—"),
+              actionable: !String(coverMeta?.unitCode?.value || "").trim(),
+              actionLabel: "Add",
+              onAction: () => openCoverEditorAndFocus("unitCode"),
             },
             {
+              key: "assignment",
               label: "Assignment",
               value:
                 submission?.assignment?.assignmentRef ||
                 triageInfo?.assignmentRef ||
                 String(coverMeta?.assignmentCode?.value || "—"),
+              actionable: !String(coverMeta?.assignmentCode?.value || "").trim(),
+              actionLabel: "Add",
+              onAction: () => openCoverEditorAndFocus("assignmentCode"),
             },
-            { label: "Grade", value: latestAssessment?.overallGrade || "Pending" },
-            { label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—") },
-            { label: "Uploaded", value: safeDate(submission?.uploadedAt) },
-            { label: "Graded when", value: safeDate(latestAssessment?.createdAt) },
-            { label: "Status", value: submission?.status || "—" },
+            {
+              key: "submissionDate",
+              label: "Submission Date",
+              value: String(coverMeta?.submissionDate?.value || "Missing"),
+              actionable: !String(coverMeta?.submissionDate?.value || "").trim(),
+              actionLabel: "Add",
+              onAction: () => openCoverEditorAndFocus("submissionDate"),
+            },
+            { key: "grade", label: "Grade", value: latestAssessment?.overallGrade || "Pending", actionable: false },
+            { key: "gradedBy", label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—"), actionable: false },
+            { key: "uploaded", label: "Uploaded", value: safeDate(submission?.uploadedAt), actionable: false },
+            { key: "gradedWhen", label: "Graded when", value: safeDate(latestAssessment?.createdAt), actionable: false },
+            { key: "status", label: "Status", value: submission?.status || "—", actionable: false },
           ].map((item) => (
-            <div key={item.label} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{item.label}</div>
-              <div className="mt-1 text-sm font-semibold text-zinc-900">{item.value}</div>
-            </div>
+            <button
+              key={item.key}
+              type="button"
+              onClick={item.actionable ? item.onAction : undefined}
+              className={cx(
+                "flex h-16 min-w-[150px] flex-col justify-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-left",
+                item.actionable ? "cursor-pointer hover:border-sky-300 hover:bg-sky-50" : "cursor-default"
+              )}
+              title={item.actionable ? item.actionLabel : undefined}
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{item.label}</div>
+              <div className="max-w-[170px] truncate text-[12px] font-semibold text-zinc-900">{item.value}</div>
+              {item.actionable ? (
+                <div className="text-[10px] font-semibold text-sky-700">Click to {item.actionLabel?.toLowerCase() || "update"}</div>
+              ) : null}
+            </button>
           ))}
         </div>
       </section>
@@ -681,7 +761,7 @@ export default function SubmissionDetailPage() {
               <div className="text-xs text-zinc-500">Source PDF</div>
             </div>
 
-            <div className="aspect-[4/3] w-full bg-zinc-50">
+            <div className="h-[62vh] min-h-[540px] w-full bg-zinc-50 md:h-[72vh] xl:h-[82vh]">
               {/* PDF render (works for scanned + digital PDFs) */}
               {submissionId ? (
                 <iframe
@@ -738,7 +818,7 @@ export default function SubmissionDetailPage() {
             </div>
           </div>
 
-          <details open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <details ref={studentPanelRef} id="student-link-panel" open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Student</summary>
             <div className="mt-3 flex items-start justify-between gap-3">
               <div>
@@ -776,6 +856,7 @@ export default function SubmissionDetailPage() {
                 <div>
                   <div className="text-sm font-semibold">Find existing student</div>
                   <input
+                    ref={studentSearchInputRef}
                     value={studentQuery}
                     onChange={(e) => setStudentQuery(e.target.value)}
                     placeholder="Search by name, email, AB number…"
@@ -926,12 +1007,15 @@ export default function SubmissionDetailPage() {
                   ) : null}
 
                   {latestRun ? (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                    <details ref={coverEditorRef} className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                      <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide">Cover Metadata Editor</summary>
+                      <div className="mt-2">
                       <div className="text-[11px] font-semibold uppercase tracking-wide">Cover Metadata</div>
                       <div className="mt-2 grid gap-2 sm:grid-cols-2">
                         <label className="text-xs">
                           <span className="font-semibold">Student</span>
                           <input
+                            ref={coverStudentNameRef}
                             value={coverStudentName}
                             onChange={(e) => setCoverStudentName(e.target.value)}
                             className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
@@ -940,6 +1024,7 @@ export default function SubmissionDetailPage() {
                         <label className="text-xs">
                           <span className="font-semibold">Student ID</span>
                           <input
+                            ref={coverStudentIdRef}
                             value={coverStudentId}
                             onChange={(e) => setCoverStudentId(e.target.value)}
                             className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
@@ -948,6 +1033,7 @@ export default function SubmissionDetailPage() {
                         <label className="text-xs">
                           <span className="font-semibold">Unit</span>
                           <input
+                            ref={coverUnitCodeRef}
                             value={coverUnitCode}
                             onChange={(e) => setCoverUnitCode(e.target.value)}
                             className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
@@ -956,6 +1042,7 @@ export default function SubmissionDetailPage() {
                         <label className="text-xs">
                           <span className="font-semibold">Assignment</span>
                           <input
+                            ref={coverAssignmentCodeRef}
                             value={coverAssignmentCode}
                             onChange={(e) => setCoverAssignmentCode(e.target.value)}
                             className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
@@ -964,6 +1051,7 @@ export default function SubmissionDetailPage() {
                         <label className="text-xs">
                           <span className="font-semibold">Submission Date</span>
                           <input
+                            ref={coverSubmissionDateRef}
                             value={coverSubmissionDate}
                             onChange={(e) => setCoverSubmissionDate(e.target.value)}
                             className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
@@ -989,7 +1077,8 @@ export default function SubmissionDetailPage() {
                           {coverEditBusy ? "Saving..." : "Save cover metadata"}
                         </button>
                       </div>
-                    </div>
+                      </div>
+                    </details>
                   ) : null}
 
                   <div className="flex flex-wrap items-center gap-2">
