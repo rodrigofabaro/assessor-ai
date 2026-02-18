@@ -667,7 +667,11 @@ export default function SubmissionDetailPage() {
     const panel = studentPanelRef.current;
     if (!panel) return;
     const nextOpen = !panel.open;
-    panel.open = nextOpen;
+    if (nextOpen) {
+      openSidePanel("student");
+    } else {
+      panel.open = false;
+    }
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
     if (nextOpen) {
       window.setTimeout(() => studentSearchInputRef.current?.focus(), 180);
@@ -677,11 +681,34 @@ export default function SubmissionDetailPage() {
     if (!panel) return;
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const openAndScroll = (target: "student" | "assignment" | "extraction" | "outputs") => {
+    openSidePanel(target);
+    const map: Record<string, HTMLElement | null> = {
+      student: studentPanelRef.current,
+      assignment: assignmentPanelRef.current,
+      extraction: extractionPanelRef.current,
+      outputs: outputsPanelRef.current,
+    };
+    scrollToPanel(map[target]);
+  };
+  const openSidePanel = (target: "student" | "assignment" | "extraction" | "outputs") => {
+    const panels: Record<string, HTMLDetailsElement | null> = {
+      student: studentPanelRef.current,
+      assignment: assignmentPanelRef.current,
+      extraction: extractionPanelRef.current,
+      outputs: outputsPanelRef.current,
+    };
+    Object.entries(panels).forEach(([key, panel]) => {
+      if (!panel) return;
+      panel.open = key === target;
+    });
+  };
   const openCoverEditorAndFocus = (
     field: "studentName" | "studentId" | "unitCode" | "assignmentCode" | "submissionDate"
   ) => {
     const panel = coverEditorRef.current;
     if (panel) {
+      openSidePanel("extraction");
       panel.open = true;
       panel.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -729,13 +756,13 @@ export default function SubmissionDetailPage() {
     const item = checklist.items.find((i) => !i.ok);
     if (!item) return;
     if (item.key === "student") return toggleStudentPanel();
-    if (item.key === "assignment") return scrollToPanel(assignmentPanelRef.current);
+    if (item.key === "assignment") return openAndScroll("assignment");
     if (item.key === "extraction") return void runExtraction();
     if (item.key === "grade") {
       if (canRunGrading) return void runGrading();
       return scrollToPanel(gradingPanelRef.current);
     }
-    if (item.key === "feedback" || item.key === "marked") return scrollToPanel(outputsPanelRef.current);
+    if (item.key === "feedback" || item.key === "marked") return openAndScroll("outputs");
   };
   const pdfViewportClass =
     pdfViewport === "compact"
@@ -1077,11 +1104,11 @@ export default function SubmissionDetailPage() {
       <section className="mb-3 flex flex-wrap items-center gap-2">
         {[
           { key: "checklist", label: "Checklist", ok: checklist.readyToUpload, onClick: () => scrollToPanel(workflowPanelRef.current) },
-          { key: "student", label: "Student", ok: checklist.studentLinked, onClick: () => scrollToPanel(studentPanelRef.current) },
-          { key: "assignment", label: "Assignment", ok: checklist.assignmentLinked, onClick: () => scrollToPanel(assignmentPanelRef.current) },
-          { key: "extraction", label: "Extraction", ok: checklist.extractionComplete, onClick: () => scrollToPanel(extractionPanelRef.current) },
+          { key: "student", label: "Student", ok: checklist.studentLinked, onClick: () => openAndScroll("student") },
+          { key: "assignment", label: "Assignment", ok: checklist.assignmentLinked, onClick: () => openAndScroll("assignment") },
+          { key: "extraction", label: "Extraction", ok: checklist.extractionComplete, onClick: () => openAndScroll("extraction") },
           { key: "grading", label: "Grading", ok: checklist.gradeGenerated, onClick: () => scrollToPanel(gradingPanelRef.current) },
-          { key: "outputs", label: "Outputs", ok: checklist.feedbackGenerated && checklist.markedPdfGenerated, onClick: () => scrollToPanel(outputsPanelRef.current) },
+          { key: "outputs", label: "Outputs", ok: checklist.feedbackGenerated && checklist.markedPdfGenerated, onClick: () => openAndScroll("outputs") },
         ].map((nav) => (
           <button key={nav.key} type="button" onClick={nav.onClick} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
             <span className={cx("h-1.5 w-1.5 rounded-full", nav.ok ? "bg-emerald-500" : "bg-amber-500")} />
@@ -1135,7 +1162,7 @@ export default function SubmissionDetailPage() {
               actionable: true,
               actionLabel: submission?.assignment ? "Open assignment panel" : "Add",
               onAction: submission?.assignment
-                ? () => scrollToPanel(assignmentPanelRef.current)
+                ? () => openAndScroll("assignment")
                 : () => openCoverEditorAndFocus("assignmentCode"),
             },
             {
@@ -1276,7 +1303,7 @@ export default function SubmissionDetailPage() {
 
         {/* LEFT: Metadata + extraction */}
         <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="order-1 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Quick actions</div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
@@ -1331,14 +1358,29 @@ export default function SubmissionDetailPage() {
             </label>
           </div>
 
-          <details ref={studentPanelRef} id="student-link-panel" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Student</summary>
-            <div className="mt-3 flex items-start justify-between gap-3">
+          <details
+            ref={studentPanelRef}
+            id="student-link-panel"
+            className="order-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm"
+            onToggle={(e) => {
+              const el = e.currentTarget;
+              if (el.open) openSidePanel("student");
+            }}
+          >
+            <summary className="cursor-pointer">
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <span>Student</span>
+                <span className={cx("rounded-full px-2 py-0.5 text-[10px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                  {checklist.studentLinked ? "Linked" : "Pending"}
+                </span>
+              </div>
+            </summary>
+            <div className="mt-2 flex items-start justify-between gap-3">
               <div>
-                <div className="text-lg font-semibold text-zinc-900">
+                <div className="text-base font-semibold text-zinc-900">
                   {submission?.student?.fullName || "Unlinked"}
                 </div>
-                <div className="mt-1 text-sm text-zinc-600">
+                <div className="mt-0.5 text-sm text-zinc-600">
                   {[submission?.student?.email, submission?.student?.externalRef].filter(Boolean).join(" · ") || "—"}
                 </div>
                 {triageInfo?.studentName && !submission?.student?.fullName ? (
@@ -1453,12 +1495,26 @@ export default function SubmissionDetailPage() {
             ) : null}
           </details>
 
-          <details ref={assignmentPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Assignment</summary>
-            <div className="mt-3 text-lg font-semibold text-zinc-900">
+          <details
+            ref={assignmentPanelRef}
+            className="order-2 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm"
+            onToggle={(e) => {
+              const el = e.currentTarget;
+              if (el.open) openSidePanel("assignment");
+            }}
+          >
+            <summary className="cursor-pointer">
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <span>Assignment</span>
+                <span className={cx("rounded-full px-2 py-0.5 text-[10px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                  {checklist.assignmentLinked ? "Linked" : "Pending"}
+                </span>
+              </div>
+            </summary>
+            <div className="mt-2 text-base font-semibold text-zinc-900">
               {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
             </div>
-            <div className="mt-1 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
+            <div className="mt-0.5 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
 
             {triageInfo?.coverage?.missing?.length ? (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -1468,11 +1524,18 @@ export default function SubmissionDetailPage() {
             ) : null}
           </details>
 
-          <details ref={extractionPanelRef} open className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <details
+            ref={extractionPanelRef}
+            className="order-4 rounded-2xl border border-zinc-200 bg-white shadow-sm"
+            onToggle={(e) => {
+              const el = e.currentTarget;
+              if (el.open) openSidePanel("extraction");
+            }}
+          >
             <summary className="cursor-pointer border-b border-zinc-200 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Extraction</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Cover extraction</div>
                   <div className="mt-1 text-sm font-semibold text-zinc-900">
                     {latestRun ? `Latest run · ${latestRun.engineVersion}` : "Not run yet"}
                   </div>
@@ -1639,11 +1702,14 @@ export default function SubmissionDetailPage() {
                     </div>
                   ) : null}
 
-                  <div className="max-h-[42vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                    <div className="whitespace-pre-wrap font-mono text-xs text-zinc-800">
-                      {active?.text?.trim() ? active.text : "(No meaningful text on this page yet)"}
+                  <details className="rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-zinc-700">Page text preview</summary>
+                    <div className="mt-2 max-h-[32vh] overflow-auto rounded-lg border border-zinc-200 bg-white p-2">
+                      <div className="whitespace-pre-wrap font-mono text-xs text-zinc-800">
+                        {active?.text?.trim() ? active.text : "(No meaningful text on this page yet)"}
+                      </div>
                     </div>
-                  </div>
+                  </details>
 
                   <div className="text-xs text-zinc-500">
                     Tip: scanned/low-text pages can still proceed in cover-ready mode when identity metadata is extracted.
@@ -1653,8 +1719,27 @@ export default function SubmissionDetailPage() {
             </div>
           </details>
 
-          <details ref={outputsPanelRef} open className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-500">Audit & outputs</summary>
+          <details
+            ref={outputsPanelRef}
+            className="order-5 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+            onToggle={(e) => {
+              const el = e.currentTarget;
+              if (el.open) openSidePanel("outputs");
+            }}
+          >
+            <summary className="cursor-pointer">
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <span>Audit & outputs</span>
+                <span
+                  className={cx(
+                    "rounded-full px-2 py-0.5 text-[10px]",
+                    feedbackDirty ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-700"
+                  )}
+                >
+                  {feedbackDirty ? "Unsaved edits" : "Saved"}
+                </span>
+              </div>
+            </summary>
             <div className="mt-3 grid gap-2 text-sm">
               {gradingHistory.length ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">

@@ -171,6 +171,7 @@ export async function GET(req: Request) {
     const grade = String(a.overallGrade || "—");
     const result = (a.resultJson || {}) as Record<string, any>;
     const summary = `${a.submission.filename} · grade ${grade}`;
+    const gradedBy = String(result.gradedBy || "").trim() || "system";
     events.push({
       id: `grade-${a.id}`,
       ts: a.createdAt.toISOString(),
@@ -178,7 +179,7 @@ export async function GET(req: Request) {
       severity: "info",
       title: "Grading completed",
       summary,
-      actor: "ai-grader",
+      actor: gradedBy,
       entityKind: "submission",
       entityId: a.submissionId,
       entityLabel: a.submission.filename,
@@ -194,6 +195,36 @@ export async function GET(req: Request) {
         model: result.model || null,
       },
     });
+
+    const feedbackOverride = (result.feedbackOverride && typeof result.feedbackOverride === "object"
+      ? result.feedbackOverride
+      : null) as Record<string, any> | null;
+    if (feedbackOverride?.edited) {
+      const editedAt = String(feedbackOverride.editedAt || "").trim();
+      const ts = editedAt ? new Date(editedAt) : a.updatedAt;
+      const safeTs = Number.isNaN(ts.getTime()) ? a.updatedAt : ts;
+      events.push({
+        id: `feedback-edit-${a.id}-${safeTs.toISOString()}`,
+        ts: safeTs.toISOString(),
+        type: "FEEDBACK_EDITED",
+        severity: "info",
+        title: "Feedback edited and marked PDF rebuilt",
+        summary: `${a.submission.filename} · grade ${grade}`,
+        actor: String(feedbackOverride.assessorName || gradedBy || "system"),
+        entityKind: "submission",
+        entityId: a.submissionId,
+        entityLabel: a.submission.filename,
+        href: `/submissions/${a.submissionId}`,
+        meta: {
+          overallGrade: a.overallGrade,
+          studentName: feedbackOverride.studentName || null,
+          markedDate: feedbackOverride.markedDate || null,
+          bulletCount: feedbackOverride.bulletCount ?? null,
+          editedAt: feedbackOverride.editedAt || null,
+          assessmentId: a.id,
+        },
+      });
+    }
   }
 
   for (const doc of lockedReferences) {
