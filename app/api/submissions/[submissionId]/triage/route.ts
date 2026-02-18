@@ -210,6 +210,20 @@ function extractSignalsFromFilename(filename: string) {
   return { unitCode, assignmentRef, studentName };
 }
 
+function extractSignalsFromCoverMetadata(sourceMeta: any) {
+  const cover = sourceMeta?.coverMetadata || {};
+  const unitCodeRaw = String(cover?.unitCode?.value || "").trim();
+  const assignmentRaw = String(cover?.assignmentCode?.value || "").trim();
+  const studentNameRaw = String(cover?.studentName?.value || "").trim();
+
+  const unitCode = unitCodeRaw.match(/\b(4\d{3})\b/)?.[1] || null;
+  const assignmentMatch = assignmentRaw.match(/\bA\s*([1-9]\d?)\b/i) || assignmentRaw.match(/\b([1-9]\d?)\b/);
+  const assignmentRef = assignmentMatch ? `A${assignmentMatch[1]}` : null;
+  const studentName = studentNameRaw ? norm(studentNameRaw) : null;
+
+  return { unitCode, assignmentRef, studentName };
+}
+
 /**
  * MAIN ROUTE HANDLER
  */
@@ -224,7 +238,15 @@ export async function POST(
 
   const existing = await prisma.submission.findUnique({
     where: { id: submissionId },
-    include: { student: true, assignment: true },
+    include: {
+      student: true,
+      assignment: true,
+      extractionRuns: {
+        orderBy: { startedAt: "desc" },
+        take: 1,
+        select: { sourceMeta: true },
+      },
+    },
   });
 
   if (!existing) {
@@ -240,16 +262,21 @@ export async function POST(
 
   const fromText = extractSignalsFromText(existing.extractedText || "");
   const fromFile = extractSignalsFromFilename(existing.filename);
+  const latestRunMeta = (existing.extractionRuns?.[0]?.sourceMeta as any) || {};
+  const fromCover = extractSignalsFromCoverMetadata(latestRunMeta);
+  const hasCoverSignals = !!(fromCover.unitCode || fromCover.assignmentRef || fromCover.studentName);
 
   // Resolution hierarchy
-  const unitCode = fromText.unitCode || fromFile.unitCode;
-  const assignmentRef = fromText.assignmentRef || fromFile.assignmentRef;
+  const unitCode = fromText.unitCode || fromCover.unitCode || fromFile.unitCode;
+  const assignmentRef = fromText.assignmentRef || fromCover.assignmentRef || fromFile.assignmentRef;
 
   const email = fromText.email;
 
-  const studentNameDetected = fromText.studentName || fromFile.studentName;
+  const studentNameDetected = fromText.studentName || fromCover.studentName || fromFile.studentName;
   const nameSource = fromText.studentName
     ? "text"
+    : fromCover.studentName
+    ? "cover"
     : fromFile.studentName
     ? "filename"
     : null;
@@ -267,7 +294,11 @@ export async function POST(
   }
 
   if (!existing.extractedText || existing.extractedText.trim().length < 50) {
-    warnings.push("Missing/short document text; using filename signals where possible.");
+    warnings.push(
+      hasCoverSignals
+        ? "Missing/short body text; using cover metadata + filename signals."
+        : "Missing/short document text; using filename signals where possible."
+    );
   }
   if (!unitCode) warnings.push("Unit code (e.g. 4001) not found.");
   if (!assignmentRef)
@@ -415,6 +446,31 @@ export async function POST(
         },
       },
     });
+  }
+
+  // Best-effort auto-grade when triage resolves all required links after extraction.
+  try {
+    const autoGradeEnabled = ["1", "true", "yes", "on"].includes(
+      String(process.env.SUBMISSION_AUTO_GRADE_ON_EXTRACT || "true").toLowerCase()
+    );
+    if (autoGradeEnabled) {
+      const shouldAutoGrade =
+        !!result?.studentId &&
+        !!result?.assignmentId &&
+        String(result?.status || "").toUpperCase() === "EXTRACTED";
+      if (shouldAutoGrade) {
+        const counts = await prisma.submission.findUnique({
+          where: { id: submissionId },
+          select: { _count: { select: { assessments: true } } },
+        });
+        if (Number(counts?._count?.assessments || 0) === 0) {
+          const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, _req.url);
+          await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("AUTO_GRADE_AFTER_TRIAGE_FAILED", e);
   }
 
     return NextResponse.json(

@@ -4,8 +4,15 @@ import { extractFile } from "@/lib/extraction";
 import { randomUUID } from "crypto";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { ocrPdfWithOpenAi } from "@/lib/ocr/openaiPdfOcr";
+import { extractCoverMetadataFromPages, isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
+
+function envBool(name: string, fallback = false) {
+  const raw = String(process.env[name] ?? "").trim().toLowerCase();
+  if (!raw) return fallback;
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
 
 function clamp01(n: number) {
   if (Number.isNaN(n)) return 0;
@@ -154,9 +161,11 @@ export async function POST(
 
   try {
     const res = await extractFile(submission.storagePath, submission.filename);
+    const coverOnlyMode = envBool("SUBMISSION_EXTRACT_COVER_ONLY", true);
+    const coverPageLimit = Math.max(1, Math.min(3, Number(process.env.SUBMISSION_EXTRACT_COVER_PAGE_LIMIT || 2)));
 
     // Ensure we always have at least one page for UI consistency
-    const pages =
+    const pagesRaw =
       res.pages && res.pages.length
         ? res.pages
         : [
@@ -169,6 +178,12 @@ export async function POST(
               tokens: null,
             },
           ];
+    const pages = coverOnlyMode
+      ? pagesRaw
+          .filter((p: any) => Number(p?.pageNumber || 0) > 0)
+          .sort((a: any, b: any) => Number(a?.pageNumber || 0) - Number(b?.pageNumber || 0))
+          .slice(0, coverPageLimit)
+      : pagesRaw;
 
     let finalPages = pages as any[];
     let combinedText = combinePageText(finalPages as any);
@@ -191,7 +206,7 @@ export async function POST(
       ocrMeta.warnings = ocr.warnings || [];
       if (ocr.ok && ocr.combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS) {
         ocrMeta.succeeded = true;
-        finalPages = ocr.pages.map((p) => ({
+        const ocrPages = ocr.pages.map((p) => ({
           pageNumber: p.pageNumber,
           text: p.text,
           confidence: p.confidence,
@@ -199,13 +214,23 @@ export async function POST(
           height: p.height ?? null,
           tokens: null,
         }));
+        finalPages = coverOnlyMode
+          ? ocrPages
+              .filter((p) => Number(p?.pageNumber || 0) > 0)
+              .sort((a, b) => Number(a?.pageNumber || 0) - Number(b?.pageNumber || 0))
+              .slice(0, coverPageLimit)
+          : ocrPages;
         combinedText = combinePageText(finalPages as any);
         hasMeaningfulText = combinedText.length >= MIN_MEANINGFUL_TEXT_CHARS;
       }
     }
 
-    // Derived truth beats heuristic flags
-    const finalIsScanned = !hasMeaningfulText;
+    const coverMetadata = extractCoverMetadataFromPages(finalPages as any);
+
+    // Derived truth beats heuristic flags. In cover-only mode, strong cover metadata
+    // is enough to mark the run ready even when body text is intentionally short.
+    const coverReady = coverOnlyMode && isCoverMetadataReady(coverMetadata);
+    const finalIsScanned = coverOnlyMode ? false : !hasMeaningfulText;
     const finalRunStatus = finalIsScanned ? "NEEDS_OCR" : "DONE";
     const finalSubmissionStatus = finalIsScanned ? "NEEDS_OCR" : "EXTRACTED";
 
@@ -215,6 +240,12 @@ export async function POST(
 
     const finishedAt = new Date();
     const mergedWarnings = [...(res.warnings || []), ...((ocrMeta.warnings as string[]) || [])];
+    if (coverOnlyMode && combinedText.length < MIN_MEANINGFUL_TEXT_CHARS) {
+      mergedWarnings.push("cover-only mode: body extraction intentionally limited.");
+    }
+    if (coverOnlyMode && !coverReady) {
+      mergedWarnings.push("cover metadata incomplete: can be completed manually in submission review.");
+    }
 
     // Save pages + finalize run + update submission atomically
     await prisma.$transaction([
@@ -242,6 +273,10 @@ export async function POST(
           sourceMeta: {
             kind: res.kind,
             detectedMime: res.detectedMime ?? null,
+            extractionMode: coverOnlyMode ? "COVER_ONLY" : "FULL",
+            coverPageLimit: coverOnlyMode ? coverPageLimit : null,
+            coverReady,
+            coverMetadata,
             ocr: ocrMeta,
 
             // breadcrumbs for QA/debugging
@@ -271,12 +306,43 @@ export async function POST(
       console.warn("AUTO_TRIAGE_FAILED", e);
     }
 
+    // Best-effort grading kickoff: upload -> extraction -> grading without manual stop.
+    // Missing cover metadata is non-blocking in cover-only mode and can be completed later.
+    try {
+      const autoGradeEnabled = envBool("SUBMISSION_AUTO_GRADE_ON_EXTRACT", true);
+      if (autoGradeEnabled) {
+        const latestSubmission = await prisma.submission.findUnique({
+          where: { id: submissionId },
+          select: {
+            id: true,
+            status: true,
+            studentId: true,
+            assignmentId: true,
+            _count: { select: { assessments: true } },
+          },
+        });
+        const eligibleForAutoGrade =
+          !!latestSubmission?.studentId &&
+          !!latestSubmission?.assignmentId &&
+          String(latestSubmission?.status || "").toUpperCase() === "EXTRACTED" &&
+          Number(latestSubmission?._count?.assessments || 0) === 0;
+        if (eligibleForAutoGrade) {
+          const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, request.url);
+          await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
+        }
+      }
+    } catch (e) {
+      console.warn("AUTO_GRADE_FAILED", e);
+    }
+
     return NextResponse.json({
       ok: true,
       runId,
       status: finalRunStatus,
       isScanned: finalIsScanned,
       extractedChars: combinedText.length,
+      coverReady,
+      coverMetadata,
       requestId,
     }, { headers: { "x-request-id": requestId } });
   } catch (e: any) {

@@ -33,6 +33,7 @@ export async function GET() {
           overallConfidence: true,
           pageCount: true,
           warnings: true,
+          sourceMeta: true,
         },
       },
     },
@@ -50,6 +51,7 @@ export async function GET() {
             overallConfidence: latestRun.overallConfidence,
             pageCount: latestRun.pageCount,
             warnings: latestRun.warnings,
+            sourceMeta: latestRun.sourceMeta,
           }
         : null,
     });
@@ -74,6 +76,8 @@ export async function GET() {
       feedback: latest?.feedbackText || null,
       markedPdfPath: latest?.annotatedPdfPath || null,
       gradedAt: latest?.createdAt || null,
+      extractionMode: String((latestRun?.sourceMeta as any)?.extractionMode || "").toUpperCase() || null,
+      coverReady: Boolean((latestRun?.sourceMeta as any)?.coverReady),
       automationState: automation.state,
       automationReason: automation.reason,
       automationExceptionCode: automation.exceptionCode,

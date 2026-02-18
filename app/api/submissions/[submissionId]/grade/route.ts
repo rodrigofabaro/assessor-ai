@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { readGradingConfig } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { validateGradeDecision } from "@/lib/grading/decisionValidation";
+import { buildStructuredGradingV2 } from "@/lib/grading/assessmentResult";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
+import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/grading/feedbackPersonalization";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 
@@ -240,6 +243,19 @@ function parseModelJson(text: string) {
   }
 }
 
+function buildPageSampleContext(pages: Array<{ pageNumber: number; text: string }>, maxCharsPerPage: number, maxPages: number) {
+  const selected = (Array.isArray(pages) ? pages : [])
+    .slice(0, Math.max(1, maxPages))
+    .map((p) => ({
+      pageNumber: Number(p.pageNumber || 0),
+      text: normalizeText(String(p.text || "")).slice(0, Math.max(200, maxCharsPerPage)),
+    }))
+    .filter((p) => p.pageNumber > 0 && p.text.length > 0);
+
+  if (!selected.length) return "(No page samples available.)";
+  return selected.map((p) => `Page ${p.pageNumber}\n${p.text}`).join("\n\n---\n\n");
+}
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
@@ -312,6 +328,7 @@ export async function POST(
           overallConfidence: true,
           pageCount: true,
           warnings: true,
+          sourceMeta: true,
         },
       },
     },
@@ -321,16 +338,6 @@ export async function POST(
       status: 404,
       code: "GRADE_SUBMISSION_NOT_FOUND",
       userMessage: "Submission not found.",
-      route: "/api/submissions/[submissionId]/grade",
-      requestId,
-      details: { submissionId },
-    });
-  }
-  if (!submission.extractedText || submission.extractedText.trim().length < 100) {
-    return apiError({
-      status: 422,
-      code: "GRADE_EXTRACTION_MISSING",
-      userMessage: "Submission extraction is missing or too short. Run extraction first.",
       route: "/api/submissions/[submissionId]/grade",
       requestId,
       details: { submissionId },
@@ -418,28 +425,67 @@ export async function POST(
   const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
   const assessmentRequirements = extractAssessmentRequirementsFromBrief(brief.briefDocument?.extractedJson);
   const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
-  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(submission.extractedText || "");
-  const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
-
+  const latestRunMeta = (submission.extractionRuns?.[0]?.sourceMeta as any) || {};
+  const coverMetadata = latestRunMeta?.coverMetadata || null;
+  const studentFirstName = extractFirstNameForFeedback({
+    studentFullName: submission?.student?.fullName || null,
+    coverStudentName: coverMetadata?.studentName?.value || null,
+  });
+  const extractionMode = String(latestRunMeta?.extractionMode || "").toUpperCase();
+  const coverReady = Boolean(latestRunMeta?.coverReady);
+  const latestRunId = String(submission.extractionRuns?.[0]?.id || "");
+  const sampledPages =
+    latestRunId
+      ? await prisma.extractedPage.findMany({
+          where: { extractionRunId: latestRunId },
+          orderBy: { pageNumber: "asc" },
+          take: Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4))),
+          select: { pageNumber: true, text: true },
+        })
+      : [];
+  const pageContext = buildPageSampleContext(
+    sampledPages,
+    Math.max(500, Math.min(6000, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT || 1600))),
+    Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4)))
+  );
+  const sampledPageText = sampledPages
+    .map((p) => normalizeText(p.text))
+    .filter(Boolean)
+    .join("\n\n");
+  const modalityEvidenceText =
+    extractionMode === "COVER_ONLY"
+      ? sampledPageText
+      : [String(submission.extractedText || ""), sampledPageText].filter(Boolean).join("\n\n");
+  const modalityEvidenceSource = extractionMode === "COVER_ONLY" ? "PAGE_SAMPLES_ONLY" : "BODY_PLUS_PAGE_SAMPLES";
   const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
   const maxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
+  const bodyFallbackText =
+    extractionMode === "COVER_ONLY"
+      ? "(Cover-only extraction mode active. Do not assume missing body text means missing student work; rely on page-sample evidence.)"
+      : String(submission.extractedText || "").slice(0, inputCharLimit) ||
+        "(No substantial extracted body text available. Use evidence-based caution.)";
+  const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(modalityEvidenceText);
+  const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
 
   const prompt = [
     "You are an engineering assignment assessor.",
     `Tone: ${tone}. Strictness: ${strictness}.`,
-    "Grade using only these grades: PASS, MERIT, DISTINCTION, REFER.",
+    "Grade using only these grades: REFER, PASS, PASS_ON_RESUBMISSION, MERIT, DISTINCTION.",
     "Return STRICT JSON with keys:",
-    "{ overallGrade, feedbackSummary, feedbackBullets[], criterionChecks:[{code, met, comment, evidence:[{page, quote}]}], confidence }",
+    "{ overallGradeWord, resubmissionRequired, feedbackSummary, feedbackBullets[], criterionChecks:[{code, decision, rationale, confidence, evidence:[{page, quote?, visualDescription?}]}], confidence }",
     "Rules:",
     "- Include one criterionChecks item for every criteria code provided.",
     "- code must exactly match the provided criteria code.",
-    "- evidence must include at least one quote with a numeric page number.",
+    "- ACHIEVED is only valid with page-linked evidence.",
+    "- evidence must include at least one item with numeric page and either quote or visualDescription.",
+    "- decision must be one of: ACHIEVED, NOT_ACHIEVED, UNCLEAR.",
     "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
     "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
     "",
     "Assignment context:",
     `Unit: ${brief.unit.unitCode} ${brief.unit.unitTitle}`,
     `Assignment code: ${brief.assignmentCode}`,
+    `Feedback addressee first name: ${studentFirstName || "Unknown (infer if possible)"}`,
     rubricHint,
     "",
     "Detected modality requirements from assignment brief (chart/table/image/equation):",
@@ -448,12 +494,19 @@ export async function POST(
     "Submission modality evidence hints (heuristic):",
     JSON.stringify(submissionAssessmentEvidence, null, 2),
     "",
+    "Submission cover metadata (audit extraction):",
+    JSON.stringify(coverMetadata, null, 2),
+    "",
     "Criteria:",
     JSON.stringify(criteria.slice(0, 120), null, 2),
     "",
-    "Student submission extracted text:",
-    submission.extractedText.slice(0, inputCharLimit),
+    "Student submission page samples (preferred for evidence grounding):",
+    pageContext,
+    "",
+    "Submission extracted body text fallback (secondary context):",
+    bodyFallbackText,
   ].join("\n");
+  const promptHash = createHash("sha256").update(prompt).digest("hex");
 
   await prisma.submission.update({
     where: { id: submission.id },
@@ -481,6 +534,8 @@ export async function POST(
               additionalProperties: false,
               properties: {
                 overallGrade: { type: "string" },
+                overallGradeWord: { type: "string" },
+                resubmissionRequired: { type: "boolean" },
                 feedbackSummary: { type: "string" },
                 feedbackBullets: { type: "array", items: { type: "string" } },
                 criterionChecks: {
@@ -490,8 +545,9 @@ export async function POST(
                     additionalProperties: false,
                     properties: {
                       code: { type: "string" },
-                      met: { type: "boolean" },
-                      comment: { type: "string" },
+                      decision: { type: "string" },
+                      rationale: { type: "string" },
+                      confidence: { type: "number" },
                       evidence: {
                         type: "array",
                         items: {
@@ -500,17 +556,18 @@ export async function POST(
                           properties: {
                             page: { type: "number" },
                             quote: { type: "string" },
+                            visualDescription: { type: "string" },
                           },
-                          required: ["page", "quote"],
+                          required: ["page"],
                         },
                       },
                     },
-                    required: ["code", "met", "comment", "evidence"],
+                    required: ["code", "decision", "rationale", "confidence", "evidence"],
                   },
                 },
                 confidence: { type: "number" },
               },
-              required: ["overallGrade", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
+              required: ["overallGradeWord", "resubmissionRequired", "feedbackSummary", "feedbackBullets", "criterionChecks", "confidence"],
             },
           },
         },
@@ -541,6 +598,23 @@ export async function POST(
       const errorText = validated.errors.join(" | ");
       throw new Error(`Model output failed schema validation: ${errorText}`);
     }
+    const achievedWithoutEvidence = validated.data.criterionChecks.find(
+      (row) => row.decision === "ACHIEVED" && (!Array.isArray(row.evidence) || row.evidence.length === 0)
+    );
+    if (achievedWithoutEvidence) {
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: "FAILED" },
+      });
+      return apiError({
+        status: 422,
+        code: "GRADE_DECISION_EVIDENCE_MISSING",
+        userMessage: `Criterion ${achievedWithoutEvidence.code} was marked ACHIEVED without evidence.`,
+        route: "/api/submissions/[submissionId]/grade",
+        requestId,
+        details: { submissionId, criterionCode: achievedWithoutEvidence.code },
+      });
+    }
 
     const confidenceCap = Math.max(
       0.2,
@@ -554,18 +628,30 @@ export async function POST(
       modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
-    const overallGrade = validated.data.overallGrade;
-    const feedbackSummary = validated.data.feedbackSummary;
+    const overallGrade = validated.data.overallGradeWord;
+    const feedbackSummary = personalizeFeedbackSummary(validated.data.feedbackSummary, studentFirstName);
     const feedbackBullets = validated.data.feedbackBullets.slice(0, cfg.maxFeedbackBullets);
     if (modalityCompliance.missingCount > 0) {
       feedbackBullets.unshift(
         `Automated review: required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
       );
     }
+    if (extractionMode === "COVER_ONLY") {
+      feedbackBullets.unshift("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
+    }
     const responseWithPolicy = {
       ...validated.data,
       confidence: finalConfidence,
     };
+    const completedAtIso = new Date().toISOString();
+    const structuredGradingV2 = buildStructuredGradingV2(responseWithPolicy, {
+      contractVersion: "v2-structured-evidence",
+      promptHash,
+      model: cfg.model,
+      gradedBy: actor,
+      startedAtIso: gradingStartedAt.toISOString(),
+      completedAtIso,
+    });
     const feedbackText = [feedbackSummary, ...feedbackBullets.map((b: string) => `- ${b}`)].filter(Boolean).join("\n");
 
     const marked = await createMarkedPdf(submission.storagePath, {
@@ -586,16 +672,23 @@ export async function POST(
           requestId,
           gradingTimeline: {
             startedAt: gradingStartedAt.toISOString(),
-            completedAt: new Date().toISOString(),
+            completedAt: completedAtIso,
           },
           gradedBy: actor,
           model: cfg.model,
+          gradingContractVersion: "v2-structured-evidence",
           tone,
           strictness,
           useRubric,
           rubricAttachment,
+          promptHash,
           promptChars: prompt.length,
           criteriaCount: criteria.length,
+          pageSampleCount: sampledPages.length,
+          extractionMode: extractionMode || "UNKNOWN",
+          coverReady,
+          studentFirstNameUsed: studentFirstName || null,
+          modalityEvidenceSource,
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,
@@ -606,6 +699,7 @@ export async function POST(
             finalConfidence,
             wasCapped: confidenceWasCapped,
           },
+          structuredGradingV2,
           response: responseWithPolicy,
           usage,
           extractionGate,

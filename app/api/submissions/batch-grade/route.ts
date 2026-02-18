@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, makeRequestId } from "@/lib/api/errors";
+import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 
 type BatchGradeBody = {
   submissionIds?: string[];
@@ -67,9 +68,34 @@ export async function POST(req: Request) {
     const uniqueIds = Array.from(new Set(ids));
     const submissions = await prisma.submission.findMany({
       where: { id: { in: uniqueIds } },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        extractedText: true,
+        extractionRuns: {
+          orderBy: { startedAt: "desc" },
+          take: 1,
+          select: {
+            status: true,
+            overallConfidence: true,
+            pageCount: true,
+            warnings: true,
+            sourceMeta: true,
+          },
+        },
+      },
     });
     const statusById = new Map(submissions.map((s) => [s.id, String(s.status || "").toUpperCase()]));
+    const extractionGateById = new Map(
+      submissions.map((s) => [
+        s.id,
+        evaluateExtractionReadiness({
+          submissionStatus: s.status,
+          extractedText: s.extractedText,
+          latestRun: s.extractionRuns?.[0] || null,
+        }),
+      ])
+    );
 
     const retryFailedOnly = !!body.retryFailedOnly;
     const forceRetry = !!body.forceRetry;
@@ -79,12 +105,29 @@ export async function POST(req: Request) {
       if (!status) return false;
       if (retryFailedOnly) return status === "FAILED";
       if (!forceRetry && status === "DONE") return false;
+      const gate = extractionGateById.get(id);
+      if (!gate?.ok) return false;
       return true;
     });
 
+    const targetSet = new Set(targets);
     const skipped = uniqueIds
-      .filter((id) => !targets.includes(id))
-      .map((id) => ({ submissionId: id, reason: retryFailedOnly ? "not-failed" : "already-done-or-missing" }));
+      .filter((id) => !targetSet.has(id))
+      .map((id) => {
+        const status = statusById.get(id) || "";
+        const gate = extractionGateById.get(id);
+        if (!status) return { submissionId: id, reason: "missing" };
+        if (retryFailedOnly && status !== "FAILED") return { submissionId: id, reason: "not-failed" };
+        if (!forceRetry && status === "DONE") return { submissionId: id, reason: "already-done" };
+        if (gate && !gate.ok) {
+          return {
+            submissionId: id,
+            reason: "extraction-not-ready",
+            blockers: gate.blockers,
+          };
+        }
+        return { submissionId: id, reason: "not-targeted" };
+      });
 
     const concurrency = Number(body.concurrency || 1);
     const jobs = targets.map(
@@ -153,4 +196,3 @@ export async function POST(req: Request) {
     });
   }
 }
-

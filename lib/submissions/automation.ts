@@ -46,7 +46,6 @@ export function deriveAutomationState(s: SubmissionForAutomation): {
 } {
   const status = String(s.status || "").toUpperCase();
   const assessments = Number(s?._count?.assessments || 0);
-  const extractedLen = String(s.extractedText || "").trim().length;
 
   if (status === "FAILED") {
     return {
@@ -123,7 +122,7 @@ export function deriveAutomationState(s: SubmissionForAutomation): {
       recommendedAction: "Ready for export/handoff.",
     };
   }
-  if (status === "EXTRACTED" && assessments === 0 && extractedLen >= 100) {
+  if (status === "EXTRACTED" && assessments === 0) {
     return {
       state: "AUTO_READY",
       reason: "Ready for auto-grading with no blockers detected.",

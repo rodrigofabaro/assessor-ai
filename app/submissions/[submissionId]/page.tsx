@@ -23,6 +23,7 @@ type ExtractionRun = {
   finishedAt?: string | null;
   warnings?: any[] | null;
   error?: string | null;
+  sourceMeta?: any;
   pages: ExtractedPage[];
 };
 
@@ -61,7 +62,7 @@ type TriageInfo = {
   studentDetection?: {
     detected: boolean;
     linked: boolean;
-    source: "text" | "filename" | "email" | null;
+    source: "text" | "cover" | "filename" | "email" | null;
   };
   coverage?: {
     hasUnitSpec: boolean;
@@ -166,6 +167,12 @@ export default function SubmissionDetailPage() {
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
+  const [coverEditBusy, setCoverEditBusy] = useState(false);
+  const [coverStudentName, setCoverStudentName] = useState("");
+  const [coverStudentId, setCoverStudentId] = useState("");
+  const [coverUnitCode, setCoverUnitCode] = useState("");
+  const [coverAssignmentCode, setCoverAssignmentCode] = useState("");
+  const [coverSubmissionDate, setCoverSubmissionDate] = useState("");
 
   /* ---------- Extraction view state ---------- */
   const [activePage, setActivePage] = useState(0);
@@ -187,12 +194,38 @@ export default function SubmissionDetailPage() {
   );
 
   const active = pagesSorted[Math.min(Math.max(activePage, 0), Math.max(pagesSorted.length - 1, 0))];
+  const coverMeta = useMemo(() => {
+    const c = latestRun?.sourceMeta?.coverMetadata;
+    return c && typeof c === "object" ? c : null;
+  }, [latestRun]);
+  const extractionMode = useMemo(() => {
+    const m = String(latestRun?.sourceMeta?.extractionMode || "").toUpperCase();
+    return m === "COVER_ONLY" ? "COVER_ONLY" : m === "FULL" ? "FULL" : "";
+  }, [latestRun]);
+  const coverReady = useMemo(() => Boolean(latestRun?.sourceMeta?.coverReady), [latestRun]);
+
+  useEffect(() => {
+    setCoverStudentName(String(coverMeta?.studentName?.value || ""));
+    setCoverStudentId(String(coverMeta?.studentId?.value || ""));
+    setCoverUnitCode(String(coverMeta?.unitCode?.value || ""));
+    setCoverAssignmentCode(String(coverMeta?.assignmentCode?.value || ""));
+    setCoverSubmissionDate(String(coverMeta?.submissionDate?.value || ""));
+  }, [coverMeta]);
 
   const latestAssessment = useMemo(() => {
     const a = submission?.assessments ?? [];
     if (!a.length) return null;
     return a[0];
   }, [submission]);
+
+  const structuredGrading = useMemo(() => {
+    const rj: any = latestAssessment?.resultJson || {};
+    const v2 = rj?.structuredGradingV2;
+    if (v2 && typeof v2 === "object") return v2;
+    const fallback = rj?.response;
+    if (fallback && typeof fallback === "object") return fallback;
+    return null;
+  }, [latestAssessment]);
 
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
@@ -391,6 +424,43 @@ export default function SubmissionDetailPage() {
       notifyToast("error", message);
     } finally {
       setGradingBusy(false);
+    }
+  }
+
+  async function saveCoverMetadata() {
+    if (!submissionId || !latestRun) return;
+    setCoverEditBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const mkField = (value: string) => {
+        const v = String(value || "").trim();
+        if (!v) return undefined;
+        return { value: v, confidence: 1, page: 1, snippet: "manual override" };
+      };
+      const nextCover = {
+        ...(coverMeta && typeof coverMeta === "object" ? coverMeta : {}),
+        studentName: mkField(coverStudentName),
+        studentId: mkField(coverStudentId),
+        unitCode: mkField(coverUnitCode),
+        assignmentCode: mkField(coverAssignmentCode),
+        submissionDate: mkField(coverSubmissionDate),
+      };
+      await jsonFetch(`/api/submissions/${submissionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coverMetadata: nextCover }),
+      });
+      await jsonFetch(`/api/submissions/${submissionId}/triage`, { method: "POST" }).catch(() => null);
+      await refresh();
+      setMsg("Cover metadata updated.");
+      notifyToast("success", "Cover metadata saved.");
+    } catch (e: any) {
+      const message = e?.message || "Failed to save cover metadata.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setCoverEditBusy(false);
     }
   }
 
@@ -827,6 +897,7 @@ export default function SubmissionDetailPage() {
                 {latestRun ? (
                   <div className="text-xs text-zinc-500">
                     {latestRun.status} · Confidence {Math.round((latestRun.overallConfidence || 0) * 100)}%
+                    {extractionMode ? ` · Mode ${extractionMode}` : ""}
                   </div>
                 ) : null}
               </div>
@@ -835,7 +906,7 @@ export default function SubmissionDetailPage() {
             <div className="p-4">
               {!latestRun ? (
                 <div className="text-sm text-zinc-600">
-                  No extraction yet. Click <span className="font-semibold">Run extraction</span> to generate readable text for grading.
+                  No extraction yet. Click <span className="font-semibold">Run extraction</span> to collect cover metadata and page samples for grading.
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -853,6 +924,82 @@ export default function SubmissionDetailPage() {
                           <li key={i}>{w}</li>
                         ))}
                       </ul>
+                    </div>
+                  ) : null}
+
+                  {extractionMode === "COVER_ONLY" && !coverReady ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <div className="text-xs font-semibold uppercase tracking-wide">Cover metadata incomplete</div>
+                      <div className="mt-1">
+                        Grading can continue. Add or correct cover details in this page if needed for record quality.
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {latestRun ? (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide">Cover Metadata</div>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <label className="text-xs">
+                          <span className="font-semibold">Student</span>
+                          <input
+                            value={coverStudentName}
+                            onChange={(e) => setCoverStudentName(e.target.value)}
+                            className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
+                          />
+                        </label>
+                        <label className="text-xs">
+                          <span className="font-semibold">Student ID</span>
+                          <input
+                            value={coverStudentId}
+                            onChange={(e) => setCoverStudentId(e.target.value)}
+                            className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
+                          />
+                        </label>
+                        <label className="text-xs">
+                          <span className="font-semibold">Unit</span>
+                          <input
+                            value={coverUnitCode}
+                            onChange={(e) => setCoverUnitCode(e.target.value)}
+                            className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
+                          />
+                        </label>
+                        <label className="text-xs">
+                          <span className="font-semibold">Assignment</span>
+                          <input
+                            value={coverAssignmentCode}
+                            onChange={(e) => setCoverAssignmentCode(e.target.value)}
+                            className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
+                          />
+                        </label>
+                        <label className="text-xs">
+                          <span className="font-semibold">Submission Date</span>
+                          <input
+                            value={coverSubmissionDate}
+                            onChange={(e) => setCoverSubmissionDate(e.target.value)}
+                            className="mt-1 h-8 w-full rounded-lg border border-emerald-200 bg-white px-2 text-xs text-zinc-900"
+                          />
+                        </label>
+                        <div className="text-xs">
+                          <span className="font-semibold">Extracted confidence:</span>{" "}
+                          {Number(coverMeta?.confidence || 0).toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={saveCoverMetadata}
+                          disabled={coverEditBusy}
+                          className={cx(
+                            "inline-flex h-8 items-center rounded-lg px-3 text-xs font-semibold",
+                            coverEditBusy
+                              ? "cursor-not-allowed bg-emerald-200 text-emerald-800"
+                              : "bg-emerald-700 text-white hover:bg-emerald-800"
+                          )}
+                        >
+                          {coverEditBusy ? "Saving..." : "Save cover metadata"}
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 
@@ -879,7 +1026,7 @@ export default function SubmissionDetailPage() {
                   </div>
 
                   <div className="text-xs text-zinc-500">
-                    Tip: scanned/handwritten pages may show low text. Those will become "NEEDS_OCR" later when we add vision.
+                    Tip: scanned/low-text pages can still proceed in cover-ready mode when identity metadata is extracted.
                   </div>
                 </div>
               )}
@@ -963,6 +1110,55 @@ export default function SubmissionDetailPage() {
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                 {latestAssessment?.feedbackText || "No feedback generated yet."}
               </div>
+
+              {structuredGrading ? (
+                <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Criterion Decisions</div>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                      {String(structuredGrading?.overallGradeWord || structuredGrading?.overallGrade || "—")}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                      Resubmission: {Boolean(structuredGrading?.resubmissionRequired) ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {(Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : []).slice(0, 24).map((row: any, idx: number) => {
+                      const decision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase();
+                      const tone =
+                        decision === "ACHIEVED"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          : decision === "NOT_ACHIEVED"
+                            ? "border-amber-200 bg-amber-50 text-amber-900"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-800";
+                      const rationale = String(row?.rationale || row?.comment || "").trim();
+                      const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+                      const pages = Array.from(
+                        new Set(
+                          evidence
+                            .map((ev: any) => Number(ev?.page))
+                            .filter((n: number) => Number.isInteger(n) && n > 0)
+                        )
+                      ).slice(0, 8);
+                      return (
+                        <div key={`crit-${idx}`} className="rounded-lg border border-zinc-200 p-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-900">
+                              {String(row?.code || "—")}
+                            </span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{decision}</span>
+                            {pages.length ? (
+                              <span className="text-[11px] text-zinc-600">Pages: {pages.join(", ")}</span>
+                            ) : null}
+                          </div>
+                          {rationale ? <div className="mt-1 text-xs text-zinc-700">{rationale}</div> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               {modalityCompliance.hasData ? (
                 <div className="rounded-xl border border-zinc-200 bg-white p-3">
                   <div className="flex flex-wrap items-center gap-2">

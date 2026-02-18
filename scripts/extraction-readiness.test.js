@@ -85,6 +85,27 @@ function run() {
   assert(!needsOcr.ok, "expected NEEDS_OCR to fail gate");
   assert(needsOcr.blockers.some((b) => /NEEDS_OCR/i.test(b)), "expected NEEDS_OCR blocker");
 
+  const needsOcrCoverOnly = evaluateExtractionReadiness({
+    submissionStatus: "NEEDS_OCR",
+    extractedText: "short text",
+    latestRun: {
+      status: "NEEDS_OCR",
+      overallConfidence: 0.9,
+      pageCount: 2,
+      warnings: [],
+      sourceMeta: {
+        extractionMode: "COVER_ONLY",
+        coverMetadata: {
+          studentName: { value: "Jane Doe", confidence: 0.8, page: 1, snippet: "Student Name: Jane Doe" },
+          unitCode: { value: "4003", confidence: 0.9, page: 1, snippet: "Unit: 4003" },
+          assignmentCode: { value: "A1", confidence: 0.86, page: 1, snippet: "Assignment: A1" },
+          confidence: 0.85,
+        },
+      },
+    },
+  });
+  assert(needsOcrCoverOnly.ok, "expected cover-only NEEDS_OCR to pass gate with warnings");
+
   const lowText = evaluateExtractionReadiness({
     submissionStatus: "EXTRACTED",
     extractedText: "short text",
@@ -97,6 +118,59 @@ function run() {
   });
   assert(!lowText.ok, "expected short extraction text to fail gate");
   assert(lowText.blockers.some((b) => /too short/i.test(b)), "expected min chars blocker");
+
+  const coverReadyShortText = evaluateExtractionReadiness({
+    submissionStatus: "EXTRACTED",
+    extractedText: "short text",
+    latestRun: {
+      status: "DONE",
+      overallConfidence: 0.9,
+      pageCount: 2,
+      warnings: [],
+      sourceMeta: {
+        coverMetadata: {
+          studentName: { value: "Jane Doe", confidence: 0.8, page: 1, snippet: "Student Name: Jane Doe" },
+          unitCode: { value: "4003", confidence: 0.9, page: 1, snippet: "Unit: 4003" },
+          assignmentCode: { value: "A1", confidence: 0.86, page: 1, snippet: "Assignment: A1" },
+          confidence: 0.85,
+        },
+      },
+    },
+  });
+  assert(coverReadyShortText.ok, "expected cover-ready short text to pass gate");
+  assert(
+    coverReadyShortText.warnings.some((w) => /cover metadata/i.test(w)),
+    "expected warning indicating cover-ready short-text mode"
+  );
+  assert(coverReadyShortText.metrics.coverMetadataReady === true, "expected coverMetadataReady metric true");
+  assert(
+    String(coverReadyShortText.metrics.extractionMode || "UNKNOWN") === "UNKNOWN",
+    "expected extraction mode metric to default to UNKNOWN when not provided"
+  );
+
+  const coverOnlyWithoutCoverReady = evaluateExtractionReadiness({
+    submissionStatus: "EXTRACTED",
+    extractedText: "A".repeat(1800),
+    latestRun: {
+      status: "DONE",
+      overallConfidence: 0.92,
+      pageCount: 2,
+      warnings: [],
+      sourceMeta: {
+        extractionMode: "COVER_ONLY",
+        coverMetadata: { confidence: 0.3 },
+      },
+    },
+  });
+  assert(coverOnlyWithoutCoverReady.ok, "expected cover-only without ready cover metadata to remain gradable");
+  assert(
+    coverOnlyWithoutCoverReady.warnings.some((w) => /cover-only extraction has incomplete cover metadata/i.test(w)),
+    "expected explicit cover-only metadata warning"
+  );
+  assert(
+    String(coverOnlyWithoutCoverReady.metrics.extractionMode || "") === "COVER_ONLY",
+    "expected extraction mode metric to preserve COVER_ONLY"
+  );
 
   console.log("extraction readiness gate tests passed.");
 }

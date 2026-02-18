@@ -1,8 +1,11 @@
+import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
+
 type ExtractionRunLike = {
   status?: string | null;
   overallConfidence?: number | null;
   pageCount?: number | null;
   warnings?: unknown;
+  sourceMeta?: unknown;
 };
 
 export type ExtractionReadinessInput = {
@@ -20,6 +23,8 @@ export type ExtractionReadinessResult = {
     pageCount: number;
     overallConfidence: number;
     runStatus: string;
+    coverMetadataReady: boolean;
+    extractionMode: string;
   };
 };
 
@@ -51,17 +56,40 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   const pageCount = Number(run?.pageCount || 0);
   const overallConfidence = Number(run?.overallConfidence || 0);
   const runWarnings = parseWarnings(run?.warnings);
+  const extractionMode = String((run?.sourceMeta as any)?.extractionMode || "")
+    .trim()
+    .toUpperCase();
+  const coverReady = isCoverMetadataReady((run?.sourceMeta as any)?.coverMetadata);
 
   if (!run) blockers.push("No extraction run found.");
-  if (runStatus === "NEEDS_OCR") blockers.push("Extraction flagged as NEEDS_OCR. Run OCR/correction before grading.");
+  if (runStatus === "NEEDS_OCR") {
+    if (extractionMode === "COVER_ONLY") {
+      warnings.push("Extraction flagged as NEEDS_OCR, but cover-only mode is allowed to continue.");
+    } else {
+      blockers.push("Extraction flagged as NEEDS_OCR. Run OCR/correction before grading.");
+    }
+  }
   if (runStatus === "FAILED") blockers.push("Latest extraction run failed.");
   if (runStatus === "RUNNING" || runStatus === "PENDING") blockers.push("Extraction is still in progress.");
   if (runStatus && !["DONE", "NEEDS_OCR", "FAILED", "RUNNING", "PENDING"].includes(runStatus)) {
     warnings.push(`Unknown extraction status: ${runStatus}.`);
   }
+  if (extractionMode === "COVER_ONLY" && !coverReady) {
+    warnings.push("Cover-only extraction has incomplete cover metadata; complete it in submission review if needed.");
+  }
 
   if (extractedChars < minChars) {
-    blockers.push(`Extracted text too short (${extractedChars} chars; minimum ${minChars}).`);
+    if (extractionMode === "COVER_ONLY") {
+      warnings.push(
+        `Cover-only extraction has short body text (${extractedChars} chars), which is expected for this mode.`
+      );
+    } else if (coverReady) {
+      warnings.push(
+        `Extracted body text is short (${extractedChars} chars), but cover metadata is available.`
+      );
+    } else {
+      blockers.push(`Extracted text too short (${extractedChars} chars; minimum ${minChars}).`);
+    }
   }
   if (Number.isFinite(overallConfidence) && overallConfidence > 0 && overallConfidence < minConfidence) {
     blockers.push(
@@ -72,7 +100,13 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   if (runWarnings.length) warnings.push(...runWarnings.map((w) => `Extraction warning: ${w}`));
 
   const status = String(input.submissionStatus || "").toUpperCase();
-  if (status === "NEEDS_OCR") blockers.push("Submission status is NEEDS_OCR.");
+  if (status === "NEEDS_OCR") {
+    if (extractionMode === "COVER_ONLY") {
+      warnings.push("Submission status is NEEDS_OCR, but cover-only mode is allowed to continue.");
+    } else {
+      blockers.push("Submission status is NEEDS_OCR.");
+    }
+  }
 
   return {
     ok: blockers.length === 0,
@@ -83,6 +117,8 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
       pageCount: pageCount > 0 ? pageCount : 0,
       overallConfidence: Number.isFinite(overallConfidence) ? overallConfidence : 0,
       runStatus,
+      coverMetadataReady: coverReady,
+      extractionMode: extractionMode || "UNKNOWN",
     },
   };
 }

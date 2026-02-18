@@ -3,6 +3,18 @@
 Date: 2026-02-16  
 Route: `/submissions`
 
+## Phase 1 Operating Mode (Current)
+
+- Use cover-first processing for student submissions:
+  - `SUBMISSION_EXTRACT_COVER_ONLY=true`
+  - `SUBMISSION_EXTRACT_COVER_PAGE_LIMIT=2` (or `1..3`)
+- The submission PDF remains source-of-truth.
+- Grading decisions are evidence-linked to page context, not full-body reconstruction.
+- Cover metadata is used for:
+  - identity checks
+  - triage/linking fallback
+  - extraction readiness confidence
+
 ## What This Page Is For
 
 `/submissions` is the operations workspace for submission intake and progression.
@@ -58,6 +70,12 @@ This page is designed as the "queue board" between upload and final marked outpu
 4. Filter to target rows and run `Grade visible` (or `Retry failed`).
 5. Open submission details for audit of extraction, triage, and assessment outputs.
 6. Use `Copy summary` for LMS/Totara handoff where applicable.
+
+## Notes For Cover-Only Runs
+
+- Short/missing body text is expected in `COVER_ONLY` mode and should not be treated as automatic failure.
+- Triage now uses latest extraction run `sourceMeta.coverMetadata` before falling back to filename-only heuristics.
+- If linking fails, operator action is still required (manual resolve), but false negatives are reduced.
 
 ## Strengths
 

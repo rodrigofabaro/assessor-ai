@@ -18,6 +18,8 @@ export type ExtractionQualityResult = {
     pageCount: number;
     overallConfidence: number;
     runStatus: string;
+    coverMetadataReady: boolean;
+    extractionMode: string;
   };
 };
 
@@ -32,16 +34,18 @@ function envNumber(name: string, fallback: number) {
 
 export function computeExtractionQuality(input: ExtractionReadinessInput): ExtractionQualityResult {
   const gate = evaluateExtractionReadiness(input);
-  const { extractedChars, pageCount, overallConfidence, runStatus } = gate.metrics;
+  const { extractedChars, pageCount, overallConfidence, runStatus, coverMetadataReady } = gate.metrics;
 
   // Weighted quality score from deterministic extraction metrics.
-  // 45 chars + 35 confidence + 20 page coverage - penalties.
-  const charsScore = clamp(extractedChars / 1200, 0, 1) * 45;
+  // If cover metadata is ready, reduce dependence on full-body extracted chars.
+  const charsWeight = coverMetadataReady ? 25 : 45;
+  const charsScore = clamp(extractedChars / 1200, 0, 1) * charsWeight;
   const confScore = clamp(overallConfidence / 0.85, 0, 1) * 35;
   const pageBase = pageCount > 0 ? 10 : 0;
   const pageDepth = clamp(pageCount / 4, 0, 1) * 10;
+  const coverBonus = coverMetadataReady ? 20 : 0;
 
-  let score = charsScore + confScore + pageBase + pageDepth;
+  let score = charsScore + confScore + pageBase + pageDepth + coverBonus;
 
   // Penalize noisy runs and hard blockers.
   score -= gate.warnings.length * 3;
@@ -72,4 +76,3 @@ export function computeExtractionQuality(input: ExtractionReadinessInput): Extra
     metrics: gate.metrics,
   };
 }
-

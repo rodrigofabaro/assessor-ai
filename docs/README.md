@@ -13,6 +13,7 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - If you’re running repo health checks: **`operations/integrity-checks.md`**
 - If local server startup fails: **`operations/local-dev-troubleshooting.md`**
 - If you operate the submission queue UI: **`operations/submissions-workspace-guide.md`**
+- If you operate Phase 1 grading flow: **`operations/phase1-submission-grading-runbook.md`**
 - If you’re operating OpenAI settings/usage diagnostics: **`operations/openai-settings.md`**
 - If you’re enabling local-first AI with fallback: **`operations/hybrid-ai-local-runbook.md`**
 - Roadmap tracker: **`Milestones.md`**
@@ -50,6 +51,16 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
 - Warnings/readiness cleanup:
   - stale non-actionable warnings are filtered from UI
   - resolved equation/short-body warnings are automatically suppressed
+- Submissions Phase 1 simplification:
+  - optional `SUBMISSION_EXTRACT_COVER_ONLY=true` mode for cover-first extraction
+  - cover metadata readiness is now a first-class extraction quality signal
+  - triage falls back to cover metadata signals (unit/assignment/student)
+  - grading prompt uses page samples as primary evidence context
+  - grading auto-starts after extraction/triage when links are complete
+  - cover metadata gaps are non-blocking and editable on submission detail
+  - feedback summary is personalized with student first name (profile first, cover fallback)
+  - accepted grade words aligned to Pearson HN flow:
+    - `REFER`, `PASS`, `PASS_ON_RESUBMISSION`, `MERIT`, `DISTINCTION`
 
 ## Non‑negotiable philosophy
 
