@@ -310,10 +310,10 @@ export default async function HomePage() {
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           {[
-            ["/admin", "Overview"],
             ["/admin/audit", "Audit"],
             ["/admin/briefs", "Briefs"],
             ["/admin/library", "Library"],
+            ["/admin", "Overview"],
             ["/admin/qa", "QA"],
             ["/admin/settings", "Settings"],
             ["/admin/specs", "Specs"],
