@@ -129,27 +129,6 @@ function StatusPill({ children }: { children: string }) {
   );
 }
 
-function nextAction(status: string) {
-  switch (status) {
-    case "UPLOADED":
-    case "EXTRACTING":
-      return "Extraction running";
-    case "EXTRACTED":
-      return "Ready to assess";
-    case "NEEDS_OCR":
-      return "Needs OCR";
-    case "ASSESSING":
-    case "MARKING":
-      return "Assessment running";
-    case "DONE":
-      return "Upload back to Totara";
-    case "FAILED":
-      return "Needs attention";
-    default:
-      return "—";
-  }
-}
-
 export default function SubmissionDetailPage() {
   const params = useParams<{ submissionId: string }>();
   const submissionId = String(params?.submissionId || "");

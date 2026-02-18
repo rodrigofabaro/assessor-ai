@@ -7,13 +7,6 @@ import { HELP_PAGES, getHelpPageMeta } from "@/lib/help/pages";
 type HelpSectionItem = { type: "h3" | "li" | "p"; text: string };
 type HelpSection = { id: string; title: string; items: HelpSectionItem[] };
 
-function slugify(input: string) {
-  return String(input || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
 function toCallout(text: string) {
   const src = String(text || "").trim();
   if (/^tip:\s*/i.test(src)) return { kind: "tip" as const, text: src.replace(/^tip:\s*/i, "") };
@@ -60,12 +53,6 @@ export default function HelpTopicClient(props: {
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [activeId, setActiveId] = useState<string>("");
   const [helpful, setHelpful] = useState<"yes" | "no" | null>(null);
-
-  useEffect(() => {
-    const next: Record<string, boolean> = {};
-    for (const s of sections) next[s.id] = true;
-    setOpenMap(next);
-  }, [slug, sections]);
 
   const visibleSections = useMemo(() => {
     const q = query.trim().toLowerCase();
