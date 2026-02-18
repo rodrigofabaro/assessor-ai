@@ -267,13 +267,13 @@ export default function AdminStudentsPage() {
 
   return (
     <div className="grid min-w-0 gap-4">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-white to-white p-3 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-900">
               Student Records
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Students</h1>
+            <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Students</h1>
             <p className="mt-1 text-sm text-zinc-700">
               Search and open a student profile. Bulk import is available, but kept tucked away to reduce noise.
             </p>

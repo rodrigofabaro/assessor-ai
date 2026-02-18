@@ -12,13 +12,13 @@ export default function LibraryAdminPage() {
 
   return (
     <div className="grid gap-4 min-w-0 overflow-x-hidden">
-      <header className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <header className="rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 via-white to-white p-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-900">
               Library Operations
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Reference library</h1>
+            <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Reference library</h1>
             <p className="mt-1 text-sm text-zinc-700">
               Manage <span className="font-semibold">LOCKED</span> unit specs (the grading ground truth). Edit labels,
               see which briefs are bound, and archive old issues.

@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBriefsAdmin } from "./briefs.logic";
 import { useReferenceAdmin } from "../reference/reference.logic";
 
 import { Btn } from "./components/ui";
 import BriefExtractWorkbench from "./components/BriefExtractWorkbench";
 import BriefLibraryTable from "./components/BriefLibraryTable";
-
-function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
-      <div className="mt-1 text-xl font-semibold text-zinc-900">{value}</div>
-      <div className="mt-1 text-xs text-zinc-600">{hint}</div>
-    </div>
-  );
-}
 
 export default function AdminBriefsPage() {
   // Library/register VM (your briefs register)
@@ -29,19 +19,31 @@ export default function AdminBriefsPage() {
     fixedUploadType: "BRIEF",
   });
 
-  // Keep tab in sync with hash
+  // Keep tab in sync with URL.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onHash = () => {
+    const onUrlState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "extract" || tab === "library") {
+        vm.setTab(tab);
+        return;
+      }
       const h = window.location.hash.replace("#", "");
-      if (h === "extract") vm.setTab("extract");
-      if (h === "library") vm.setTab("library");
+      if (h === "extract" || h === "library") vm.setTab(h);
     };
-    window.addEventListener("hashchange", onHash);
-    onHash();
-    return () => window.removeEventListener("hashchange", onHash);
+    window.addEventListener("hashchange", onUrlState);
+    onUrlState();
+    return () => window.removeEventListener("hashchange", onUrlState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", vm.tab);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+  }, [vm.tab]);
 
   const busy = vm.tab === "extract" ? !!rx.busy : vm.busy;
   const err = vm.tab === "extract" ? rx.error : vm.error;
@@ -49,18 +51,32 @@ export default function AdminBriefsPage() {
   const totalBriefs = vm.rows.length;
   const lockedBriefs = vm.libraryRows.length;
   const readyBriefs = vm.rows.filter((r) => r.readiness === "READY").length;
-  const attentionBriefs = vm.rows.filter((r) => r.readiness === "ATTN" || r.readiness === "BLOCKED").length;
+  const attentionBriefs = vm.rows.filter((r) => r.readiness === "ATTN").length;
+  const blockedBriefs = vm.rows.filter((r) => r.readiness === "BLOCKED").length;
   const mappedDocs = vm.rows.filter((r) => !!r.linkedDoc).length;
+  const missingIv = vm.rows.filter((r) => !!r.linkedDoc && !r.ivForYear).length;
+
+  const nextAction = useMemo(() => {
+    if (blockedBriefs > 0) return "Resolve blocked briefs in Extract tools before locking decisions.";
+    if (attentionBriefs > 0) return `Clear attention items for ${attentionBriefs} brief${attentionBriefs === 1 ? "" : "s"}.`;
+    if (mappedDocs < totalBriefs) return "Map remaining briefs to uploaded documents.";
+    return "Brief register is healthy. Continue locking and audit checks.";
+  }, [attentionBriefs, blockedBriefs, mappedDocs, totalBriefs]);
+
+  const goToTab = (tab: "library" | "extract") => {
+    vm.setTab(tab);
+    if (typeof window !== "undefined") window.location.hash = tab;
+  };
 
   const refresh = async () => {
     setRefreshing(true);
     try {
       if (vm.tab === "extract") {
         await rx.refreshAll({ keepSelection: true });
-        if (typeof window !== "undefined") window.location.hash = "extract";
+        goToTab("extract");
       } else {
         await vm.refresh();
-        if (typeof window !== "undefined") window.location.hash = "library";
+        goToTab("library");
       }
     } finally {
       setRefreshing(false);
@@ -71,58 +87,55 @@ export default function AdminBriefsPage() {
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8">
       <div className="grid gap-4 min-w-0">
-        <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Briefs</h1>
-              <p className="mt-2 text-sm text-zinc-700">
-                A <span className="font-semibold">Brief</span> is the assignment question paper + context. A{" "}
-                <span className="font-semibold">Spec</span> is the criteria universe (the law). Locking binds a brief to a
-                locked spec version for audit-ready grading.
-              </p>
-              <p className="mt-2 text-xs text-zinc-600">
-                Later, submissions link to a locked brief + locked spec, and IV records attach to the brief version.
-              </p>
+        <section className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-white p-3 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Briefs</h1>
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
+                Workspace
+              </span>
             </div>
-
-          <div className="flex items-center gap-2">
-            <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </Btn>
-            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-              {busy ? "Working..." : "Ready"}
-            </span>
-          </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <MetricCard label="Total briefs" value={totalBriefs} hint="Brief rows in the current register." />
-            <MetricCard label="Mapped docs" value={mappedDocs} hint="Rows with a linked brief document." />
-            <MetricCard label="Ready" value={readyBriefs} hint="Rows that meet readiness policy." />
-            <MetricCard label="Attention" value={attentionBriefs} hint="Rows blocked or needing intervention." />
-            <MetricCard label="Locked" value={lockedBriefs} hint="Reference-locked briefs in library view." />
+            <div className="flex flex-wrap items-center gap-2">
+              <Btn kind="secondary" onClick={refresh} disabled={busy || refreshing}>
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </Btn>
+              <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+                {busy ? "Working..." : "Ready"}
+              </span>
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Btn
-              kind={vm.tab === "library" ? "primary" : "ghost"}
-              onClick={() => {
-                vm.setTab("library");
-                if (typeof window !== "undefined") window.location.hash = "library";
-              }}
-            >
-              Library
-            </Btn>
-            <Btn
-              kind={vm.tab === "extract" ? "primary" : "ghost"}
-              onClick={() => {
-                vm.setTab("extract");
-                if (typeof window !== "undefined") window.location.hash = "extract";
-                rx.refreshAll({ keepSelection: true });
-              }}
-            >
-              Extract tools
-            </Btn>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            {[
+              ["Total", totalBriefs],
+              ["Mapped docs", mappedDocs],
+              ["Ready", readyBriefs],
+              ["Attention", attentionBriefs],
+              ["Blocked", blockedBriefs],
+              ["Locked", lockedBriefs],
+              ["Health", `IV missing ${missingIv}`],
+            ].map(([label, value]) => (
+              <span
+                key={String(label)}
+                className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700"
+              >
+                <span className="text-zinc-500">{label}</span>
+                <span className="text-zinc-900">{value}</span>
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            <span className="font-semibold text-zinc-900">Next best action:</span> {nextAction}
+            {blockedBriefs > 0 || attentionBriefs > 0 ? (
+              <button
+                type="button"
+                onClick={() => goToTab("extract")}
+                className="ml-2 inline-flex rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-100"
+              >
+                Open extract tools
+              </button>
+            ) : null}
           </div>
 
           {err ? (
@@ -130,12 +143,33 @@ export default function AdminBriefsPage() {
           ) : null}
         </section>
 
+        <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            <Btn
+              kind={vm.tab === "library" ? "primary" : "ghost"}
+              onClick={() => {
+                goToTab("library");
+              }}
+            >
+              Library
+            </Btn>
+            <Btn
+              kind={vm.tab === "extract" ? "primary" : "ghost"}
+              onClick={() => {
+                goToTab("extract");
+                rx.refreshAll({ keepSelection: true });
+              }}
+            >
+              Extract
+            </Btn>
+          </div>
+        </section>
+
         {vm.tab === "library" ? (
           <BriefLibraryTable
             vm={vm}
             goToInbox={() => {
-              vm.setTab("extract");
-              if (typeof window !== "undefined") window.location.hash = "extract";
+              goToTab("extract");
               rx.refreshAll({ keepSelection: true });
             }}
           />

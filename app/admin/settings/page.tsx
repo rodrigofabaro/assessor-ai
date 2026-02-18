@@ -325,13 +325,13 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="grid min-w-0 gap-4">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-white to-white p-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
               System Configuration
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Settings Control</h1>
+            <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Settings Control</h1>
             <p className="mt-1 text-sm text-zinc-700">Central controls for AI configuration, grading defaults, and app identity behavior.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

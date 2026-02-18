@@ -164,13 +164,13 @@ export default async function AdminIndex() {
 
   return (
     <div className="grid min-w-0 gap-4">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 via-white to-white p-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
               Operations Overview
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Admin Control Tower</h1>
+            <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Admin Control Tower</h1>
             <p className="mt-2 text-sm text-zinc-700">
               Central operations view for QA research, audit logs, locking workflows, and grading readiness.
             </p>

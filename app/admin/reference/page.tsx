@@ -10,13 +10,13 @@ export default function ReferenceAdminPage() {
 
   return (
     <div className="grid min-w-0 gap-4">
-      <header className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <header className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-white p-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
               Reference Operations
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900">Reference library</h1>
+            <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Reference library</h1>
             <p className="mt-1 text-sm text-zinc-700">
               Upload a <span className="font-semibold">SPEC</span> or <span className="font-semibold">BRIEF</span>, run{" "}
               <span className="font-semibold">Extract</span>, review learning outcomes/criteria, then{" "}
