@@ -49,6 +49,13 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Current-brief criteria display is LO-scoped and ordered `P -> M -> D`.
 - Stale extraction/task warnings are auto-filtered when resolved.
 
+## Current navigation notes (admin)
+
+- Primary admin top-nav sections are: `Audit`, `Briefs`, `Library`, `Overview`, `QA`, `Settings`, `Specs`, `Students`, `Users`.
+- Advanced admin pages are still available by direct URL:
+  - `/admin/reference`
+  - `/admin/bindings`
+
 ## Current behavior notes (submissions, Phase 1)
 
 - Submission grading supports cover-first processing:

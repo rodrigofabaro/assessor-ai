@@ -12,6 +12,11 @@ Use this page to monitor blockers, jump into QA research, and open audit/locking
 - Attention queue
 - Grade distribution snapshot
 - Recent references and recent submissions
+- Top-nav admin sections:
+  - Audit, Briefs, Library, Overview, QA, Settings, Specs, Students, Users
+- Advanced (direct URL only):
+  - `/admin/reference`
+  - `/admin/bindings`
 
 ## Recommended Flow
 

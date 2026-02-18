@@ -301,6 +301,47 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-900">Admin workspace shortcuts</h2>
+            <p className="mt-1 text-sm text-zinc-700">Primary admin sections available from the top navigation.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          {[
+            ["/admin", "Overview"],
+            ["/admin/audit", "Audit"],
+            ["/admin/briefs", "Briefs"],
+            ["/admin/library", "Library"],
+            ["/admin/qa", "QA"],
+            ["/admin/settings", "Settings"],
+            ["/admin/specs", "Specs"],
+            ["/admin/students", "Students"],
+            ["/admin/users", "Users"],
+          ].map(([href, label]) => (
+            <Link
+              key={String(href)}
+              href={String(href)}
+              className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 font-semibold text-zinc-700 hover:bg-zinc-100"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        <div className="text-xs text-zinc-600">
+          Advanced tools (direct link):{" "}
+          <Link href="/admin/reference" className="font-semibold text-zinc-800 hover:underline">
+            Reference
+          </Link>{" "}
+          and{" "}
+          <Link href="/admin/bindings" className="font-semibold text-zinc-800 hover:underline">
+            Bindings
+          </Link>
+          .
+        </div>
+      </section>
+
       {/* Workflow */}
       <section className="grid gap-3">
         <div className="flex items-end justify-between gap-3">

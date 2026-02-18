@@ -7,13 +7,16 @@ Landing page to enter the platform quickly and see high-level status.
 ## Main actions
 
 - `Go to Upload` -> start submission intake.
-- `Go to Admin` -> manage specs/briefs/settings/audit.
+- `Go to Admin` -> open the admin workspace.
 - Navigate cards:
   - Upload
   - Specs
   - Briefs
   - Students
-  - Submissions
+  - System status
+- Admin workspace shortcuts section links to:
+  - Overview, Audit, Briefs, Library, QA, Settings, Specs, Students, Users
+- Advanced tools (direct links): `Reference` and `Bindings`
 
 ## How to use
 
