@@ -56,6 +56,9 @@ Assessor‑AI is built to behave like a reliable assessor: every decision must b
   - cover metadata readiness is now a first-class extraction quality signal
   - triage falls back to cover metadata signals (unit/assignment/student)
   - grading prompt uses page samples as primary evidence context
+  - grading auto-starts after extraction/triage when links are complete
+  - cover metadata gaps are non-blocking and editable on submission detail
+  - feedback summary is personalized with student first name (profile first, cover fallback)
   - accepted grade words aligned to Pearson HN flow:
     - `REFER`, `PASS`, `PASS_ON_RESUBMISSION`, `MERIT`, `DISTINCTION`
 

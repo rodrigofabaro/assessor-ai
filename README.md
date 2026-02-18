@@ -54,3 +54,6 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
   - cover metadata is extracted for identity/linking and readiness decisions
 - Triage can resolve signals from latest cover metadata when body text is minimal.
 - Grading is evidence-led from page samples + linked references, with extracted body text as secondary fallback.
+- Grading auto-starts after extraction/triage when submission linking is complete.
+- Cover metadata can be edited in submission detail without blocking grading.
+- Feedback summary uses student first name and updates on re-grade after name corrections.
