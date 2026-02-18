@@ -98,7 +98,7 @@ export function IvForm({
             setVerificationDate("");
             setNotes("");
           }}
-          className="rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-900 bg-sky-700 text-white hover:bg-sky-800 disabled:opacity-50"
         >
           Add record
         </button>
@@ -106,3 +106,4 @@ export function IvForm({
     </div>
   );
 }
+

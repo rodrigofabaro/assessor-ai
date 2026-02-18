@@ -349,7 +349,7 @@ export default function AdminStudentsPage() {
           <div
             className={cn(
               "mt-4 rounded-xl border p-3 text-sm",
-              err ? "border-red-200 bg-red-50 text-red-900" : "border-indigo-200 bg-indigo-50 text-indigo-900"
+              err ? "border-red-200 bg-red-50 text-red-900" : "border-sky-200 bg-sky-50 text-sky-900"
             )}
           >
             {err || msg}
@@ -412,7 +412,7 @@ export default function AdminStudentsPage() {
                           </Link>
                           <Link
                             href={`/submissions/new?studentId=${encodeURIComponent(s.id)}`}
-                            className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100"
+                            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-900 hover:bg-sky-100"
                             title="Upload for this student"
                           >
                             <Icon name="upload" />
@@ -535,7 +535,7 @@ export default function AdminStudentsPage() {
                     type="file"
                     accept=".xlsx"
                     onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                    className="text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
+                    className="text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-sky-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-sky-800"
                   />
                   <button
                     onClick={doImport}

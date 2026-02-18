@@ -79,7 +79,7 @@ export function UnitWorkspace(props: {
                   disabled={!!busy}
                   className={
                     "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-                    (busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
+                    (busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-sky-700 text-white hover:bg-sky-800")
                   }
                 >
                   Save
@@ -185,3 +185,4 @@ export function UnitWorkspace(props: {
     </div>
   );
 }
+

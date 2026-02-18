@@ -1377,7 +1377,7 @@ export default function SubmissionDetailPage() {
                 disabled={busy}
                 className={cx(
                   "h-7 rounded-md px-2.5 text-[11px] font-semibold",
-                  busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-blue-700 text-white hover:bg-blue-800"
+                  busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-sky-700 text-white hover:bg-sky-800"
                 )}
               >
                 Run extraction
@@ -1385,7 +1385,7 @@ export default function SubmissionDetailPage() {
               <button
                 type="button"
                 onClick={() => setGradingConfigOpen(true)}
-                className="h-7 rounded-md bg-teal-700 px-2.5 text-[11px] font-semibold text-white hover:bg-teal-800"
+                className="h-7 rounded-md bg-sky-700 px-2.5 text-[11px] font-semibold text-white hover:bg-sky-800"
               >
                 Grading config
               </button>

@@ -92,7 +92,7 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             <input
               type="file"
               onChange={(e) => vm.setDocFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-zinc-800"
+              className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-sky-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-sky-800"
             />
           </label>
         </div>
@@ -104,7 +104,7 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
           disabled={!!vm.busy}
           className={
             "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-            (vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-zinc-900 text-white hover:bg-zinc-800")
+            (vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-sky-700 text-white hover:bg-sky-800")
           }
         >
           Upload
@@ -150,7 +150,7 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
               "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
               (!selectedDoc || vm.busy
                 ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
-                : "bg-zinc-900 text-white hover:bg-zinc-800")
+                : "bg-sky-700 text-white hover:bg-sky-800")
             }
           >
             Extract
@@ -348,7 +348,7 @@ function UnitEditorPanel({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
                 "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
                 (!vm.unitDirty || busy
                   ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
-                  : "bg-zinc-900 text-white hover:bg-zinc-800")
+                  : "bg-sky-700 text-white hover:bg-sky-800")
               }
             >
               Save
@@ -608,3 +608,4 @@ function BriefPreview({
     </div>
   );
 }
+

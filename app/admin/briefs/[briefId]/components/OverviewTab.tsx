@@ -104,7 +104,7 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
                 href={pdfHref}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-200 bg-zinc-900 text-white hover:bg-zinc-800"
+                className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold border border-zinc-200 bg-sky-700 text-white hover:bg-sky-800"
               >
                 Open
               </a>
@@ -118,3 +118,4 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
     </div>
   );
 }
+
