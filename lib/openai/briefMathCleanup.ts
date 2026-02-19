@@ -257,6 +257,18 @@ function stripEquationTokens(value: string) {
   return String(value || "").replace(/\[\[EQ:[^\]]+\]\]/g, " ");
 }
 
+function stripSelectedEquationTokens(value: string, ids: Set<string>) {
+  return String(value || "").replace(/\[\[EQ:([^\]]+)\]\]/g, (_m, id) => (ids.has(String(id || "")) ? "" : `[[EQ:${id}]]`));
+}
+
+function hasStrictMathIntent(value: string) {
+  const src = String(value || "");
+  if (!src.trim()) return false;
+  if (/[=^]/.test(src) && /\b[a-z]\b/i.test(src)) return true;
+  if (/\b(log\s*\(|log[_\s]*e\b|ln\s*\(|natural\s+log)\b/i.test(src)) return true;
+  return /\b(equation|differentiate|differentiation|derivative|integrate|integration|integral|calculate|calculation|solve|sine|cosine|tangent|sin|cos|tan)\b/i.test(src);
+}
+
 export async function cleanupBriefTasksMathWithOpenAi(
   brief: any,
   opts?: { runCleanup?: boolean }
@@ -291,7 +303,10 @@ export async function cleanupBriefTasksMathWithOpenAi(
   };
   const setCleanupSkipped = (task: BriefTask, baseWarnings: string[], reason: string) => {
     const nextWarnings = new Set(baseWarnings);
-    nextWarnings.add(reason);
+    const debugWarnings = ["1", "true", "yes", "on"].includes(
+      String(process.env.OPENAI_CLEANUP_DEBUG_WARNINGS || "").toLowerCase()
+    );
+    if (debugWarnings) nextWarnings.add(reason);
     setTaskWarningState(task, nextWarnings, { aiCorrected: false, forceHeuristic: true });
   };
   const localRepairTaskMath = (task: BriefTask) => {
@@ -397,14 +412,36 @@ export async function cleanupBriefTasksMathWithOpenAi(
         .filter((w) => !/equation quality: low-confidence/i.test(w))
         .filter((w) => !/openai math cleanup applied/i.test(w))
     );
-    const remainingTokenIds = collectEquationTokenIds(task);
-    const hasLowConfidenceEquationToken = Array.from(remainingTokenIds).some((id) => {
+    let remainingTokenIds = collectEquationTokenIds(task);
+    const weakTokenIds = Array.from(remainingTokenIds).filter((id) => {
       const eq: any = eqById.get(id);
       if (!eq) return true;
       const conf = Number(eq?.confidence ?? 0);
       return !eq?.latex || conf < 0.85;
     });
-    if (hasLowConfidenceEquationToken) {
+    const hasLowConfidenceEquationToken = weakTokenIds.length > 0;
+    const strippedTextForIntent = [
+      String(task.text || ""),
+      ...((task.parts || []).map((p: any) => String(p?.text || ""))),
+    ]
+      .join("\n")
+      .replace(/\[\[EQ:[^\]]+\]\]/g, " ");
+    if (
+      hasLowConfidenceEquationToken &&
+      weakTokenIds.length === remainingTokenIds.size &&
+      !hasStrictMathIntent(strippedTextForIntent)
+    ) {
+      const weakSet = new Set(weakTokenIds);
+      applyTaskTextTransform(task, (value) => stripSelectedEquationTokens(value, weakSet));
+      remainingTokenIds = collectEquationTokenIds(task);
+    }
+    const hasLowConfidenceAfterPrune = Array.from(remainingTokenIds).some((id) => {
+      const eq: any = eqById.get(id);
+      if (!eq) return true;
+      const conf = Number(eq?.confidence ?? 0);
+      return !eq?.latex || conf < 0.85;
+    });
+    if (hasLowConfidenceAfterPrune) {
       nextWarnings.add("equation quality: low-confidence");
     }
     if (hasBrokenMathLayout(task.text || "")) {

@@ -9,6 +9,42 @@ function cleanCode(input: string): string {
   return input.trim().replace(/\s+/g, "").toUpperCase();
 }
 
+function deriveBriefGateText(brief: BriefDraft) {
+  const raw = String((brief as any)?.rawText || "").trim();
+  if (raw) return raw;
+  const chunks: string[] = [];
+  const title = String((brief as any)?.title || "").trim();
+  if (title) chunks.push(title);
+  const header = (brief as any)?.header || {};
+  for (const key of [
+    "unitNumberAndTitle",
+    "assignmentTitle",
+    "qualification",
+    "assessor",
+    "internalVerifier",
+    "academicYear",
+  ]) {
+    const value = String(header?.[key] || "").trim();
+    if (value) chunks.push(value);
+  }
+  const scenarios = Array.isArray((brief as any)?.scenarios) ? (brief as any).scenarios : [];
+  for (const s of scenarios) {
+    const text = String(s?.text || "").trim();
+    if (text) chunks.push(text);
+  }
+  const tasks = Array.isArray((brief as any)?.tasks) ? (brief as any).tasks : [];
+  for (const task of tasks) {
+    const text = String(task?.text || "").trim();
+    if (text) chunks.push(text);
+    const parts = Array.isArray(task?.parts) ? task.parts : [];
+    for (const part of parts) {
+      const pText = String(part?.text || "").trim();
+      if (pText) chunks.push(pText);
+    }
+  }
+  return chunks.join("\n\n").trim();
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -163,7 +199,7 @@ export async function POST(req: Request) {
         title,
         hasUnitSignal: Boolean(overrideUnitId || brief.unitCodeGuess),
         selectedCodes: codes,
-        rawText: String((brief as any)?.rawText || ""),
+        rawText: deriveBriefGateText(brief),
         unitCriteria: mappedUnitCriteria,
       });
       if (!qualityGate.ok && !allowQualityGateBypass) {

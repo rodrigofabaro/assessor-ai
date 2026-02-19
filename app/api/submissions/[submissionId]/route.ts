@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
+import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 
 export async function GET(
   _req: Request,
@@ -151,6 +152,12 @@ export async function PATCH(
       },
       select: { id: true, studentId: true, studentLinkedAt: true, studentLinkedBy: true },
     });
+
+    try {
+      await triggerAutoGradeIfAutoReady(submissionId, req.url);
+    } catch (e) {
+      console.warn("AUTO_GRADE_AFTER_MANUAL_LINK_FAILED", e);
+    }
 
     return NextResponse.json({ ok: true, submission: updated });
   } catch (e: any) {

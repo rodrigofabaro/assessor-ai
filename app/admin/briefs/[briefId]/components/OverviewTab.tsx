@@ -14,15 +14,22 @@ function dateEvidence(label: string, displayValue: any, isoValue?: any) {
   );
 }
 
-function flattenSpecCriteria(specDoc: any): Array<{ acCode: string; description?: string }> {
+function flattenSpecCriteria(specDoc: any): Array<{ acCode: string; description?: string; loCode?: string; loDescription?: string }> {
   const los = Array.isArray(specDoc?.extractedJson?.learningOutcomes) ? specDoc.extractedJson.learningOutcomes : [];
-  const out: Array<{ acCode: string; description?: string }> = [];
+  const out: Array<{ acCode: string; description?: string; loCode?: string; loDescription?: string }> = [];
   for (const lo of los) {
+    const loCode = String(lo?.loCode || "").trim().toUpperCase();
+    const loDescription = String(lo?.description || "").trim();
     const criteria = Array.isArray(lo?.criteria) ? lo.criteria : [];
     for (const c of criteria) {
       const acCode = String(c?.acCode || "").trim();
       if (!acCode) continue;
-      out.push({ acCode: acCode.toUpperCase(), description: c?.description || "" });
+      out.push({
+        acCode: acCode.toUpperCase(),
+        description: c?.description || "",
+        loCode: loCode || undefined,
+        loDescription: loDescription || undefined,
+      });
     }
   }
   return out;

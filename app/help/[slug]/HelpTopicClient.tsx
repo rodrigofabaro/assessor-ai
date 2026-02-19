@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { HELP_PAGES, getHelpPageMeta } from "@/lib/help/pages";
 
-type HelpSectionItem = { type: "h3" | "li" | "p"; text: string };
+type HelpSectionItem = { type: "h3" | "li" | "p" | "img"; text: string; src?: string };
 type HelpSection = { id: string; title: string; items: HelpSectionItem[] };
 
 function toCallout(text: string) {
@@ -174,6 +175,23 @@ export default function HelpTopicClient(props: {
               <div className="space-y-2 border-t border-zinc-200 bg-white px-3 py-3">
                 {s.items.map((it, i) => {
                   if (it.type === "h3") return <h3 key={i} className="text-sm font-semibold text-zinc-900">{highlight(it.text, query)}</h3>;
+                  if (it.type === "img") {
+                    const alt = String(it.text || "Screenshot").trim() || "Screenshot";
+                    const src = String(it.src || "").trim();
+                    if (!src) return null;
+                    return (
+                      <figure key={i} className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                        <Image
+                          src={src}
+                          alt={alt}
+                          width={1280}
+                          height={720}
+                          className="h-auto w-full rounded border border-zinc-200 bg-white"
+                        />
+                        <figcaption className="mt-2 text-xs text-zinc-600">{highlight(alt, query)}</figcaption>
+                      </figure>
+                    );
+                  }
                   const callout = toCallout(it.text);
                   if (callout) {
                     const tone =

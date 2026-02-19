@@ -13,6 +13,7 @@ export type GradingConfig = {
   tone: GradingTone;
   strictness: GradingStrictness;
   useRubricIfAvailable: boolean;
+  studentSafeMarkedPdf: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate: string;
   pageNotesEnabled: boolean;
@@ -30,13 +31,14 @@ export function defaultGradingConfig(): GradingConfig {
     tone: "professional",
     strictness: "balanced",
     useRubricIfAvailable: true,
+    studentSafeMarkedPdf: true,
     maxFeedbackBullets: 6,
     feedbackTemplate: getDefaultFeedbackTemplate(),
     pageNotesEnabled: true,
     pageNotesTone: "professional",
     pageNotesMaxPages: 6,
     pageNotesMaxLinesPerPage: 3,
-    pageNotesIncludeCriterionCode: true,
+    pageNotesIncludeCriterionCode: false,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -85,6 +87,10 @@ function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
       typeof input.useRubricIfAvailable === "boolean"
         ? input.useRubricIfAvailable
         : base.useRubricIfAvailable,
+    studentSafeMarkedPdf:
+      typeof input.studentSafeMarkedPdf === "boolean"
+        ? input.studentSafeMarkedPdf
+        : base.studentSafeMarkedPdf,
     maxFeedbackBullets: normalizeBullets(input.maxFeedbackBullets ?? base.maxFeedbackBullets),
     feedbackTemplate: normalizeTemplate(input.feedbackTemplate ?? base.feedbackTemplate),
     pageNotesEnabled:

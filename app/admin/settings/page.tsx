@@ -89,6 +89,7 @@ type GradingConfigPayload = {
   tone: "supportive" | "professional" | "strict";
   strictness: "lenient" | "balanced" | "strict";
   useRubricIfAvailable: boolean;
+  studentSafeMarkedPdf: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate: string;
   pageNotesEnabled: boolean;
@@ -864,6 +865,16 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               />
               Use rubric when attached to brief
             </label>
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={gradingCfg.studentSafeMarkedPdf}
+                onChange={(e) => setGradingCfg((v) => (v ? { ...v, studentSafeMarkedPdf: e.target.checked } : v))}
+                disabled={!canWriteSensitive}
+                className="h-4 w-4 rounded border-zinc-300"
+              />
+              Student-safe marked PDF (hide internal grading metadata)
+            </label>
             <label className="md:col-span-2 text-sm text-zinc-700">
               Feedback template
               <textarea
@@ -1001,6 +1012,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           <li>Maximum number of feedback bullets saved into audit output and marked PDF overlay.</li>
           <li>Feedback template used to build feedback text and assessor/date signature blocks.</li>
           <li>Small page-note overlays (enabled, tone, page limits, and criterion-code flag).</li>
+          <li>Student-safe marked PDF mode to hide internal metadata from learner-visible exports.</li>
         </ul>
       </section>
       </>

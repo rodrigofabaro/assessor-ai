@@ -27,6 +27,24 @@ Last updated: 2026-02-18
    - QA and audit navigation/reporting paths.
 4. Push commits to remote after restoring Git credentials.
 5. Deploy and perform post-deploy smoke checks.
+6. Rework Help Center quality (deferred).
+7. Rebuild `/help/submissions-support` as a true operator tutorial (deferred).
+8. Rebuild `/help/submissions-onboarding` with realistic first-run training artifacts (deferred).
+
+## Deferred help tasks (requested for later stage)
+
+1. Rewrite help pages with task-based, role-specific tutorials instead of reference-style text.
+2. Replace generic screenshots with real, current UI captures for each critical step.
+3. Add explicit "Do / Expect / If fails" blocks to each tutorial step.
+4. Add a full walkthrough for `/submissions` covering:
+   - unlinked resolution
+   - blocked-lane triage
+   - auto-ready auto-grading verification
+   - QA preview -> commit integrity checks
+5. Add acceptance QA for help content:
+   - a new operator can execute the flow without verbal guidance
+   - screenshots and labels match the current UI
+   - links between daily support and onboarding pages are consistent
 
 ## Recommended command runbook
 

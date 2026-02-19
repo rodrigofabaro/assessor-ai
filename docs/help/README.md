@@ -13,6 +13,8 @@ Each file explains:
 - `home.md` -> `/`
 - `upload.md` -> `/upload`
 - `submissions-list.md` -> `/submissions`
+- `submissions-support.md` -> `/submissions` (step-by-step support guide with screenshots)
+- `submissions-onboarding.md` -> `/submissions` (first-time setup + 3-sample tutorial)
 - `submission-detail.md` -> `/submissions/[submissionId]`
 - `students-pages.md` -> `/students/[id]`, `/admin/students`
 - `admin-index.md` -> `/admin`

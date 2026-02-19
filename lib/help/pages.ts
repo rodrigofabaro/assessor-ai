@@ -8,6 +8,8 @@ export const HELP_PAGES: HelpPageMeta[] = [
   { slug: "home", title: "Home Dashboard", route: "/" },
   { slug: "upload", title: "Upload", route: "/upload" },
   { slug: "submissions-list", title: "Submissions List", route: "/submissions" },
+  { slug: "submissions-support", title: "Submissions Support Guide", route: "/submissions" },
+  { slug: "submissions-onboarding", title: "Submissions Onboarding (First Run)", route: "/submissions" },
   { slug: "submission-detail", title: "Submission Detail", route: "/submissions/[submissionId]" },
   { slug: "students-pages", title: "Students Pages", route: "/students/[id], /admin/students" },
   { slug: "admin-index", title: "Admin Overview", route: "/admin" },

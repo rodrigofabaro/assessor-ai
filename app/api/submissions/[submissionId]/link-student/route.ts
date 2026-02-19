@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 
 export async function POST(req: Request, ctx: { params: Promise<{ submissionId: string }> }) {
   const { submissionId } = await ctx.params;
@@ -32,38 +33,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ submissionId: 
     },
   });
 
-  // Best-effort auto-grade when the submission becomes fully linked after extraction.
+  // Best-effort auto-grade when linking moves submission into AUTO_READY.
   try {
-    const autoGradeEnabled = ["1", "true", "yes", "on"].includes(
-      String(process.env.SUBMISSION_AUTO_GRADE_ON_EXTRACT || "true").toLowerCase()
-    );
-    if (autoGradeEnabled) {
-      const eligible = await prisma.submission.findUnique({
-        where: { id: submissionId },
-        select: {
-          id: true,
-          status: true,
-          studentId: true,
-          assignmentId: true,
-          assignment: {
-            select: {
-              assignmentBriefId: true,
-            },
-          },
-          _count: { select: { assessments: true } },
-        },
-      });
-      const shouldAutoGrade =
-        !!eligible?.studentId &&
-        !!eligible?.assignmentId &&
-        !!eligible?.assignment?.assignmentBriefId &&
-        String(eligible?.status || "").toUpperCase() === "EXTRACTED" &&
-        Number(eligible?._count?.assessments || 0) === 0;
-      if (shouldAutoGrade) {
-        const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, req.url);
-        await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
-      }
-    }
+    await triggerAutoGradeIfAutoReady(submissionId, req.url);
   } catch (e) {
     console.warn("AUTO_GRADE_AFTER_LINK_FAILED", e);
   }

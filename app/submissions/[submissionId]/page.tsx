@@ -80,6 +80,7 @@ type GradingConfig = {
   tone: "supportive" | "professional" | "strict";
   strictness: "lenient" | "balanced" | "strict";
   useRubricIfAvailable: boolean;
+  studentSafeMarkedPdf?: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate?: string;
 };
@@ -96,6 +97,10 @@ type GradePreview = {
     resubmissionRequired?: boolean;
     wasCapped?: boolean;
     capReason?: string | null;
+    criteriaBandCap?: {
+      wasCapped?: boolean;
+      capReason?: string | null;
+    } | null;
   };
   evidenceDensitySummary?: {
     criteriaCount?: number;
@@ -177,6 +182,7 @@ export default function SubmissionDetailPage() {
   const extractionPanelRef = useRef<HTMLDetailsElement | null>(null);
   const gradingPanelRef = useRef<HTMLDivElement | null>(null);
   const outputsPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const sidePanelsInitializedForSubmission = useRef<string | null>(null);
   const coverEditorRef = useRef<HTMLDetailsElement | null>(null);
   const coverStudentNameRef = useRef<HTMLInputElement | null>(null);
   const coverStudentIdRef = useRef<HTMLInputElement | null>(null);
@@ -363,6 +369,30 @@ export default function SubmissionDetailPage() {
     const gp = selectedResultJson?.gradePolicy || null;
     return gp && typeof gp === "object" ? gp : null;
   }, [selectedResultJson]);
+  const gradeCapDetailTooltip = useMemo(() => {
+    const missing = gradeRunPolicy?.criteriaBandCap?.missing || {};
+    const pass = Array.isArray(missing?.pass) ? missing.pass.filter(Boolean) : [];
+    const merit = Array.isArray(missing?.merit) ? missing.merit.filter(Boolean) : [];
+    const dist = Array.isArray(missing?.distinction) ? missing.distinction.filter(Boolean) : [];
+    const lines: string[] = [];
+    if (pass.length) lines.push(`Missing Pass: ${pass.join(", ")}`);
+    if (merit.length) lines.push(`Missing Merit: ${merit.join(", ")}`);
+    if (dist.length) lines.push(`Missing Distinction: ${dist.join(", ")}`);
+    return lines.join("\n");
+  }, [gradeRunPolicy]);
+  const gradeCapReasonLabel = useMemo(() => {
+    const criteriaCapReason = String(gradeRunPolicy?.criteriaBandCap?.capReason || "").trim().toUpperCase();
+    const resubCapReason = String(gradeRunPolicy?.capReason || "").trim().toUpperCase();
+    const reason = criteriaCapReason || resubCapReason;
+    if (!reason) return "";
+    const map: Record<string, string> = {
+      CAPPED_DUE_TO_MISSING_PASS: "Cap: missing Pass criteria",
+      CAPPED_DUE_TO_MISSING_MERIT: "Cap: missing Merit criteria",
+      CAPPED_DUE_TO_MISSING_DISTINCTION: "Cap: missing Distinction criteria",
+      CAPPED_DUE_TO_RESUBMISSION: "Cap: resubmission policy",
+    };
+    return map[reason] || `Cap: ${reason}`;
+  }, [gradeRunPolicy]);
   const gradeRunReferenceSnapshot = useMemo(() => {
     const snapshot = selectedResultJson?.referenceContextSnapshot || null;
     return snapshot && typeof snapshot === "object" ? snapshot : null;
@@ -516,12 +546,39 @@ export default function SubmissionDetailPage() {
   }, [submissionId]);
 
   useEffect(() => {
+    if (!submissionId) return;
+    if (sidePanelsInitializedForSubmission.current === submissionId) return;
+    sidePanelsInitializedForSubmission.current = submissionId;
+      const closeAll = () => {
+      const panels = [
+        studentPanelRef.current,
+        assignmentPanelRef.current,
+        extractionPanelRef.current,
+        outputsPanelRef.current,
+      ];
+      for (const panel of panels) {
+        if (panel) panel.open = false;
+      }
+    };
+    const timer = window.setTimeout(closeAll, 0);
+    return () => window.clearTimeout(timer);
+  }, [submissionId]);
+
+  useEffect(() => {
     let cancelled = false;
     async function loadCfg() {
       try {
         const res = await jsonFetch<GradingConfig>("/api/admin/grading-config", { cache: "no-store" });
         if (cancelled) return;
-        setGradingCfg(res);
+        let nextCfg = res;
+        try {
+          const modelCfg = await jsonFetch<{ model?: string }>("/api/admin/openai-model", { cache: "no-store" });
+          const activeModel = String(modelCfg?.model || "").trim();
+          if (activeModel) nextCfg = { ...res, model: activeModel };
+        } catch {
+          // Keep grading config model when OpenAI model endpoint is unavailable.
+        }
+        setGradingCfg(nextCfg);
         setTone(res.tone);
         setStrictness(res.strictness);
         setUseRubric(!!res.useRubricIfAvailable);
@@ -1379,6 +1436,14 @@ export default function SubmissionDetailPage() {
               <span className="inline-flex h-5 items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 font-semibold text-zinc-700">
                 Grade: {selectedAssessment?.overallGrade || "Pending"}
               </span>
+              {gradeCapReasonLabel ? (
+                <span
+                  className="inline-flex h-5 items-center rounded-full border border-amber-200 bg-amber-50 px-2 font-semibold text-amber-900"
+                  title={gradeCapDetailTooltip || "Grade capped by policy"}
+                >
+                  {gradeCapReasonLabel}
+                </span>
+              ) : null}
               <span className={cx("inline-flex h-5 items-center rounded-full border px-2 font-semibold", feedbackDirty ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900")}>
                 {feedbackDirty ? "Unsaved feedback" : "Feedback saved"}
               </span>
@@ -1473,10 +1538,21 @@ export default function SubmissionDetailPage() {
         </div>
 
         {/* LEFT: Metadata + extraction */}
-        <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
-          <div className="order-1 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Quick actions</div>
-            <div className="mt-1 text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview, <span className="font-semibold">?</span> help</div>
+        <div className="order-1 grid gap-2 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
+          <details className="group order-1 rounded-xl border border-zinc-200 bg-white shadow-sm" open>
+            <summary className="cursor-pointer list-none px-2 py-1 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-6 items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
+                  <span className="truncate">Quick actions</span>
+                </span>
+                <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] normal-case text-zinc-700">
+                  Shortcuts
+                </span>
+              </div>
+            </summary>
+            <div className="border-t border-zinc-200 p-2.5">
+            <div className="text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview, <span className="font-semibold">?</span> help</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
@@ -1519,6 +1595,20 @@ export default function SubmissionDetailPage() {
               >
                 Commit grade
               </button>
+              <button
+                type="button"
+                onClick={() => void regenerateMarkedFromCurrentRun()}
+                disabled={!selectedAssessment?.id || feedbackEditorBusy}
+                className={cx(
+                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
+                  !selectedAssessment?.id || feedbackEditorBusy
+                    ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                    : "bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+                )}
+                title={!selectedAssessment?.id ? "No assessment run selected yet." : "Regenerate marked PDF for selected run"}
+              >
+                Regenerate marked
+              </button>
             </div>
             <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
               <input
@@ -1544,7 +1634,8 @@ export default function SubmissionDetailPage() {
                 </div>
               </div>
             ) : null}
-          </div>
+            </div>
+          </details>
 
           <details
             ref={studentPanelRef}
@@ -1555,13 +1646,13 @@ export default function SubmissionDetailPage() {
               if (el.open) openSidePanel("student");
             }}
           >
-            <summary className="cursor-pointer list-none px-3 py-1.5 group-open:py-2 [&::-webkit-details-marker]:hidden">
-              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Student</span>
                 </span>
-                <span className={cx("inline-flex h-5 items-center rounded-full px-2 text-[10px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                   {checklist.studentLinked ? "Linked" : "Pending"}
                 </span>
               </div>
@@ -1696,13 +1787,13 @@ export default function SubmissionDetailPage() {
               if (el.open) openSidePanel("assignment");
             }}
           >
-            <summary className="cursor-pointer list-none px-3 py-1.5 group-open:py-2 [&::-webkit-details-marker]:hidden">
-              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Assignment</span>
                 </span>
-                <span className={cx("inline-flex h-5 items-center rounded-full px-2 text-[10px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                   {checklist.assignmentLinked ? "Linked" : "Pending"}
                 </span>
               </div>
@@ -1728,13 +1819,13 @@ export default function SubmissionDetailPage() {
               if (el.open) openSidePanel("extraction");
             }}
           >
-            <summary className="cursor-pointer list-none border-b border-transparent px-3 py-1.5 group-open:border-zinc-200 group-open:py-3 [&::-webkit-details-marker]:hidden">
-              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <summary className="cursor-pointer list-none border-b border-transparent px-2 py-0.5 group-open:border-zinc-200 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Cover extraction</span>
                 </span>
-                <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] normal-case text-zinc-700">
+                <span className="truncate rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] normal-case text-zinc-700">
                   {latestRun
                     ? `${latestRun.status} · ${Math.round((latestRun.overallConfidence || 0) * 100)}%`
                     : "Not run"}
@@ -1920,15 +2011,15 @@ export default function SubmissionDetailPage() {
               if (el.open) openSidePanel("outputs");
             }}
           >
-            <summary className="cursor-pointer list-none px-3 py-1.5 group-open:py-2 [&::-webkit-details-marker]:hidden">
-              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Audit & outputs</span>
                 </span>
                 <span
                   className={cx(
-                    "inline-flex h-5 items-center rounded-full px-2 text-[10px]",
+                    "inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]",
                     feedbackDirty ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-700"
                   )}
                 >

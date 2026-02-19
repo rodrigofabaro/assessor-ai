@@ -34,6 +34,8 @@ Queue workspace for operational processing between upload and final outputs.
 
 - `Commit QA lane` is disabled until a successful `Preview QA lane` run exists for the same QA queue.
 - If queue membership changes or preview becomes stale, preview must be rerun before commit.
+- The preview run now publishes a cryptographic-like signature, timestamp, and queue size; the commit action refuses to proceed unless the stored signature matches the current QA queue (and is younger than 30 minutes), so operators can’t bypass the QA review by skipping the preview step.
+- Each QA preview run logs its `requestId`, signature, and queue size so the matching commit call can echo that context back to the audit trail, making it easy to confirm which dry run the committed grades were based on.
 
 ## Lanes
 

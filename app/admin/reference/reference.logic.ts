@@ -823,7 +823,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setError(null);
     setLockConflict(null);
     setMappingHealth(null);
-    if (!selectedDoc) return;
+    if (!selectedDoc) return false;
 
     setBusy("Locking...");
     try {
@@ -875,12 +875,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
           const message = "A locked brief already exists for this unit and assignment.";
           setError(message);
           notifyToast("error", message);
-          return;
+          return false;
         }
         const message = data?.message || data?.error || `Lock failed (${res.status}).`;
         setError(message);
         notifyToast("error", message);
-        return;
+        return false;
       }
 
       if (data?.qualityGate && typeof data.qualityGate === "object") {
@@ -894,17 +894,19 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       if (data?.document) applyUpdatedDocument(data.document);
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Reference document locked.");
+      return true;
     } catch (e: any) {
       const message = e?.message || "Lock failed";
       setError(message);
       notifyToast("error", message);
+      return false;
     } finally {
       setBusy(null);
     }
   }
 
   async function confirmLockOverwrite() {
-    if (!lockConflict?.retryPayload) return;
+    if (!lockConflict?.retryPayload) return false;
     setError(null);
     setLockConflict(null);
     setMappingHealth(null);
@@ -928,7 +930,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         const message = data?.message || data?.error || `Lock failed (${res.status}).`;
         setError(message);
         notifyToast("error", message);
-        return;
+        return false;
       }
       if (data?.qualityGate && typeof data.qualityGate === "object") {
         setMappingHealth({
@@ -941,10 +943,12 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       if (data?.document) applyUpdatedDocument(data.document);
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Reference document locked.");
+      return true;
     } catch (e: any) {
       const message = e?.message || "Lock failed";
       setError(message);
       notifyToast("error", message);
+      return false;
     } finally {
       setBusy(null);
     }

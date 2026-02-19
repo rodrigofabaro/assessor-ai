@@ -54,7 +54,7 @@ export async function PATCH(
           maxPages: gradingCfg.pageNotesMaxPages,
           maxLinesPerPage: gradingCfg.pageNotesMaxLinesPerPage,
           tone: gradingCfg.pageNotesTone,
-          includeCriterionCode: gradingCfg.pageNotesIncludeCriterionCode,
+          includeCriterionCode: gradingCfg.studentSafeMarkedPdf ? false : gradingCfg.pageNotesIncludeCriterionCode,
         })
       : [];
 
@@ -62,6 +62,8 @@ export async function PATCH(
       submissionId: assessment.submission.id,
       overallGrade: String(assessment.overallGrade || "REFER"),
       feedbackBullets: feedbackBullets.length ? feedbackBullets : ["Feedback generated."],
+      feedbackText,
+      studentSafe: gradingCfg.studentSafeMarkedPdf,
       tone,
       strictness,
       studentName,
@@ -85,7 +87,7 @@ export async function PATCH(
             tone: gradingCfg.pageNotesTone,
             maxPages: gradingCfg.pageNotesMaxPages,
             maxLinesPerPage: gradingCfg.pageNotesMaxLinesPerPage,
-            includeCriterionCode: gradingCfg.pageNotesIncludeCriterionCode,
+            includeCriterionCode: gradingCfg.studentSafeMarkedPdf ? false : gradingCfg.pageNotesIncludeCriterionCode,
           },
           feedbackOverride: {
             edited: true,

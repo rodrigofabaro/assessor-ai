@@ -57,7 +57,13 @@ function syncTaskFromText(task: any) {
   return next;
 }
 
-export default function BriefReviewCard({ rx }: { rx: any }) {
+export default function BriefReviewCard({
+  rx,
+  onLockSuccess,
+}: {
+  rx: any;
+  onLockSuccess?: () => Promise<void> | void;
+}) {
   const router = useRouter();
   const doc = rx.selectedDoc as ReferenceDocument | null;
 
@@ -209,6 +215,16 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
     if (file) await uploadScreenshotFile(file);
   };
 
+  const handleLockBrief = async () => {
+    const ok = await rx.lockSelected?.();
+    if (ok) await onLockSuccess?.();
+  };
+
+  const handleConfirmLockOverwrite = async () => {
+    const ok = await rx.confirmLockOverwrite?.();
+    if (ok) await onLockSuccess?.();
+  };
+
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm min-w-0 overflow-hidden">
       <div className="border-b border-zinc-200 p-4">
@@ -255,7 +271,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
             <button
               type="button"
               disabled={!canLock}
-              onClick={rx.lockSelected}
+              onClick={handleLockBrief}
               className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
             >
               Lock brief
@@ -656,7 +672,7 @@ export default function BriefReviewCard({ rx }: { rx: any }) {
               </button>
               <button
                 type="button"
-                onClick={rx.confirmLockOverwrite}
+                onClick={handleConfirmLockOverwrite}
                 className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100"
               >
                 Replace it (danger)

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Resolve drawer placeholder screenshot">
+  <rect width="1280" height="720" fill="#f1f5f9"/>
+  <rect x="0" y="0" width="1280" height="720" fill="#0f172a" opacity="0.18"/>
+  <rect x="780" y="0" width="500" height="720" fill="#ffffff" stroke="#d4d4d8"/>
+  <rect x="820" y="54" width="260" height="30" rx="6" fill="#0f172a" opacity="0.08"/>
+  <rect x="820" y="110" width="420" height="70" rx="10" fill="#fef3c7"/>
+  <rect x="820" y="205" width="420" height="42" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="820" y="260" width="420" height="300" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="1030" y="586" width="210" height="44" rx="10" fill="#0284c7"/>
+  <text x="60" y="685" font-family="Arial, sans-serif" font-size="26" fill="#0f172a" font-weight="700">Resolve drawer screenshot placeholder</text>
+</svg>
+

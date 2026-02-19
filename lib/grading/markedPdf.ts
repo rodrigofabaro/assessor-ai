@@ -6,6 +6,8 @@ export type MarkedPdfPayload = {
   submissionId: string;
   overallGrade: string;
   feedbackBullets: string[];
+  feedbackText?: string;
+  studentSafe?: boolean;
   tone: string;
   strictness: string;
   studentName?: string;
@@ -14,6 +16,64 @@ export type MarkedPdfPayload = {
   overallPlacement?: "first" | "last";
   pageNotes?: Array<{ page: number; lines: string[] }>;
 };
+
+function wrapText(text: string, maxWidth: number, font: any, size: number) {
+  const source = String(text || "").replace(/\s+/g, " ").trim();
+  if (!source) return [] as string[];
+  const words = source.split(" ");
+  const out: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    const width = font.widthOfTextAtSize(candidate, size);
+    if (width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+    if (current) out.push(current);
+    // Hard split for very long tokens with no spaces.
+    if (font.widthOfTextAtSize(word, size) > maxWidth) {
+      let chunk = "";
+      for (const ch of word) {
+        const next = `${chunk}${ch}`;
+        if (font.widthOfTextAtSize(next, size) > maxWidth) {
+          if (chunk) out.push(chunk);
+          chunk = ch;
+        } else {
+          chunk = next;
+        }
+      }
+      current = chunk;
+    } else {
+      current = word;
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
+function buildFeedbackRenderLines(text: string, maxWidth: number, font: any, size: number) {
+  const rawLines = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const out: string[] = [];
+  for (const raw of rawLines) {
+    const line = String(raw || "").trim();
+    if (!line) {
+      if (out.length && out[out.length - 1] !== "") out.push("");
+      continue;
+    }
+    const bullet = /^[-*•]\s+/.test(line);
+    if (bullet) {
+      const body = line.replace(/^[-*•]\s+/, "");
+      const rows = wrapText(body, maxWidth - 12, font, size);
+      rows.forEach((row, idx) => out.push(`${idx === 0 ? "• " : "  "}${row}`));
+      continue;
+    }
+    const rows = wrapText(line, maxWidth, font, size);
+    rows.forEach((row) => out.push(row));
+  }
+  while (out.length && out[out.length - 1] === "") out.pop();
+  return out;
+}
 
 export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPayload) {
   const bytes = fs.readFileSync(inputPdfPath);
@@ -33,12 +93,23 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   const { width, height } = overallPage.getSize();
 
   const margin = 24;
-  const boxW = Math.min(380, width - margin * 2);
-  const lineH = 14;
+  const boxW = Math.min(460, width - margin * 2);
   const titleH = 20;
-  const metaH = 28;
-  const bulletCount = Math.max(1, Math.min(8, payload.feedbackBullets.length || 1));
-  const boxH = titleH + metaH + bulletCount * lineH + 18;
+  const metaH = 30;
+  const bulletFontSize = 9.6;
+  const bulletLineH = 12;
+  let feedbackTextLines = buildFeedbackRenderLines(String(payload.feedbackText || ""), boxW - 20, font, bulletFontSize);
+  const maxRowsByPage = Math.max(
+    6,
+    Math.floor((height - margin * 2 - (titleH + metaH + 22)) / bulletLineH)
+  );
+  if (feedbackTextLines.length > maxRowsByPage) feedbackTextLines = feedbackTextLines.slice(0, maxRowsByPage);
+  const bullets = feedbackTextLines.length ? [] : payload.feedbackBullets.slice(0, 8);
+  const bulletWrap = bullets.map((b) => wrapText(b, boxW - 34, font, bulletFontSize));
+  const bulletRows = feedbackTextLines.length
+    ? feedbackTextLines.length
+    : bulletWrap.reduce((sum, rows) => sum + Math.max(1, rows.length), 0);
+  const boxH = titleH + metaH + 14 + bulletRows * bulletLineH + 18;
   const x = (width - boxW) / 2;
   const y = Math.max(margin, (height - boxH) / 2);
 
@@ -56,18 +127,24 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   overallPage.drawText("Overall feedback", {
     x: x + 10,
     y: y + boxH - 16,
-    size: 12,
+    size: 13,
     font: bold,
     color: rgb(0.1, 0.1, 0.1),
   });
 
-  overallPage.drawText(`Grade: ${payload.overallGrade.toUpperCase()}  |  Tone: ${payload.tone}  |  Strictness: ${payload.strictness}`, {
+  const studentSafe = payload.studentSafe !== false;
+  overallPage.drawText(
+    studentSafe
+      ? `Grade: ${payload.overallGrade.toUpperCase()}`
+      : `Grade: ${payload.overallGrade.toUpperCase()}  |  Tone: ${payload.tone}  |  Strictness: ${payload.strictness}`,
+    {
     x: x + 10,
     y: y + boxH - 31,
     size: 8.5,
     font,
     color: rgb(0.25, 0.25, 0.25),
-  });
+    }
+  );
 
   const studentLabel = String(payload.studentName || "Student").trim();
   const assessorLabel = String(payload.assessorName || "Assessor").trim();
@@ -75,34 +152,52 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   overallPage.drawText(`Student: ${studentLabel}  |  Assessor: ${assessorLabel}  |  Date: ${dateLabel}`, {
     x: x + 10,
     y: y + boxH - 42,
-    size: 8,
+    size: 8.6,
     font,
     color: rgb(0.25, 0.25, 0.25),
     maxWidth: boxW - 20,
     lineHeight: 8.8,
   });
 
-  const bullets = payload.feedbackBullets.slice(0, 8);
-  for (let i = 0; i < bullets.length; i += 1) {
-    const by = y + boxH - 61 - i * lineH;
-    overallPage.drawRectangle({
-      x: x + 10,
-      y: by - 1,
-      width: 8,
-      height: 8,
-      borderColor: rgb(0.2, 0.2, 0.2),
-      borderWidth: 1,
-      color: rgb(1, 1, 1),
-    });
-    overallPage.drawText(bullets[i], {
-      x: x + 24,
-      y: by,
-      size: 8.2,
-      font,
-      color: rgb(0.15, 0.15, 0.15),
-      maxWidth: boxW - 34,
-      lineHeight: 9,
-    });
+  let bulletY = y + boxH - 61;
+  if (feedbackTextLines.length) {
+    for (const line of feedbackTextLines) {
+      if (line === "") {
+        bulletY -= Math.floor(bulletLineH * 0.6);
+        continue;
+      }
+      overallPage.drawText(line, {
+        x: x + 10,
+        y: bulletY,
+        size: bulletFontSize,
+        font,
+        color: rgb(0.15, 0.15, 0.15),
+      });
+      bulletY -= bulletLineH;
+    }
+  } else {
+    for (let i = 0; i < bulletWrap.length; i += 1) {
+      const rows = bulletWrap[i].length ? bulletWrap[i] : [""];
+      overallPage.drawRectangle({
+        x: x + 10,
+        y: bulletY - 1,
+        width: 8,
+        height: 8,
+        borderColor: rgb(0.2, 0.2, 0.2),
+        borderWidth: 1,
+        color: rgb(1, 1, 1),
+      });
+      for (let j = 0; j < rows.length; j += 1) {
+        overallPage.drawText(rows[j], {
+          x: x + 24,
+          y: bulletY - j * bulletLineH,
+          size: bulletFontSize,
+          font,
+          color: rgb(0.15, 0.15, 0.15),
+        });
+      }
+      bulletY -= Math.max(1, rows.length) * bulletLineH;
+    }
   }
 
   const pages = pdf.getPages();
@@ -121,36 +216,43 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
       .slice(0, 3);
     if (!lines.length) continue;
     const noteW = Math.min(340, pw - margin * 2);
-    const noteH = 18 + lines.length * 12 + 10;
+    const noteFontSize = 8.6;
+    const noteLineH = 10;
+    const wrapped = lines.map((line) => wrapText(`- ${line}`, noteW - 16, font, noteFontSize));
+    const wrappedRows = wrapped.reduce((sum, rows) => sum + Math.max(1, rows.length), 0);
+    const noteH = 18 + wrappedRows * noteLineH + 10;
     const nx = pw - noteW - margin;
-    const ny = ph - noteH - margin;
+    const ny = Math.max(margin, (ph - noteH) / 2);
     page.drawRectangle({
       x: nx,
       y: ny,
       width: noteW,
       height: noteH,
-      color: rgb(1, 0.88, 0.88),
+      color: rgb(1, 0.94, 0.9),
       borderColor: rgb(0.7, 0.15, 0.15),
       borderWidth: 1,
-      opacity: 0.72,
+      opacity: 1,
     });
-    page.drawText("Constructive note", {
+    page.drawText("Note", {
       x: nx + 8,
       y: ny + noteH - 13,
-      size: 8.5,
+      size: 9.2,
       font: bold,
       color: rgb(0.42, 0.06, 0.06),
     });
-    for (let i = 0; i < lines.length; i += 1) {
-      page.drawText(`- ${lines[i]}`, {
-        x: nx + 8,
-        y: ny + noteH - 26 - i * 11,
-        size: 7.8,
-        font,
-        color: rgb(0.3, 0.05, 0.05),
-        maxWidth: noteW - 14,
-        lineHeight: 8.5,
-      });
+    let noteY = ny + noteH - 26;
+    for (const rows of wrapped) {
+      const safeRows = rows.length ? rows : [""];
+      for (let i = 0; i < safeRows.length; i += 1) {
+        page.drawText(safeRows[i], {
+          x: nx + 8,
+          y: noteY - i * noteLineH,
+          size: noteFontSize,
+          font,
+          color: rgb(0.3, 0.05, 0.05),
+        });
+      }
+      noteY -= Math.max(1, safeRows.length) * noteLineH;
     }
   }
 

@@ -1716,6 +1716,14 @@ export function extractBrief(
       .trim();
   };
   const hasImageToken = (textValue: string) => /\[\[IMG:[^\]]+\]\]/.test(String(textValue || ""));
+  const hasMathIntent = (textValue: string) => {
+    const src = String(textValue || "");
+    if (!src.trim()) return false;
+    if (/\[\[EQ:[^\]]+\]\]/.test(src)) return true;
+    if (/[=^]/.test(src) && /\b[a-z]\b/i.test(src)) return true;
+    if (/\b(log\s*\(|log[_\s]*e\b|ln\s*\(|natural\s+log)\b/i.test(src)) return true;
+    return /\b(equation|differentiate|differentiation|derivative|integrate|integration|integral|calculate|calculation|solve|sine|cosine|tangent|sin|cos|tan)\b/i.test(src);
+  };
   const imageCueRegex =
     /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b/i;
   const injectImageToken = (textValue: string, token: string) => {
@@ -1926,6 +1934,27 @@ export function extractBrief(
       )
     ) {
       taskWarnings.add("equation quality: low-confidence");
+    }
+    // If a task has no mathematical intent and all equation tokens are weak OCR artifacts,
+    // remove those tokens and suppress the equation-quality warning.
+    if (idsArr.length) {
+      const combinedTaskText = [
+        String(task?.text || ""),
+        String(task?.prompt || ""),
+        ...(Array.isArray(task?.parts) ? task.parts.map((p: any) => String(p?.text || "")) : []),
+      ]
+        .join("\n")
+        .replace(/\[\[EQ:[^\]]+\]\]/g, " ");
+      const noMathIntent = !hasMathIntent(combinedTaskText);
+      const allWeak = linkedEqs.length > 0 && linkedEqs.every((eq) => Number(eq.confidence || 0) < 0.6 || !String(eq.latex || "").trim());
+      if (noMathIntent && allWeak) {
+        const weakIds = new Set(linkedEqs.map((eq) => String(eq.id || "")));
+        const stripWeakTokens = (value: string) =>
+          String(value || "").replace(/\[\[EQ:([^\]]+)\]\]/g, (_m, id) => (weakIds.has(String(id || "")) ? "" : `[[EQ:${id}]]`));
+        transformTaskTexts(task, stripWeakTokens);
+        taskWarnings.delete("equation quality: low-confidence");
+        taskWarnings.delete("equation token unresolved");
+      }
     }
     if (hasBibliographyLeak(task.text || "")) {
       taskWarnings.add("possible end-matter contamination");

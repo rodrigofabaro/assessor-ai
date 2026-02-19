@@ -14,6 +14,7 @@ import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
+import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 
@@ -370,6 +371,71 @@ function applyResubmissionCap(
   };
 }
 
+function applyBandCompletionCap(
+  rawGradeInput: unknown,
+  criterionChecks: Array<{ code?: string; decision?: string }>,
+  criteria: Array<{ code?: string; band?: string }>
+) {
+  const rawGrade = normalizeGradeBand(rawGradeInput);
+  const achieved = new Set(
+    (Array.isArray(criterionChecks) ? criterionChecks : [])
+      .filter((row) => String(row?.decision || "").trim().toUpperCase() === "ACHIEVED")
+      .map((row) => String(row?.code || "").trim().toUpperCase())
+      .filter(Boolean)
+  );
+  const passCodes = Array.from(
+    new Set(
+      (Array.isArray(criteria) ? criteria : [])
+        .filter((c) => String(c?.band || "").trim().toUpperCase() === "PASS")
+        .map((c) => String(c?.code || "").trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  const meritCodes = Array.from(
+    new Set(
+      (Array.isArray(criteria) ? criteria : [])
+        .filter((c) => String(c?.band || "").trim().toUpperCase() === "MERIT")
+        .map((c) => String(c?.code || "").trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  const distinctionCodes = Array.from(
+    new Set(
+      (Array.isArray(criteria) ? criteria : [])
+        .filter((c) => String(c?.band || "").trim().toUpperCase() === "DISTINCTION")
+        .map((c) => String(c?.code || "").trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  const missingPass = passCodes.filter((code) => !achieved.has(code));
+  const missingMerit = meritCodes.filter((code) => !achieved.has(code));
+  const missingDistinction = distinctionCodes.filter((code) => !achieved.has(code));
+
+  let finalGrade = rawGrade;
+  let capReason: string | null = null;
+  if (missingPass.length > 0) {
+    finalGrade = "REFER";
+    capReason = "CAPPED_DUE_TO_MISSING_PASS";
+  } else if ((rawGrade === "MERIT" || rawGrade === "DISTINCTION") && missingMerit.length > 0) {
+    finalGrade = "PASS";
+    capReason = "CAPPED_DUE_TO_MISSING_MERIT";
+  } else if (rawGrade === "DISTINCTION" && missingDistinction.length > 0) {
+    finalGrade = "MERIT";
+    capReason = "CAPPED_DUE_TO_MISSING_DISTINCTION";
+  }
+  return {
+    rawGrade,
+    finalGrade,
+    wasCapped: finalGrade !== rawGrade,
+    capReason,
+    missing: {
+      pass: missingPass,
+      merit: missingMerit,
+      distinction: missingDistinction,
+    },
+  };
+}
+
 function countWords(value: unknown) {
   const txt = String(value || "").trim();
   if (!txt) return 0;
@@ -671,6 +737,7 @@ export async function POST(
   }
 
   const cfg = readGradingConfig().config;
+  const activeModel = readOpenAiModel().model || cfg.model;
   const tone = String(body.tone || cfg.tone || "professional");
   const strictness = String(body.strictness || cfg.strictness || "balanced");
   const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
@@ -847,7 +914,7 @@ export async function POST(
     tone,
     strictness,
     useRubricIfAvailable: useRubric,
-    model: cfg.model,
+    model: activeModel,
     feedbackTemplateHash: createHash("sha256").update(String(cfg.feedbackTemplate || "")).digest("hex"),
     resubmissionCapRuleActive: ["1", "true", "yes", "on"].includes(
       String(process.env.GRADE_RESUBMISSION_CAP_ENABLED || "false").toLowerCase()
@@ -921,7 +988,7 @@ export async function POST(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-        model: cfg.model,
+        model: activeModel,
         input: prompt,
         temperature: 0.2,
         max_output_tokens: maxOutputTokens,
@@ -985,7 +1052,7 @@ export async function POST(
     const usage = json?.usage || null;
     if (usage) {
       recordOpenAiUsage({
-        model: cfg.model,
+        model: activeModel,
         op: "submission_grade",
         usage,
       });
@@ -1046,8 +1113,13 @@ export async function POST(
       modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
-    const gradePolicy = applyResubmissionCap(
+    const bandCapPolicy = applyBandCompletionCap(
       decision.overallGradeWord,
+      decision.criterionChecks as any,
+      criteria as any
+    );
+    const gradePolicy = applyResubmissionCap(
+      bandCapPolicy.finalGrade,
       Boolean(decision.resubmissionRequired),
       gradingDefaultsSnapshot.resubmissionCapRuleActive
     );
@@ -1064,6 +1136,9 @@ export async function POST(
     }
     if (extractionMode === "COVER_ONLY") {
       systemNotes.push("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
+    }
+    if (bandCapPolicy.wasCapped) {
+      systemNotes.push(`Grade adjusted by criteria-band completion policy (${String(bandCapPolicy.capReason || "unknown")}).`);
     }
     if (gradePolicy.wasCapped) {
       systemNotes.push("Grade capped due to resubmission policy.");
@@ -1087,7 +1162,7 @@ export async function POST(
     const structuredGradingV2 = buildStructuredGradingV2(responseWithPolicy, {
       contractVersion: "v2-structured-evidence",
       promptHash,
-      model: cfg.model,
+      model: activeModel,
       gradedBy: actor,
       startedAtIso: gradingStartedAt.toISOString(),
       completedAtIso,
@@ -1107,7 +1182,7 @@ export async function POST(
           maxPages: cfg.pageNotesMaxPages,
           maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
           tone: cfg.pageNotesTone,
-          includeCriterionCode: cfg.pageNotesIncludeCriterionCode,
+          includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
         })
       : [];
 
@@ -1180,6 +1255,8 @@ export async function POST(
         submissionId: submission.id,
         overallGrade,
         feedbackBullets: feedbackBullets.length ? feedbackBullets : [feedbackSummary || "Feedback generated."],
+        feedbackText,
+        studentSafe: cfg.studentSafeMarkedPdf,
         tone,
         strictness,
         studentName: studentFirstName || submission?.student?.fullName || "Student",
@@ -1215,7 +1292,7 @@ export async function POST(
             completedAt: completedAtIso,
           },
           gradedBy: actor,
-          model: cfg.model,
+          model: activeModel,
           gradingContractVersion: "v2-structured-evidence",
           gradeRunSchemaVersion: "2.1",
           tone,
@@ -1248,7 +1325,7 @@ export async function POST(
             tone: cfg.pageNotesTone,
             maxPages: cfg.pageNotesMaxPages,
             maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
-            includeCriterionCode: cfg.pageNotesIncludeCriterionCode,
+            includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
           },
           modalityEvidenceSource,
           assessmentRequirements,
@@ -1263,6 +1340,7 @@ export async function POST(
             gradingConfidence: finalConfidence,
           },
           gradePolicy: {
+            criteriaBandCap: bandCapPolicy,
             rawOverallGrade,
             finalOverallGrade: overallGrade,
             resubmissionRequired: Boolean(decision.resubmissionRequired),

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Submissions header placeholder screenshot">
+  <rect width="1280" height="720" fill="#f4f7fb"/>
+  <rect x="60" y="60" width="1160" height="170" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="90" y="92" width="180" height="28" rx="14" fill="#e2e8f0"/>
+  <rect x="90" y="134" width="340" height="30" rx="6" fill="#0f172a" opacity="0.08"/>
+  <rect x="1000" y="95" width="180" height="42" rx="10" fill="#0ea5e9"/>
+  <rect x="90" y="186" width="150" height="28" rx="14" fill="#e5e7eb"/>
+  <rect x="250" y="186" width="160" height="28" rx="14" fill="#fef3c7"/>
+  <rect x="420" y="186" width="150" height="28" rx="14" fill="#e0f2fe"/>
+  <rect x="580" y="186" width="150" height="28" rx="14" fill="#dcfce7"/>
+  <rect x="740" y="186" width="130" height="28" rx="14" fill="#ffe4e6"/>
+  <text x="90" y="280" font-family="Arial, sans-serif" font-size="28" fill="#0f172a" font-weight="700">Submissions header screenshot placeholder</text>
+  <text x="90" y="318" font-family="Arial, sans-serif" font-size="20" fill="#334155">Replace this SVG with a real capture from /submissions.</text>
+</svg>
+

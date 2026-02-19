@@ -117,6 +117,13 @@ Current operating layout:
 - Commit runs are confirmation-gated in UI.
 - Batch commit payload includes linked preview context (`requestId`, signature, timestamp, queue size) for audit traceability.
 
+## GradeRun v2 hardening
+
+- Every grading run now evaluates an explicit extraction readiness gate before executing; submissions that fail the gate are skipped and recorded in the `BATCH_GRADE_RUN` audit event so you can see why they were excluded.
+- The single-submission `dryRun` response now surfaces a complete `preview` object (`overallGrade`, `rawOverallGrade`, confidence, grade-policy cap/resubmission flags, evidence density summary, extraction gate status and reference context snapshot). Use this response when interrogating borderline results or confirming policy enforcement.
+- QA preview runs capture a lightweight signature + queue fingerprint and emit `GRADE_DRY_RUN_COMPLETED` events with `requestId` headers; the matching commit call echoes that preview context (`requestId`, signature, timestamp, queue size) and confirms the same signature before grading, preventing replay of stale or altered queues.
+- The batch-grade endpoint also logs the automation policy that triggered the run plus the preview context, keeping every grade request auditable and traceable back to its QA preview (or its auto-run trigger).
+
 ## Notes For Cover-Only Runs
 
 - Short/missing body text is expected in `COVER_ONLY` mode and should not be treated as automatic failure.

@@ -385,111 +385,68 @@ export default function SubmissionsPage() {
 
   return (
     <main className="py-2">
-      <div className="mb-5 rounded-3xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-3 flex flex-col gap-2 rounded-xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white px-3 py-2 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-900">
               Workflow Operations
             </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Submissions Workspace</h1>
-            <p className="mt-2 max-w-3xl text-sm text-zinc-600">
+            <h1 className="text-xl font-semibold tracking-tight">Submissions Workspace</h1>
+            <p className="text-[11px] text-zinc-600">
               Batch intake, extraction tracking, student resolution, and grading readiness in one place.
             </p>
           </div>
           <a
             href="/upload"
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-sky-200 bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800"
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-700 px-3 text-[11px] font-semibold text-white hover:bg-sky-800"
           >
-            Upload new files
+            Upload
           </a>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Visible submissions</div>
-            <div className="mt-1 text-xl font-semibold text-zinc-900">{flatRows.length}</div>
+        <div className="flex flex-wrap gap-1 text-[11px]">
+          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
+            Visible <span className="font-semibold text-zinc-900">{flatRows.length}</span>
           </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-amber-800">Need student link</div>
-            <div className="mt-1 text-xl font-semibold text-amber-900">{unlinkedCount}</div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-900">
+            Missing <span className="font-semibold">{unlinkedCount}</span>
           </div>
-          <div className="rounded-xl border border-sky-200 bg-sky-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-sky-800">Extracted</div>
-            <div className="mt-1 text-xl font-semibold text-sky-900">{(byStatus.EXTRACTED || 0) + (byStatus.DONE || 0)}</div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-sky-900">
+            Extracted <span className="font-semibold">{(byStatus.EXTRACTED || 0) + (byStatus.DONE || 0)}</span>
           </div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Export-ready</div>
-            <div className="mt-1 text-xl font-semibold text-emerald-900">{exportReady}</div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-900">
+            Export <span className="font-semibold">{exportReady}</span>
           </div>
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-rose-800">QA review queue</div>
-            <div className="mt-1 text-xl font-semibold text-rose-900">{qaReviewCount}</div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-rose-900">
+            QA <span className="font-semibold">{qaReviewCount}</span>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => setReadyOnly((v) => !v)}
-            className={cx("rounded-full border px-3 py-1 font-semibold", readyOnly ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-zinc-200 bg-white text-zinc-700")}
-          >
-            Ready to upload
-          </button>
-          <button
-            type="button"
-            onClick={() => setUnlinkedOnly((v) => !v)}
-            className={cx("rounded-full border px-3 py-1 font-semibold", unlinkedOnly ? "border-amber-200 bg-amber-50 text-amber-900" : "border-zinc-200 bg-white text-zinc-700")}
-          >
-            Missing student
-          </button>
-          <button
-            type="button"
-            onClick={() => setLaneFilter("BLOCKED")}
-            className={cx("rounded-full border px-3 py-1 font-semibold", laneFilter === "BLOCKED" ? "border-red-200 bg-red-50 text-red-900" : "border-zinc-200 bg-white text-zinc-700")}
-          >
-            Failed / blocked
-          </button>
-          <button
-            type="button"
-            onClick={() => setLaneFilter("QA_REVIEW")}
-            className={cx("rounded-full border px-3 py-1 font-semibold", laneFilter === "QA_REVIEW" ? "border-rose-200 bg-rose-50 text-rose-900" : "border-zinc-200 bg-white text-zinc-700")}
-          >
-            QA lane
-          </button>
-          <button
-            type="button"
-            onClick={() => setHandoffOnly((v) => !v)}
-            className={cx("rounded-full border px-3 py-1 font-semibold", handoffOnly ? "border-sky-200 bg-sky-50 text-sky-900" : "border-zinc-200 bg-white text-zinc-700")}
-          >
-            Totara handoff mode
-          </button>
-          <button
-            type="button"
-            onClick={() => setQaReviewOnly((v) => !v)}
-            className={cx("rounded-full border px-3 py-1 font-semibold", qaReviewOnly ? "border-rose-200 bg-rose-50 text-rose-900" : "border-zinc-200 bg-white text-zinc-700")}
-          >
-            QA review only
-          </button>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <span className="text-zinc-500">Columns:</span>
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" checked={showColGrade} onChange={(e) => { setShowColGrade(e.target.checked); persistColumns({ grade: e.target.checked }); }} />
+        <details className="text-[11px]">
+          <summary className="flex cursor-pointer items-center justify-between gap-2 text-zinc-500">
+            <span>Columns</span>
+            <span className="text-[10px] uppercase tracking-wider text-zinc-400">toggle</span>
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <label className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]">
+              <input type="checkbox" checked={showColGrade} onChange={(e) => { setShowColGrade(e.target.checked); persistColumns({ grade: e.target.checked }); }} className="h-3 w-3" />
               Grade
             </label>
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" checked={showColWorkflow} onChange={(e) => { setShowColWorkflow(e.target.checked); persistColumns({ workflow: e.target.checked }); }} />
+            <label className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]">
+              <input type="checkbox" checked={showColWorkflow} onChange={(e) => { setShowColWorkflow(e.target.checked); persistColumns({ workflow: e.target.checked }); }} className="h-3 w-3" />
               Workflow
             </label>
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" checked={showColUploaded} onChange={(e) => { setShowColUploaded(e.target.checked); persistColumns({ uploaded: e.target.checked }); }} />
+            <label className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]">
+              <input type="checkbox" checked={showColUploaded} onChange={(e) => { setShowColUploaded(e.target.checked); persistColumns({ uploaded: e.target.checked }); }} className="h-3 w-3" />
               Uploaded
             </label>
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" checked={showColAssignmentTitle} onChange={(e) => { setShowColAssignmentTitle(e.target.checked); persistColumns({ assignmentTitle: e.target.checked }); }} />
+            <label className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]">
+              <input type="checkbox" checked={showColAssignmentTitle} onChange={(e) => { setShowColAssignmentTitle(e.target.checked); persistColumns({ assignmentTitle: e.target.checked }); }} className="h-3 w-3" />
               Assignment title
             </label>
           </div>
-        </div>
+        </details>
+
       </div>
 
       {(err || msg) && (

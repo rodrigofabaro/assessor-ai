@@ -8,9 +8,11 @@ import { ui } from "@/components/ui/uiClasses";
 export default function BriefExtractWorkbench({
   rx,
   onResetFilters,
+  onLockSuccess,
 }: {
   rx: any;
   onResetFilters: () => void;
+  onLockSuccess?: () => Promise<void> | void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -25,7 +27,7 @@ export default function BriefExtractWorkbench({
   const selectedDocId = rx.selectedDocId as string;
   const setSelectedDocId = rx.setSelectedDocId as (id: string) => void;
   const extractSelected = rx.extractSelected as () => Promise<void>;
-  const lockSelected = rx.lockSelected as () => Promise<void>;
+  const lockSelected = rx.lockSelected as () => Promise<boolean>;
   const rxError = rx.error as string | null;
 
   const counts = useMemo(() => {
@@ -162,11 +164,12 @@ export default function BriefExtractWorkbench({
     try {
       if (selectedDocId !== id) setSelectedDocId(id);
       await new Promise((resolve) => setTimeout(resolve, 0));
-      await lockSelected();
+      const ok = await lockSelected();
+      if (ok) await onLockSuccess?.();
     } finally {
       if (docId) setRowBusy((prev) => ({ ...prev, [id]: undefined }));
     }
-  }, [lockSelected, selectedDocId, setSelectedDocId]);
+  }, [lockSelected, onLockSuccess, selectedDocId, setSelectedDocId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -578,7 +581,7 @@ export default function BriefExtractWorkbench({
 
       </section>
 
-      <BriefReviewCard rx={rx} />
+      <BriefReviewCard rx={rx} onLockSuccess={onLockSuccess} />
     </section>
   );
 }

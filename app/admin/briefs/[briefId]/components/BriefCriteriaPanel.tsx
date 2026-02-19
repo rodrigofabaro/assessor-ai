@@ -6,6 +6,8 @@ import { tone } from "./briefStyles";
 type CriterionItem = {
   acCode: string;
   description?: string;
+  loCode?: string;
+  loDescription?: string;
   source: "spec" | "brief";
 };
 
@@ -61,6 +63,12 @@ function CriteriaColumn({ title, toneKind, items }: { title: string; toneKind: "
         {items.length ? (
           items.map((c) => (
             <div key={c.acCode} className="rounded-xl border border-zinc-200 bg-white/80 p-3 shadow-sm">
+              {c.loCode ? (
+                <div className="mb-1 text-xs font-semibold text-zinc-700">
+                  {c.loCode}
+                  {c.loDescription ? `: ${c.loDescription}` : ""}
+                </div>
+              ) : null}
               <div className="text-sm font-semibold text-zinc-900">{c.acCode}</div>
               <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
                 {c.description || "(from brief)"}
@@ -86,7 +94,7 @@ export function BriefCriteriaPanel({
   hasSpec,
 }: {
   codes: string[];
-  specCriteria: Array<{ acCode: string; description?: string }>;
+  specCriteria: Array<{ acCode: string; description?: string; loCode?: string; loDescription?: string }>;
   hasSpec: boolean;
 }) {
   const criteria = (codes || [])
@@ -95,6 +103,8 @@ export function BriefCriteriaPanel({
       return {
         acCode: String(code || "").toUpperCase(),
         description: hit?.description || "",
+        loCode: hit?.loCode || "",
+        loDescription: hit?.loDescription || "",
         source: hit ? "spec" : "brief",
       } as CriterionItem;
     })

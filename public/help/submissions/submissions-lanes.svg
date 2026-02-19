@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Submissions lanes placeholder screenshot">
+  <rect width="1280" height="720" fill="#f8fafc"/>
+  <rect x="60" y="60" width="560" height="280" rx="12" fill="#ffffff" stroke="#d4d4d8"/>
+  <rect x="660" y="60" width="560" height="280" rx="12" fill="#ffffff" stroke="#d4d4d8"/>
+  <rect x="60" y="370" width="560" height="280" rx="12" fill="#ffffff" stroke="#d4d4d8"/>
+  <rect x="660" y="370" width="560" height="280" rx="12" fill="#ffffff" stroke="#d4d4d8"/>
+  <rect x="90" y="96" width="180" height="26" rx="13" fill="#dcfce7"/>
+  <rect x="690" y="96" width="180" height="26" rx="13" fill="#fef9c3"/>
+  <rect x="90" y="406" width="160" height="26" rx="13" fill="#fee2e2"/>
+  <rect x="690" y="406" width="170" height="26" rx="13" fill="#e0f2fe"/>
+  <text x="90" y="685" font-family="Arial, sans-serif" font-size="28" fill="#0f172a" font-weight="700">Submissions lanes screenshot placeholder</text>
+</svg>
+

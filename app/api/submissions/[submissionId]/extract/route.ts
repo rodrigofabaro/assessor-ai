@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { ocrPdfWithOpenAi } from "@/lib/ocr/openaiPdfOcr";
 import { extractCoverMetadataFromPages, isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
+import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 
@@ -312,37 +313,9 @@ export async function POST(
       console.warn("AUTO_TRIAGE_FAILED", e);
     }
 
-    // Best-effort grading kickoff: upload -> extraction -> grading without manual stop.
-    // Missing cover metadata is non-blocking in cover-only mode and can be completed later.
+    // Best-effort grading kickoff when submission resolves to AUTO_READY.
     try {
-      const autoGradeEnabled = envBool("SUBMISSION_AUTO_GRADE_ON_EXTRACT", true);
-      if (autoGradeEnabled) {
-        const latestSubmission = await prisma.submission.findUnique({
-          where: { id: submissionId },
-          select: {
-            id: true,
-            status: true,
-            studentId: true,
-            assignmentId: true,
-            assignment: {
-              select: {
-                assignmentBriefId: true,
-              },
-            },
-            _count: { select: { assessments: true } },
-          },
-        });
-        const eligibleForAutoGrade =
-          !!latestSubmission?.studentId &&
-          !!latestSubmission?.assignmentId &&
-          !!latestSubmission?.assignment?.assignmentBriefId &&
-          String(latestSubmission?.status || "").toUpperCase() === "EXTRACTED" &&
-          Number(latestSubmission?._count?.assessments || 0) === 0;
-        if (eligibleForAutoGrade) {
-          const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, request.url);
-          await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
-        }
-      }
+      await triggerAutoGradeIfAutoReady(submissionId, request.url);
     } catch (e) {
       console.warn("AUTO_GRADE_FAILED", e);
     }
