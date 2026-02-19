@@ -16,13 +16,16 @@ export default function ReferenceAdminPage() {
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
               Reference Operations
             </div>
-            <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Reference library</h1>
+            <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Reference Ops (advanced)</h1>
             <p className="mt-1 text-sm text-zinc-700">
               Upload a <span className="font-semibold">SPEC</span> or <span className="font-semibold">BRIEF</span>, run{" "}
               <span className="font-semibold">Extract</span>, review learning outcomes/criteria, then{" "}
               <span className="font-semibold">Lock</span> to store the final version used by grading.
             </p>
             <p className="mt-1 text-xs text-zinc-500">Workflow: Upload → Select → Extract → Review → Lock</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Use this page for exception handling and reference corrections. Day-to-day grading should run from Submissions.
+            </p>
           </div>
 
           <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">

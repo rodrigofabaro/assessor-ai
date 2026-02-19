@@ -110,7 +110,17 @@ type AppConfigPayload = {
   id: number;
   activeAuditUserId?: string | null;
   faviconUpdatedAt?: string | null;
+  automationPolicy?: AutomationPolicyPayload;
+  automationPolicySource?: "default" | "settings";
   activeAuditUser?: AppUser | null;
+};
+
+type AutomationPolicyPayload = {
+  enabled: boolean;
+  providerMode: "openai" | "local" | "hybrid";
+  allowBatchGrading: boolean;
+  requireOperationReason: boolean;
+  updatedAt?: string;
 };
 
 type SettingsAuditEvent = {
@@ -119,8 +129,18 @@ type SettingsAuditEvent = {
   actor: string;
   role: string;
   action: string;
-  target: "openai-model" | "grading-config" | "app-config" | "favicon";
+  target: "openai-model" | "grading-config" | "app-config" | "favicon" | "automation-policy";
   changes?: Record<string, unknown>;
+};
+
+type LocalAiSnapshot = {
+  enabled: boolean;
+  baseUrl: string;
+  reachable: boolean;
+  status: number;
+  message: string;
+  textModel: string;
+  visionModel: string;
 };
 
 export type SettingsScope = "all" | "ai" | "grading" | "app";
@@ -192,11 +212,13 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const [faviconBusy, setFaviconBusy] = useState(false);
   const [activeSectionHash, setActiveSectionHash] = useState("#ai-usage");
   const [settingsAudit, setSettingsAudit] = useState<SettingsAuditEvent[]>([]);
+  const [localAi, setLocalAi] = useState<LocalAiSnapshot | null>(null);
 
   const [baseModel, setBaseModel] = useState("");
   const [baseAutoCleanupApproved, setBaseAutoCleanupApproved] = useState(false);
   const [baseGradingCfgJson, setBaseGradingCfgJson] = useState("");
   const [baseActiveAuditUserId, setBaseActiveAuditUserId] = useState("");
+  const [baseAutomationPolicyJson, setBaseAutomationPolicyJson] = useState("");
 
   const isAll = scope === "all";
   const showAi = scope === "all" || scope === "ai";
@@ -249,6 +271,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         const appCfgJson = (await appCfgRes.json()) as AppConfigPayload;
         setAppCfg(appCfgJson);
         setBaseActiveAuditUserId(String(appCfgJson.activeAuditUserId || ""));
+        setBaseAutomationPolicyJson(JSON.stringify(appCfgJson.automationPolicy || {}));
       }
       if (appUsersRes.ok) {
         const usersJson = (await appUsersRes.json()) as { users?: AppUser[] };
@@ -258,9 +281,18 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         const settingsAuditJson = (await settingsAuditRes.json()) as { events?: SettingsAuditEvent[] };
         setSettingsAudit(Array.isArray(settingsAuditJson.events) ? settingsAuditJson.events : []);
       }
+
+      const devRes = await fetch("/api/dev/build-info", { method: "GET", cache: "no-store" });
+      if (devRes.ok) {
+        const devJson = (await devRes.json()) as { localAi?: LocalAiSnapshot };
+        setLocalAi(devJson?.localAi || null);
+      } else {
+        setLocalAi(null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
       setData(null);
+      setLocalAi(null);
     } finally {
       setLoading(false);
     }
@@ -291,12 +323,22 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const activeAuditRole = String(appCfg?.activeAuditUser?.role || "SYSTEM").toUpperCase();
   const canWriteSensitive = ["ADMIN", "OWNER", "SUPERADMIN"].includes(activeAuditRole);
   const aiConnectionLabel = data?.connection?.reachable ? "Connected" : data?.connection ? "Issue" : "Checking";
+  const localAiLabel = !localAi
+    ? "Unavailable"
+    : !localAi.enabled
+      ? "Disabled"
+      : localAi.reachable
+        ? "Reachable"
+        : "Unreachable";
   const gradingProfileLabel = gradingCfg
     ? `${gradingCfg.tone}/${gradingCfg.strictness}`
     : "Loading";
   const dirtyAi = model !== baseModel || autoCleanupApproved !== baseAutoCleanupApproved;
   const dirtyGrading = !!gradingCfg && JSON.stringify(gradingCfg) !== baseGradingCfgJson;
-  const dirtyApp = String(appCfg?.activeAuditUserId || "") !== baseActiveAuditUserId || !!faviconFile;
+  const dirtyApp =
+    String(appCfg?.activeAuditUserId || "") !== baseActiveAuditUserId ||
+    JSON.stringify(appCfg?.automationPolicy || {}) !== baseAutomationPolicyJson ||
+    !!faviconFile;
   const anyDirty = dirtyAi || dirtyGrading || dirtyApp;
   const sectionStatusForAi =
     data?.connection?.reachable && !isEndpointError(data?.usage as AnyEndpoint) ? "Healthy" : "Check endpoints";
@@ -361,6 +403,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           activeAuditUserId: appCfg.activeAuditUserId || null,
+          automationPolicy: appCfg.automationPolicy || null,
         }),
       });
       const json = await res.json();
@@ -529,7 +572,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
       {showAi ? (
       <>
-      <section id="ai-usage" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 scroll-mt-20">
+      <section id="ai-usage" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5 scroll-mt-20">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-900">⚙️</span>
@@ -572,6 +615,22 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           <p className="mt-1 text-sm text-zinc-700">{windowLabel}</p>
           <p className="mt-1 text-xs text-zinc-500">
             {data?.costs && data.costs.available ? "OpenAI org metrics" : localEstimatedCost > 0 ? "Local telemetry estimate" : "No cost data"}
+          </p>
+        </article>
+
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-900">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-violet-900">🦙</span>
+            Llama / Local AI
+          </div>
+          <div className="mt-3 text-lg font-semibold text-zinc-900">{localAiLabel}</div>
+          <p className="mt-1 text-sm text-zinc-700">
+            {localAi
+              ? `${localAi.message} (status ${localAi.status || 0})`
+              : "Only available in development diagnostics."}
+          </p>
+          <p className="mt-1 text-xs text-zinc-500 break-all">
+            {localAi ? `${localAi.baseUrl} · text: ${localAi.textModel} · vision: ${localAi.visionModel}` : "No local endpoint data"}
           </p>
         </article>
       </section>
@@ -992,6 +1051,117 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               Manage users
             </Link>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="text-sm font-semibold text-zinc-900">Automation policy (safe mode)</div>
+          <p className="mt-1 text-xs text-zinc-600">
+            Controls automated grading runs. Manual single-submission grading remains available.
+          </p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={!!appCfg?.automationPolicy?.enabled}
+                onChange={(e) =>
+                  setAppCfg((v) =>
+                    v
+                      ? {
+                          ...v,
+                          automationPolicy: {
+                            enabled: e.target.checked,
+                            providerMode: v.automationPolicy?.providerMode || "hybrid",
+                            allowBatchGrading: v.automationPolicy?.allowBatchGrading ?? true,
+                            requireOperationReason: v.automationPolicy?.requireOperationReason ?? false,
+                          },
+                        }
+                      : v
+                  )
+                }
+                disabled={!canWriteSensitive}
+                className="h-4 w-4 rounded border-zinc-300"
+              />
+              Enable automation pipeline
+            </label>
+            <label className="text-sm text-zinc-700">
+              Provider mode
+              <select
+                value={appCfg?.automationPolicy?.providerMode || "hybrid"}
+                onChange={(e) =>
+                  setAppCfg((v) =>
+                    v
+                      ? {
+                          ...v,
+                          automationPolicy: {
+                            enabled: v.automationPolicy?.enabled ?? true,
+                            providerMode: e.target.value as "openai" | "local" | "hybrid",
+                            allowBatchGrading: v.automationPolicy?.allowBatchGrading ?? true,
+                            requireOperationReason: v.automationPolicy?.requireOperationReason ?? false,
+                          },
+                        }
+                      : v
+                  )
+                }
+                disabled={!canWriteSensitive}
+                className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+              >
+                <option value="hybrid">Hybrid (recommended)</option>
+                <option value="openai">OpenAI only</option>
+                <option value="local">Local Llama only</option>
+              </select>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={!!appCfg?.automationPolicy?.allowBatchGrading}
+                onChange={(e) =>
+                  setAppCfg((v) =>
+                    v
+                      ? {
+                          ...v,
+                          automationPolicy: {
+                            enabled: v.automationPolicy?.enabled ?? true,
+                            providerMode: v.automationPolicy?.providerMode || "hybrid",
+                            allowBatchGrading: e.target.checked,
+                            requireOperationReason: v.automationPolicy?.requireOperationReason ?? false,
+                          },
+                        }
+                      : v
+                  )
+                }
+                disabled={!canWriteSensitive}
+                className="h-4 w-4 rounded border-zinc-300"
+              />
+              Allow batch grading automations
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={!!appCfg?.automationPolicy?.requireOperationReason}
+                onChange={(e) =>
+                  setAppCfg((v) =>
+                    v
+                      ? {
+                          ...v,
+                          automationPolicy: {
+                            enabled: v.automationPolicy?.enabled ?? true,
+                            providerMode: v.automationPolicy?.providerMode || "hybrid",
+                            allowBatchGrading: v.automationPolicy?.allowBatchGrading ?? true,
+                            requireOperationReason: e.target.checked,
+                          },
+                        }
+                      : v
+                  )
+                }
+                disabled={!canWriteSensitive}
+                className="h-4 w-4 rounded border-zinc-300"
+              />
+              Require reason on batch runs
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">
+            Source: {appCfg?.automationPolicySource || "default"}.
+          </p>
         </div>
 
         <p className="mt-2 text-xs text-zinc-500">

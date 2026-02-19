@@ -203,8 +203,19 @@ export default async function AdminIndex() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <ActionCard title="QA Research" desc="Analyze grades by student, course, unit and AB number. Export QA reports." href="/admin/qa" cta="Go to QA" />
         <ActionCard title="Audit Log" desc="Inspect operational evidence for extraction, grading, overrides, and failures." href="/admin/audit" cta="Go to Audit" />
-        <ActionCard title="Reference Locking" desc="Maintain locked specs/briefs and keep the criteria universe stable." href="/admin/reference" cta="Open Reference" />
+        <ActionCard title="Settings" desc="Adjust AI, app and grading policies used by operations." href="/admin/settings" cta="Open Settings" />
         <ActionCard title="Bindings" desc="Verify brief-to-unit links used as grading context during marking." href="/admin/bindings" cta="Open Bindings" />
+      </section>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600 shadow-sm">
+        Advanced ops pages:{" "}
+        <Link href="/admin/reference" className="font-semibold text-zinc-800 hover:underline">
+          Reference Ops
+        </Link>
+        {" "}and{" "}
+        <Link href="/admin/bindings" className="font-semibold text-zinc-800 hover:underline">
+          Bindings
+        </Link>
+        {" "}are exception workflows for extraction/mapping fixes, not daily grading operations.
       </section>
 
       <section className="grid gap-3 lg:grid-cols-2">

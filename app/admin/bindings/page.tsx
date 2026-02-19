@@ -58,6 +58,8 @@ export default function AssignmentBindingsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [exceptionsOnly, setExceptionsOnly] = useState(true);
+  const [q, setQ] = useState("");
 
   async function load() {
     setLoading(true);
@@ -88,6 +90,53 @@ export default function AssignmentBindingsAdminPage() {
         return (x.assignmentCode || "").localeCompare(y.assignmentCode || "");
       });
   }, [briefs]);
+
+  const stats = useMemo(() => {
+    const total = assignments.length;
+    const locked = assignments.filter((a) => a.bindingStatus === "LOCKED").length;
+    const missing = assignments.filter((a) => !a.assignmentBriefId).length;
+    const refMismatch = assignments.filter((a) => {
+      const ref = String(a.assignmentRef || "").trim().toUpperCase();
+      const briefCode = String(a.assignmentBrief?.assignmentCode || "").trim().toUpperCase();
+      if (!ref || !briefCode) return false;
+      return ref !== briefCode;
+    }).length;
+    return {
+      total,
+      locked,
+      open: Math.max(0, total - locked),
+      missing,
+      refMismatch,
+      healthy: Math.max(0, locked - refMismatch),
+    };
+  }, [assignments]);
+
+  const visibleAssignments = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return assignments
+      .filter((a) => {
+        if (!exceptionsOnly) return true;
+        const ref = String(a.assignmentRef || "").trim().toUpperCase();
+        const briefCode = String(a.assignmentBrief?.assignmentCode || "").trim().toUpperCase();
+        const mismatch = !!ref && !!briefCode && ref !== briefCode;
+        const missing = !a.assignmentBriefId;
+        return !a.bindingStatus || a.bindingStatus !== "LOCKED" || missing || mismatch;
+      })
+      .filter((a) => {
+        if (!query) return true;
+        const hay = [
+          a.unitCode,
+          a.assignmentRef,
+          a.title,
+          a.assignmentBrief?.assignmentCode,
+          a.assignmentBrief?.title,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(query);
+      });
+  }, [assignments, exceptionsOnly, q]);
 
   async function lockBinding(assignmentId: string, assignmentBriefId: string | null) {
     setSavingId(assignmentId);
@@ -134,12 +183,13 @@ export default function AssignmentBindingsAdminPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-900">
-              Binding Governance
+              Exception Workflow
             </div>
             <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Phase 2.5 — Assignment Reference Binding</h1>
             <p className="mt-2 max-w-3xl text-sm text-zinc-700">
+              Use this page only for exceptions. Daily operations should rely on extraction + automatic linking.
               Bind each operational assignment (A1/A2/etc.) to a <span className="font-semibold">LOCKED</span> brief and its{" "}
-              <span className="font-semibold">LOCKED</span> unit/spec. No question/task extraction, no grading.
+              <span className="font-semibold">LOCKED</span> unit/spec.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -154,18 +204,76 @@ export default function AssignmentBindingsAdminPage() {
             </span>
           </div>
         </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-zinc-500">Assignments</div>
+            <div className="text-lg font-semibold text-zinc-900">{stats.total}</div>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-emerald-700">Locked</div>
+            <div className="text-lg font-semibold text-emerald-900">{stats.locked}</div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-amber-700">Missing brief</div>
+            <div className="text-lg font-semibold text-amber-900">{stats.missing}</div>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-rose-700">Ref mismatch</div>
+            <div className="text-lg font-semibold text-rose-900">{stats.refMismatch}</div>
+          </div>
+          <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-sky-700">Healthy locked</div>
+            <div className="text-lg font-semibold text-sky-900">{stats.healthy}</div>
+          </div>
+        </div>
       </section>
 
       {err && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
 
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
+            <input
+              type="checkbox"
+              checked={exceptionsOnly}
+              onChange={(e) => setExceptionsOnly(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300"
+            />
+            Show exceptions only
+          </label>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search unit, assignment, brief..."
+            className="h-10 w-full max-w-md rounded-xl border border-zinc-300 px-3 text-sm"
+          />
+          <span className="ml-auto text-xs text-zinc-500">
+            Showing {visibleAssignments.length} of {assignments.length}
+          </span>
+        </div>
+      </section>
+
       <div className="grid gap-4">
-        {assignments.map((a) => {
+        {visibleAssignments.map((a) => {
           const isLocked = a.bindingStatus === "LOCKED";
           const unit = a.assignmentBrief?.unit;
           const spec = unit?.specDocument;
           const briefDoc = a.assignmentBrief?.briefDocument;
+          const assignmentRef = String(a.assignmentRef || "").trim().toUpperCase();
 
-          const matchingBriefs = lockedBriefs.filter((b) => (b.unit?.unitCode || "") === (a.unitCode || ""));
+          const matchingBriefs = lockedBriefs
+            .filter((b) => (b.unit?.unitCode || "") === (a.unitCode || ""))
+            .sort((x, y) => {
+              const xExact = String(x.assignmentCode || "").toUpperCase() === assignmentRef ? 1 : 0;
+              const yExact = String(y.assignmentCode || "").toUpperCase() === assignmentRef ? 1 : 0;
+              if (xExact !== yExact) return yExact - xExact;
+              return (x.assignmentCode || "").localeCompare(y.assignmentCode || "");
+            });
+          const selectedBrief = matchingBriefs.find((b) => b.id === a.assignmentBriefId) || null;
+          const selectedMismatch =
+            !!selectedBrief &&
+            !!assignmentRef &&
+            String(selectedBrief.assignmentCode || "").toUpperCase() !== assignmentRef;
 
           return (
             <section key={a.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -192,6 +300,12 @@ export default function AssignmentBindingsAdminPage() {
                       </span>
                     ) : null}
                   </div>
+                  {selectedMismatch ? (
+                    <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+                      Assignment ref mismatch: assignment is <span className="font-semibold">{assignmentRef || "—"}</span> but selected brief is{" "}
+                      <span className="font-semibold">{selectedBrief?.assignmentCode || "—"}</span>.
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 grid gap-1 text-sm text-zinc-800">
                     <div>
@@ -258,10 +372,16 @@ export default function AssignmentBindingsAdminPage() {
                     <option value="">— Select —</option>
                     {matchingBriefs.map((b) => (
                       <option key={b.id} value={b.id}>
+                        {b.assignmentCode === assignmentRef ? "✓ " : ""}
                         {b.assignmentCode} — {b.title}
                       </option>
                     ))}
                   </select>
+                  <div className="mt-2 text-xs text-zinc-600">
+                    {assignmentRef
+                      ? `Expected brief code for this assignment: ${assignmentRef}. Exact matches are shown with ✓.`
+                      : "No assignment reference detected on this assignment record."}
+                  </div>
 
                   <div className="mt-3 flex gap-2">
                     <button

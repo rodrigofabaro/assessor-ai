@@ -4,6 +4,7 @@ import { apiError, makeRequestId } from "@/lib/api/errors";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
+import { readAutomationPolicy } from "@/lib/admin/automationPolicy";
 
 type BatchGradeBody = {
   submissionIds?: string[];
@@ -62,6 +63,25 @@ export async function POST(req: Request) {
         status: 403,
         code: "ADMIN_PERMISSION_REQUIRED",
         userMessage: perm.reason || "Admin permission required.",
+        route: "/api/submissions/batch-grade",
+        requestId,
+      });
+    }
+    const automation = readAutomationPolicy().policy;
+    if (!automation.enabled) {
+      return apiError({
+        status: 423,
+        code: "AUTOMATION_PIPELINE_DISABLED",
+        userMessage: "Automation pipeline is disabled in Settings > App.",
+        route: "/api/submissions/batch-grade",
+        requestId,
+      });
+    }
+    if (!automation.allowBatchGrading) {
+      return apiError({
+        status: 423,
+        code: "AUTOMATION_BATCH_GRADING_DISABLED",
+        userMessage: "Batch grading automation is disabled by policy.",
         route: "/api/submissions/batch-grade",
         requestId,
       });
@@ -140,6 +160,15 @@ export async function POST(req: Request) {
     const retryFailedOnly = !!body.retryFailedOnly;
     const forceRetry = !!body.forceRetry;
     const operationReason = String(body.operationReason || "").trim();
+    if (automation.requireOperationReason && !operationReason) {
+      return apiError({
+        status: 400,
+        code: "AUTOMATION_OPERATION_REASON_REQUIRED",
+        userMessage: "Provide an operation reason for this batch run (required by automation policy).",
+        route: "/api/submissions/batch-grade",
+        requestId,
+      });
+    }
 
     const targets = uniqueIds.filter((id) => {
       const status = statusById.get(id) || "";
@@ -222,6 +251,7 @@ export async function POST(req: Request) {
         failed: failCount,
         retryFailedOnly,
         forceRetry,
+        automationPolicy: automation,
         assignmentBriefId: assignmentBriefId || null,
         unitCode: unitCode || null,
         assignmentRef: assignmentRef || null,

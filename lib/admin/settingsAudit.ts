@@ -8,7 +8,7 @@ export type SettingsAuditEvent = {
   actor: string;
   role: string;
   action: string;
-  target: "openai-model" | "grading-config" | "app-config" | "favicon";
+  target: "openai-model" | "grading-config" | "app-config" | "favicon" | "automation-policy";
   changes?: Record<string, unknown>;
 };
 

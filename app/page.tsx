@@ -332,7 +332,7 @@ export default async function HomePage() {
         <div className="text-xs text-zinc-600">
           Advanced tools (direct link):{" "}
           <Link href="/admin/reference" className="font-semibold text-zinc-800 hover:underline">
-            Reference
+            Reference Ops
           </Link>{" "}
           and{" "}
           <Link href="/admin/bindings" className="font-semibold text-zinc-800 hover:underline">

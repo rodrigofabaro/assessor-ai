@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { href: "/admin/qa", label: "QA", desc: "Research + reports" },
   { href: "/admin/audit", label: "Audit", desc: "Operational logs" },
-  { href: "/admin/reference", label: "Reference", desc: "Specs / briefs" },
   { href: "/admin/bindings", label: "Bindings", desc: "Brief ↔ unit map" },
   { href: "/admin/students", label: "Students", desc: "Student records" },
   { href: "/admin/users", label: "Users", desc: "Audit identities" },
@@ -21,7 +20,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <aside className="rounded-2xl border border-zinc-200 bg-white p-4">
         <div className="mb-4">
           <div className="text-sm font-semibold">Admin</div>
-          <div className="text-xs text-zinc-500">Manage specs, briefs, bindings and records.</div>
+          <div className="text-xs text-zinc-500">Manage operations, QA, bindings, and records.</div>
 
         </div>
 

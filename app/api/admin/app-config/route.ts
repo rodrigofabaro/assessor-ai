@@ -4,13 +4,17 @@ import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { readAutomationPolicy, writeAutomationPolicy } from "@/lib/admin/automationPolicy";
 
 export async function GET() {
   const cfg = await getOrCreateAppConfig();
+  const automation = readAutomationPolicy();
   return NextResponse.json({
     id: cfg.id,
     activeAuditUserId: cfg.activeAuditUserId,
     faviconUpdatedAt: cfg.faviconUpdatedAt,
+    automationPolicy: automation.policy,
+    automationPolicySource: automation.source,
     activeAuditUser: cfg.activeAuditUser
       ? {
           id: cfg.activeAuditUser.id,
@@ -43,6 +47,7 @@ export async function PUT(req: Request) {
   }
 
   const prev = await getOrCreateAppConfig();
+  const prevPolicy = readAutomationPolicy().policy;
   const updated = await prisma.appConfig.upsert({
     where: { id: 1 },
     create: { id: 1, activeAuditUserId: activeAuditUserId || null },
@@ -59,6 +64,26 @@ export async function PUT(req: Request) {
       activeAuditUserIdTo: updated.activeAuditUserId || null,
     },
   });
+
+  if (body?.automationPolicy && typeof body.automationPolicy === "object") {
+    const nextPolicy = writeAutomationPolicy(body.automationPolicy);
+    appendSettingsAuditEvent({
+      actor: await getCurrentAuditActor(),
+      role: ctx.role,
+      action: "AUTOMATION_POLICY_UPDATED",
+      target: "automation-policy",
+      changes: {
+        enabledFrom: prevPolicy.enabled,
+        enabledTo: nextPolicy.enabled,
+        providerModeFrom: prevPolicy.providerMode,
+        providerModeTo: nextPolicy.providerMode,
+        allowBatchGradingFrom: prevPolicy.allowBatchGrading,
+        allowBatchGradingTo: nextPolicy.allowBatchGrading,
+        requireOperationReasonFrom: prevPolicy.requireOperationReason,
+        requireOperationReasonTo: nextPolicy.requireOperationReason,
+      },
+    });
+  }
 
   return NextResponse.json({ ok: true, config: updated });
 }
