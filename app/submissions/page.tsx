@@ -8,6 +8,7 @@ import type { SubmissionRow } from "@/lib/submissions/types";
 import { buildMarkedPdfUrl } from "@/lib/submissions/markedPdfUrl";
 import { SubmissionsToolbar } from "@/components/submissions/SubmissionsToolbar";
 import { SubmissionsTable } from "@/components/submissions/SubmissionsTable";
+import { QueueTermsCard } from "@/components/submissions/QueueTermsCard";
 import { ResolveDrawer } from "@/components/submissions/ResolveDrawer";
 import { cx } from "@/lib/submissions/utils";
 import { jsonFetch } from "@/lib/http";
@@ -461,6 +462,7 @@ export default function SubmissionsPage() {
       )}
 
       <div className="space-y-3">
+      <QueueTermsCard />
       <SubmissionsToolbar
         busy={busy}
         refresh={refresh}

@@ -121,63 +121,11 @@ export function SubmissionsToolbar({
             Ready to upload
           </label>
 
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-300"
-              checked={handoffOnly}
-              onChange={(e) => setHandoffOnly(e.target.checked)}
-            />
-            Handoff mode
-          </label>
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-300"
-              checked={qaReviewOnly}
-              onChange={(e) => setQaReviewOnly(e.target.checked)}
-            />
-            QA review only
-          </label>
-
-          <div className="inline-flex overflow-hidden rounded-xl border border-zinc-200 bg-white">
-            <button
-              type="button"
-              onClick={() => setTimeframe("today")}
-              className={cx(
-                "px-3 py-2 text-sm font-semibold",
-                timeframe === "today" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
-              )}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeframe("week")}
-              className={cx(
-                "px-3 py-2 text-sm font-semibold",
-                timeframe === "week" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
-              )}
-            >
-              This week
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeframe("all")}
-              className={cx(
-                "px-3 py-2 text-sm font-semibold",
-                timeframe === "all" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
-              )}
-            >
-              All
-            </button>
-          </div>
-
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search: filename, student, email, AB number…"
-            className="h-9 w-[280px] rounded-xl border border-zinc-300 px-3 text-sm"
+            className="h-9 w-[240px] rounded-xl border border-zinc-300 px-3 text-sm"
           />
 
           <select
@@ -208,27 +156,86 @@ export function SubmissionsToolbar({
             <option value="COMPLETED">Completed</option>
           </select>
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-            aria-label="Sort by"
-          >
-            <option value="uploadedAt">Sort: uploaded</option>
-            <option value="student">Sort: student</option>
-            <option value="status">Sort: status</option>
-            <option value="grade">Sort: grade</option>
-          </select>
+          <details className="group rounded-xl border border-zinc-200 bg-zinc-50 px-2 py-1">
+            <summary className="cursor-pointer list-none text-xs font-semibold text-zinc-700 [&::-webkit-details-marker]:hidden">
+              More filters
+            </summary>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-zinc-300"
+                  checked={handoffOnly}
+                  onChange={(e) => setHandoffOnly(e.target.checked)}
+                />
+                Handoff mode
+              </label>
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-zinc-300"
+                  checked={qaReviewOnly}
+                  onChange={(e) => setQaReviewOnly(e.target.checked)}
+                />
+                QA review only
+              </label>
 
-          <select
-            value={sortDir}
-            onChange={(e) => setSortDir(e.target.value as SortDir)}
-            className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
-            aria-label="Sort direction"
-          >
-            <option value="desc">Order: desc</option>
-            <option value="asc">Order: asc</option>
-          </select>
+              <div className="inline-flex overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setTimeframe("today")}
+                  className={cx(
+                    "px-3 py-2 text-sm font-semibold",
+                    timeframe === "today" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                  )}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe("week")}
+                  className={cx(
+                    "px-3 py-2 text-sm font-semibold",
+                    timeframe === "week" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                  )}
+                >
+                  This week
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe("all")}
+                  className={cx(
+                    "px-3 py-2 text-sm font-semibold",
+                    timeframe === "all" ? "bg-sky-50 text-sky-900" : "bg-white text-zinc-700 hover:bg-zinc-50"
+                  )}
+                >
+                  All
+                </button>
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                aria-label="Sort by"
+              >
+                <option value="uploadedAt">Sort: uploaded</option>
+                <option value="student">Sort: student</option>
+                <option value="status">Sort: status</option>
+                <option value="grade">Sort: grade</option>
+              </select>
+
+              <select
+                value={sortDir}
+                onChange={(e) => setSortDir(e.target.value as SortDir)}
+                className="h-9 rounded-xl border border-zinc-300 bg-white px-3 text-sm"
+                aria-label="Sort direction"
+              >
+                <option value="desc">Order: desc</option>
+                <option value="asc">Order: asc</option>
+              </select>
+            </div>
+          </details>
         </div>
 
         <div className="flex items-center gap-2">

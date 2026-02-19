@@ -74,6 +74,7 @@ export default function AdminAuditPage() {
   const [q, setQ] = useState("");
   const [type, setType] = useState("ALL");
   const [take, setTake] = useState(120);
+  const [hydratedFromUrl, setHydratedFromUrl] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<AuditResponse | null>(null);
@@ -107,9 +108,34 @@ export default function AdminAuditPage() {
   }
 
   useEffect(() => {
+    if (typeof window === "undefined" || hydratedFromUrl) return;
+    const params = new URLSearchParams(window.location.search);
+    const nextQ = params.get("q");
+    const nextType = params.get("type");
+    const nextTake = Number(params.get("take") || "");
+    if (nextQ !== null) setQ(nextQ);
+    if (nextType !== null) setType(nextType || "ALL");
+    if (Number.isFinite(nextTake) && nextTake >= 20 && nextTake <= 300) setTake(nextTake);
+    setHydratedFromUrl(true);
+  }, [hydratedFromUrl]);
+
+  useEffect(() => {
+    if (!hydratedFromUrl) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hydratedFromUrl]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydratedFromUrl) return;
+    const params = new URLSearchParams(window.location.search);
+    if (q.trim()) params.set("q", q.trim()); else params.delete("q");
+    if (type && type !== "ALL") params.set("type", type); else params.delete("type");
+    if (take !== 120) params.set("take", String(take)); else params.delete("take");
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (next !== current) window.history.replaceState({}, "", next);
+  }, [hydratedFromUrl, q, type, take]);
 
   const events = data?.events || [];
   const typeOptions = useMemo(() => ["ALL", ...(data?.typeOptions || [])], [data?.typeOptions]);

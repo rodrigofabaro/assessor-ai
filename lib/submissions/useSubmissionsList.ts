@@ -36,6 +36,7 @@ export function useSubmissionsList() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
   const [msg, setMsg] = useState<string>("");
+  const [hydratedFromUrl, setHydratedFromUrl] = useState(false);
 
   const [unlinkedOnly, setUnlinkedOnly] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("all");
@@ -65,6 +66,60 @@ export function useSubmissionsList() {
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || hydratedFromUrl) return;
+    const params = new URLSearchParams(window.location.search);
+    const asBool = (v: string | null) => v === "1" || String(v || "").toLowerCase() === "true";
+    const laneRaw = String(params.get("lane") || "").toUpperCase();
+    const timeframeRaw = String(params.get("timeframe") || "").toLowerCase();
+    const sortByRaw = String(params.get("sortBy") || "");
+    const sortDirRaw = String(params.get("sortDir") || "").toLowerCase();
+
+    if (asBool(params.get("unlinked"))) setUnlinkedOnly(true);
+    if (asBool(params.get("ready"))) setReadyOnly(true);
+    if (asBool(params.get("handoff"))) setHandoffOnly(true);
+    if (asBool(params.get("qaOnly"))) setQaReviewOnly(true);
+
+    const q = params.get("q");
+    const status = params.get("status");
+    if (q !== null) setQuery(q);
+    if (status !== null) setStatusFilter(status);
+
+    if (laneRaw === "ALL" || laneRaw === "QA_REVIEW" || laneRaw === "AUTO_READY" || laneRaw === "NEEDS_HUMAN" || laneRaw === "BLOCKED" || laneRaw === "COMPLETED") {
+      setLaneFilter(laneRaw as LaneFilter);
+    }
+    if (timeframeRaw === "today" || timeframeRaw === "week" || timeframeRaw === "all") setTimeframe(timeframeRaw as Timeframe);
+    if (sortByRaw === "uploadedAt" || sortByRaw === "student" || sortByRaw === "status" || sortByRaw === "grade") {
+      setSortBy(sortByRaw as SortBy);
+    }
+    if (sortDirRaw === "asc" || sortDirRaw === "desc") setSortDir(sortDirRaw as SortDir);
+
+    setHydratedFromUrl(true);
+  }, [hydratedFromUrl]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydratedFromUrl) return;
+    const params = new URLSearchParams(window.location.search);
+
+    if (unlinkedOnly) params.set("unlinked", "1"); else params.delete("unlinked");
+    if (readyOnly) params.set("ready", "1"); else params.delete("ready");
+    if (handoffOnly) params.set("handoff", "1"); else params.delete("handoff");
+    if (qaReviewOnly) params.set("qaOnly", "1"); else params.delete("qaOnly");
+
+    if (query.trim()) params.set("q", query.trim()); else params.delete("q");
+    if (statusFilter) params.set("status", statusFilter); else params.delete("status");
+
+    if (laneFilter !== "ALL") params.set("lane", laneFilter); else params.delete("lane");
+    if (timeframe !== "all") params.set("timeframe", timeframe); else params.delete("timeframe");
+    if (sortBy !== "uploadedAt") params.set("sortBy", sortBy); else params.delete("sortBy");
+    if (sortDir !== "desc") params.set("sortDir", sortDir); else params.delete("sortDir");
+
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (next !== current) window.history.replaceState({}, "", next);
+  }, [hydratedFromUrl, unlinkedOnly, readyOnly, handoffOnly, qaReviewOnly, query, statusFilter, laneFilter, timeframe, sortBy, sortDir]);
 
   const statuses = useMemo(() => {
     const set = new Set<string>();

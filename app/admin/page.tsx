@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { QueueTermsCard } from "@/components/submissions/QueueTermsCard";
 
 const GRADE_BANDS = ["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION"] as const;
 
@@ -161,31 +162,31 @@ export default async function AdminIndex() {
     {
       label: "Specs awaiting lock",
       count: specsAwaitingLock,
-      href: "/admin/specs",
+      href: "/admin/specs?tab=extract&quick=NEEDS_REVIEW",
       hint: "Lock all extracted/reviewed specs before production grading.",
     },
     {
       label: "Briefs awaiting lock",
       count: briefsAwaitingLock,
-      href: "/admin/briefs",
+      href: "/admin/briefs?bquick=NEEDS_REVIEW",
       hint: "Confirm brief mapping and lock before assessor usage.",
     },
     {
       label: "Submissions without student link",
       count: unlinkedSubmissions,
-      href: "/submissions",
+      href: "/submissions?unlinked=1&lane=NEEDS_HUMAN",
       hint: "Unlinked submissions weaken QA reports and audit quality.",
     },
     {
       label: "Submissions needing OCR",
       count: needsOcrSubmissions,
-      href: "/submissions",
+      href: "/submissions?status=NEEDS_OCR&lane=BLOCKED",
       hint: "Review scans where extraction quality is low.",
     },
     {
       label: "Failed extractions",
       count: failedSubmissions + failedReferences,
-      href: "/admin/audit",
+      href: "/admin/audit?q=failed",
       hint: "Use audit events to diagnose and re-run failures.",
     },
   ];
@@ -242,6 +243,8 @@ export default async function AdminIndex() {
         />
       </section>
 
+      <QueueTermsCard title="Queue terms used in Admin and Submissions" compact />
+
       <section className="grid gap-3 lg:grid-cols-2">
         <article id="automation-review" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-zinc-900">How to review Automation ready</h2>
@@ -262,9 +265,9 @@ export default async function AdminIndex() {
             <li>Resolve unlinked and OCR rows in Submissions, then retry failed runs from Audit.</li>
           </ol>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/admin/specs" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open specs</Link>
-            <Link href="/admin/briefs" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open briefs</Link>
-            <Link href="/admin/audit" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open audit</Link>
+            <Link href="/admin/specs?tab=extract&quick=NEEDS_REVIEW" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open specs</Link>
+            <Link href="/admin/briefs?bquick=NEEDS_REVIEW" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open briefs</Link>
+            <Link href="/admin/audit?q=failed" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open audit</Link>
           </div>
         </article>
       </section>
