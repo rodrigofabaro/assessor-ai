@@ -346,6 +346,104 @@ function extractCoverAssignmentSignals(sourceMeta: any) {
   return { unitCode, assignmentRef };
 }
 
+function normalizeGradeBand(value: unknown): "REFER" | "PASS" | "PASS_ON_RESUBMISSION" | "MERIT" | "DISTINCTION" {
+  const v = String(value || "").trim().toUpperCase();
+  if (v === "DISTINCTION" || v === "MERIT" || v === "PASS" || v === "PASS_ON_RESUBMISSION") return v;
+  return "REFER";
+}
+
+function applyResubmissionCap(
+  rawGradeInput: unknown,
+  resubmissionRequired: boolean,
+  capEnabled: boolean
+) {
+  const rawGrade = normalizeGradeBand(rawGradeInput);
+  const shouldCap =
+    capEnabled &&
+    resubmissionRequired &&
+    (rawGrade === "MERIT" || rawGrade === "DISTINCTION");
+  return {
+    rawGrade,
+    finalGrade: shouldCap ? ("PASS_ON_RESUBMISSION" as const) : rawGrade,
+    wasCapped: shouldCap,
+    capReason: shouldCap ? ("CAPPED_DUE_TO_RESUBMISSION" as const) : null,
+  };
+}
+
+function countWords(value: unknown) {
+  const txt = String(value || "").trim();
+  if (!txt) return 0;
+  return txt.split(/\s+/).filter(Boolean).length;
+}
+
+function buildEvidenceDensityByCriterion(criterionChecks: any[]) {
+  const rows = Array.isArray(criterionChecks) ? criterionChecks : [];
+  return rows.map((row: any) => {
+    const code = String(row?.code || "").trim().toUpperCase();
+    const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+    const pages = Array.from(
+      new Set<number>(
+        evidence
+          .map((e: any) => Number(e?.page))
+          .filter((n: number) => Number.isFinite(n) && n > 0)
+      )
+    ).sort((a, b) => a - b);
+    const citedWords = evidence.reduce((sum: number, e: any) => {
+      const quoteWords = countWords(e?.quote);
+      const visualWords = countWords(e?.visualDescription);
+      return sum + quoteWords + visualWords;
+    }, 0);
+    return {
+      code,
+      citationCount: evidence.length,
+      totalWordsCited: citedWords,
+      pageDistribution: pages,
+      pageSpread: pages.length,
+    };
+  });
+}
+
+function diffReferenceSnapshots(previous: any, current: any) {
+  if (!previous || !current) {
+    return {
+      changed: false,
+      reason: "no-previous-snapshot",
+      deltas: {},
+    };
+  }
+  const prev = previous || {};
+  const next = current || {};
+  const deltas: Record<string, { from: unknown; to: unknown }> = {};
+
+  const check = (key: string, from: unknown, to: unknown) => {
+    if (String(from ?? "") !== String(to ?? "")) {
+      deltas[key] = { from: from ?? null, to: to ?? null };
+    }
+  };
+
+  check("unit.id", prev?.unit?.id, next?.unit?.id);
+  check("specDocument.id", prev?.specDocument?.id, next?.specDocument?.id);
+  check("specDocument.version", prev?.specDocument?.version, next?.specDocument?.version);
+  check("specDocument.issueLabel", prev?.specDocument?.issueLabel, next?.specDocument?.issueLabel);
+  check("assignmentBrief.id", prev?.assignmentBrief?.id, next?.assignmentBrief?.id);
+  check(
+    "assignmentBrief.briefDocument.id",
+    prev?.assignmentBrief?.briefDocument?.id,
+    next?.assignmentBrief?.briefDocument?.id
+  );
+  check(
+    "assignmentBrief.briefDocument.version",
+    prev?.assignmentBrief?.briefDocument?.version,
+    next?.assignmentBrief?.briefDocument?.version
+  );
+
+  return {
+    changed: Object.keys(deltas).length > 0,
+    reason: Object.keys(deltas).length > 0 ? "reference-context-drift" : "no-drift",
+    deltas,
+  };
+}
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
@@ -377,7 +475,9 @@ export async function POST(
     tone?: string;
     strictness?: string;
     useRubricIfAvailable?: boolean;
+    dryRun?: boolean;
   };
+  const dryRun = !!body.dryRun;
   const actor = await getCurrentAuditActor();
 
   const { apiKey } = resolveOpenAiApiKey("preferStandard");
@@ -398,6 +498,7 @@ export async function POST(
           include: {
             unit: {
               include: {
+                specDocument: true,
                 learningOutcomes: {
                   include: { criteria: true },
                 },
@@ -575,6 +676,7 @@ export async function POST(
   const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
 
   const criteriaFromMap = brief.criteriaMaps.map((m) => ({
+    criterionId: m.assessmentCriterion.id,
     code: m.assessmentCriterion.acCode,
     band: m.assessmentCriterion.gradeBand,
     lo: m.assessmentCriterion.learningOutcome?.loCode || "",
@@ -586,6 +688,7 @@ export async function POST(
       ? criteriaFromMap
       : brief.unit.learningOutcomes.flatMap((lo) =>
           lo.criteria.map((c) => ({
+            criterionId: c.id,
             code: c.acCode,
             band: c.gradeBand,
             lo: lo.loCode,
@@ -680,6 +783,76 @@ export async function POST(
     "(No substantial extracted body text available. Use evidence-based caution.)";
   const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(modalityEvidenceText);
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
+  const extractionConfidence = Number(extractionGate.metrics?.overallConfidence || 0);
+  const extractionConfidenceScore = Number.isFinite(extractionConfidence)
+    ? Math.max(0, Math.min(1, extractionConfidence))
+    : 0;
+  const readinessChecklist = {
+    extractionCompleteness: extractionGate.ok,
+    studentLinked: !!submission.studentId,
+    assignmentLinked: !!submission.assignmentId,
+    lockedReferencesAvailable: !!brief.lockedAt && !!brief.unit?.lockedAt,
+    resubmissionStatusVerified: true,
+  };
+  const referenceContextSnapshot = {
+    capturedAt: new Date().toISOString(),
+    submissionId: submission.id,
+    unit: {
+      id: brief.unit.id,
+      unitCode: brief.unit.unitCode,
+      unitTitle: brief.unit.unitTitle,
+      status: brief.unit.status,
+      lockedAt: brief.unit.lockedAt?.toISOString?.() || null,
+      specIssue: brief.unit.specIssue || null,
+      specVersionLabel: brief.unit.specVersionLabel || null,
+    },
+    specDocument: brief.unit.specDocumentId
+      ? {
+          id: brief.unit.specDocumentId,
+          title: brief.unit.specDocument?.title || null,
+          version: brief.unit.specDocument?.version || null,
+          status: brief.unit.specDocument?.status || null,
+          issueLabel:
+            brief.unit.specVersionLabel ||
+            brief.unit.specIssue ||
+            ((brief.unit.specDocument?.sourceMeta as any)?.specVersionLabel || (brief.unit.specDocument?.sourceMeta as any)?.specIssue || null),
+          lockedAt: brief.unit.specDocument?.lockedAt?.toISOString?.() || null,
+        }
+      : null,
+    assignmentBrief: {
+      id: brief.id,
+      assignmentCode: brief.assignmentCode,
+      title: brief.title,
+      status: brief.status,
+      lockedAt: brief.lockedAt?.toISOString?.() || null,
+      briefDocument: brief.briefDocumentId
+        ? {
+            id: brief.briefDocumentId,
+            title: brief.briefDocument?.title || null,
+            version: brief.briefDocument?.version || null,
+            status: brief.briefDocument?.status || null,
+            lockedAt: brief.briefDocument?.lockedAt?.toISOString?.() || null,
+          }
+        : null,
+    },
+    criteriaUsed: criteria.map((c) => ({
+      criterionId: String((c as any).criterionId || ""),
+      code: String(c.code || ""),
+      band: String(c.band || ""),
+      lo: String(c.lo || ""),
+      description: String(c.description || ""),
+    })),
+  };
+  const gradingDefaultsSnapshot = {
+    tone,
+    strictness,
+    useRubricIfAvailable: useRubric,
+    model: cfg.model,
+    feedbackTemplateHash: createHash("sha256").update(String(cfg.feedbackTemplate || "")).digest("hex"),
+    resubmissionCapRuleActive: ["1", "true", "yes", "on"].includes(
+      String(process.env.GRADE_RESUBMISSION_CAP_ENABLED || "false").toLowerCase()
+    ),
+  };
 
   const prompt = [
     "You are an engineering assignment assessor.",
@@ -733,10 +906,12 @@ export async function POST(
   ].join("\n");
   const promptHash = createHash("sha256").update(prompt).digest("hex");
 
-  await prisma.submission.update({
-    where: { id: submission.id },
-    data: { status: "ASSESSING" },
-  });
+  if (!dryRun) {
+    await prisma.submission.update({
+      where: { id: submission.id },
+      data: { status: "ASSESSING" },
+    });
+  }
 
   try {
     const response = await fetchOpenAiJson(
@@ -871,7 +1046,13 @@ export async function POST(
       modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
     const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
 
-    const overallGrade = decision.overallGradeWord;
+    const gradePolicy = applyResubmissionCap(
+      decision.overallGradeWord,
+      Boolean(decision.resubmissionRequired),
+      gradingDefaultsSnapshot.resubmissionCapRuleActive
+    );
+    const rawOverallGrade = gradePolicy.rawGrade;
+    const overallGrade = gradePolicy.finalGrade;
     const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
     const feedbackSummary = sanitizeStudentFeedbackLine(feedbackSummaryRaw) || "Feedback provided below.";
     const feedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
@@ -884,9 +1065,23 @@ export async function POST(
     if (extractionMode === "COVER_ONLY") {
       systemNotes.push("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
     }
+    if (gradePolicy.wasCapped) {
+      systemNotes.push("Grade capped due to resubmission policy.");
+    }
+    const evidenceDensityByCriterion = buildEvidenceDensityByCriterion(decision.criterionChecks);
+    const evidenceDensitySummary = {
+      criteriaCount: evidenceDensityByCriterion.length,
+      totalCitations: evidenceDensityByCriterion.reduce((sum, row) => sum + Number(row.citationCount || 0), 0),
+      totalWordsCited: evidenceDensityByCriterion.reduce((sum, row) => sum + Number(row.totalWordsCited || 0), 0),
+      criteriaWithoutEvidence: evidenceDensityByCriterion.filter((row) => Number(row.citationCount || 0) === 0).length,
+    };
     const responseWithPolicy = {
       ...decision,
+      overallGradeWord: overallGrade,
+      overallGrade,
       confidence: finalConfidence,
+      rawOverallGradeWord: rawOverallGrade,
+      gradePolicy,
     };
     const completedAtIso = new Date().toISOString();
     const structuredGradingV2 = buildStructuredGradingV2(responseWithPolicy, {
@@ -915,6 +1110,68 @@ export async function POST(
           includeCriterionCode: cfg.pageNotesIncludeCriterionCode,
         })
       : [];
+
+    const previousAssessment = await prisma.assessment.findFirst({
+      where: { submissionId: submission.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        createdAt: true,
+        overallGrade: true,
+        resultJson: true,
+      },
+    });
+    const previousSnapshot = (previousAssessment?.resultJson as any)?.referenceContextSnapshot || null;
+    const rerunIntegrity = {
+      previousAssessmentId: previousAssessment?.id || null,
+      previousAssessmentAt: previousAssessment?.createdAt?.toISOString?.() || null,
+      previousOverallGrade: previousAssessment?.overallGrade || null,
+      snapshotDiff: diffReferenceSnapshots(previousSnapshot, referenceContextSnapshot),
+    };
+
+    if (dryRun) {
+      appendOpsEvent({
+        type: "GRADE_DRY_RUN_COMPLETED",
+        actor,
+        route: "/api/submissions/[submissionId]/grade",
+        status: 200,
+        details: {
+          requestId,
+          submissionId,
+          overallGrade,
+          rawOverallGrade,
+          confidence: finalConfidence,
+          referenceSnapshotCaptured: true,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          ok: true,
+          dryRun: true,
+          preview: {
+            overallGrade,
+            rawOverallGrade,
+            confidence: finalConfidence,
+            response: responseWithPolicy,
+            checklist: readinessChecklist,
+            gradePolicy: {
+              rawOverallGrade,
+              finalOverallGrade: overallGrade,
+              resubmissionRequired: Boolean(decision.resubmissionRequired),
+              wasCapped: gradePolicy.wasCapped,
+              capReason: gradePolicy.capReason,
+            },
+            evidenceDensitySummary,
+            referenceContextSnapshot,
+            gradingDefaultsSnapshot,
+            extractionGate,
+          },
+          requestId,
+        },
+        { headers: { "x-request-id": requestId } }
+      );
+    }
 
     let marked: { storagePath: string; absolutePath: string } | null = null;
     let markedPdfWarning: string | null = null;
@@ -960,6 +1217,7 @@ export async function POST(
           gradedBy: actor,
           model: cfg.model,
           gradingContractVersion: "v2-structured-evidence",
+          gradeRunSchemaVersion: "2.1",
           tone,
           strictness,
           useRubric,
@@ -997,6 +1255,23 @@ export async function POST(
           submissionAssessmentEvidence,
           modalityCompliance,
           systemNotes,
+          readinessChecklist,
+          referenceContextSnapshot,
+          gradingDefaultsSnapshot,
+          confidenceSignals: {
+            extractionConfidence: extractionConfidenceScore,
+            gradingConfidence: finalConfidence,
+          },
+          gradePolicy: {
+            rawOverallGrade,
+            finalOverallGrade: overallGrade,
+            resubmissionRequired: Boolean(decision.resubmissionRequired),
+            wasCapped: gradePolicy.wasCapped,
+            capReason: gradePolicy.capReason,
+          },
+          evidenceDensityByCriterion,
+          evidenceDensitySummary,
+          rerunIntegrity,
           confidencePolicy: {
             mode: "cap",
             cap: confidenceCap,
@@ -1039,6 +1314,11 @@ export async function POST(
           overlapRatio: criteriaAlignment.overlapRatio,
           mismatchCount: criteriaAlignment.mismatchCount,
         },
+        rerunIntegrity: {
+          previousAssessmentId: rerunIntegrity.previousAssessmentId,
+          driftDetected: rerunIntegrity.snapshotDiff.changed,
+          driftReason: rerunIntegrity.snapshotDiff.reason,
+        },
       },
     });
 
@@ -1065,10 +1345,12 @@ export async function POST(
     const userMessage = isModelOutputError
       ? "Grading model output did not match required schema. Retry grading or adjust model/settings."
       : `Grading failed: ${causeMessage}`;
-    await prisma.submission.update({
-      where: { id: submission.id },
-      data: { status: "FAILED" },
-    });
+    if (!dryRun) {
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: "FAILED" },
+      });
+    }
     appendOpsEvent({
       type: "GRADE_FAILED",
       actor,

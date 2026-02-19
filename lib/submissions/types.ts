@@ -56,6 +56,17 @@ export type SubmissionRow = {
       extractionMode: string;
     };
   } | null;
+  qaFlags?: {
+    shouldReview: boolean;
+    reasons: string[];
+    metrics: {
+      gradingConfidence: number | null;
+      extractionConfidence: number | null;
+      totalCitations: number;
+      criteriaWithoutEvidence: number;
+      rerunDriftDetected: boolean;
+    };
+  } | null;
 };
 
 export type TriageResponse = {

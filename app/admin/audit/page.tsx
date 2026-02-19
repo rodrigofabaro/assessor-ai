@@ -25,6 +25,39 @@ type AuditResponse = {
   generatedAt: string;
 };
 
+type OpsEvent = {
+  ts?: string;
+  type?: string;
+  details?: {
+    requestId?: string;
+    dryRun?: boolean;
+    targeted?: number;
+    succeeded?: number;
+    failed?: number;
+    previewContext?: {
+      linkedPreviewRequestId?: string | null;
+      linkedPreviewAt?: string | null;
+      queueSizeAtPreview?: number | null;
+    };
+  };
+};
+
+type OpsEventsResponse = {
+  ok?: boolean;
+  events?: OpsEvent[];
+};
+
+type QaIntegrityRow = {
+  commitRequestId: string;
+  commitTs: string;
+  previewRequestId: string;
+  previewTs: string | null;
+  previewFound: boolean;
+  targeted: number;
+  succeeded: number;
+  failed: number;
+};
+
 function fmtDate(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -44,6 +77,7 @@ export default function AdminAuditPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<AuditResponse | null>(null);
+  const [opsEvents, setOpsEvents] = useState<OpsEvent[]>([]);
 
   async function load() {
     setBusy(true);
@@ -54,13 +88,19 @@ export default function AdminAuditPage() {
         type,
         take: String(take),
       });
-      const res = await fetch(`/api/admin/audit?${params.toString()}`, { cache: "no-store" });
+      const [res, opsRes] = await Promise.all([
+        fetch(`/api/admin/audit?${params.toString()}`, { cache: "no-store" }),
+        fetch("/api/admin/ops/events?limit=400", { cache: "no-store" }),
+      ]);
       const json = (await res.json()) as AuditResponse & { error?: string };
       if (!res.ok) throw new Error(json?.error || `Audit fetch failed (${res.status})`);
+      const opsJson = (await opsRes.json().catch(() => ({}))) as OpsEventsResponse & { error?: string };
       setData(json);
+      setOpsEvents(Array.isArray(opsJson?.events) ? opsJson.events : []);
     } catch (e: any) {
       setError(e?.message || "Failed to load audit events.");
       setData(null);
+      setOpsEvents([]);
     } finally {
       setBusy(false);
     }
@@ -73,6 +113,36 @@ export default function AdminAuditPage() {
 
   const events = data?.events || [];
   const typeOptions = useMemo(() => ["ALL", ...(data?.typeOptions || [])], [data?.typeOptions]);
+  const qaIntegrityRows = useMemo<QaIntegrityRow[]>(() => {
+    const batchRuns = opsEvents.filter((e) => String(e?.type || "") === "BATCH_GRADE_RUN");
+    const previewByRequestId = new Map<string, OpsEvent>();
+    for (const e of batchRuns) {
+      const rid = String(e?.details?.requestId || "").trim();
+      if (!rid) continue;
+      if (e?.details?.dryRun) previewByRequestId.set(rid, e);
+    }
+    const rows: QaIntegrityRow[] = [];
+    for (const e of batchRuns) {
+      if (e?.details?.dryRun) continue;
+      const commitRequestId = String(e?.details?.requestId || "").trim();
+      const previewRequestId = String(e?.details?.previewContext?.linkedPreviewRequestId || "").trim();
+      if (!previewRequestId) continue;
+      const preview = previewByRequestId.get(previewRequestId) || null;
+      rows.push({
+        commitRequestId,
+        commitTs: String(e?.ts || ""),
+        previewRequestId,
+        previewTs: preview?.ts || null,
+        previewFound: !!preview,
+        targeted: Number(e?.details?.targeted || 0),
+        succeeded: Number(e?.details?.succeeded || 0),
+        failed: Number(e?.details?.failed || 0),
+      });
+    }
+    rows.sort((a, b) => new Date(b.commitTs).getTime() - new Date(a.commitTs).getTime());
+    return rows.slice(0, 40);
+  }, [opsEvents]);
+  const missingPreviewLinks = qaIntegrityRows.filter((r) => !r.previewFound).length;
 
   return (
     <div className="grid min-w-0 gap-4">
@@ -140,6 +210,66 @@ export default function AdminAuditPage() {
       {error ? (
         <section className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</section>
       ) : null}
+
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-zinc-900">QA Preview to Commit Integrity</h2>
+            <div className="text-xs text-zinc-600">
+              Linked commits: {qaIntegrityRows.length} · Missing preview link: {missingPreviewLinks}
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0">
+            <thead>
+              <tr className="text-left text-xs font-semibold text-zinc-700">
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Commit run</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Preview run</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Batch outcome</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Integrity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {qaIntegrityRows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-zinc-600">
+                    No linked QA commit runs found yet.
+                  </td>
+                </tr>
+              ) : (
+                qaIntegrityRows.map((row) => (
+                  <tr key={`${row.commitRequestId}-${row.previewRequestId}`} className="text-sm">
+                    <td className="border-b border-zinc-100 px-4 py-3">
+                      <div className="font-medium text-zinc-900">{fmtDate(row.commitTs)}</div>
+                      <div className="mt-1 font-mono text-xs text-zinc-600">{row.commitRequestId || "—"}</div>
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3">
+                      <div className="font-medium text-zinc-900">{row.previewTs ? fmtDate(row.previewTs) : "Not found"}</div>
+                      <div className="mt-1 font-mono text-xs text-zinc-600">{row.previewRequestId}</div>
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      targeted {row.targeted} · success {row.succeeded} · failed {row.failed}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3">
+                      <span
+                        className={
+                          "inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                          (row.previewFound
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : "border-red-200 bg-red-50 text-red-800")
+                        }
+                      >
+                        {row.previewFound ? "LINKED" : "MISSING_PREVIEW"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="overflow-x-auto">

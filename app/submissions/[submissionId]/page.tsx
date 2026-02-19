@@ -84,6 +84,28 @@ type GradingConfig = {
   feedbackTemplate?: string;
 };
 
+type GradePreview = {
+  overallGrade?: string;
+  rawOverallGrade?: string;
+  confidence?: number;
+  response?: any;
+  checklist?: Record<string, boolean>;
+  gradePolicy?: {
+    rawOverallGrade?: string;
+    finalOverallGrade?: string;
+    resubmissionRequired?: boolean;
+    wasCapped?: boolean;
+    capReason?: string | null;
+  };
+  evidenceDensitySummary?: {
+    criteriaCount?: number;
+    totalCitations?: number;
+    totalWordsCited?: number;
+    criteriaWithoutEvidence?: number;
+  };
+  referenceContextSnapshot?: any;
+};
+
 type AppConfigPayload = {
   activeAuditUser?: { fullName?: string | null } | null;
 };
@@ -140,6 +162,7 @@ export default function SubmissionDetailPage() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [gradingBusy, setGradingBusy] = useState(false);
+  const [gradingPreview, setGradingPreview] = useState<GradePreview | null>(null);
   const [gradingCfg, setGradingCfg] = useState<GradingConfig | null>(null);
   const [tone, setTone] = useState<GradingConfig["tone"]>("professional");
   const [strictness, setStrictness] = useState<GradingConfig["strictness"]>("balanced");
@@ -323,6 +346,48 @@ export default function SubmissionDetailPage() {
     }
     return diff.length ? diff : null;
   }, [gradingHistory, selectedAssessment]);
+  const selectedResultJson = useMemo(() => {
+    const rj = selectedAssessment?.resultJson;
+    return rj && typeof rj === "object" ? (rj as Record<string, any>) : ({} as Record<string, any>);
+  }, [selectedAssessment]);
+  const gradeRunConfidenceSignals = useMemo(() => {
+    const signals = selectedResultJson?.confidenceSignals || {};
+    const extraction = Number(signals?.extractionConfidence);
+    const grading = Number(signals?.gradingConfidence);
+    return {
+      extraction: Number.isFinite(extraction) ? extraction : null,
+      grading: Number.isFinite(grading) ? grading : null,
+    };
+  }, [selectedResultJson]);
+  const gradeRunPolicy = useMemo(() => {
+    const gp = selectedResultJson?.gradePolicy || null;
+    return gp && typeof gp === "object" ? gp : null;
+  }, [selectedResultJson]);
+  const gradeRunReferenceSnapshot = useMemo(() => {
+    const snapshot = selectedResultJson?.referenceContextSnapshot || null;
+    return snapshot && typeof snapshot === "object" ? snapshot : null;
+  }, [selectedResultJson]);
+  const gradeRunEvidenceDensityRows = useMemo(() => {
+    const rows = selectedResultJson?.evidenceDensityByCriterion;
+    return Array.isArray(rows) ? rows : [];
+  }, [selectedResultJson]);
+  const gradeRunEvidenceDensitySummary = useMemo(() => {
+    const summary = selectedResultJson?.evidenceDensitySummary || {};
+    return {
+      criteriaCount: Number(summary?.criteriaCount || 0),
+      totalCitations: Number(summary?.totalCitations || 0),
+      totalWordsCited: Number(summary?.totalWordsCited || 0),
+      criteriaWithoutEvidence: Number(summary?.criteriaWithoutEvidence || 0),
+    };
+  }, [selectedResultJson]);
+  const gradeRunRerunIntegrity = useMemo(() => {
+    const v = selectedResultJson?.rerunIntegrity || null;
+    return v && typeof v === "object" ? v : null;
+  }, [selectedResultJson]);
+  const gradeRunReadinessChecklist = useMemo(() => {
+    const v = selectedResultJson?.readinessChecklist || null;
+    return v && typeof v === "object" ? v : null;
+  }, [selectedResultJson]);
 
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
@@ -344,7 +409,7 @@ export default function SubmissionDetailPage() {
       { key: "student", label: "Student linked", ok: studentLinked, hint: "Link or create student profile." },
       { key: "assignment", label: "Assignment linked", ok: assignmentLinked, hint: "Confirm brief/spec binding." },
       { key: "extraction", label: "Extraction complete", ok: extractionComplete, hint: "Run extraction and review warnings." },
-      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Run grading." },
+      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Run preview, then commit grade." },
       { key: "feedback", label: "Feedback generated", ok: feedbackGenerated, hint: "Ensure feedback text is present." },
       { key: "marked", label: "Marked PDF", ok: markedPdfGenerated, hint: "Generate marked PDF from grading run." },
     ];
@@ -517,8 +582,9 @@ export default function SubmissionDetailPage() {
     }
   }
 
-  async function runGrading() {
+  async function runGrading(options?: { dryRun?: boolean }) {
     if (!submissionId) return;
+    const dryRun = !!options?.dryRun;
     setGradingBusy(true);
     setErr("");
     setMsg("");
@@ -530,14 +596,25 @@ export default function SubmissionDetailPage() {
           tone,
           strictness,
           useRubricIfAvailable: useRubric,
+          dryRun,
         }),
       });
-      await refresh();
-      setMsg(`Grading complete: ${String(res?.assessment?.overallGrade || "done")}`);
-      notifyToast("success", "Grading complete.");
-      setPdfView("marked");
-      openAndScroll("outputs");
-      setLastActionNote(`Grading completed at ${new Date().toLocaleString()}`);
+      if (dryRun) {
+        setGradingPreview((res?.preview || null) as GradePreview | null);
+        setMsg(
+          `Preview ready: ${String(res?.preview?.overallGrade || "unknown")} · confidence ${Number(res?.preview?.confidence || 0).toFixed(2)}`
+        );
+        notifyToast("success", "Grading preview generated.");
+        setLastActionNote(`Preview generated at ${new Date().toLocaleString()}`);
+      } else {
+        setGradingPreview(null);
+        await refresh();
+        setMsg(`Grading complete: ${String(res?.assessment?.overallGrade || "done")}`);
+        notifyToast("success", "Grading complete.");
+        setPdfView("marked");
+        openAndScroll("outputs");
+        setLastActionNote(`Grading committed at ${new Date().toLocaleString()}`);
+      }
     } catch (e: any) {
       const message = e?.message || "Grading failed.";
       setErr(message);
@@ -756,6 +833,7 @@ export default function SubmissionDetailPage() {
     !!submission?.assignment &&
     (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
     !gradingBusy;
+  const canCommitPreview = !!gradingPreview && canRunGrading && !gradingBusy;
   const extractionComplete = latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR";
   const extractionRunning = busy || submission?.status === "EXTRACTING";
   const gradingDisabledReason = gradingBusy
@@ -770,7 +848,7 @@ export default function SubmissionDetailPage() {
   const primaryActionLabel = gradingBusy
     ? "Grading…"
     : canRunGrading
-      ? "Run grading"
+      ? "Run preview"
       : !extractionComplete
         ? extractionRunning
           ? "Extracting…"
@@ -778,7 +856,7 @@ export default function SubmissionDetailPage() {
         : "Review blockers";
   const primaryActionDisabled = gradingBusy || extractionRunning;
   const runPrimaryAction = () => {
-    if (canRunGrading) return void runGrading();
+    if (canRunGrading) return void runGrading({ dryRun: true });
     if (!extractionComplete) return void runExtraction();
     scrollToPanel(workflowPanelRef.current);
   };
@@ -789,7 +867,7 @@ export default function SubmissionDetailPage() {
     if (item.key === "assignment") return openAndScroll("assignment");
     if (item.key === "extraction") return void runExtraction();
     if (item.key === "grade") {
-      if (canRunGrading) return void runGrading();
+      if (canRunGrading) return void runGrading({ dryRun: true });
       return scrollToPanel(gradingPanelRef.current);
     }
     if (item.key === "feedback" || item.key === "marked") return openAndScroll("outputs");
@@ -983,7 +1061,7 @@ export default function SubmissionDetailPage() {
   useEffect(() => {
     if (!runGradeWhenReady) return;
     if (!canRunGrading) return;
-    void runGrading();
+    void runGrading({ dryRun: true });
     setRunGradeWhenReady(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runGradeWhenReady, canRunGrading]);
@@ -1002,7 +1080,7 @@ export default function SubmissionDetailPage() {
         void runExtraction();
       } else if (k === "g") {
         e.preventDefault();
-        if (canRunGrading) void runGrading();
+        if (canRunGrading) void runGrading({ dryRun: true });
       } else if (k === "s") {
         e.preventDefault();
         toggleStudentPanel();
@@ -1170,7 +1248,7 @@ export default function SubmissionDetailPage() {
             <div className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
               <div><span className="font-semibold text-zinc-900">?</span> Toggle this shortcuts panel</div>
               <div><span className="font-semibold text-zinc-900">E</span> Run extraction</div>
-              <div><span className="font-semibold text-zinc-900">G</span> Run grading (when ready)</div>
+              <div><span className="font-semibold text-zinc-900">G</span> Run grading preview (when ready)</div>
               <div><span className="font-semibold text-zinc-900">S</span> Toggle student panel</div>
             </div>
           </div>
@@ -1246,8 +1324,8 @@ export default function SubmissionDetailPage() {
               label: "Grade",
               value: latestAssessment?.overallGrade || "Pending",
               actionable: true,
-              actionLabel: canRunGrading ? "Run grading" : "Open checklist",
-              onAction: canRunGrading ? () => void runGrading() : () => scrollToPanel(workflowPanelRef.current),
+              actionLabel: canRunGrading ? "Run preview" : "Open checklist",
+              onAction: canRunGrading ? () => void runGrading({ dryRun: true }) : () => scrollToPanel(workflowPanelRef.current),
             },
             { key: "gradedBy", label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—"), actionable: false },
             { key: "uploaded", label: "Uploaded", value: safeDate(submission?.uploadedAt), actionable: false },
@@ -1398,7 +1476,7 @@ export default function SubmissionDetailPage() {
         <div className="order-1 grid gap-4 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
           <div className="order-1 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Quick actions</div>
-            <div className="mt-1 text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> grade, <span className="font-semibold">?</span> help</div>
+            <div className="mt-1 text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview, <span className="font-semibold">?</span> help</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
@@ -1420,14 +1498,26 @@ export default function SubmissionDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={runGrading}
+                onClick={() => void runGrading({ dryRun: true })}
                 disabled={!canRunGrading}
                 className={cx(
                   "h-7 rounded-md px-2.5 text-[11px] font-semibold",
                   canRunGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
               >
-                Run grading
+                Run preview
+              </button>
+              <button
+                type="button"
+                onClick={() => void runGrading({ dryRun: false })}
+                disabled={!canCommitPreview}
+                className={cx(
+                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
+                  canCommitPreview ? "bg-emerald-700 text-white hover:bg-emerald-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                )}
+                title={!gradingPreview ? "Run preview first." : "Commit previewed grade"}
+              >
+                Commit grade
               </button>
             </div>
             <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
@@ -1437,8 +1527,23 @@ export default function SubmissionDetailPage() {
                 checked={runGradeWhenReady}
                 onChange={(e) => setRunGradeWhenReady(e.target.checked)}
               />
-              Run grading when ready
+              Run preview when ready
             </label>
+            {gradingPreview ? (
+              <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 p-2 text-[11px] text-emerald-900">
+                <div className="font-semibold">
+                  Preview: {String(gradingPreview.overallGrade || "—")}{" "}
+                  {typeof gradingPreview.confidence === "number" ? `· confidence ${gradingPreview.confidence.toFixed(2)}` : ""}
+                </div>
+                {gradingPreview.gradePolicy?.wasCapped ? (
+                  <div className="mt-0.5">Capped by policy: {String(gradingPreview.gradePolicy.capReason || "yes")}</div>
+                ) : null}
+                <div className="mt-0.5">
+                  Citations: {Number(gradingPreview.evidenceDensitySummary?.totalCitations || 0)} · Criteria without evidence:{" "}
+                  {Number(gradingPreview.evidenceDensitySummary?.criteriaWithoutEvidence || 0)}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <details
@@ -1916,6 +2021,133 @@ export default function SubmissionDetailPage() {
                     ))}
                   </ul>
                 </div>
+              ) : null}
+              {(gradeRunConfidenceSignals.extraction !== null || gradeRunConfidenceSignals.grading !== null || gradeRunPolicy) ? (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                  <div className="font-semibold text-zinc-800">GradeRun v2 signals</div>
+                  <div className="mt-1 grid gap-1 md:grid-cols-2">
+                    <div>
+                      Extraction confidence:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {gradeRunConfidenceSignals.extraction === null ? "—" : gradeRunConfidenceSignals.extraction.toFixed(2)}
+                      </span>
+                    </div>
+                    <div>
+                      Grading confidence:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {gradeRunConfidenceSignals.grading === null ? "—" : gradeRunConfidenceSignals.grading.toFixed(2)}
+                      </span>
+                    </div>
+                    {gradeRunPolicy ? (
+                      <>
+                        <div>
+                          Raw grade: <span className="font-semibold text-zinc-900">{String(gradeRunPolicy.rawOverallGrade || "—")}</span>
+                        </div>
+                        <div>
+                          Final grade: <span className="font-semibold text-zinc-900">{String(gradeRunPolicy.finalOverallGrade || "—")}</span>
+                        </div>
+                        {gradeRunPolicy.wasCapped ? (
+                          <div className="md:col-span-2 text-amber-800">
+                            Policy cap applied: {String(gradeRunPolicy.capReason || "CAPPED_DUE_TO_RESUBMISSION")}
+                          </div>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+              {gradeRunReadinessChecklist ? (
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Grade Readiness Checklist
+                  </summary>
+                  <div className="mt-2 grid gap-1 text-xs text-zinc-700">
+                    {Object.entries(gradeRunReadinessChecklist).map(([key, ok]) => (
+                      <div key={`rr-${key}`} className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                        <span className="capitalize text-zinc-800">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                        <span className={cx("font-semibold", Boolean(ok) ? "text-emerald-700" : "text-amber-700")}>
+                          {Boolean(ok) ? "Yes" : "No"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+              {gradeRunReferenceSnapshot ? (
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Reference Context Snapshot
+                  </summary>
+                  <div className="mt-2 grid gap-1 text-xs text-zinc-700">
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Unit: {String(gradeRunReferenceSnapshot?.unit?.unitCode || "—")} · Spec doc:{" "}
+                      {String(gradeRunReferenceSnapshot?.specDocument?.id || "—")} · Version:{" "}
+                      {String(gradeRunReferenceSnapshot?.specDocument?.version || "—")}
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Brief: {String(gradeRunReferenceSnapshot?.assignmentBrief?.assignmentCode || "—")} · Doc:{" "}
+                      {String(gradeRunReferenceSnapshot?.assignmentBrief?.briefDocument?.id || "—")} · Version:{" "}
+                      {String(gradeRunReferenceSnapshot?.assignmentBrief?.briefDocument?.version || "—")}
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Criteria captured: {Array.isArray(gradeRunReferenceSnapshot?.criteriaUsed) ? gradeRunReferenceSnapshot.criteriaUsed.length : 0}
+                    </div>
+                  </div>
+                </details>
+              ) : null}
+              {(gradeRunEvidenceDensityRows.length > 0 || gradeRunEvidenceDensitySummary.totalCitations > 0) ? (
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Evidence Density · Citations {gradeRunEvidenceDensitySummary.totalCitations} · Missing {gradeRunEvidenceDensitySummary.criteriaWithoutEvidence}
+                  </summary>
+                  <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700">
+                    Criteria: {gradeRunEvidenceDensitySummary.criteriaCount} · Words cited: {gradeRunEvidenceDensitySummary.totalWordsCited}
+                  </div>
+                  {gradeRunEvidenceDensityRows.length ? (
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-zinc-50 text-zinc-600">
+                          <tr>
+                            <th className="border border-zinc-200 px-2 py-1 text-left">Criterion</th>
+                            <th className="border border-zinc-200 px-2 py-1 text-left">Citations</th>
+                            <th className="border border-zinc-200 px-2 py-1 text-left">Words</th>
+                            <th className="border border-zinc-200 px-2 py-1 text-left">Pages</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {gradeRunEvidenceDensityRows.slice(0, 40).map((row: any, i: number) => (
+                            <tr key={`ed-${i}`}>
+                              <td className="border border-zinc-200 px-2 py-1">{String(row?.code || "—")}</td>
+                              <td className="border border-zinc-200 px-2 py-1">{Number(row?.citationCount || 0)}</td>
+                              <td className="border border-zinc-200 px-2 py-1">{Number(row?.totalWordsCited || 0)}</td>
+                              <td className="border border-zinc-200 px-2 py-1">
+                                {Array.isArray(row?.pageDistribution) ? row.pageDistribution.join(", ") : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </details>
+              ) : null}
+              {gradeRunRerunIntegrity ? (
+                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Re-run Integrity
+                  </summary>
+                  <div className="mt-2 text-xs text-zinc-700">
+                    Previous run: {String(gradeRunRerunIntegrity?.previousAssessmentId || "None")} · Drift:{" "}
+                    <span className={cx("font-semibold", gradeRunRerunIntegrity?.snapshotDiff?.changed ? "text-amber-800" : "text-emerald-800")}>
+                      {gradeRunRerunIntegrity?.snapshotDiff?.changed ? "Detected" : "No drift"}
+                    </span>
+                  </div>
+                  {gradeRunRerunIntegrity?.snapshotDiff?.changed && gradeRunRerunIntegrity?.snapshotDiff?.deltas ? (
+                    <pre className="mt-2 max-h-40 overflow-auto rounded-md border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                      {JSON.stringify(gradeRunRerunIntegrity.snapshotDiff.deltas, null, 2)}
+                    </pre>
+                  ) : null}
+                </details>
               ) : null}
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Selected grade</span>

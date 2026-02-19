@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-zinc-200/40 bg-zinc-50">
           <div className={LANE + " py-1.5"}>
             <div className="text-center text-[11px] leading-4 text-zinc-400">
-              Assessor AI · v0.2 · © {new Date().getFullYear()} Rodrigo
+              Assessor AI · v0.3 · © {new Date().getFullYear()} Rodrigo
             </div>
           </div>
         </footer>

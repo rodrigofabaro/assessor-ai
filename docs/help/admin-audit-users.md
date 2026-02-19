@@ -10,12 +10,19 @@ Use `/admin/qa` for trend analysis and reporting; use `/admin/audit` for event-l
 - Filter and search events
 - Inspect event metadata
 - Open linked submission/reference records
+- Review `QA Preview to Commit Integrity` links for batch grading defensibility
 
 ### Notable events
 - Extraction transitions
 - Grading completed
 - Feedback edited (`FEEDBACK_EDITED`)
 - Reference lock/failure activity
+- Batch grading runs (`BATCH_GRADE_RUN`) with linked preview context for QA lane commits
+
+### QA integrity panel
+- Shows recent commit batch runs that claim a linked dry-run preview.
+- Displays both request IDs (commit and preview), outcome totals, and a link status.
+- `MISSING_PREVIEW` means the commit references a preview request ID that is not present in loaded ops logs and should be investigated.
 
 ## `/admin/users`
 
