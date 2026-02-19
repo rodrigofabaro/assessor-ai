@@ -240,9 +240,9 @@ export default async function HomePage() {
                 </Pill>
               </div>
 
-              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Assessor AI</h1>
+              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Assessor AI Grading Platform</h1>
               <p className="mt-2 max-w-2xl text-sm text-zinc-700 leading-relaxed">
-                Lock references first (specs + brief mappings), then grade submissions consistently against the right criteria — with a paper trail.
+                This system runs a governed grading pipeline: extract and lock specs, extract/map and lock briefs, grade against the locked context, then publish student-facing feedback that excludes internal system controls.
               </p>
             </div>
 
@@ -251,13 +251,13 @@ export default async function HomePage() {
                 href="/upload"
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800"
               >
-                Go to Upload
+                Start Intake
               </Link>
               <Link
                 href="/admin"
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50"
               >
-                Go to Admin
+                Open Admin Control
               </Link>
             </div>
           </div>
@@ -266,28 +266,28 @@ export default async function HomePage() {
             <CardLink
               href="/admin/specs"
               title="Spec Library"
-              desc="Upload unit specs, extract LOs + criteria, then Approve & Lock the authoritative versions used by grading."
+              desc="Build canonical unit structure. Extract LO and criteria, verify completeness, then lock versioned specs used by all brief mappings."
               tone="cyan"
               icon="book"
             />
             <CardLink
               href="/admin/briefs"
               title="Briefs Library"
-              desc="Upload briefs, extract structure, link to a locked spec, then confirm mapping/rubric before locking."
+              desc="Extract assignment briefs, validate mapping health and LO coverage, set any governed scope exclusions, then lock before live use."
               tone="emerald"
               icon="doc"
             />
             <CardLink
               href="/upload"
               title="Upload"
-              desc="Upload student submissions (single or batch). When grading runs, it uses the locked references."
+              desc="Ingest student evidence, resolve student/assignment links, and move safe rows into queue lanes for auto-ready or manual review."
               tone="sky"
               icon="upload"
             />
             <CardLink
               href="/admin/students"
               title="Students"
-              desc="Student records and submission tracking (grading history later)."
+              desc="Maintain learner records and linkage integrity to prevent wrong-student or wrong-assignment grading context."
               tone="amber"
               icon="users"
             />
@@ -305,7 +305,7 @@ export default async function HomePage() {
         <div className="flex items-end justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-zinc-900">Admin workspace shortcuts</h2>
-            <p className="mt-1 text-sm text-zinc-700">Primary admin sections available from the top navigation.</p>
+            <p className="mt-1 text-sm text-zinc-700">Governance modules for QA, locking, bindings, audit history, and platform settings.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
@@ -342,31 +342,58 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm md:grid-cols-2">
+        <article className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <h2 className="text-sm font-semibold text-indigo-900">QA system</h2>
+          <p className="mt-1 text-sm text-indigo-900/90">
+            QA is where you review grading quality, confidence, and consistency before large-scale release decisions.
+          </p>
+          <p className="mt-1 text-xs text-indigo-900/80">
+            Use this queue QA path: Submissions, then QA review only, then Preview QA lane, then Commit QA lane.
+          </p>
+          <Link href="/admin/qa" className="mt-3 inline-flex h-8 items-center rounded-lg border border-indigo-300 bg-white px-3 text-xs font-semibold text-indigo-900 hover:bg-indigo-100">
+            Open QA workspace
+          </Link>
+        </article>
+        <article className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h2 className="text-sm font-semibold text-amber-900">Audit system</h2>
+          <p className="mt-1 text-sm text-amber-900/90">
+            Audit provides event traceability for extraction, scope changes, grading runs, and feedback edits.
+          </p>
+          <p className="mt-1 text-xs text-amber-900/80">
+            Use it to investigate failures, confirm who changed what, and support moderation evidence.
+          </p>
+          <Link href="/admin/audit" className="mt-3 inline-flex h-8 items-center rounded-lg border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-900 hover:bg-amber-100">
+            Open audit log
+          </Link>
+        </article>
+      </section>
+
       {/* Workflow */}
       <section className="grid gap-3">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-zinc-900">How it works</h2>
-            <p className="mt-1 text-sm text-zinc-700">Keep it boring on purpose: references first, then submissions, then grading.</p>
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-900">Operational pipeline</h2>
+            <p className="mt-1 text-sm text-zinc-700">Follow this order to keep grading reliable: lock references, validate brief mapping, process submissions, review outputs.</p>
           </div>
-          <div className="hidden sm:block text-xs text-zinc-500">Upload → Extract → Review → Lock → Grade</div>
+          <div className="hidden sm:block text-xs text-zinc-500">Extract → Review → Lock → Upload → Grade</div>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-3">
           <Step
             n="1"
             title="Lock your unit specs"
-            desc="In Spec Library, extract learning outcomes and P/M/D criteria from the spec, then Approve & Lock."
+            desc="In Spec Library, extract learning outcomes and P/M/D criteria, fix extraction defects, then approve and lock."
           />
           <Step
             n="2"
             title="Prepare briefs for grading"
-            desc="In Briefs Library, link each brief to the correct locked spec, confirm mappings/rubric, then Approve & Lock."
+            desc="In Briefs Library, link each brief to the correct locked spec, validate mapping health, and lock only after gates pass."
           />
           <Step
             n="3"
-            title="Upload submissions"
-            desc="Upload student work. When grading runs, it uses the locked references — no drift, no guessing."
+            title="Run submission workflow"
+            desc="Upload evidence, process queue lanes, run grading, review page-level notes and overall feedback, then release student-safe outputs."
           />
         </div>
       </section>

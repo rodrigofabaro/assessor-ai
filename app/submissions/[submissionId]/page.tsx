@@ -371,6 +371,27 @@ export default function SubmissionDetailPage() {
     const gp = selectedResultJson?.gradePolicy || null;
     return gp && typeof gp === "object" ? gp : null;
   }, [selectedResultJson]);
+  const gradeRunConfidencePolicy = useMemo(() => {
+    const cp = selectedResultJson?.confidencePolicy || null;
+    return cp && typeof cp === "object" ? cp : null;
+  }, [selectedResultJson]);
+  const gradeRunCriteriaSnapshot = useMemo(() => {
+    const snap = selectedResultJson?.criteriaSnapshot || null;
+    return snap && typeof snap === "object" ? snap : null;
+  }, [selectedResultJson]);
+  const gradeRunExcludedCriteriaCodes = useMemo(() => {
+    const arr = Array.isArray(gradeRunCriteriaSnapshot?.excludedCriteriaCodes)
+      ? gradeRunCriteriaSnapshot.excludedCriteriaCodes
+      : [];
+    const normalized = Array.from(
+      new Set(
+        arr
+          .map((v: unknown) => String(v || "").trim().toUpperCase())
+          .filter((v: string) => /^[PMD]\d{1,2}$/.test(v))
+      )
+    ) as string[];
+    return normalized.sort((a, b) => a.localeCompare(b));
+  }, [gradeRunCriteriaSnapshot]);
   const gradeCapDetailTooltip = useMemo(() => {
     const missing = gradeRunPolicy?.criteriaBandCap?.missing || {};
     const pass = Array.isArray(missing?.pass) ? missing.pass.filter(Boolean) : [];
@@ -432,6 +453,10 @@ export default function SubmissionDetailPage() {
       issues.push(`Policy cap applied (${String(gradeRunPolicy.capReason || "rule")})`);
       score += 2;
     }
+    if (gradeRunExcludedCriteriaCodes.length > 0) {
+      issues.push(`Brief has excluded grading criteria (${gradeRunExcludedCriteriaCodes.join(", ")})`);
+      score += 1;
+    }
     if (gradeRunConfidenceSignals.extraction !== null) {
       if (gradeRunConfidenceSignals.extraction < 0.65) {
         issues.push(`Low extraction confidence (${gradeRunConfidenceSignals.extraction.toFixed(2)})`);
@@ -471,6 +496,7 @@ export default function SubmissionDetailPage() {
   }, [
     feedbackDirty,
     gradeRunPolicy,
+    gradeRunExcludedCriteriaCodes,
     gradeRunConfidenceSignals,
     gradeRunEvidenceDensitySummary,
     gradeRunReadinessChecklist,
@@ -2217,7 +2243,10 @@ export default function SubmissionDetailPage() {
                   </ul>
                 </div>
               ) : null}
-              {(gradeRunConfidenceSignals.extraction !== null || gradeRunConfidenceSignals.grading !== null || gradeRunPolicy) ? (
+              {(gradeRunConfidenceSignals.extraction !== null ||
+                gradeRunConfidenceSignals.grading !== null ||
+                gradeRunPolicy ||
+                gradeRunExcludedCriteriaCodes.length > 0) ? (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
                   <div className="font-semibold text-zinc-800">GradeRun v2 signals</div>
                   <div className="mt-1 grid gap-1 md:grid-cols-2">
@@ -2248,8 +2277,96 @@ export default function SubmissionDetailPage() {
                         ) : null}
                       </>
                     ) : null}
+                    {gradeRunExcludedCriteriaCodes.length > 0 ? (
+                      <div className="md:col-span-2 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-rose-900">
+                        Excluded criteria in this run: {gradeRunExcludedCriteriaCodes.join(", ")}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
+              ) : null}
+              {gradeRunConfidencePolicy ? (
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                    Confidence Decomposition
+                  </summary>
+                  <div className="mt-2 grid gap-1 text-xs text-zinc-700 md:grid-cols-2">
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Final confidence:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {Number(gradeRunConfidencePolicy?.finalConfidence || 0).toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Weighted base:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {Number(gradeRunConfidencePolicy?.weightedBaseConfidence || 0).toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Raw before caps:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {Number(gradeRunConfidencePolicy?.rawConfidenceBeforeCaps || 0).toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Capped:{" "}
+                      <span className={cx("font-semibold", gradeRunConfidencePolicy?.wasCapped ? "text-amber-800" : "text-emerald-800")}>
+                        {gradeRunConfidencePolicy?.wasCapped ? "Yes" : "No"}
+                      </span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Model confidence:{" "}
+                      <span className="font-semibold text-zinc-900">{Number(gradeRunConfidencePolicy?.modelConfidence || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Criterion avg confidence:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {Number(gradeRunConfidencePolicy?.criterionAverageConfidence || 0).toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Evidence score:{" "}
+                      <span className="font-semibold text-zinc-900">{Number(gradeRunConfidencePolicy?.evidenceScore || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">
+                      Extraction confidence used:{" "}
+                      <span className="font-semibold text-zinc-900">
+                        {Number(gradeRunConfidencePolicy?.extractionConfidence || 0).toFixed(3)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Bonuses</div>
+                      <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap text-[11px] text-zinc-700">
+                        {JSON.stringify(gradeRunConfidencePolicy?.bonuses || {}, null, 2)}
+                      </pre>
+                    </div>
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Penalties</div>
+                      <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap text-[11px] text-zinc-700">
+                        {JSON.stringify(gradeRunConfidencePolicy?.penalties || {}, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                  {Array.isArray(gradeRunConfidencePolicy?.capsApplied) && gradeRunConfidencePolicy.capsApplied.length > 0 ? (
+                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                      <div className="font-semibold">Applied caps</div>
+                      <ul className="mt-1 list-disc pl-4">
+                        {gradeRunConfidencePolicy.capsApplied.map((cap: any, i: number) => (
+                          <li key={`cap-${i}`}>
+                            {String(cap?.name || "cap")} @ {String(cap?.value ?? "—")} · {String(cap?.reason || "No reason")}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </details>
               ) : null}
               {gradeRunReadinessChecklist ? (
                 <details

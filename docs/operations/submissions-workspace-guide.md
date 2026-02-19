@@ -1,224 +1,34 @@
-# Submissions Workspace Guide (`/submissions`)
+# Submissions Workspace Guide
 
-Date: 2026-02-18  
 Route: `/submissions`
+Last updated: 2026-02-19
 
-## Phase 1 Operating Mode (Current)
+## What This Page Is
 
-- Use cover-first processing for student submissions:
-  - `SUBMISSION_EXTRACT_COVER_ONLY=true`
-  - `SUBMISSION_EXTRACT_COVER_PAGE_LIMIT=2` (or `1..3`)
-- The submission PDF remains source-of-truth.
-- Grading decisions are evidence-linked to page context, not full-body reconstruction.
-- Cover metadata is used for:
-  - identity checks
-  - triage/linking fallback
-  - extraction readiness confidence
+Queue control for intake, linking, triage, and batch workflows.
 
-## What This Page Is For
+## What This Page Is Not
 
-`/submissions` is the operations workspace for submission intake and progression.
-It helps tutors/admins:
+It is not the final place to validate detailed criterion evidence. Use submission detail for that.
 
-- monitor upload and processing status
-- resolve unlinked students
-- review readiness for grading/export
-- run batch grading on visible rows
-- open each submission for full detail/audit
+## Recommended Queue Order
 
-This page is designed as the "queue board" between upload and final marked outputs.
+1. Blocked
+2. Needs Human
+3. QA review
+4. Auto-ready
+5. Completed
 
-## Current UI Structure
+## Batch Safety
 
-1. Header + summary cards
-- Visible submissions count
-- Need student link count
-- Extracted count
-- Export-ready count
+- use QA preview before QA commit
+- do not batch grade rows with unresolved blockers
+- always review skipped reasons from batch result
 
-2. Toolbar controls
-- `Unlinked only`
-- `Ready to upload`
-- `QA review only`
-- Timeframe: `Today` / `This week` / `All`
-- Search input
-- Status filter
-- `Grade visible`
-- `Preview QA lane`
-- `Commit QA lane`
-- `Retry failed`
-- `Refresh`
-- `Upload`
+## Known UX Pressure Points
 
-3. Grouped table (by uploaded date)
-- File
-- Student
-- Assignment
-- Status
-- Next action (derived)
-- Uploaded date
-- Row actions: `Open`, `Copy summary`, `Resolve`
+- dense controls can hide key actions on smaller viewports
+- lane card density can require excess scrolling
+- right-side controls can crowd evidence workspace
 
-4. Resolve drawer
-- Runs triage on selected submission
-- Shows detected name/email and warnings
-- Searches student records
-- Links selected student to submission
-
-## Submission Detail Workspace (`/submissions/[submissionId]`)
-
-Current operating layout:
-
-1. Top blocker strip
-- readiness chip (`Ready to upload` or pending count)
-- next blocking action text
-- `Fix next blocker` shortcut
-- assessor-source chip (active audit user)
-
-2. Compact info grid
-- student, unit, assignment, submission date, grade, graded by, uploaded, graded when, status
-- click-to-action for missing/linked operational fields
-
-3. PDF workspace
-- toggle between source PDF and marked PDF
-- viewport modes
-- note-page chips (when page-note overlays exist) for fast jump to marked pages
-
-4. Left operations rail (collapsed by default)
-- quick actions
-- assignment
-- student
-- cover extraction
-- audit & outputs
-
-5. Audit & outputs
-- assessment-run selector/history
-- feedback editor (regenerates marked PDF)
-- criterion decisions
-- page feedback map (page-numbered small notes)
-- run-to-run diff summary
-
-## Operational Flow (How To Use)
-
-1. Upload files via `/upload` or `Upload` button.
-2. In `/submissions`, use `Unlinked only` and open `Resolve` for unmatched rows.
-3. Confirm status progression (`UPLOADED` -> `EXTRACTING` -> `EXTRACTED` / `NEEDS_OCR`).
-4. For QA-flagged rows, run `Preview QA lane` first.
-5. After preview succeeds and queue is unchanged, run `Commit QA lane`.
-6. For general rows, use `Grade visible` (or `Retry failed`) as needed.
-7. Open submission details for audit of extraction, triage, and assessment outputs.
-8. Use `Copy summary` for LMS/Totara handoff where applicable.
-
-## QA Preview/Commit Safeguards
-
-- `Commit QA lane` is disabled until a matching `Preview QA lane` run exists.
-- Preview validity expires after 30 minutes.
-- If QA queue membership changes, preview linkage is invalidated and must be rerun.
-- Commit runs are confirmation-gated in UI.
-- Batch commit payload includes linked preview context (`requestId`, signature, timestamp, queue size) for audit traceability.
-
-## GradeRun v2 hardening
-
-- Every grading run now evaluates an explicit extraction readiness gate before executing; submissions that fail the gate are skipped and recorded in the `BATCH_GRADE_RUN` audit event so you can see why they were excluded.
-- The single-submission `dryRun` response now surfaces a complete `preview` object (`overallGrade`, `rawOverallGrade`, confidence, grade-policy cap/resubmission flags, evidence density summary, extraction gate status and reference context snapshot). Use this response when interrogating borderline results or confirming policy enforcement.
-- QA preview runs capture a lightweight signature + queue fingerprint and emit `GRADE_DRY_RUN_COMPLETED` events with `requestId` headers; the matching commit call echoes that preview context (`requestId`, signature, timestamp, queue size) and confirms the same signature before grading, preventing replay of stale or altered queues.
-- The batch-grade endpoint also logs the automation policy that triggered the run plus the preview context, keeping every grade request auditable and traceable back to its QA preview (or its auto-run trigger).
-
-## Notes For Cover-Only Runs
-
-- Short/missing body text is expected in `COVER_ONLY` mode and should not be treated as automatic failure.
-- Triage now uses latest extraction run `sourceMeta.coverMetadata` before falling back to filename-only heuristics.
-- If linking fails, operator action is still required (manual resolve), but false negatives are reduced.
-- Cover extraction panel is now operationally compact; full page text preview is optional/expandable.
-
-## Strengths
-
-- Single operational workspace for queue management.
-- Clear status and next-action signaling.
-- Fast triage loop with in-context student linking.
-- Batch actions reduce repetitive grading clicks.
-- Derived readiness checks prevent premature export actions.
-- Backend returns latest assessment summary fields directly (`grade`, `feedback`, `markedPdfPath`).
-- Submission detail now supports low-friction post-grade iteration (feedback edit + regenerate without regrade).
-- Page-note navigation and page feedback map improve explainability for student-facing review.
-
-## Flaws / Gaps
-
-- Automation still depends on manual filter setup and repeated refresh.
-- No real-time queue updates (polling/manual refresh only).
-- No SLA indicators (e.g., "stuck in EXTRACTING > X min").
-- No explicit queue segmentation (Ready, Blocked, Needs Human).
-- Batch grade controls are broad; no "safe auto-run policy" presets.
-- Limited exception workflows for `NEEDS_OCR` and assignment mismatch handling.
-- Copy-summary is useful but still a manual export handoff.
-- `/submissions` queue page and `/submissions/[submissionId]` detail page still rely on refresh/polling patterns (no live event stream).
-
-## Recommended UI Improvements For A More Automated Version
-
-### 1) Replace generic list with queue lanes
-
-Add top-level lanes:
-
-- `Auto-Ready`
-- `Needs Human`
-- `Blocked`
-- `Completed`
-
-Each row should carry a deterministic "automation state" from backend rules.
-
-### 2) Add automation policy panel
-
-Introduce policy toggles:
-
-- Auto-link student when confidence >= threshold
-- Auto-grade only when extraction gate passes and assignment binding is locked
-- Auto-retry failed once (with cooldown)
-- Auto-hold rows with OCR/triage ambiguities
-
-Show policy version + last changed by for audit.
-
-### 3) Event-driven updates
-
-- WebSocket/SSE for status transitions
-- Inline progress chips (extracting, assessing, retry queued)
-- Remove reliance on manual refresh
-
-### 4) Exception inbox
-
-Dedicated tab for exceptions:
-
-- `NEEDS_OCR`
-- `GRADE_ASSIGNMENT_BINDING_MISSING`
-- ambiguous student linking
-- repeated failures
-
-Each exception should have recommended resolution actions and one-click deep links.
-
-### 5) Safer batch operations
-
-- Preview list before execution (who will be graded and why)
-- Dry-run mode for batch actions
-- Per-row reason for skipped items
-- Cancel/pause queue controls
-
-### 6) Better time/ownership controls
-
-- Assignee field (owner of row)
-- "Time in current state"
-- Aging heatmap + escalation badge
-
-### 7) Export automation
-
-- Convert `Copy summary` into first-class export jobs
-- One-click package generation and status tracking
-- Immutable export history per submission
-
-## Suggested Next Implementation Slice
-
-1. Add backend `automationState` + `automationReason` for each submission.
-2. Render queue lanes from these states in `/submissions`.
-3. Add `Exceptions` lane first (`NEEDS_OCR`, binding missing, triage ambiguous).
-4. Add real-time updates (SSE) for status changes.
-5. Add batch dry-run preview before executing grade jobs.
-
-This sequence improves reliability and operator speed without large schema churn.
+See `docs/operations/template-ui-ux-recommendations-2026-02-19.md` for redesign proposals.

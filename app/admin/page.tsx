@@ -23,16 +23,44 @@ function MetricCard({
   label,
   value,
   hint,
+  legend,
+  actionLabel,
+  actionHref,
 }: {
   label: string;
   value: string | number;
   hint: string;
+  legend?: string;
+  actionLabel?: string;
+  actionHref?: string;
 }) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
+        {legend ? (
+          <span
+            className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 px-1.5 text-[11px] font-semibold text-zinc-700"
+            title={legend}
+            aria-label={legend}
+          >
+            ?
+          </span>
+        ) : null}
+      </div>
       <div className="mt-1 text-2xl font-semibold text-zinc-900">{value}</div>
       <p className="mt-1 text-xs text-zinc-600">{hint}</p>
+      {legend ? (
+        <p className="mt-1 text-[11px] text-zinc-500">{legend}</p>
+      ) : null}
+      {actionLabel && actionHref ? (
+        <a
+          href={actionHref}
+          className="mt-2 inline-flex h-7 items-center rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[11px] font-semibold text-sky-900 hover:bg-sky-100"
+        >
+          {actionLabel}
+        </a>
+      ) : null}
     </article>
   );
 }
@@ -172,7 +200,7 @@ export default async function AdminIndex() {
             </div>
             <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Admin Control Tower</h1>
             <p className="mt-2 text-sm text-zinc-700">
-              Central operations view for QA research, audit logs, locking workflows, and grading readiness.
+              Central governance view for extraction reliability, grading confidence, lock readiness, and audit-safe operations.
             </p>
           </div>
           <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
@@ -196,15 +224,56 @@ export default async function AdminIndex() {
         <MetricCard label="Total submissions" value={totalSubmissions} hint="All uploaded submissions in the system." />
         <MetricCard label="Students" value={totalStudents} hint="Student records available for linking and QA." />
         <MetricCard label="Graded submissions" value={gradedAssessments} hint="Assessments that returned a grade." />
-        <MetricCard label="Automation ready" value={autoReadySubmissions} hint="Linked and graded submissions ready for QA review." />
-        <MetricCard label="Open blockers" value={attention.reduce((acc, x) => acc + x.count, 0)} hint="Current lock/extraction/linking blockers." />
+        <MetricCard
+          label="Automation ready"
+          value={autoReadySubmissions}
+          hint="Rows that are linked and stable enough for QA pass and release checks."
+          legend="Review path: Submissions -> QA review only -> Preview QA lane -> Commit QA lane."
+          actionLabel="Open QA review path"
+          actionHref="#automation-review"
+        />
+        <MetricCard
+          label="Open blockers"
+          value={attention.reduce((acc, x) => acc + x.count, 0)}
+          hint="Items that must be resolved before reliable grading throughput."
+          legend="Resolve in order: lock gaps (specs/briefs), linking/OCR issues, then failed runs from Audit."
+          actionLabel="Locate blockers now"
+          actionHref="#blocker-locator"
+        />
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <ActionCard title="QA Research" desc="Analyze grades by student, course, unit and AB number. Export QA reports." href="/admin/qa" cta="Go to QA" />
-        <ActionCard title="Audit Log" desc="Inspect operational evidence for extraction, grading, overrides, and failures." href="/admin/audit" cta="Go to Audit" />
-        <ActionCard title="Settings" desc="Adjust AI, app and grading policies used by operations." href="/admin/settings" cta="Open Settings" />
-        <ActionCard title="Bindings" desc="Verify brief-to-unit links used as grading context during marking." href="/admin/bindings" cta="Open Bindings" />
+      <section className="grid gap-3 lg:grid-cols-2">
+        <article id="automation-review" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-900">How to review Automation ready</h2>
+          <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-zinc-700">
+            <li>Open Submissions Workspace.</li>
+            <li>Enable `QA review only` filter to isolate review candidates.</li>
+            <li>Run `Preview QA lane`, inspect outcomes, then `Commit QA lane` when satisfied.</li>
+          </ol>
+          <Link href="/submissions" className="mt-3 inline-flex h-8 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100">
+            Open submissions for QA review
+          </Link>
+        </article>
+        <article id="blocker-locator" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-900">How to clear Open blockers</h2>
+          <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-zinc-700">
+            <li>Open `Needs attention now` and pick the highest count item first.</li>
+            <li>Fix lock gaps (`Specs`/`Briefs`) before running new grading batches.</li>
+            <li>Resolve unlinked and OCR rows in Submissions, then retry failed runs from Audit.</li>
+          </ol>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/admin/specs" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open specs</Link>
+            <Link href="/admin/briefs" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open briefs</Link>
+            <Link href="/admin/audit" className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">Open audit</Link>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+        <ActionCard title="QA Research" desc="Analyze grading outcomes, confidence signals, and quality trends by learner, unit, and assignment." href="/admin/qa" cta="Go to QA" />
+        <ActionCard title="Audit Log" desc="Inspect trace events for extraction, scope changes, grading runs, and operational overrides." href="/admin/audit" cta="Go to Audit" />
+        <ActionCard title="Settings" desc="Adjust global model and policy defaults used by extraction and grading workflows." href="/admin/settings" cta="Open Settings" />
+        <ActionCard title="Bindings" desc="Validate assignment-to-brief bindings so grading resolves against the intended locked criteria set." href="/admin/bindings" cta="Open Bindings" />
       </section>
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600 shadow-sm">
         Advanced ops pages:{" "}
@@ -215,7 +284,7 @@ export default async function AdminIndex() {
         <Link href="/admin/bindings" className="font-semibold text-zinc-800 hover:underline">
           Bindings
         </Link>
-        {" "}are exception workflows for extraction/mapping fixes, not daily grading operations.
+        {" "}are exception workflows for extraction and mapping repair, not daily marking flow.
       </section>
 
       <section className="grid gap-3 lg:grid-cols-2">
@@ -247,7 +316,7 @@ export default async function AdminIndex() {
         </article>
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-2">
+      <section className="grid gap-3">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-zinc-900">Recently updated references</h2>
           <div className="mt-3 grid gap-2 text-sm text-zinc-700">
@@ -256,11 +325,13 @@ export default async function AdminIndex() {
             ) : (
               recentDocs.map((doc) => (
                 <Link key={doc.id} href="/admin/reference" className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:border-sky-200 hover:bg-sky-50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="truncate font-medium text-zinc-900">{doc.type}: {doc.title}</div>
-                    <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(doc.status)}>{doc.status}</span>
+                  <div className="grid gap-1">
+                    <div className="break-words font-medium text-zinc-900">{doc.type}: {doc.title}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(doc.status)}>{doc.status}</span>
+                      <span className="text-xs text-zinc-600">Updated {formatUpdated(doc.updatedAt)}</span>
+                    </div>
                   </div>
-                  <div className="mt-1 text-xs text-zinc-600">Updated {formatUpdated(doc.updatedAt)}</div>
                 </Link>
               ))
             )}
@@ -275,11 +346,13 @@ export default async function AdminIndex() {
             ) : (
               recentSubmissions.map((sub) => (
                 <Link key={sub.id} href={`/submissions/${sub.id}`} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:border-sky-200 hover:bg-sky-50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="truncate font-medium text-zinc-900">{sub.filename}</div>
-                    <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(sub.status)}>{sub.status}</span>
+                  <div className="grid gap-1">
+                    <div className="break-words font-medium text-zinc-900">{sub.filename}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={"rounded-full border px-2 py-0.5 text-xs font-semibold " + statusTone(sub.status)}>{sub.status}</span>
+                      <span className="text-xs text-zinc-600">Updated {formatUpdated(sub.updatedAt)}</span>
+                    </div>
                   </div>
-                  <div className="mt-1 text-xs text-zinc-600">Updated {formatUpdated(sub.updatedAt)}</div>
                 </Link>
               ))
             )}

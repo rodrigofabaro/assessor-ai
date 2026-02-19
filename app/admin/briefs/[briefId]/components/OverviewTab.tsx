@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { uniqSortedCriteriaCodes } from "@/lib/extraction/utils/criteriaCodes";
 import { BriefCriteriaPanel } from "./BriefCriteriaPanel";
 
@@ -54,6 +54,7 @@ function detectBriefIssue(extracted: any): string | null {
 }
 
 export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
+  const [scopeBusyKey, setScopeBusyKey] = useState("");
   const extracted = vm.linkedDoc?.extractedJson ?? null;
   const header = extracted?.header || null;
 
@@ -68,6 +69,82 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
   const safeHeader = safeExtracted?.header || null;
   const issueLabel = detectBriefIssue(safeExtracted);
   const specCriteria = useMemo(() => flattenSpecCriteria(vm.mappedSpecDoc), [vm.mappedSpecDoc]);
+  const excludedCodes = useMemo(() => {
+    const raw = Array.isArray(vm?.linkedDoc?.sourceMeta?.gradingCriteriaExclusions)
+      ? vm.linkedDoc.sourceMeta.gradingCriteriaExclusions
+      : [];
+    return Array.from(
+      new Set(
+        raw
+          .map((v: unknown) => {
+            const m = String(v || "").trim().toUpperCase().match(/^([PMD])\s*(\d{1,2})$/);
+            return m ? `${m[1]}${Number(m[2])}` : null;
+          })
+          .filter(Boolean) as string[]
+      )
+    ).sort((a, b) => a.localeCompare(b));
+  }, [vm?.linkedDoc?.sourceMeta?.gradingCriteriaExclusions]);
+  const excludedSet = useMemo(() => new Set(excludedCodes), [excludedCodes]);
+  const exclusionLog = useMemo(() => {
+    const raw = Array.isArray(vm?.linkedDoc?.sourceMeta?.gradingCriteriaExclusionLog)
+      ? vm.linkedDoc.sourceMeta.gradingCriteriaExclusionLog
+      : [];
+    return raw
+      .map((entry: any, idx: number) => {
+        const m = String(entry?.criterionCode || "").trim().toUpperCase().match(/^([PMD])\s*(\d{1,2})$/);
+        const criterionCode = m ? `${m[1]}${Number(m[2])}` : "";
+        return {
+          key: String(entry?.at || "") + ":" + String(entry?.criterionCode || "") + ":" + idx,
+          criterionCode,
+          excluded: entry?.excluded === true,
+          reason: String(entry?.reason || "").trim(),
+          at: String(entry?.at || ""),
+          actor: String(entry?.actor || "").trim(),
+          gradedSubmissionCount: Number(entry?.gradedSubmissionCount || 0),
+        };
+      })
+      .filter((entry: any) => !!entry.criterionCode && !!entry.at)
+      .sort((a: any, b: any) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  }, [vm?.linkedDoc?.sourceMeta?.gradingCriteriaExclusionLog]);
+
+  const applyScopeChange = async (criterionCode: string, excluded: boolean, seedReason?: string) => {
+    const reasonPrompt =
+      excluded
+        ? `Reason for excluding ${criterionCode} from grading (required):`
+        : `Reason for including ${criterionCode} in grading (required):`;
+    const reason = window.prompt(reasonPrompt, seedReason || "");
+    if (reason === null) return;
+    const cleanReason = String(reason || "").trim();
+    if (cleanReason.length < 6) {
+      window.alert("Please provide a short reason (minimum 6 characters).");
+      return;
+    }
+    const action = excluded ? "exclude from" : "include in";
+    const ok = window.confirm(
+      `Confirm ${action} grading?\n\nCriterion ${criterionCode} will ${excluded ? "not" : ""} be requested during grading.\n\nReason: ${cleanReason}`
+    );
+    if (!ok) return;
+
+    const key = `${criterionCode}:${excluded ? "1" : "0"}`;
+    setScopeBusyKey(key);
+    try {
+      try {
+        await vm.setLinkedDocCriterionExcluded?.(criterionCode, excluded, cleanReason);
+      } catch (inner: any) {
+        const msg = String(inner?.message || "");
+        if (!msg.includes("BRIEF_CRITERIA_SCOPE_CHANGE_CONFIRM_REQUIRED")) throw inner;
+        const confirmLive = window.confirm(
+          `This brief has graded submissions. Confirm live grading scope change for ${criterionCode}?\n\nReason: ${cleanReason}`
+        );
+        if (!confirmLive) return;
+        await vm.setLinkedDocCriterionExcluded?.(criterionCode, excluded, cleanReason, true);
+      }
+    } catch (e: any) {
+      window.alert(e?.message || "Failed to update criterion grading scope.");
+    } finally {
+      setScopeBusyKey("");
+    }
+  };
 
   return (
     <div className="grid gap-4">
@@ -94,6 +171,68 @@ export function OverviewTab({ vm, pdfHref }: { vm: any; pdfHref: string }) {
         specCriteria={specCriteria}
         hasSpec={!!vm.mappedSpecDoc}
       />
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-zinc-900">Criteria scope history</h2>
+          <div className="text-xs text-zinc-600">
+            Currently excluded:{" "}
+            <span className="font-semibold text-zinc-900">
+              {excludedCodes.length ? excludedCodes.join(", ") : "None"}
+            </span>
+          </div>
+        </div>
+        {exclusionLog.length === 0 ? (
+          <div className="mt-2 text-sm text-zinc-700">No criteria scope changes logged for this brief document.</div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {exclusionLog.slice(0, 20).map((entry: any) => {
+              const isCurrentState = excludedSet.has(entry.criterionCode) === entry.excluded;
+              const targetLabel = entry.excluded ? "excluded" : "included";
+              const busy = scopeBusyKey === `${entry.criterionCode}:${entry.excluded ? "1" : "0"}`;
+              return (
+                <div key={entry.key} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-semibold text-zinc-900">
+                      {entry.criterionCode} → {targetLabel.toUpperCase()}
+                    </div>
+                    <div className="text-xs text-zinc-600">
+                      {entry.at ? new Date(entry.at).toLocaleString() : "—"} {entry.actor ? `· ${entry.actor}` : ""}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-zinc-700">{entry.reason || "No reason recorded."}</div>
+                  {entry.gradedSubmissionCount > 0 ? (
+                    <div className="mt-1 text-xs text-amber-800">
+                      Live brief at change time: {entry.gradedSubmissionCount} graded submission(s).
+                    </div>
+                  ) : null}
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      disabled={isCurrentState || busy}
+                      onClick={() =>
+                        void applyScopeChange(
+                          entry.criterionCode,
+                          entry.excluded,
+                          `Restore from ${String(entry.at || "").slice(0, 10)}: ${entry.reason || ""}`
+                        )
+                      }
+                      className={
+                        "rounded-lg border px-3 py-1.5 text-xs font-semibold " +
+                        (isCurrentState || busy
+                          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                          : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100")
+                      }
+                    >
+                      {isCurrentState ? "Current state" : busy ? "Applying…" : `Restore ${targetLabel}`}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="text-sm font-semibold text-zinc-900">Linked PDF</div>

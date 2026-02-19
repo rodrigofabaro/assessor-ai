@@ -1,24 +1,26 @@
-# `/admin/reference` Help
+# Admin Reference (`/admin/reference`)
+
+Last updated: 2026-02-19
 
 ## Purpose
 
-Reference inbox and lock operations for uploaded spec/brief artifacts.
+Reference inbox for uploaded docs (specs/briefs) with extract/lock lifecycle.
 
-## Main actions
+## Workflow
 
-- inspect reference documents and extraction status
-- re-extract problematic documents
-- lock/unlock as operational authority
-- archive where applicable
+1. upload and extract
+2. inspect warnings
+3. review parsed content
+4. lock when reliable
 
-## How to use
+## Lock Rules
 
-1. Prioritize failed/needs-review documents.
-2. Re-extract and verify critical fields.
-3. Lock only authoritative documents.
+- locked docs are immutable unless explicit force re-extract is requested
+- force re-extract on locked docs must keep history in source metadata
 
-## Common issue
+## Common Issues
 
-- Repeated failed extraction:
-  - inspect source document quality
-  - use troubleshooting runbook for OCR/local model fallbacks
+- file path missing in storage
+  - fix stored path and re-extract
+- recurring extraction warnings
+  - validate source PDF quality and parser assumptions

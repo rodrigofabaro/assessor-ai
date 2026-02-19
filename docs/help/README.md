@@ -1,40 +1,36 @@
-# Help Center Content (Route-by-Route)
+# Help Center Index
 
-This folder is written to be re-used as an in-app Help center.
+Last updated: 2026-02-19
 
-Each file explains:
-- what the page is for
-- what key controls do
-- the normal operator flow
-- common issues and fixes
+This folder contains route-by-route operator help.
 
-## Help Index
+## High Priority Guides
 
-- `home.md` -> `/`
-- `upload.md` -> `/upload`
-- `submissions-list.md` -> `/submissions`
-- `submissions-support.md` -> `/submissions` (step-by-step support guide with screenshots)
-- `submissions-onboarding.md` -> `/submissions` (first-time setup + 3-sample tutorial)
-- `submission-detail.md` -> `/submissions/[submissionId]`
-- `students-pages.md` -> `/students/[id]`, `/admin/students`
-- `admin-index.md` -> `/admin`
-- `admin-specs.md` -> `/admin/specs`
-- `admin-briefs.md` -> `/admin/briefs`, `/admin/briefs/[briefId]`
-- `admin-reference.md` -> `/admin/reference`
-- `admin-library.md` -> `/admin/library`
-- `admin-bindings.md` -> `/admin/bindings`
-- `admin-settings.md` -> `/admin/settings`
-- `admin-audit-users.md` -> `/admin/audit`, `/admin/users`
+- `docs/help/submissions-support.md` - daily queue tutorial with screenshot slots
+- `docs/help/submissions-onboarding.md` - first-run onboarding checklist
+- `docs/help/submission-detail.md` - grading workspace guide
+- `docs/help/admin-briefs.md` - brief extraction, mapping, lock controls
+- `docs/help/admin-specs.md` - spec extraction and import workflow
+- `docs/help/admin-library.md` - library controls and criterion exclusion toggles
+- `docs/help/admin-reference.md` - reference inbox and extract/lock lifecycle
 
-## Navigation note
+## Secondary Guides
 
-- Primary admin top-nav sections are:
-  - `Audit`, `Briefs`, `Library`, `Overview`, `QA`, `Settings`, `Specs`, `Students`, `Users`
-- Advanced admin pages are still available via direct URL:
-  - `/admin/reference`
-  - `/admin/bindings`
+- `docs/help/submissions-list.md`
+- `docs/help/home.md`
+- `docs/help/admin-index.md`
+- `docs/help/admin-settings.md`
+- `docs/help/upload.md`
+- `docs/help/students-pages.md`
 
-## Notes
+## Screenshot Convention
 
-- This is user-facing operational help, not implementation internals.
-- API route docs are intentionally excluded from this pack.
+Use this path format for all help screenshots:
+
+- `/help/<section>/<name>.png`
+
+Example:
+
+- `/help/submissions/01-lane-overview.png`
+
+If a screenshot is not available yet, keep a `TODO screenshot` note in the doc section.

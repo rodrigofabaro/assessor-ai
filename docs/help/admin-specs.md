@@ -1,21 +1,26 @@
-# `/admin/specs` Help
+# Admin Specs (`/admin/specs`)
+
+Last updated: 2026-02-19
 
 ## Purpose
 
-Manage unit specifications that define the authoritative criteria universe.
+Specs define the criteria universe used by briefs and grading.
 
-## Main actions
+## Workflow
 
-- upload/extract spec documents
-- review extracted LOs and criteria
-- lock correct version for operational use
+1. upload spec
+2. run extraction
+3. verify unit metadata, LO list, criteria by LO
+4. commit import
+5. lock authoritative version
 
-## How to use
+## Quality Checks
 
-1. Upload spec issue/version.
-2. Validate LO/criteria extraction quality.
-3. Lock authoritative version once verified.
+- LO headers complete and ordered
+- criteria coverage complete for each LO
+- footer noise not polluting LO/criteria text
+- issue label and unit code detected correctly
 
-## Important rule
+## Rule
 
-Locked spec versions are treated as immutable references for grading defensibility.
+Do not grade against an unlocked or unverified spec.

@@ -97,6 +97,24 @@ function norm(s: string) {
   return (s || "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function normalizeCriterionCode(value: unknown): string | null {
+  const raw = String(value || "").trim().toUpperCase();
+  const m = raw.match(/^([PMD])\s*(\d{1,2})$/);
+  if (!m) return null;
+  return `${m[1]}${Number(m[2])}`;
+}
+
+function readExcludedCriteriaCodes(sourceMeta: any): string[] {
+  const arr = Array.isArray(sourceMeta?.gradingCriteriaExclusions) ? sourceMeta.gradingCriteriaExclusions : [];
+  return Array.from(
+    new Set(
+      arr
+        .map((v: unknown) => normalizeCriterionCode(v))
+        .filter(Boolean) as string[]
+    )
+  ).sort((a, b) => a.localeCompare(b));
+}
+
 function safeIvRecords(x: any): IvRecord[] {
   const arr = Array.isArray(x) ? x : [];
   return arr
@@ -285,6 +303,51 @@ export function useBriefsAdmin() {
   // Library view = locked briefs only (register)
   const libraryRows = useMemo(() => rows.filter((r) => !!r.lockedAt), [rows]);
 
+  const setBriefCriterionExcluded = async (
+    documentId: string,
+    criterionCode: string,
+    excluded: boolean,
+    reason: string,
+    confirmLiveChange = false
+  ) => {
+    const doc = docs.find((d) => d.id === documentId);
+    if (!doc) throw new Error("Linked brief document not found.");
+    const code = normalizeCriterionCode(criterionCode);
+    if (!code) throw new Error("Invalid criterion code.");
+    const cleanReason = String(reason || "").trim();
+    if (cleanReason.length < 6) throw new Error("Please provide a short reason (minimum 6 characters).");
+
+    const prevExcluded = readExcludedCriteriaCodes(doc.sourceMeta);
+    const nextExcluded = excluded
+      ? Array.from(new Set([...prevExcluded, code])).sort((a, b) => a.localeCompare(b))
+      : prevExcluded.filter((c) => c !== code);
+    const res = await jsonFetch<{ sourceMeta?: any }>(`/api/reference-documents/${documentId}/meta`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        gradingCriteriaExclusions: nextExcluded,
+        gradingCriteriaScopeChange: {
+          criterionCode: code,
+          excluded,
+          reason: cleanReason,
+          confirmLiveChange,
+        },
+      }),
+    });
+    const nextMeta = res?.sourceMeta || {};
+
+    setDocs((prev) =>
+      prev.map((d) =>
+        d.id === documentId
+          ? {
+              ...d,
+              sourceMeta: nextMeta,
+            }
+          : d
+      )
+    );
+  };
+
   return {
     tab,
     setTab,
@@ -309,5 +372,6 @@ export function useBriefsAdmin() {
     rows,
     libraryRows,
     docs,
+    setBriefCriterionExcluded,
   };
 }

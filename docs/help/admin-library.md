@@ -1,17 +1,26 @@
-# `/admin/library` Help
+# Admin Library (`/admin/library`)
+
+Last updated: 2026-02-19
 
 ## Purpose
 
-View and manage library-level unit learning outcomes and criteria entities.
+Inspect and control grading scope at brief/criteria level.
 
-## Main actions
+## Key Controls
 
-- browse units and their LO/criteria sets
-- verify structural completeness
-- inspect source document linkage
+- criteria pills per brief
+- criterion exclusion toggle (with confirmation)
+- exclusion summary chip
 
-## How to use
+## How To Use Exclusion Safely
 
-1. Select a unit.
-2. Validate LO structure and criteria descriptions.
-3. Ensure data aligns with locked source documents.
+1. click criterion pill
+2. confirm exclusion/include action
+3. verify pill state updated
+4. re-run grading only if exclusion change is intended
+
+## Warnings
+
+- excluding criteria changes grade outcomes
+- excluding all criteria blocks grading (`GRADE_NO_ACTIVE_CRITERIA`)
+- always record reason in ops notes before exclusion changes

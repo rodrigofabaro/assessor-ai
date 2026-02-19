@@ -109,6 +109,24 @@ function norm(s: string) {
   return (s || "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function normalizeCriterionCode(value: unknown): string | null {
+  const raw = String(value || "").trim().toUpperCase();
+  const m = raw.match(/^([PMD])\s*(\d{1,2})$/);
+  if (!m) return null;
+  return `${m[1]}${Number(m[2])}`;
+}
+
+function readExcludedCriteriaCodes(sourceMeta: any): string[] {
+  const arr = Array.isArray(sourceMeta?.gradingCriteriaExclusions) ? sourceMeta.gradingCriteriaExclusions : [];
+  return Array.from(
+    new Set(
+      arr
+        .map((v: unknown) => normalizeCriterionCode(v))
+        .filter(Boolean) as string[]
+    )
+  ).sort((a, b) => a.localeCompare(b));
+}
+
 function guessAssignmentCode(doc: ReferenceDocument): string | null {
   const a = doc?.extractedJson?.assignmentCode || doc?.extractedJson?.assignmentCodeGuess;
   if (typeof a === "string" && a.trim()) return a.trim().toUpperCase();
@@ -635,6 +653,44 @@ export function useBriefDetail(briefId: string) {
     }
   };
 
+  const setLinkedDocCriterionExcluded = async (
+    criterionCode: string,
+    excluded: boolean,
+    reason: string,
+    confirmLiveChange = false
+  ) => {
+    if (!linkedDoc?.id) throw new Error("No linked brief document found.");
+    const code = normalizeCriterionCode(criterionCode);
+    if (!code) throw new Error("Invalid criterion code.");
+    const cleanReason = String(reason || "").trim();
+    if (cleanReason.length < 6) throw new Error("Please provide a short reason (minimum 6 characters).");
+    const prevExcluded = readExcludedCriteriaCodes(linkedDoc?.sourceMeta);
+    const nextExcluded = excluded
+      ? Array.from(new Set([...prevExcluded, code])).sort((a, b) => a.localeCompare(b))
+      : prevExcluded.filter((c) => c !== code);
+
+    const res = await jsonFetch<{ sourceMeta?: any }>(`/api/reference-documents/${linkedDoc.id}/meta`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        gradingCriteriaExclusions: nextExcluded,
+        gradingCriteriaScopeChange: {
+          criterionCode: code,
+          excluded,
+          reason: cleanReason,
+          confirmLiveChange,
+        },
+      }),
+    });
+    const nextMeta = res?.sourceMeta || {};
+    setDocs((docs) => docs.map((d) => (d.id === linkedDoc.id ? { ...d, sourceMeta: nextMeta } : d)));
+    notifyToast(
+      "success",
+      `Criterion ${code} ${excluded ? "excluded from" : "included in"} grading scope.`
+    );
+    return nextMeta;
+  };
+
   const unlockLinkedDoc = async () => {
     if (!linkedDoc?.id) return;
     setError(null);
@@ -742,6 +798,7 @@ export function useBriefDetail(briefId: string) {
     saveTasksOverride,
     saveEquationLatex,
     saveTaskLatex,
+    setLinkedDocCriterionExcluded,
     docUsage,
     usageLoading,
     readiness: readinessState.readiness,

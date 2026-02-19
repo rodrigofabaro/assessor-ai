@@ -322,6 +322,20 @@ function pickBriefCriteriaCodes(briefExtractedJson: any): string[] {
   return [];
 }
 
+function pickExcludedBriefCriteriaCodes(briefDocumentSourceMeta: any): string[] {
+  const arr = Array.isArray(briefDocumentSourceMeta?.gradingCriteriaExclusions)
+    ? briefDocumentSourceMeta.gradingCriteriaExclusions
+    : [];
+  const out = new Set<string>();
+  for (const value of arr) {
+    const raw = String(value || "").trim().toUpperCase();
+    const m = raw.match(/^([PMD])\s*(\d{1,2})$/);
+    if (!m) continue;
+    out.add(`${m[1]}${Number(m[2])}`);
+  }
+  return Array.from(out).sort();
+}
+
 function compareCriteriaAlignment(mappedCodes: string[], briefCodes: string[]) {
   const mapped = Array.from(new Set((mappedCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
   const brief = Array.from(new Set((briefCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
@@ -513,12 +527,6 @@ function diffReferenceSnapshots(previous: any, current: any) {
     reason: Object.keys(deltas).length > 0 ? "reference-context-drift" : "no-drift",
     deltas,
   };
-}
-
-function clamp01(value: unknown) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
 }
 
 function safeEnvInt(name: string, fallback: number, min: number, max: number) {
@@ -808,6 +816,8 @@ export async function POST(
   const strictness = String(body.strictness || cfg.strictness || "balanced");
   const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
 
+  const excludedCriteriaCodes = pickExcludedBriefCriteriaCodes(brief.briefDocument?.sourceMeta);
+  const excludedCriteriaSet = new Set(excludedCriteriaCodes);
   const criteriaFromMap = brief.criteriaMaps.map((m) => ({
     criterionId: m.assessmentCriterion.id,
     code: m.assessmentCriterion.acCode,
@@ -816,7 +826,7 @@ export async function POST(
     description: m.assessmentCriterion.description,
   }));
 
-  const criteria =
+  const criteriaBeforeExclusions =
     criteriaFromMap.length > 0
       ? criteriaFromMap
       : brief.unit.learningOutcomes.flatMap((lo) =>
@@ -828,8 +838,23 @@ export async function POST(
             description: c.description,
           }))
         );
+  const criteria = criteriaBeforeExclusions.filter(
+    (c) => !excludedCriteriaSet.has(String(c.code || "").trim().toUpperCase())
+  );
+  if (!criteria.length) {
+    return apiError({
+      status: 422,
+      code: "GRADE_NO_ACTIVE_CRITERIA",
+      userMessage: "All brief criteria are excluded from grading. Re-enable at least one criterion in Brief Library.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId, briefId: brief.id, excludedCriteriaCodes },
+    });
+  }
   const criteriaCodes = Array.from(new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean)));
-  const briefCriteriaCodes = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson);
+  const briefCriteriaCodes = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson).filter(
+    (code) => !excludedCriteriaSet.has(String(code || "").trim().toUpperCase())
+  );
   const criteriaAlignment = compareCriteriaAlignment(criteriaCodes, briefCriteriaCodes);
   const minAlignmentRatio = Math.max(0.3, Math.min(0.95, Number(process.env.GRADE_MAPPING_ALIGNMENT_MIN_RATIO || 0.65)));
   const mismatchThreshold = Math.max(1, Math.min(8, Number(process.env.GRADE_MAPPING_MISMATCH_MAX || 2)));
@@ -848,6 +873,7 @@ export async function POST(
         submissionId,
         briefId: brief.id,
         assignmentCode: brief.assignmentCode,
+        excludedCriteriaCodes,
         mismatchCount: criteriaAlignment.mismatchCount,
         overlapRatio: criteriaAlignment.overlapRatio,
         missingInMap: criteriaAlignment.missingInMap,
@@ -864,6 +890,7 @@ export async function POST(
         submissionId,
         briefId: brief.id,
         assignmentCode: brief.assignmentCode,
+        excludedCriteriaCodes,
         mappedCriteriaCodes: criteriaAlignment.mapped,
         briefCriteriaCodes: criteriaAlignment.brief,
         missingInMap: criteriaAlignment.missingInMap,
@@ -1041,6 +1068,7 @@ export async function POST(
       title: brief.title,
       status: brief.status,
       lockedAt: brief.lockedAt?.toISOString?.() || null,
+      excludedCriteriaCodes,
       briefDocument: brief.briefDocumentId
         ? {
             id: brief.briefDocumentId,
@@ -1113,6 +1141,7 @@ export async function POST(
     "Criteria mapping snapshot (for audit traceability):",
     JSON.stringify(
       {
+        excludedCriteriaCodes,
         mappedCriteriaCodes: criteriaAlignment.mapped,
         briefExtractedCriteriaCodes: criteriaAlignment.brief,
         overlapRatio: criteriaAlignment.overlapRatio,
@@ -1535,6 +1564,7 @@ export async function POST(
           promptChars: prompt.length,
           criteriaSnapshot: {
             source: criteriaFromMap.length > 0 ? "assignmentBriefMap" : "unitFallback",
+            excludedCriteriaCodes,
             mappedCriteriaCodes: criteriaAlignment.mapped,
             briefExtractedCriteriaCodes: criteriaAlignment.brief,
             intersection: criteriaAlignment.intersection,
@@ -1629,6 +1659,7 @@ export async function POST(
         briefId: brief.id,
         assignmentCode: brief.assignmentCode,
         criteriaSnapshot: {
+          excludedCriteriaCodes,
           mappedCriteriaCodes: criteriaAlignment.mapped,
           briefExtractedCriteriaCodes: criteriaAlignment.brief,
           overlapRatio: criteriaAlignment.overlapRatio,

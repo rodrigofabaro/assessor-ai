@@ -19,6 +19,7 @@
     "test:extraction-integrity": "node scripts/extraction-integrity.test.js",
     "test:brief-readiness": "node scripts/brief-readiness.test.js",
     "test:brief-mapping-codes": "node scripts/brief-mapping-codes.test.js",
+    "test:brief-grading-scope-change": "node scripts/brief-grading-scope-change.test.js",
     "test:brief-lo-extraction": "node scripts/brief-lo-extraction.test.js",
     "test:brief-equation-false-positives": "node scripts/brief-equation-false-positives.test.js",
     "test:regression-pack": "node scripts/regression-pack.js",

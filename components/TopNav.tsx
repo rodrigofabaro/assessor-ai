@@ -10,6 +10,7 @@ type AdminItem = { label: string; href: string; accent: string };
 const MAIN_ITEMS: MainItem[] = [
   { label: "Upload", href: "/upload" },
   { label: "Submissions", href: "/submissions" },
+  { label: "Help", href: "/help" },
 ];
 
 const ADMIN_ITEMS: AdminItem[] = [

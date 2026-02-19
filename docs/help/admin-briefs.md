@@ -1,64 +1,40 @@
-# `/admin/briefs` and `/admin/briefs/[briefId]` Help
+# Admin Briefs (`/admin/briefs`, `/admin/briefs/[briefId]`)
+
+Last updated: 2026-02-19
 
 ## Purpose
 
-Manage assignment briefs, extraction quality, and criteria mapping readiness.
+Manage brief extraction, mapping health, and lock readiness.
 
-## `/admin/briefs` (library/workbench)
+## Workflow
 
-### Main actions
-- browse brief versions
-- run/re-run extraction
-- inspect task extraction and warnings
-- prepare for lock/binding
+1. extract/re-extract brief
+2. review task quality and warnings
+3. validate mapping health
+4. lock only after quality gate passes
 
-## `/admin/briefs/[briefId]` (detail)
+## Quality Gate Signals
 
-### Main tabs (typical)
-- overview
-- tasks
-- rubric
-- versions
-- IV
-- criteria mapping panel
+- selected vs matched criteria
+- band distribution (P/M/D)
+- extraction text length reliability
+- mapping blockers/warnings
 
-### How to use
-1. Validate extracted tasks and warnings.
-2. Confirm criteria mapping quality (read-only, extraction-driven).
-3. Confirm rubric/IV if used.
-4. Lock only when extraction and mapping are correct.
+## Criterion Exclusion Controls
 
-## Mapping Health Panel
+Library criteria pills can be toggled out of grading scope per brief.
 
-The Criteria Mapping section now shows a `Mapping Health` block after lock attempts:
+- active criteria: normal pill
+- excluded criteria: red pill with `x`
+- confirmation prompt required on toggle
 
-- `blockers`: must be fixed before lock (unless explicitly bypassed)
-- `warnings`: advisory issues
-- `metrics`: selected/matched and P-M-D counts
+If all criteria are excluded, grading is blocked by policy.
 
-Typical blocker example:
-- `MERIT criteria detected without any DISTINCTION criteria. Extraction may be incomplete.`
+## Common Failures
 
-## Lock Behavior (Briefs)
-
-- Lock uses extraction-driven mapping with quality gate checks.
-- If enabled by env (`REQUIRE_BRIEF_REVIEW_CONFIRM=true`), lock requires review confirmation.
-- Lock can return:
-  - `BRIEF_EXTRACTION_QUALITY_GATE_FAILED` (422)
-  - `BRIEF_ALREADY_LOCKED` (409)
-- On success, lock stores review approval metadata in `sourceMeta.reviewApproval`.
-
-## Regrade After Mapping Changes
-
-After changing/fixing a brief mapping, run impacted regrading from `/submissions`:
-
-- Use `Regrade impacted`
-- Input:
-  - `assignmentBriefId`, or
-  - `unitCode assignmentRef` (example: `4014 A2`)
-
-## Common issue
-
-- High confidence but wrong rendering:
-  - use extraction workbench/re-extract path
-  - do not lock until task artifacts are visibly correct
+- `BRIEF_EXTRACTION_QUALITY_GATE_FAILED`
+  - mapping incomplete or extraction too short
+- missing LO text in overview
+  - verify spec extraction and lock state
+- stale lock/extract status mismatch
+  - re-open brief detail and refresh extraction card state

@@ -5,6 +5,7 @@ const tests = [
   "scripts/grading-schema.test.js",
   "scripts/extraction-readiness.test.js",
   "scripts/brief-mapping-codes.test.js",
+  "scripts/brief-grading-scope-change.test.js",
   "scripts/brief-readiness.test.js",
 ];
 
@@ -19,4 +20,3 @@ if (failures > 0) {
   process.exit(1);
 }
 console.log("regression pack passed.");
-

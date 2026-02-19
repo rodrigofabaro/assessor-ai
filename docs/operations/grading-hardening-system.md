@@ -1,75 +1,65 @@
-# Grading Hardening System (GradeRun v2)
+# Grading Hardening System
 
-Date: 2026-02-19  
-Scope: submission grading reliability, QA defensibility, and automation safety
+Date: 2026-02-19
+Scope: briefs, specs, submissions, grading confidence, audit traceability
 
-## Why this hardening exists
+## Core Objective
 
-The grading pipeline now treats reliability and auditability as first-class constraints.
-Grade execution is allowed only when readiness, mapping, and QA integrity checks are satisfied.
+Grade only when reference context, extraction readiness, and evidence integrity are all reliable.
 
-## Core hardening pillars
+## Hardening Layers
 
-## 1. Readiness and extraction quality gates
+1. Reference integrity
+- specs and briefs must be extracted and locked
+- brief lock enforces mapping quality gate
 
-- Each submission is evaluated through extraction readiness + quality scoring.
-- Route hints are deterministic: `AUTO_READY`, `NEEDS_REVIEW`, `BLOCKED`.
-- Low quality/OCR-required states are blocked before grading.
-- Automation state is derived from links, status, quality, and existing assessment outcomes.
+2. Submission extraction gate
+- extraction status, confidence, page count, and warnings are evaluated
+- blocked runs do not proceed to grading
 
-## 2. Auto-ready controlled automation
+3. Adaptive grading input strategy
+- `EXTRACTED_TEXT` when extraction is strong
+- `RAW_PDF_IMAGES` when extraction is weak for PDFs
 
-- Backend now queues grade runs automatically only when derived automation state is exactly `AUTO_READY`.
-- Trigger points include extraction completion, triage updates, and student linking routes.
-- Auto-trigger is guarded by:
-- `SUBMISSION_AUTO_GRADE_ON_EXTRACT=true`
-- linked assignment brief (`assignmentBriefId`)
-- no existing assessment run (duplicate-run prevention)
+4. Decision schema validation
+- grade payload is validated against required criterion coverage
+- achieved criteria without evidence are rejected
 
-## 3. QA preview -> commit integrity
+5. Grade policy normalization
+- band completion caps (missing merit/distinction rules)
+- resubmission cap policy
 
-- QA commit grading requires a prior QA preview for the same queue signature.
-- Preview links include request ID, queue signature, timestamp, and queue size.
-- Preview validity expires after 30 minutes.
-- Queue membership drift invalidates preview/commit pairing.
-- Commit payload echoes preview context for audit traceability.
+6. Confidence scoring policy
+- weighted base on model confidence, criterion confidence, and evidence density
+- no extraction penalty by policy
+- optional bonus only at maximal extraction confidence
 
-## 4. Audit event defensibility
+7. Audit payload completeness
+- reference snapshot
+- criteria snapshot (including exclusions)
+- input strategy snapshot
+- confidence policy and caps
+- rerun drift diff against previous assessment
 
-- Dry runs emit `GRADE_DRY_RUN_COMPLETED`.
-- Batch runs emit `BATCH_GRADE_RUN` with:
-- succeeded/failed/skipped counters
-- dryRun/retry flags
-- preview context linkage
-- automation policy and operation reason (when required)
-- This supports post-run forensic validation in `/admin/audit`.
+## Auto Grading Trigger Rules
 
-## 5. Grade policy normalization
+Auto grading is attempted only when automation state resolves to `AUTO_READY`.
 
-- Preview responses include both `rawOverallGrade` and policy-normalized `overallGrade`.
-- Policy metadata captures cap/resubmission decisions.
-- Evidence-density and extraction-gate summaries are returned for QA review.
+Minimum requirements:
 
-## Runtime flow (simplified)
+- student linked
+- assignment linked to a brief
+- no existing assessment
+- extraction gate not blocked
 
-1. Submission is extracted and triaged.
-2. Automation state is derived from deterministic signals.
-3. If state is `AUTO_READY`, backend sends grade request automatically.
-4. For QA lane workflows, operators preview first, then commit.
-5. Audit log stores all run-linkage metadata.
+## Blocking Errors
 
-## Environment and policy switches
+- `BRIEF_EXTRACTION_QUALITY_GATE_FAILED`
+- `GRADE_EXTRACTION_GATE_FAILED`
+- `GRADE_CRITERIA_MAPPING_MISMATCH`
+- `GRADE_NO_ACTIVE_CRITERIA`
+- `GRADE_DECISION_EVIDENCE_MISSING`
 
-- `SUBMISSION_AUTO_GRADE_ON_EXTRACT` (default `true`)
-- `SUBMISSION_AUTO_REGRADE_ON_COVER_UPDATE` (default `true`)
-- `AUTO_READY_MIN_QUALITY_SCORE`
-- `BLOCKED_MAX_QUALITY_SCORE`
-- `QA_LOW_CONFIDENCE_THRESHOLD`
-- `ENFORCE_ADMIN_MUTATIONS` (optional policy tightening)
+## Operational Principle
 
-## Operational checks
-
-- `GET /api/admin/ops/events` for event-link verification
-- `/admin/audit` for event-level traceability and QA integrity panel
-- `/submissions` lane views for automation-state monitoring
-
+When reliability is uncertain, block or degrade gracefully with explicit audit details. Never silently pass.
