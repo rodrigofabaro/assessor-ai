@@ -8,6 +8,8 @@ import { extractCoverMetadataFromPages, isCoverMetadataReady } from "@/lib/submi
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
+const MIN_MEANINGFUL_PAGE_CHARS = 120;
+const TARGET_PAGE_TEXT_CHARS = 900;
 
 function envBool(name: string, fallback = false) {
   const raw = String(process.env[name] ?? "").trim().toLowerCase();
@@ -36,6 +38,56 @@ function combinePageText(pages: Array<{ text?: string | null }>) {
     .join("\n\n");
 
   return normalizeText(combined);
+}
+
+function average(values: number[]) {
+  if (!values.length) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+function computeFinalExtractionConfidence(input: {
+  rawOverallConfidence: number;
+  finalIsScanned: boolean;
+  coverOnlyMode: boolean;
+  coverReady: boolean;
+  coverConfidence: number;
+  combinedTextChars: number;
+  pageConfidences: number[];
+  meaningfulPageCount: number;
+  pageCount: number;
+  ocrSucceeded: boolean;
+}) {
+  if (input.finalIsScanned) return 0;
+
+  const pageCount = Math.max(1, Number(input.pageCount || 0));
+  const pageConfidenceAvg = clamp01(average(input.pageConfidences.map((v) => clamp01(Number(v || 0)))));
+  const pageCoverageScore = clamp01(Number(input.meaningfulPageCount || 0) / pageCount);
+  const perPageChars = Number(input.combinedTextChars || 0) / pageCount;
+  const textDensityScore = clamp01(perPageChars / TARGET_PAGE_TEXT_CHARS);
+  const rawOverallScore = clamp01(Number(input.rawOverallConfidence || 0));
+  const coverConfidence = clamp01(Number(input.coverConfidence || 0));
+
+  const baseScore = clamp01(
+    rawOverallScore * 0.4 +
+      pageConfidenceAvg * 0.25 +
+      pageCoverageScore * 0.2 +
+      textDensityScore * 0.15
+  );
+
+  if (input.coverOnlyMode) {
+    const coverBlend = clamp01(coverConfidence * 0.7 + baseScore * 0.3);
+    let score = input.coverReady ? Math.max(coverBlend, 0.72) : Math.max(coverBlend, 0.58);
+    if (input.coverReady && coverConfidence >= 0.95) score = Math.min(0.99, score + 0.02);
+    return clamp01(score);
+  }
+
+  let score = baseScore;
+  if (input.ocrSucceeded) score = Math.min(0.96, score + 0.03);
+  if (input.combinedTextChars >= Math.max(MIN_MEANINGFUL_TEXT_CHARS * 4, 1200)) {
+    score = Math.min(0.97, score + 0.02);
+  }
+  if (input.combinedTextChars >= MIN_MEANINGFUL_TEXT_CHARS) score = Math.max(score, 0.68);
+  return clamp01(score);
 }
 
 export async function POST(
@@ -241,9 +293,27 @@ export async function POST(
     const finalRunStatus = finalIsScanned ? "NEEDS_OCR" : "DONE";
     const finalSubmissionStatus = finalIsScanned ? "NEEDS_OCR" : "EXTRACTED";
 
-    // Confidence: prefer extractor confidence but clamp + boost slightly when meaningful text exists
     const rawOverall = clamp01(Number(res.overallConfidence ?? 0));
-    const finalOverallConfidence = finalIsScanned ? 0 : Math.max(rawOverall, 0.7);
+    const pageConfidences = finalPages.map((p: any) => clamp01(Number(p?.confidence ?? 0)));
+    const meaningfulPageCount = finalPages.filter(
+      (p: any) => String(p?.text || "").trim().length >= MIN_MEANINGFUL_PAGE_CHARS
+    ).length;
+    const pageCount = Math.max(1, finalPages.length);
+    const pageTextCoverage = meaningfulPageCount / pageCount;
+    const averagePageConfidence = average(pageConfidences);
+    const coverConfidence = clamp01(Number((coverMetadata as any)?.confidence || 0));
+    const finalOverallConfidence = computeFinalExtractionConfidence({
+      rawOverallConfidence: rawOverall,
+      finalIsScanned,
+      coverOnlyMode,
+      coverReady,
+      coverConfidence,
+      combinedTextChars: combinedText.length,
+      pageConfidences,
+      meaningfulPageCount,
+      pageCount: finalPages.length,
+      ocrSucceeded: Boolean((ocrMeta as any)?.succeeded),
+    });
 
     const finishedAt = new Date();
     const mergedWarnings = [...(res.warnings || []), ...((ocrMeta.warnings as string[]) || [])];
@@ -290,6 +360,14 @@ export async function POST(
             derivedTextChars: combinedText.length,
             rawIsScanned: res.isScanned ?? null,
             rawOverallConfidence: res.overallConfidence ?? null,
+            qualitySignals: {
+              pageCount: finalPages.length,
+              meaningfulPageCount,
+              pageTextCoverage: Number(pageTextCoverage.toFixed(3)),
+              averagePageConfidence: Number(averagePageConfidence.toFixed(3)),
+              coverConfidence: Number(coverConfidence.toFixed(3)),
+              finalOverallConfidence: Number(finalOverallConfidence.toFixed(3)),
+            },
           } as any,
           finishedAt,
         },

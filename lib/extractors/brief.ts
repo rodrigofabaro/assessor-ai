@@ -1,5 +1,5 @@
 import { firstMatch, normalizeWhitespace } from "./common";
-import { extractCriteriaCodesFromText } from "../extraction/utils/criteriaCodes";
+import { extractCriteriaCodesFromText, normalizeCriteriaCode, sortCriteriaCodes } from "../extraction/utils/criteriaCodes";
 import { buildRangesFromStarts, nextIndexAfter, uniquePagesForRange, type LineWithPage } from "../extraction/brief/sections";
 
 /**
@@ -1501,20 +1501,92 @@ function extractCriteriaRefs(pageText: string) {
 }
 
 function extractLoHeaders(pageText: string) {
-  const out: string[] = [];
-  const normalized = normalizeWhitespace(pageText);
-  const matches = normalized.matchAll(/\bLO\s*([1-6])\s*[:\-–]?\s*([^L]+?)(?=\bLO\s*[1-6]\b|$)/gi);
-  for (const m of matches) {
-    const code = `LO${m[1]}`;
-    const desc = normalizeWhitespace(m[2] || "").replace(/\s+/g, " ").trim();
-    if (desc) out.push(`${code}: ${desc}`);
+  const src = String(pageText || "").replace(/\r/g, "");
+  if (!src.trim()) return [];
+  const lines = splitLines(src).map((line) => String(line || "").trim());
+  const loByCode = new Map<string, string>();
+
+  const loHeading = (line: string) => {
+    const m = String(line || "").match(/^\s*L\s*O?\s*0*([1-9]\d?)\b(?:\s*[:\-–]?\s*(.*))?$/i);
+    if (!m) return null;
+    const tail = String(m[2] || "").trim();
+    if (tail && /^&/.test(tail)) return null;
+    if (tail && /^[PMD]\s*\d+\b/i.test(tail)) return null;
+    return m;
+  };
+  const loAlias = (line: string) => line.match(/^\s*L\s*O?\s*0*([1-9]\d?)\s*$/i);
+  const isCriteriaLine = (line: string) => /^\s*[PMD]\s*\d+\b/i.test(line);
+  const isLikelyNoiseLine = (line: string) =>
+    !line ||
+    /^\s*(pass|merit|distinction)\b/i.test(line) ||
+    /^\s*\[\[(?:EQ|IMG):[^\]]+\]\]\s*$/i.test(line);
+  const cleanDesc = (value: string) =>
+    normalizeWhitespace(
+      String(value || "")
+        .replace(/\[\[(?:EQ|IMG):[^\]]+\]\]/g, " ")
+        .replace(/\bL\s*O?\s*0*[1-9]\d?(?:\s*&\s*L\s*O?\s*0*[1-9]\d?)+\b/gi, " ")
+        .replace(/\s+/g, " ")
+    ).trim();
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const header = loHeading(lines[i]);
+    if (!header) continue;
+    const loNum = String(Number(header[1]));
+    const code = `LO${loNum}`;
+    const descParts: string[] = [];
+
+    const inline = cleanDesc(String(header[2] || ""));
+    if (inline) descParts.push(inline);
+
+    let j = i + 1;
+    while (j < lines.length) {
+      const next = String(lines[j] || "").trim();
+      if (!next) {
+        if (descParts.length) break;
+        j += 1;
+        continue;
+      }
+      if (loHeading(next)) break;
+      if (isCriteriaLine(next)) break;
+      if (isLikelyNoiseLine(next)) {
+        j += 1;
+        continue;
+      }
+      const alias = loAlias(next);
+      if (alias && String(Number(alias[1])) === loNum) {
+        j += 1;
+        continue;
+      }
+      if (/\bL\s*O?\s*0*[1-9]\d?\s*&\s*L\s*O?\s*0*[1-9]\d?\b/i.test(next)) break;
+      descParts.push(next);
+      j += 1;
+    }
+
+    const description = cleanDesc(descParts.join(" "));
+    if (!description) continue;
+    const prev = loByCode.get(code);
+    if (!prev || description.length > prev.length) loByCode.set(code, description);
+    i = Math.max(i, j - 1);
   }
-  return out;
+
+  return Array.from(loByCode.entries())
+    .sort((a, b) => Number(a[0].replace(/^LO/i, "")) - Number(b[0].replace(/^LO/i, "")))
+    .map(([code, description]) => `${code}: ${description}`);
 }
 
 function findCriteriaRegion(pages: string[]) {
   if (!pages.length) return { text: "", pages: [] as number[] };
-  const anchorRegex = /\brelevant\s+learning\s+outcomes\s+and\s+assessment\s+criteria\b/i;
+  const anchorRegex = /\b(?:relevant\s+)?learning\s+outcomes?\s+and\s+assessment\s+criteria\b/i;
+  const pageHasCriteriaSignal = (pageText: string) => {
+    const normalized = normalizeWhitespace(pageText || "");
+    if (!normalized) return false;
+    if (/\bassessment\s+criteria\b/i.test(normalized)) return true;
+    if (/\bpass\s+merit\s+distinction\b/i.test(normalized)) return true;
+    const loHits = (normalized.match(/\bLO\s*[1-9]\d?\b/gi) || []).length;
+    if (loHits > 0) return true;
+    const criteriaHits = Array.from(normalized.matchAll(/\b[PMD]\s*\d+\b/gi)).length;
+    return criteriaHits >= 2;
+  };
 
   for (let idx = 0; idx < pages.length; idx += 1) {
     const lines = splitLines(pages[idx]);
@@ -1525,15 +1597,65 @@ function findCriteriaRegion(pages: string[]) {
         .filter(Boolean)
         .join(" ");
       if (anchorRegex.test(window)) {
-        const nextPage = pages[idx + 1];
-        const regionText = [pages[idx], nextPage].filter(Boolean).join("\n");
-        const regionPages = [idx + 1, idx + 2].filter((page) => page <= pages.length);
+        const selectedPageIndexes: number[] = [];
+        const maxPagesFromAnchor = 5;
+        for (
+          let pageIndex = idx;
+          pageIndex < pages.length && selectedPageIndexes.length < maxPagesFromAnchor;
+          pageIndex += 1
+        ) {
+          if (pageIndex <= idx + 1) {
+            selectedPageIndexes.push(pageIndex);
+            continue;
+          }
+          if (!pageHasCriteriaSignal(pages[pageIndex])) break;
+          selectedPageIndexes.push(pageIndex);
+        }
+        const regionText = selectedPageIndexes.map((pageIndex) => pages[pageIndex]).join("\n");
+        const regionPages = selectedPageIndexes.map((pageIndex) => pageIndex + 1);
         return { text: regionText, pages: regionPages };
       }
     }
   }
 
   return { text: "", pages: [] as number[] };
+}
+
+function inferMissingMeritBridgeCodes(inputCodes: string[]): { codes: string[]; inferred: string[] } {
+  const base = Array.from(
+    new Set(
+      (Array.isArray(inputCodes) ? inputCodes : [])
+        .map((code) => normalizeCriteriaCode(code))
+        .filter(Boolean) as string[]
+    )
+  );
+  const meritNumbers = new Set(
+    base
+      .filter((code) => code.startsWith("M"))
+      .map((code) => Number((code.match(/\d+/) || ["0"])[0]))
+      .filter((n) => Number.isFinite(n) && n > 0)
+  );
+  const inferred = new Set<string>();
+
+  if (meritNumbers.size >= 2) {
+    const sorted = Array.from(meritNumbers).sort((a, b) => a - b);
+    const min = sorted[0]!;
+    const max = sorted[sorted.length - 1]!;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let n = min + 1; n < max; n += 1) {
+        if (meritNumbers.has(n)) continue;
+        if (!meritNumbers.has(n - 1) || !meritNumbers.has(n + 1)) continue;
+        meritNumbers.add(n);
+        inferred.add(`M${n}`);
+        changed = true;
+      }
+    }
+  }
+
+  const codes = sortCriteriaCodes(Array.from(new Set([...base, ...Array.from(inferred)])));
+  return { codes, inferred: sortCriteriaCodes(Array.from(inferred)) };
 }
 
 export function extractBrief(
@@ -1569,8 +1691,9 @@ export function extractBrief(
     assignmentNumber ? `A${assignmentNumber}` :
     (t.match(/\bA\d+\b/i)?.[0]?.toUpperCase() ?? null);
 
-  // Criteria codes: detect P/M/D numbers
-  const detectedCriterionCodes = extractCriteriaCodesFromText(t);
+  // Criteria codes: detect P/M/D numbers and infer obvious merit sequence gaps (e.g., M2 + M4 => M3).
+  const detectedCriterionCodesResult = inferMissingMeritBridgeCodes(extractCriteriaCodesFromText(t));
+  const detectedCriterionCodes = detectedCriterionCodesResult.codes;
 
   const pages = splitPages(t);
   const headerSource = pages[0] || t.slice(0, 4500);
@@ -1582,7 +1705,10 @@ export function extractBrief(
   const aiasLevelFromTasks = taskAiasLevels.length ? Math.min(...taskAiasLevels) : null;
   const aiasLevel = aiasLevelFromDoc ?? aiasLevelFromTasks ?? null;
   const criteriaRegion = findCriteriaRegion(pages);
-  const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : detectedCriterionCodes;
+  const criteriaRefsResult = inferMissingMeritBridgeCodes(
+    criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : detectedCriterionCodes
+  );
+  const criteriaRefs = criteriaRefsResult.codes;
   const criteriaCodes = criteriaRefs.length ? criteriaRefs : detectedCriterionCodes;
   const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
 
@@ -1590,6 +1716,12 @@ export function extractBrief(
     ...(header.warnings || []),
     ...(tasksResult.warnings || []),
   ];
+  const inferredMeritCodes = Array.from(
+    new Set([...detectedCriterionCodesResult.inferred, ...criteriaRefsResult.inferred])
+  );
+  if (inferredMeritCodes.length) {
+    warnings.push(`criteria sequence inferred: ${inferredMeritCodes.join(", ")}`);
+  }
   const titleFromBody = assignmentTitle ? normalizeWhitespace(assignmentTitle) : null;
   const titleFromHeader = buildBriefTitle(header, assignmentNumber, titleFromBody || fallbackTitle);
 
@@ -1716,10 +1848,9 @@ export function extractBrief(
       .trim();
   };
   const hasImageToken = (textValue: string) => /\[\[IMG:[^\]]+\]\]/.test(String(textValue || ""));
-  const hasMathIntent = (textValue: string) => {
+  const hasStrictMathIntent = (textValue: string) => {
     const src = String(textValue || "");
     if (!src.trim()) return false;
-    if (/\[\[EQ:[^\]]+\]\]/.test(src)) return true;
     if (/[=^]/.test(src) && /\b[a-z]\b/i.test(src)) return true;
     if (/\b(log\s*\(|log[_\s]*e\b|ln\s*\(|natural\s+log)\b/i.test(src)) return true;
     return /\b(equation|differentiate|differentiation|derivative|integrate|integration|integral|calculate|calculation|solve|sine|cosine|tangent|sin|cos|tan)\b/i.test(src);
@@ -1859,11 +1990,21 @@ export function extractBrief(
     arr.sort((a, b) => (a.bbox?.y ?? 0) - (b.bbox?.y ?? 0));
     eqsByPage.set(p, arr);
   }
+  const isStrongEquationCandidate = (eq: BriefEquation | null | undefined) => {
+    if (!eq) return false;
+    const confidence = Number(eq.confidence || 0);
+    if (confidence < 0.86) return false;
+    if (!String(eq.latex || "").trim()) return false;
+    if (looksSuspiciousEquationLatex(eq.latex)) return false;
+    return true;
+  };
   const pickUnusedEqForTask = (pagesForTask: number[], used: Set<string>) => {
     for (const p of pagesForTask) {
       const arr = eqsByPage.get(p) || [];
       for (const eq of arr) {
-        if (!used.has(eq.id)) return eq.id;
+        if (used.has(eq.id)) continue;
+        if (!isStrongEquationCandidate(eq)) continue;
+        return eq.id;
       }
     }
     return null;
@@ -1889,14 +2030,23 @@ export function extractBrief(
       task.prompt = rebuilt;
     }
   };
-  const usedEqIdsMutable = new Set<string>(usedEqIds);
-  for (const task of tasksResult.tasks || []) {
-    transformTaskTexts(task, (value) => normalizeSimpleMathText(sanitizeEquationContext(value)));
-    const taskWarnings = new Set((task.warnings || []).map((w) => String(w)));
+  const collectTaskEqIds = (task: any) => {
     const ids = new Set<string>();
     collectEqIds(task?.text, ids);
     collectEqIds(task?.prompt, ids);
     for (const part of task?.parts || []) collectEqIds(part?.text, ids);
+    return Array.from(ids);
+  };
+  const usedEqIdsMutable = new Set<string>(usedEqIds);
+  for (const task of tasksResult.tasks || []) {
+    transformTaskTexts(task, (value) => normalizeSimpleMathText(sanitizeEquationContext(value)));
+    const taskWarnings = new Set((task.warnings || []).map((w) => String(w)));
+    for (const warning of Array.from(taskWarnings)) {
+      if (/^equation quality: low-confidence$/i.test(warning) || /^equation token unresolved$/i.test(warning)) {
+        taskWarnings.delete(warning);
+      }
+    }
+    let idsArr = collectTaskEqIds(task);
     if (Array.isArray(task.parts) && task.parts.length) {
       const pagesForTask = Array.isArray(task.pages) ? task.pages.map((p) => Number(p)).filter(Boolean) : [];
       task.parts = task.parts.map((part) => {
@@ -1909,52 +2059,46 @@ export function extractBrief(
         return { ...part, text: `${raw}\n[[EQ:${pick}]]` };
       });
       rebuildTaskTextFromParts(task);
-      ids.clear();
-      collectEqIds(task?.text, ids);
-      collectEqIds(task?.prompt, ids);
-      for (const part of task?.parts || []) collectEqIds(part?.text, ids);
+      idsArr = collectTaskEqIds(task);
     }
-    const idsArr = Array.from(ids);
+    const combinedTaskText = [
+      String(task?.text || ""),
+      String(task?.prompt || ""),
+      ...(Array.isArray(task?.parts) ? task.parts.map((p: any) => String(p?.text || "")) : []),
+    ]
+      .join("\n")
+      .replace(/\[\[EQ:[^\]]+\]\]/g, " ");
+    const taskHasStrictMathIntent = hasStrictMathIntent(combinedTaskText);
+
+    if (!taskHasStrictMathIntent && idsArr.length) {
+      const weakArtifactIds = new Set(
+        idsArr.filter((id) => {
+          const eq = eqById.get(id);
+          if (!eq) return true;
+          return !isStrongEquationCandidate(eq);
+        })
+      );
+      if (weakArtifactIds.size > 0) {
+        transformTaskTexts(task, (value) =>
+          String(value || "").replace(/\[\[EQ:([^\]]+)\]\]/g, (_m, id) => (weakArtifactIds.has(String(id || "")) ? "" : `[[EQ:${id}]]`))
+        );
+        idsArr = collectTaskEqIds(task);
+      }
+    }
     const linkedEqs = idsArr.map((id) => eqById.get(id)).filter(Boolean) as BriefEquation[];
     for (const eq of linkedEqs) {
-      if (Number(eq.confidence || 0) < 0.86 || looksSuspiciousEquationLatex(eq.latex)) {
+      if (!isStrongEquationCandidate(eq)) {
         eq.needsReview = true;
       }
     }
-
-    if (idsArr.some((id) => !eqById.has(id))) {
+    const unresolvedIds = idsArr.filter((id) => !eqById.has(id));
+    const weakLinkedEqs = linkedEqs.filter((eq) => eq.needsReview || !isStrongEquationCandidate(eq));
+    const strongLinkedEqs = linkedEqs.filter((eq) => !eq.needsReview && isStrongEquationCandidate(eq));
+    if (unresolvedIds.length > 0 && (taskHasStrictMathIntent || strongLinkedEqs.length > 0)) {
       taskWarnings.add("equation token unresolved");
     }
-    if (
-      linkedEqs.some(
-        (eq) =>
-          eq.needsReview ||
-          Number(eq.confidence || 0) < 0.86 ||
-          looksSuspiciousEquationLatex(eq.latex)
-      )
-    ) {
+    if (weakLinkedEqs.length > 0 && (taskHasStrictMathIntent || strongLinkedEqs.length > 0)) {
       taskWarnings.add("equation quality: low-confidence");
-    }
-    // If a task has no mathematical intent and all equation tokens are weak OCR artifacts,
-    // remove those tokens and suppress the equation-quality warning.
-    if (idsArr.length) {
-      const combinedTaskText = [
-        String(task?.text || ""),
-        String(task?.prompt || ""),
-        ...(Array.isArray(task?.parts) ? task.parts.map((p: any) => String(p?.text || "")) : []),
-      ]
-        .join("\n")
-        .replace(/\[\[EQ:[^\]]+\]\]/g, " ");
-      const noMathIntent = !hasMathIntent(combinedTaskText);
-      const allWeak = linkedEqs.length > 0 && linkedEqs.every((eq) => Number(eq.confidence || 0) < 0.6 || !String(eq.latex || "").trim());
-      if (noMathIntent && allWeak) {
-        const weakIds = new Set(linkedEqs.map((eq) => String(eq.id || "")));
-        const stripWeakTokens = (value: string) =>
-          String(value || "").replace(/\[\[EQ:([^\]]+)\]\]/g, (_m, id) => (weakIds.has(String(id || "")) ? "" : `[[EQ:${id}]]`));
-        transformTaskTexts(task, stripWeakTokens);
-        taskWarnings.delete("equation quality: low-confidence");
-        taskWarnings.delete("equation token unresolved");
-      }
     }
     if (hasBibliographyLeak(task.text || "")) {
       taskWarnings.add("possible end-matter contamination");

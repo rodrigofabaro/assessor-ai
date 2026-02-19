@@ -83,7 +83,7 @@ export default function BriefExtractWorkbench({
   );
   const lastStatusDate = (doc as any)?.updatedAt || doc?.uploadedAt || "";
   const statusSummary = doc?.status
-    ? `${doc.status}${lastStatusDate ? ` • ${new Date(lastStatusDate).toLocaleString()}` : ""}`
+    ? `${doc?.lockedAt ? "LOCKED" : doc.status}${lastStatusDate ? ` • ${new Date(lastStatusDate).toLocaleString()}` : ""}`
     : "—";
   const unitSummary = header?.unitNumberAndTitle
     ? header.unitNumberAndTitle
@@ -336,9 +336,10 @@ export default function BriefExtractWorkbench({
             <div className="mt-4 grid gap-2 max-h-[520px] overflow-auto pr-1">
               {visibleDocuments.map((d: any) => {
                 const active = rx.selectedDocId === d.id;
-                const b = badge(d.status);
                 const busy = rowBusy[d.id];
                 const locked = !!d.lockedAt || String(d.status || "").toUpperCase() === "LOCKED";
+                const displayStatus = locked ? "LOCKED" : String(d.status || "UPLOADED").toUpperCase();
+                const b = badge(displayStatus as any);
                 const updated = (d.sourceMeta as any)?.updatedAt || d.uploadedAt;
                 return (
                   <div

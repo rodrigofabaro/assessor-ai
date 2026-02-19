@@ -176,12 +176,14 @@ export default function SubmissionDetailPage() {
   // Auto-run extraction once for freshly uploaded submissions.
   const autoStartedRef = useRef(false);
   const studentSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const quickActionsPanelRef = useRef<HTMLDetailsElement | null>(null);
   const studentPanelRef = useRef<HTMLDetailsElement | null>(null);
   const workflowPanelRef = useRef<HTMLElement | null>(null);
   const assignmentPanelRef = useRef<HTMLDetailsElement | null>(null);
   const extractionPanelRef = useRef<HTMLDetailsElement | null>(null);
   const gradingPanelRef = useRef<HTMLDivElement | null>(null);
   const outputsPanelRef = useRef<HTMLDetailsElement | null>(null);
+  const outputsAccordionRef = useRef<HTMLDivElement | null>(null);
   const sidePanelsInitializedForSubmission = useRef<string | null>(null);
   const coverEditorRef = useRef<HTMLDetailsElement | null>(null);
   const coverStudentNameRef = useRef<HTMLInputElement | null>(null);
@@ -418,6 +420,62 @@ export default function SubmissionDetailPage() {
     const v = selectedResultJson?.readinessChecklist || null;
     return v && typeof v === "object" ? v : null;
   }, [selectedResultJson]);
+  const auditPressure = useMemo(() => {
+    const issues: string[] = [];
+    let score = 0;
+
+    if (feedbackDirty) {
+      issues.push("Unsaved feedback edits");
+      score += 2;
+    }
+    if (gradeRunPolicy?.wasCapped) {
+      issues.push(`Policy cap applied (${String(gradeRunPolicy.capReason || "rule")})`);
+      score += 2;
+    }
+    if (gradeRunConfidenceSignals.extraction !== null) {
+      if (gradeRunConfidenceSignals.extraction < 0.65) {
+        issues.push(`Low extraction confidence (${gradeRunConfidenceSignals.extraction.toFixed(2)})`);
+        score += 2;
+      } else if (gradeRunConfidenceSignals.extraction < 0.8) {
+        issues.push(`Borderline extraction confidence (${gradeRunConfidenceSignals.extraction.toFixed(2)})`);
+        score += 1;
+      }
+    }
+    if (gradeRunConfidenceSignals.grading !== null) {
+      if (gradeRunConfidenceSignals.grading < 0.65) {
+        issues.push(`Low grading confidence (${gradeRunConfidenceSignals.grading.toFixed(2)})`);
+        score += 2;
+      } else if (gradeRunConfidenceSignals.grading < 0.8) {
+        issues.push(`Borderline grading confidence (${gradeRunConfidenceSignals.grading.toFixed(2)})`);
+        score += 1;
+      }
+    }
+    if (gradeRunEvidenceDensitySummary.criteriaWithoutEvidence > 0) {
+      issues.push(`Criteria missing evidence (${gradeRunEvidenceDensitySummary.criteriaWithoutEvidence})`);
+      score += Math.min(2, gradeRunEvidenceDensitySummary.criteriaWithoutEvidence);
+    }
+    const readinessFailures = gradeRunReadinessChecklist
+      ? Object.entries(gradeRunReadinessChecklist).filter(([, ok]) => !Boolean(ok)).map(([key]) => key)
+      : [];
+    if (readinessFailures.length > 0) {
+      issues.push(`Readiness checks failed (${readinessFailures.length})`);
+      score += 2;
+    }
+    if (!selectedAssessment?.annotatedPdfPath) {
+      issues.push("Marked PDF not generated");
+      score += 1;
+    }
+
+    const severity = score >= 5 ? "high" : score >= 2 ? "medium" : "low";
+    return { score, severity, issues, readinessFailures };
+  }, [
+    feedbackDirty,
+    gradeRunPolicy,
+    gradeRunConfidenceSignals,
+    gradeRunEvidenceDensitySummary,
+    gradeRunReadinessChecklist,
+    selectedAssessment?.annotatedPdfPath,
+  ]);
 
   const checklist = useMemo(() => {
     const studentLinked = !!submission?.student;
@@ -551,6 +609,7 @@ export default function SubmissionDetailPage() {
     sidePanelsInitializedForSubmission.current = submissionId;
       const closeAll = () => {
       const panels = [
+        quickActionsPanelRef.current,
         studentPanelRef.current,
         assignmentPanelRef.current,
         extractionPanelRef.current,
@@ -559,6 +618,7 @@ export default function SubmissionDetailPage() {
       for (const panel of panels) {
         if (panel) panel.open = false;
       }
+      if (quickActionsPanelRef.current) quickActionsPanelRef.current.open = true;
     };
     const timer = window.setTimeout(closeAll, 0);
     return () => window.clearTimeout(timer);
@@ -865,6 +925,15 @@ export default function SubmissionDetailPage() {
     Object.entries(panels).forEach(([key, panel]) => {
       if (!panel) return;
       panel.open = key === target;
+    });
+  };
+  const openSingleOutputSection = (panel: HTMLDetailsElement) => {
+    if (!panel.open) return;
+    const container = outputsAccordionRef.current;
+    if (!container) return;
+    const sections = container.querySelectorAll<HTMLDetailsElement>('details[data-output-section="true"]');
+    sections.forEach((section) => {
+      if (section !== panel) section.open = false;
     });
   };
   const openCoverEditorAndFocus = (
@@ -1538,20 +1607,26 @@ export default function SubmissionDetailPage() {
         </div>
 
         {/* LEFT: Metadata + extraction */}
-        <div className="order-1 grid gap-2 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
-          <details className="group order-1 rounded-xl border border-zinc-200 bg-white shadow-sm" open>
-            <summary className="cursor-pointer list-none px-2 py-1 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-6 items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+        <div className="order-1 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
+          <div className="grid gap-2">
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <details
+            ref={quickActionsPanelRef}
+            className="group order-1 bg-white"
+            open
+          >
+            <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Quick actions</span>
                 </span>
-                <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] normal-case text-zinc-700">
+                <span className="truncate rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] normal-case text-zinc-700">
                   Shortcuts
                 </span>
               </div>
             </summary>
-            <div className="border-t border-zinc-200 p-2.5">
+            <div className="border-t border-zinc-200 p-2">
             <div className="text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview, <span className="font-semibold">?</span> help</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <button
@@ -1636,18 +1711,21 @@ export default function SubmissionDetailPage() {
             ) : null}
             </div>
           </details>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
 
           <details
             ref={studentPanelRef}
             id="student-link-panel"
-            className="group order-3 rounded-xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-3 border-b border-zinc-200 bg-white"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("student");
             }}
           >
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Student</span>
@@ -1781,14 +1859,14 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={assignmentPanelRef}
-            className="group order-2 rounded-xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-2 border-b border-zinc-200 bg-white"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("assignment");
             }}
           >
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Assignment</span>
@@ -1813,14 +1891,14 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={extractionPanelRef}
-            className="group order-4 rounded-xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-4 border-b border-zinc-200 bg-white"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("extraction");
             }}
           >
             <summary className="cursor-pointer list-none border-b border-transparent px-2 py-0.5 group-open:border-zinc-200 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Cover extraction</span>
@@ -2005,14 +2083,14 @@ export default function SubmissionDetailPage() {
 
           <details
             ref={outputsPanelRef}
-            className="group order-5 rounded-xl border border-zinc-200 bg-white shadow-sm"
+            className="group order-5 bg-white"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("outputs");
             }}
           >
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-[26px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Audit & outputs</span>
@@ -2027,7 +2105,7 @@ export default function SubmissionDetailPage() {
                 </span>
               </div>
             </summary>
-            <div className="grid gap-2 border-t border-zinc-200 px-3 pb-3 pt-2 text-sm">
+            <div ref={outputsAccordionRef} className="grid gap-1 border-t border-zinc-200 px-2 pb-2 pt-1.5 text-sm">
               {gradingHistory.length ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
                   <span className="text-xs font-semibold text-zinc-700">Assessment run</span>
@@ -2097,6 +2175,32 @@ export default function SubmissionDetailPage() {
                   Regenerate with current settings
                 </button>
               </div>
+              <div
+                className={cx(
+                  "rounded-xl border p-2 text-[11px]",
+                  auditPressure.severity === "high"
+                    ? "border-rose-200 bg-rose-50 text-rose-900"
+                    : auditPressure.severity === "medium"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold">Audit pressure</div>
+                  <span className="rounded-full border border-current px-2 py-0.5 text-[10px] font-semibold uppercase">
+                    {auditPressure.severity}
+                  </span>
+                </div>
+                {auditPressure.issues.length ? (
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                    {auditPressure.issues.map((issue, idx) => (
+                      <li key={`pressure-${idx}`}>{issue}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mt-1">No active pressure signals.</div>
+                )}
+              </div>
               {previousAssessment && selectedAssessment?.id === latestAssessment?.id ? (
                 <div className="text-[11px] text-zinc-500">
                   Previous run: {previousAssessment.overallGrade || "—"} at {safeDate(previousAssessment.createdAt)}
@@ -2148,7 +2252,11 @@ export default function SubmissionDetailPage() {
                 </div>
               ) : null}
               {gradeRunReadinessChecklist ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Grade Readiness Checklist
                   </summary>
@@ -2165,7 +2273,11 @@ export default function SubmissionDetailPage() {
                 </details>
               ) : null}
               {gradeRunReferenceSnapshot ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Reference Context Snapshot
                   </summary>
@@ -2187,7 +2299,11 @@ export default function SubmissionDetailPage() {
                 </details>
               ) : null}
               {(gradeRunEvidenceDensityRows.length > 0 || gradeRunEvidenceDensitySummary.totalCitations > 0) ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Evidence Density · Citations {gradeRunEvidenceDensitySummary.totalCitations} · Missing {gradeRunEvidenceDensitySummary.criteriaWithoutEvidence}
                   </summary>
@@ -2223,7 +2339,11 @@ export default function SubmissionDetailPage() {
                 </details>
               ) : null}
               {gradeRunRerunIntegrity ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Re-run Integrity
                   </summary>
@@ -2351,7 +2471,11 @@ export default function SubmissionDetailPage() {
               </div>
 
               {feedbackHistory.length ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Feedback Summary History ({feedbackHistory.length})
                   </summary>
@@ -2369,7 +2493,11 @@ export default function SubmissionDetailPage() {
               ) : null}
 
               {structuredGrading ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Criterion Decisions · {String(structuredGrading?.overallGradeWord || structuredGrading?.overallGrade || "—")} · Resubmission: {Boolean(structuredGrading?.resubmissionRequired) ? "Yes" : "No"}
                   </summary>
@@ -2411,7 +2539,11 @@ export default function SubmissionDetailPage() {
               ) : null}
 
               {pageFeedbackMap.length ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Page Feedback Map ({pageFeedbackMap.length} pages)
                   </summary>
@@ -2431,7 +2563,11 @@ export default function SubmissionDetailPage() {
               ) : null}
 
               {modalityCompliance.hasData ? (
-                <details className="rounded-xl border border-zinc-200 bg-white p-3">
+                <details
+                  data-output-section="true"
+                  className="rounded-xl border border-zinc-200 bg-white p-3"
+                  onToggle={(e) => openSingleOutputSection(e.currentTarget)}
+                >
                   <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-600">
                     Modality Compliance · Pass {modalityCompliance.passCount} · Review {modalityCompliance.failCount}
                   </summary>
@@ -2479,6 +2615,8 @@ export default function SubmissionDetailPage() {
               ) : null}
             </div>
           </details>
+          </div>
+          </div>
         </div>
       </section>
     </main>

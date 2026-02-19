@@ -108,6 +108,7 @@ export default function BriefReviewCard({
   const readiness = (doc as any)?.readiness as string | undefined;
   const usage = rx.selectedDocUsage;
   const usageLoading = rx.usageLoading;
+  const displayStatus = doc ? (doc.lockedAt ? "LOCKED" : String(doc.status || "").toUpperCase()) : "";
   const canExtract = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
   const canLock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !doc.lockedAt;
   const canUnlock = !!doc && !(rx?.busy?.current ?? rx?.busy) && !!doc.lockedAt && !!usage && !usage.inUse;
@@ -235,7 +236,7 @@ export default function BriefReviewCard({
           </div>
           {doc ? (
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <Pill cls={statusTone(doc.status)}>{doc.status}</Pill>
+              <Pill cls={statusTone(displayStatus)}>{displayStatus || "—"}</Pill>
               {doc.lockedAt ? <Pill cls={tone("ok")}>Locked</Pill> : <Pill cls={tone("warn")}>Unlocked</Pill>}
               <Pill cls={warningCount ? tone("warn") : tone("ok")}>{warningCount} warning(s)</Pill>
               {readiness ? (

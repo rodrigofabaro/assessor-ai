@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { prisma } from "@/lib/prisma";
 import { readGradingConfig } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
@@ -17,6 +20,8 @@ import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
+import { computeGradingConfidence } from "@/lib/grading/confidenceScoring";
+import { chooseGradingInputStrategy } from "@/lib/grading/inputStrategy";
 
 export const runtime = "nodejs";
 
@@ -510,6 +515,83 @@ function diffReferenceSnapshots(previous: any, current: any) {
   };
 }
 
+function clamp01(value: unknown) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+function safeEnvInt(name: string, fallback: number, min: number, max: number) {
+  const n = Number(process.env[name] || fallback);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+function safeEnvNumber(name: string, fallback: number, min: number, max: number) {
+  const n = Number(process.env[name] || fallback);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+async function renderPdfPagesForGrading(input: {
+  pdfPath: string;
+  maxPages: number;
+  scale: number;
+}): Promise<{
+  pageCount: number;
+  usedPages: number;
+  pages: Array<{ pageNumber: number; imageDataUrl: string }>;
+  warnings: string[];
+}> {
+  const warnings: string[] = [];
+  const absPath = path.isAbsolute(input.pdfPath)
+    ? input.pdfPath
+    : path.join(process.cwd(), input.pdfPath);
+  const bytes = new Uint8Array(await fs.readFile(absPath));
+
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const nodeRequire = eval("require") as NodeRequire;
+  const canvasModule = nodeRequire("@napi-rs/canvas") as {
+    createCanvas: (w: number, h: number) => any;
+  };
+  const workerPath = path.join(
+    process.cwd(),
+    "node_modules",
+    "pdfjs-dist",
+    "legacy",
+    "build",
+    "pdf.worker.mjs"
+  );
+  if (pdfjs?.GlobalWorkerOptions) {
+    pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
+  }
+
+  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true }).promise;
+  const pageCount = Math.max(1, Number(doc?.numPages || 1));
+  const usedPages = Math.min(pageCount, Math.max(1, input.maxPages));
+  if (usedPages < pageCount) {
+    warnings.push(`Raw PDF input limited to first ${usedPages}/${pageCount} pages.`);
+  }
+
+  const pages: Array<{ pageNumber: number; imageDataUrl: string }> = [];
+  for (let p = 1; p <= usedPages; p += 1) {
+    const page = await doc.getPage(p);
+    const viewport = page.getViewport({ scale: input.scale });
+    const width = Math.max(1, Math.floor(viewport.width));
+    const height = Math.max(1, Math.floor(viewport.height));
+    const canvas = canvasModule.createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx as any, viewport }).promise;
+    const png = canvas.toBuffer("image/png");
+    pages.push({
+      pageNumber: p,
+      imageDataUrl: `data:image/png;base64,${png.toString("base64")}`,
+    });
+  }
+
+  return { pageCount, usedPages, pages, warnings };
+}
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
@@ -616,22 +698,6 @@ export async function POST(
     extractedText: submission.extractedText,
     latestRun: submission.extractionRuns?.[0] || null,
   });
-  if (!extractionGate.ok) {
-    return apiError({
-      status: 422,
-      code: "GRADE_EXTRACTION_NOT_READY",
-      userMessage: "Extraction quality gate failed. Review extraction/OCR before grading.",
-      route: "/api/submissions/[submissionId]/grade",
-      requestId,
-      details: {
-        submissionId,
-        blockers: extractionGate.blockers,
-        warnings: extractionGate.warnings,
-        metrics: extractionGate.metrics,
-      },
-    });
-  }
-
   // Recovery path: if triage linked a placeholder assignment (or missed assignment link),
   // attempt to resolve to a mapped brief by unitCode + assignmentRef before failing.
   let relinked = false;
@@ -820,6 +886,84 @@ export async function POST(
   });
   const extractionMode = String(latestRunMeta?.extractionMode || "").toUpperCase();
   const coverReady = Boolean(latestRunMeta?.coverReady);
+  const extractionConfidence = Number(extractionGate.metrics?.overallConfidence || 0);
+  const extractionConfidenceScore = Number.isFinite(extractionConfidence)
+    ? Math.max(0, Math.min(1, extractionConfidence))
+    : 0;
+  const submissionFilenameLower = String(submission?.filename || "").toLowerCase();
+  const submissionPathLower = String(submission?.storagePath || "").toLowerCase();
+  const isPdfSubmission = submissionFilenameLower.endsWith(".pdf") || submissionPathLower.endsWith(".pdf");
+  const gradingInputStrategy = chooseGradingInputStrategy({
+    requestedMode: process.env.GRADE_INPUT_MODE || "auto",
+    isPdf: isPdfSubmission,
+    extractionMode,
+    coverReady,
+    extractionGateOk: extractionGate.ok,
+    extractedChars: Number(extractionGate.metrics?.extractedChars || 0),
+    extractionConfidence: extractionConfidenceScore,
+    minExtractedChars: safeEnvInt("GRADE_INPUT_MIN_EXTRACTED_CHARS", 2200, 300, 200000),
+    minExtractionConfidence: safeEnvNumber("GRADE_INPUT_MIN_EXTRACTION_CONFIDENCE", 0.84, 0.55, 0.99),
+  });
+  let gradingInputMode = gradingInputStrategy.mode;
+  const gradingInputWarnings: string[] = [];
+  let rawPdfPageInput: Array<{ pageNumber: number; imageDataUrl: string }> = [];
+  let rawPdfPageCount = 0;
+  let rawPdfPagesUsed = 0;
+  if (gradingInputMode === "RAW_PDF_IMAGES") {
+    try {
+      const rawMaxPages = safeEnvInt("GRADE_RAW_MAX_PAGES", 18, 1, 80);
+      const rawScale = safeEnvNumber("GRADE_RAW_RENDER_SCALE", 1.45, 1, 3);
+      const rendered = await renderPdfPagesForGrading({
+        pdfPath: submission.storagePath,
+        maxPages: rawMaxPages,
+        scale: rawScale,
+      });
+      rawPdfPageInput = rendered.pages;
+      rawPdfPageCount = rendered.pageCount;
+      rawPdfPagesUsed = rendered.usedPages;
+      if (rendered.warnings.length) gradingInputWarnings.push(...rendered.warnings);
+      if (!rawPdfPageInput.length) {
+        throw new Error("No raw PDF pages could be rendered.");
+      }
+    } catch (e: any) {
+      gradingInputWarnings.push(`Raw PDF render failed: ${String(e?.message || e)}`);
+      if (extractionGate.ok) {
+        gradingInputMode = "EXTRACTED_TEXT";
+        gradingInputWarnings.push("Falling back to extracted input because raw rendering failed.");
+      } else {
+        return apiError({
+          status: 422,
+          code: "GRADE_RAW_INPUT_UNAVAILABLE",
+          userMessage:
+            "Adaptive grading chose raw PDF mode, but raw document rendering failed and extraction is not ready.",
+          route: "/api/submissions/[submissionId]/grade",
+          requestId,
+          details: {
+            submissionId,
+            strategy: gradingInputStrategy,
+            rawWarnings: gradingInputWarnings,
+            extractionGate,
+          },
+        });
+      }
+    }
+  }
+  if (gradingInputMode === "EXTRACTED_TEXT" && !extractionGate.ok) {
+    return apiError({
+      status: 422,
+      code: "GRADE_EXTRACTION_NOT_READY",
+      userMessage: "Extraction quality gate failed. Review extraction/OCR before grading.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: {
+        submissionId,
+        strategy: gradingInputStrategy,
+        blockers: extractionGate.blockers,
+        warnings: extractionGate.warnings,
+        metrics: extractionGate.metrics,
+      },
+    });
+  }
   const latestRunId = String(submission.extractionRuns?.[0]?.id || "");
   const sampledPages =
     latestRunId
@@ -830,32 +974,37 @@ export async function POST(
           select: { pageNumber: true, text: true },
         })
       : [];
-  const pageContext = buildPageSampleContext(
-    sampledPages,
-    Math.max(500, Math.min(6000, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT || 1600))),
-    Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4)))
-  );
+  const pageContext =
+    gradingInputMode === "EXTRACTED_TEXT"
+      ? buildPageSampleContext(
+          sampledPages,
+          Math.max(500, Math.min(6000, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_CHAR_LIMIT || 1600))),
+          Math.max(1, Math.min(6, Number(process.env.OPENAI_GRADE_PAGE_SAMPLE_COUNT || 4)))
+        )
+      : `Raw PDF page images attached: ${rawPdfPagesUsed}/${Math.max(rawPdfPageCount, rawPdfPagesUsed)}.`;
   const sampledPageText = sampledPages
     .map((p) => normalizeText(p.text))
     .filter(Boolean)
     .join("\n\n");
   const modalityEvidenceText = [String(submission.extractedText || ""), sampledPageText].filter(Boolean).join("\n\n");
-  const modalityEvidenceSource = "BODY_PLUS_PAGE_SAMPLES";
+  const modalityEvidenceSource =
+    gradingInputMode === "RAW_PDF_IMAGES"
+      ? "RAW_PDF_IMAGES_PLUS_EXTRACTED_HINTS"
+      : "BODY_PLUS_PAGE_SAMPLES";
   const inputCharLimit = Math.max(4000, Math.min(120000, Number(process.env.OPENAI_GRADE_INPUT_CHAR_LIMIT || 18000)));
   const configuredMaxOutputTokens = Math.max(500, Math.min(4000, Number(process.env.OPENAI_GRADE_MAX_OUTPUT_TOKENS || 1100)));
   const criteriaDrivenMinOutputTokens = Math.max(900, Math.min(3800, 500 + criteriaCodes.length * 140));
   const maxOutputTokens = Math.max(configuredMaxOutputTokens, criteriaDrivenMinOutputTokens);
   const bodyFallbackText =
-    String(submission.extractedText || "").slice(0, inputCharLimit) ||
-    "(No substantial extracted body text available. Use evidence-based caution.)";
+    gradingInputMode === "EXTRACTED_TEXT"
+      ? String(submission.extractedText || "").slice(0, inputCharLimit) ||
+        "(No substantial extracted body text available. Use evidence-based caution.)"
+      : String(submission.extractedText || "").slice(0, Math.max(1500, Math.min(8000, Math.floor(inputCharLimit / 2)))) ||
+        "(Extraction hints unavailable. Use attached PDF pages as primary source.)";
   const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(modalityEvidenceText);
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
-  const extractionConfidence = Number(extractionGate.metrics?.overallConfidence || 0);
-  const extractionConfidenceScore = Number.isFinite(extractionConfidence)
-    ? Math.max(0, Math.min(1, extractionConfidence))
-    : 0;
   const readinessChecklist = {
-    extractionCompleteness: extractionGate.ok,
+    extractionCompleteness: gradingInputMode === "RAW_PDF_IMAGES" ? true : extractionGate.ok,
     studentLinked: !!submission.studentId,
     assignmentLinked: !!submission.assignmentId,
     lockedReferencesAvailable: !!brief.lockedAt && !!brief.unit?.lockedAt,
@@ -936,6 +1085,13 @@ export async function POST(
     "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
     "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
     "",
+    "Input routing strategy:",
+    `- Mode: ${gradingInputMode}`,
+    `- Reason: ${gradingInputStrategy.reason}`,
+    ...(gradingInputWarnings.length
+      ? ["- Strategy warnings:", ...gradingInputWarnings.slice(0, 8).map((w) => `  - ${w}`)]
+      : []),
+    "",
     "Assignment context:",
     `Unit: ${brief.unit.unitCode} ${brief.unit.unitTitle}`,
     `Assignment code: ${brief.assignmentCode}`,
@@ -968,10 +1124,40 @@ export async function POST(
     "Student submission page samples (supporting evidence):",
     pageContext,
     "",
-    "Submission extracted body text (primary context):",
+    gradingInputMode === "RAW_PDF_IMAGES"
+      ? "Submission extracted body text (secondary hint only; may be incomplete):"
+      : "Submission extracted body text (primary context):",
     bodyFallbackText,
   ].join("\n");
   const promptHash = createHash("sha256").update(prompt).digest("hex");
+  const inputStrategySnapshot = {
+    requestedMode: gradingInputStrategy.requestedMode,
+    mode: gradingInputMode,
+    reason: gradingInputStrategy.reason,
+    thresholds: gradingInputStrategy.usedThresholds,
+    extractionGateOk: extractionGate.ok,
+    extractionMode: extractionMode || "UNKNOWN",
+    extractedChars: Number(extractionGate.metrics?.extractedChars || 0),
+    extractionConfidence: extractionConfidenceScore,
+    rawPdfPagesUsed,
+    rawPdfPageCount,
+    warnings: gradingInputWarnings,
+  };
+  const modelInput =
+    gradingInputMode === "RAW_PDF_IMAGES"
+      ? [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: prompt },
+              ...rawPdfPageInput.flatMap((p) => [
+                { type: "input_text", text: `Submission page ${p.pageNumber}` },
+                { type: "input_image", image_url: p.imageDataUrl },
+              ]),
+            ],
+          },
+        ]
+      : prompt;
 
   if (!dryRun) {
     await prisma.submission.update({
@@ -989,7 +1175,7 @@ export async function POST(
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
         model: activeModel,
-        input: prompt,
+        input: modelInput as any,
         temperature: 0.2,
         max_output_tokens: maxOutputTokens,
         text: {
@@ -1101,18 +1287,6 @@ export async function POST(
       });
     }
 
-    const confidenceCap = Math.max(
-      0.2,
-      Math.min(0.95, Number(process.env.GRADE_MODALITY_MISSING_CONFIDENCE_CAP || 0.65))
-    );
-    const modelConfidenceRaw = Number(decision.confidence);
-    const modelConfidence = Number.isFinite(modelConfidenceRaw)
-      ? Math.max(0, Math.min(1, modelConfidenceRaw))
-      : 0.5;
-    const confidenceWasCapped =
-      modalityCompliance.missingCount > 0 && modelConfidence > confidenceCap;
-    const finalConfidence = confidenceWasCapped ? confidenceCap : modelConfidence;
-
     const bandCapPolicy = applyBandCompletionCap(
       decision.overallGradeWord,
       decision.criterionChecks as any,
@@ -1125,24 +1299,14 @@ export async function POST(
     );
     const rawOverallGrade = gradePolicy.rawGrade;
     const overallGrade = gradePolicy.finalGrade;
-    const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
-    const feedbackSummary = sanitizeStudentFeedbackLine(feedbackSummaryRaw) || "Feedback provided below.";
-    const feedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
-    const systemNotes: string[] = [];
-    if (modalityCompliance.missingCount > 0) {
-      systemNotes.push(
-        `Required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
-      );
-    }
-    if (extractionMode === "COVER_ONLY") {
-      systemNotes.push("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
-    }
-    if (bandCapPolicy.wasCapped) {
-      systemNotes.push(`Grade adjusted by criteria-band completion policy (${String(bandCapPolicy.capReason || "unknown")}).`);
-    }
-    if (gradePolicy.wasCapped) {
-      systemNotes.push("Grade capped due to resubmission policy.");
-    }
+    const confidenceCap = Math.max(
+      0.2,
+      Math.min(0.95, Number(process.env.GRADE_MODALITY_MISSING_CONFIDENCE_CAP || 0.65))
+    );
+    const modelConfidenceRaw = Number(decision.confidence);
+    const modelConfidence = Number.isFinite(modelConfidenceRaw)
+      ? Math.max(0, Math.min(1, modelConfidenceRaw))
+      : 0.5;
     const evidenceDensityByCriterion = buildEvidenceDensityByCriterion(decision.criterionChecks);
     const evidenceDensitySummary = {
       criteriaCount: evidenceDensityByCriterion.length,
@@ -1150,6 +1314,57 @@ export async function POST(
       totalWordsCited: evidenceDensityByCriterion.reduce((sum, row) => sum + Number(row.totalWordsCited || 0), 0),
       criteriaWithoutEvidence: evidenceDensityByCriterion.filter((row) => Number(row.citationCount || 0) === 0).length,
     };
+    const modalityMissingCountForConfidence =
+      gradingInputMode === "RAW_PDF_IMAGES" ? 0 : modalityCompliance.missingCount;
+    const confidenceResult = computeGradingConfidence({
+      modelConfidence,
+      extractionConfidence: extractionConfidenceScore,
+      extractionMode,
+      modalityMissingCount: modalityMissingCountForConfidence,
+      readinessChecklist,
+      criteriaAlignmentOverlapRatio: criteriaAlignment.overlapRatio,
+      criteriaAlignmentMismatchCount: criteriaAlignment.mismatchCount,
+      criterionChecks: decision.criterionChecks,
+      evidenceDensitySummary,
+      modalityMissingCap: confidenceCap,
+      bandCapWasCapped: bandCapPolicy.wasCapped,
+    });
+    const finalConfidence = confidenceResult.finalConfidence;
+    const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
+    const feedbackSummary = sanitizeStudentFeedbackLine(feedbackSummaryRaw) || "Feedback provided below.";
+    const feedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
+    const systemNotes: string[] = [];
+    if (modalityCompliance.missingCount > 0 && gradingInputMode !== "RAW_PDF_IMAGES") {
+      const modalityCapApplied = confidenceResult.capsApplied.some((c) => c.name === "modality_missing_cap");
+      systemNotes.push(
+        modalityCapApplied
+          ? `Required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence capped at ${finalConfidence.toFixed(2)}.`
+          : `Required modality evidence missing in ${modalityCompliance.missingCount} task section(s); confidence adjusted to ${finalConfidence.toFixed(2)}.`
+      );
+    } else if (modalityCompliance.missingCount > 0 && gradingInputMode === "RAW_PDF_IMAGES") {
+      systemNotes.push(
+        `Modality heuristic flagged ${modalityCompliance.missingCount} missing section(s), but confidence penalty was skipped because raw PDF image grading mode was used.`
+      );
+    }
+    if (extractionMode === "COVER_ONLY") {
+      systemNotes.push("Cover-only extraction mode was active; grading relied primarily on sampled page evidence.");
+    }
+    if (gradingInputMode === "RAW_PDF_IMAGES") {
+      systemNotes.push(
+        `Adaptive input routing used RAW_PDF_IMAGES (${rawPdfPagesUsed}/${Math.max(rawPdfPageCount, rawPdfPagesUsed)} pages).`
+      );
+      if (gradingInputWarnings.length) {
+        systemNotes.push(...gradingInputWarnings.slice(0, 5).map((w) => `Input strategy warning: ${w}`));
+      }
+    } else {
+      systemNotes.push("Adaptive input routing used EXTRACTED_TEXT.");
+    }
+    if (bandCapPolicy.wasCapped) {
+      systemNotes.push(`Grade adjusted by criteria-band completion policy (${String(bandCapPolicy.capReason || "unknown")}).`);
+    }
+    if (gradePolicy.wasCapped) {
+      systemNotes.push("Grade capped due to resubmission policy.");
+    }
     const responseWithPolicy = {
       ...decision,
       overallGradeWord: overallGrade,
@@ -1237,6 +1452,23 @@ export async function POST(
               wasCapped: gradePolicy.wasCapped,
               capReason: gradePolicy.capReason,
             },
+            confidencePolicy: {
+              mode: "weighted-v2",
+              cap: confidenceCap,
+              modelConfidence: confidenceResult.modelConfidence,
+              extractionConfidence: confidenceResult.extractionConfidence,
+              criterionAverageConfidence: confidenceResult.criterionAverageConfidence,
+              evidenceScore: confidenceResult.evidenceScore,
+              bonuses: confidenceResult.bonuses,
+              weightedBaseConfidence: confidenceResult.weightedBaseConfidence,
+              rawConfidenceBeforeCaps: confidenceResult.rawConfidenceBeforeCaps,
+              finalConfidence: confidenceResult.finalConfidence,
+              penalties: confidenceResult.penalties,
+              capsApplied: confidenceResult.capsApplied,
+              signals: confidenceResult.signals,
+              wasCapped: confidenceResult.wasCapped,
+            },
+            inputStrategy: inputStrategySnapshot,
             evidenceDensitySummary,
             referenceContextSnapshot,
             gradingDefaultsSnapshot,
@@ -1328,6 +1560,7 @@ export async function POST(
             includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
           },
           modalityEvidenceSource,
+          inputStrategy: inputStrategySnapshot,
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,
@@ -1351,11 +1584,20 @@ export async function POST(
           evidenceDensitySummary,
           rerunIntegrity,
           confidencePolicy: {
-            mode: "cap",
+            mode: "weighted-v2",
             cap: confidenceCap,
-            modelConfidence,
-            finalConfidence,
-            wasCapped: confidenceWasCapped,
+            modelConfidence: confidenceResult.modelConfidence,
+            extractionConfidence: confidenceResult.extractionConfidence,
+            criterionAverageConfidence: confidenceResult.criterionAverageConfidence,
+            evidenceScore: confidenceResult.evidenceScore,
+            bonuses: confidenceResult.bonuses,
+            weightedBaseConfidence: confidenceResult.weightedBaseConfidence,
+            rawConfidenceBeforeCaps: confidenceResult.rawConfidenceBeforeCaps,
+            finalConfidence: confidenceResult.finalConfidence,
+            penalties: confidenceResult.penalties,
+            capsApplied: confidenceResult.capsApplied,
+            signals: confidenceResult.signals,
+            wasCapped: confidenceResult.wasCapped,
           },
           structuredGradingV2,
           response: responseWithPolicy,
@@ -1391,6 +1633,11 @@ export async function POST(
           briefExtractedCriteriaCodes: criteriaAlignment.brief,
           overlapRatio: criteriaAlignment.overlapRatio,
           mismatchCount: criteriaAlignment.mismatchCount,
+        },
+        inputStrategy: {
+          mode: gradingInputMode,
+          rawPdfPagesUsed,
+          rawPdfPageCount,
         },
         rerunIntegrity: {
           previousAssessmentId: rerunIntegrity.previousAssessmentId,

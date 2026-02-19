@@ -269,10 +269,11 @@ export async function POST(req: Request) {
       reextractHistory,
     } as any;
 
+    const nextStatus = doc.lockedAt ? "LOCKED" : "EXTRACTED";
     const updatedDoc = await prisma.referenceDocument.update({
       where: { id: doc.id },
       data: {
-        status: "EXTRACTED",
+        status: nextStatus as any,
         extractedJson: extractedJson as any,
         extractionWarnings: warnings,
         sourceMeta,
@@ -292,13 +293,14 @@ export async function POST(req: Request) {
     const message = err?.message || String(err);
     const stack = err?.stack ? String(err.stack) : "";
 
-    await prisma.referenceDocument.update({
-      where: { id: doc.id },
-      data: {
-        status: "FAILED",
-        extractionWarnings: [`REFERENCE_EXTRACT_ERROR: ${message}`, stack ? stack.slice(0, 2000) : ""].filter(Boolean),
-      },
-    });
+      const nextStatus = doc.lockedAt ? "LOCKED" : "FAILED";
+      await prisma.referenceDocument.update({
+        where: { id: doc.id },
+        data: {
+          status: nextStatus as any,
+          extractionWarnings: [`REFERENCE_EXTRACT_ERROR: ${message}`, stack ? stack.slice(0, 2000) : ""].filter(Boolean),
+        },
+      });
 
     // Surface the error in the server console for fast debugging.
     // (We still store a truncated stack in extractionWarnings for audit.)
