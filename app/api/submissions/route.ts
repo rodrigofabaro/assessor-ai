@@ -71,6 +71,43 @@ export async function GET() {
       markedPdfPath: latest?.annotatedPdfPath || null,
       extractionQuality,
     });
+    const latestJson = (latest?.resultJson as any) || {};
+    const confidenceSignals = (latestJson?.confidenceSignals || {}) as Record<string, unknown>;
+    const evidenceDensitySummary = (latestJson?.evidenceDensitySummary || {}) as Record<string, unknown>;
+    const rerunIntegrity = (latestJson?.rerunIntegrity || {}) as Record<string, unknown>;
+    const gradingConfidence = Number(confidenceSignals?.gradingConfidence);
+    const extractionConfidence = Number(confidenceSignals?.extractionConfidence);
+    const totalCitations = Number(evidenceDensitySummary?.totalCitations || 0);
+    const criteriaWithoutEvidence = Number(evidenceDensitySummary?.criteriaWithoutEvidence || 0);
+    const rerunDriftDetected = Boolean((rerunIntegrity as any)?.snapshotDiff?.changed);
+    const lowConfidenceThreshold = Math.max(0.2, Math.min(0.95, Number(process.env.QA_LOW_CONFIDENCE_THRESHOLD || 0.6)));
+    const reasons: string[] = [];
+    if (Number.isFinite(gradingConfidence) && gradingConfidence >= 0 && gradingConfidence < lowConfidenceThreshold) {
+      reasons.push(`Low grading confidence (${gradingConfidence.toFixed(2)})`);
+    }
+    if (Number.isFinite(extractionConfidence) && extractionConfidence >= 0 && extractionConfidence < lowConfidenceThreshold) {
+      reasons.push(`Low extraction confidence (${extractionConfidence.toFixed(2)})`);
+    }
+    if (criteriaWithoutEvidence > 0) {
+      reasons.push(`${criteriaWithoutEvidence} criteria without evidence`);
+    }
+    if (Number.isFinite(totalCitations) && totalCitations > 0 && totalCitations <= 2) {
+      reasons.push("Very sparse evidence citations");
+    }
+    if (rerunDriftDetected) {
+      reasons.push("Reference context drift on re-run");
+    }
+    const qaFlags = {
+      shouldReview: reasons.length > 0,
+      reasons,
+      metrics: {
+        gradingConfidence: Number.isFinite(gradingConfidence) ? gradingConfidence : null,
+        extractionConfidence: Number.isFinite(extractionConfidence) ? extractionConfidence : null,
+        totalCitations: Number.isFinite(totalCitations) ? totalCitations : 0,
+        criteriaWithoutEvidence: Number.isFinite(criteriaWithoutEvidence) ? criteriaWithoutEvidence : 0,
+        rerunDriftDetected,
+      },
+    };
 
     return {
       ...s,
@@ -87,6 +124,7 @@ export async function GET() {
       automationExceptionCode: automation.exceptionCode,
       automationRecommendedAction: automation.recommendedAction,
       extractionQuality,
+      qaFlags,
     };
   });
 

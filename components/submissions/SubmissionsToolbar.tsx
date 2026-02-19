@@ -17,6 +17,8 @@ export function SubmissionsToolbar({
   failedVisibleCount,
   onBatchGradeAutoReady,
   onBatchGradeVisible,
+  onBatchPreviewQaReview,
+  onBatchGradeQaReview,
   onRetryFailed,
   onRegradeByBriefMapping,
 
@@ -42,6 +44,10 @@ export function SubmissionsToolbar({
   setSortDir,
   handoffOnly,
   setHandoffOnly,
+  qaReviewOnly,
+  setQaReviewOnly,
+  qaReviewCount,
+  qaCommitReady,
 
   statuses,
 }: {
@@ -56,6 +62,8 @@ export function SubmissionsToolbar({
   failedVisibleCount: number;
   onBatchGradeAutoReady: () => void;
   onBatchGradeVisible: () => void;
+  onBatchPreviewQaReview: () => void | Promise<void>;
+  onBatchGradeQaReview: () => void;
   onRetryFailed: () => void;
   onRegradeByBriefMapping: () => void;
 
@@ -82,6 +90,10 @@ export function SubmissionsToolbar({
   setSortDir: (v: SortDir) => void;
   handoffOnly: boolean;
   setHandoffOnly: (v: boolean) => void;
+  qaReviewOnly: boolean;
+  setQaReviewOnly: (v: boolean) => void;
+  qaReviewCount: number;
+  qaCommitReady: boolean;
 
   statuses: string[];
 }) {
@@ -117,6 +129,15 @@ export function SubmissionsToolbar({
               onChange={(e) => setHandoffOnly(e.target.checked)}
             />
             Handoff mode
+          </label>
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-zinc-300"
+              checked={qaReviewOnly}
+              onChange={(e) => setQaReviewOnly(e.target.checked)}
+            />
+            QA review only
           </label>
 
           <div className="inline-flex overflow-hidden rounded-xl border border-zinc-200 bg-white">
@@ -180,6 +201,7 @@ export function SubmissionsToolbar({
             aria-label="Filter by lane"
           >
             <option value="ALL">All lanes</option>
+            <option value="QA_REVIEW">QA review</option>
             <option value="AUTO_READY">Auto-Ready</option>
             <option value="NEEDS_HUMAN">Needs Human</option>
             <option value="BLOCKED">Blocked</option>
@@ -213,6 +235,12 @@ export function SubmissionsToolbar({
           <div className="text-xs text-zinc-500 hidden lg:block">
             Lanes: auto-ready {autoReadyCount} · needs human {needsHumanCount} · blocked {blockedCount} · completed {completedCount}
           </div>
+          <div className="text-xs text-rose-700 hidden lg:block">
+            QA queue: {qaReviewCount}
+          </div>
+          <div className={cx("text-xs hidden lg:block", qaCommitReady ? "text-emerald-700" : "text-amber-700")}>
+            {qaCommitReady ? "QA commit: ready" : "QA commit: preview required"}
+          </div>
           <button
             type="button"
             onClick={onBatchGradeAutoReady}
@@ -240,6 +268,38 @@ export function SubmissionsToolbar({
             title="Grade all visible submissions"
           >
             {batchBusy ? "Queueing..." : `Grade visible (${visibleCount})`}
+          </button>
+          <button
+            type="button"
+            onClick={onBatchPreviewQaReview}
+            disabled={batchBusy || qaReviewCount === 0}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy || qaReviewCount === 0
+                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                : "bg-rose-700 text-white hover:bg-rose-800"
+            )}
+            title="Run dry-run grading preview for QA queue submissions"
+          >
+            {batchBusy ? "Queueing..." : `Preview QA lane (${qaReviewCount})`}
+          </button>
+          <button
+            type="button"
+            onClick={onBatchGradeQaReview}
+            disabled={batchBusy || qaReviewCount === 0 || !qaCommitReady}
+            className={cx(
+              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
+              batchBusy || qaReviewCount === 0 || !qaCommitReady
+                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
+                : "bg-rose-900 text-white hover:bg-rose-950"
+            )}
+            title={
+              qaCommitReady
+                ? "Commit grading for QA queue submissions"
+                : "Run Preview QA lane for the current QA queue before commit"
+            }
+          >
+            {batchBusy ? "Queueing..." : `Commit QA lane (${qaReviewCount})`}
           </button>
           <button
             type="button"

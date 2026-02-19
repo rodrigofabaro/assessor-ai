@@ -298,8 +298,21 @@ export function SubmissionsTable({
                                           {s.automationExceptionCode}
                                         </span>
                                       ) : null}
+                                      {s.qaFlags?.shouldReview ? (
+                                        <span
+                                          className="inline-flex rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-rose-800"
+                                          title={s.qaFlags.reasons.join(" · ")}
+                                        >
+                                          QA REVIEW
+                                        </span>
+                                      ) : null}
                                     </div>
                                     {s.automationReason ? <div className="mt-1 text-xs text-zinc-500">{s.automationReason}</div> : null}
+                                    {s.qaFlags?.shouldReview ? (
+                                      <div className="mt-1 text-xs text-rose-700">
+                                        QA: {s.qaFlags.reasons.join(" · ")}
+                                      </div>
+                                    ) : null}
                                     {s.automationRecommendedAction ? (
                                       <div className="mt-1 text-xs text-zinc-700">Recommended: {s.automationRecommendedAction}</div>
                                     ) : null}

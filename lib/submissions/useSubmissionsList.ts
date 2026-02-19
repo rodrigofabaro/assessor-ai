@@ -9,7 +9,7 @@ import { deriveAutomationState } from "./automation";
 
 export type Timeframe = "today" | "week" | "all";
 export type LaneKey = "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED";
-export type LaneFilter = LaneKey | "ALL";
+export type LaneFilter = LaneKey | "ALL" | "QA_REVIEW";
 export type SortBy = "uploadedAt" | "grade" | "status" | "student";
 export type SortDir = "asc" | "desc";
 
@@ -46,6 +46,7 @@ export function useSubmissionsList() {
   const [sortBy, setSortBy] = useState<SortBy>("uploadedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [handoffOnly, setHandoffOnly] = useState(false);
+  const [qaReviewOnly, setQaReviewOnly] = useState(false);
 
   async function refresh() {
     setBusy(true);
@@ -93,26 +94,29 @@ export function useSubmissionsList() {
     const byLane =
       laneFilter === "ALL"
         ? byReady
-        : byReady.filter((row) => {
-            const key = (row.automationState ||
-              deriveAutomationState({
-                status: row.status,
-                studentId: row.studentId,
-                assignmentId: row.assignmentId,
-                extractedText: row.extractedText,
-                _count: row._count,
-                grade: row.grade,
-                overallGrade: row.overallGrade,
-                feedback: row.feedback,
-                markedPdfPath: row.markedPdfPath,
-                extractionQuality: row.extractionQuality,
-              }).state) as LaneKey;
-            return key === laneFilter;
-          });
+        : laneFilter === "QA_REVIEW"
+          ? byReady.filter((row) => Boolean(row.qaFlags?.shouldReview))
+          : byReady.filter((row) => {
+              const key = (row.automationState ||
+                deriveAutomationState({
+                  status: row.status,
+                  studentId: row.studentId,
+                  assignmentId: row.assignmentId,
+                  extractedText: row.extractedText,
+                  _count: row._count,
+                  grade: row.grade,
+                  overallGrade: row.overallGrade,
+                  feedback: row.feedback,
+                  markedPdfPath: row.markedPdfPath,
+                  extractionQuality: row.extractionQuality,
+                }).state) as LaneKey;
+              return key === laneFilter;
+            });
 
     const byHandoff = handoffOnly ? byLane.filter((s) => isReadyToUpload(s)) : byLane;
+    const byQaReview = qaReviewOnly ? byHandoff.filter((s) => Boolean(s.qaFlags?.shouldReview)) : byHandoff;
 
-    const sorted = [...byHandoff].sort((a, b) => {
+    const sorted = [...byQaReview].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
       if (sortBy === "student") {
         const av = String(a.student?.fullName || "").toLowerCase();
@@ -164,7 +168,7 @@ export function useSubmissionsList() {
       const t = new Date(s.uploadedAt).getTime();
       return !Number.isNaN(t) && t >= startOfWeek && t < endOfWeek;
     });
-  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly, laneFilter, sortBy, sortDir, handoffOnly]);
+  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly, laneFilter, sortBy, sortDir, handoffOnly, qaReviewOnly]);
 
   const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
 
@@ -228,6 +232,8 @@ export function useSubmissionsList() {
     setSortDir,
     handoffOnly,
     setHandoffOnly,
+    qaReviewOnly,
+    setQaReviewOnly,
     readyOnly,
     setReadyOnly,
 

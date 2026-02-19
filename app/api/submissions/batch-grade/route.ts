@@ -11,6 +11,7 @@ type BatchGradeBody = {
   assignmentBriefId?: string;
   unitCode?: string;
   assignmentRef?: string;
+  dryRun?: boolean;
   retryFailedOnly?: boolean;
   forceRetry?: boolean;
   tone?: "supportive" | "professional" | "strict";
@@ -18,6 +19,12 @@ type BatchGradeBody = {
   useRubricIfAvailable?: boolean;
   concurrency?: number;
   operationReason?: string;
+  previewContext?: {
+    linkedPreviewRequestId?: string | null;
+    linkedPreviewSignature?: string | null;
+    linkedPreviewAt?: string | null;
+    queueSizeAtPreview?: number | null;
+  };
 };
 
 type BatchResult = {
@@ -25,6 +32,8 @@ type BatchResult = {
   ok: boolean;
   status: number;
   grade?: string | null;
+  rawGrade?: string | null;
+  dryRun?: boolean;
   assessmentId?: string | null;
   error?: string;
 };
@@ -158,8 +167,18 @@ export async function POST(req: Request) {
     );
 
     const retryFailedOnly = !!body.retryFailedOnly;
+    const dryRun = !!body.dryRun;
     const forceRetry = !!body.forceRetry;
     const operationReason = String(body.operationReason || "").trim();
+    const previewContext = {
+      linkedPreviewRequestId: String(body.previewContext?.linkedPreviewRequestId || "").trim() || null,
+      linkedPreviewSignature: String(body.previewContext?.linkedPreviewSignature || "").trim() || null,
+      linkedPreviewAt: String(body.previewContext?.linkedPreviewAt || "").trim() || null,
+      queueSizeAtPreview:
+        typeof body.previewContext?.queueSizeAtPreview === "number"
+          ? body.previewContext.queueSizeAtPreview
+          : null,
+    };
     if (automation.requireOperationReason && !operationReason) {
       return apiError({
         status: 400,
@@ -210,6 +229,7 @@ export async function POST(req: Request) {
             tone: body.tone,
             strictness: body.strictness,
             useRubricIfAvailable: body.useRubricIfAvailable,
+            dryRun,
           }),
           cache: "no-store",
         });
@@ -229,8 +249,10 @@ export async function POST(req: Request) {
           submissionId,
           ok: true,
           status: 200,
-          grade: json?.assessment?.overallGrade ?? null,
-          assessmentId: json?.assessment?.id ?? null,
+          grade: dryRun ? (json?.preview?.overallGrade ?? null) : (json?.assessment?.overallGrade ?? null),
+          rawGrade: dryRun ? (json?.preview?.rawOverallGrade ?? null) : null,
+          dryRun,
+          assessmentId: dryRun ? null : (json?.assessment?.id ?? null),
         };
       }
     );
@@ -249,6 +271,7 @@ export async function POST(req: Request) {
         skipped: skipped.length,
         succeeded: okCount,
         failed: failCount,
+        dryRun,
         retryFailedOnly,
         forceRetry,
         automationPolicy: automation,
@@ -256,6 +279,7 @@ export async function POST(req: Request) {
         unitCode: unitCode || null,
         assignmentRef: assignmentRef || null,
         reason: operationReason || null,
+        previewContext,
       },
     });
 
@@ -269,6 +293,7 @@ export async function POST(req: Request) {
           skipped: skipped.length,
           succeeded: okCount,
           failed: failCount,
+          dryRun,
         },
         skipped,
         results,

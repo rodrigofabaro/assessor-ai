@@ -39,10 +39,13 @@ This page is designed as the "queue board" between upload and final marked outpu
 2. Toolbar controls
 - `Unlinked only`
 - `Ready to upload`
+- `QA review only`
 - Timeframe: `Today` / `This week` / `All`
 - Search input
 - Status filter
 - `Grade visible`
+- `Preview QA lane`
+- `Commit QA lane`
 - `Retry failed`
 - `Refresh`
 - `Upload`
@@ -100,9 +103,19 @@ Current operating layout:
 1. Upload files via `/upload` or `Upload` button.
 2. In `/submissions`, use `Unlinked only` and open `Resolve` for unmatched rows.
 3. Confirm status progression (`UPLOADED` -> `EXTRACTING` -> `EXTRACTED` / `NEEDS_OCR`).
-4. Filter to target rows and run `Grade visible` (or `Retry failed`).
-5. Open submission details for audit of extraction, triage, and assessment outputs.
-6. Use `Copy summary` for LMS/Totara handoff where applicable.
+4. For QA-flagged rows, run `Preview QA lane` first.
+5. After preview succeeds and queue is unchanged, run `Commit QA lane`.
+6. For general rows, use `Grade visible` (or `Retry failed`) as needed.
+7. Open submission details for audit of extraction, triage, and assessment outputs.
+8. Use `Copy summary` for LMS/Totara handoff where applicable.
+
+## QA Preview/Commit Safeguards
+
+- `Commit QA lane` is disabled until a matching `Preview QA lane` run exists.
+- Preview validity expires after 30 minutes.
+- If QA queue membership changes, preview linkage is invalidated and must be rerun.
+- Commit runs are confirmation-gated in UI.
+- Batch commit payload includes linked preview context (`requestId`, signature, timestamp, queue size) for audit traceability.
 
 ## Notes For Cover-Only Runs
 

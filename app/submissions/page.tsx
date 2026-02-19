@@ -12,13 +12,17 @@ import { ResolveDrawer } from "@/components/submissions/ResolveDrawer";
 import { cx } from "@/lib/submissions/utils";
 import { jsonFetch } from "@/lib/http";
 
+const QA_PREVIEW_MAX_AGE_MS = 30 * 60 * 1000;
+
 type BatchGradeResponse = {
+  requestId?: string;
   summary?: {
     requested: number;
     targeted: number;
     skipped: number;
     succeeded: number;
     failed: number;
+    dryRun?: boolean;
   };
 };
 
@@ -52,6 +56,8 @@ export default function SubmissionsPage() {
     setSortDir,
     handoffOnly,
     setHandoffOnly,
+    qaReviewOnly,
+    setQaReviewOnly,
 
     statuses,
     laneGroups,
@@ -63,6 +69,9 @@ export default function SubmissionsPage() {
   const [showColUploaded, setShowColUploaded] = useState(true);
   const [showColGrade, setShowColGrade] = useState(true);
   const [showColAssignmentTitle, setShowColAssignmentTitle] = useState(true);
+  const [qaPreviewSignature, setQaPreviewSignature] = useState("");
+  const [qaPreviewAt, setQaPreviewAt] = useState<number | null>(null);
+  const [qaPreviewRequestId, setQaPreviewRequestId] = useState("");
 
   // Resolve drawer state lives here; drawer owns its internal state.
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -81,6 +90,14 @@ export default function SubmissionsPage() {
   const unlinkedCount = flatRows.filter((s) => !s.studentId).length;
   const exportReady = flatRows.filter((s) => isReadyToUpload(s)).length;
   const failedVisibleCount = flatRows.filter((s) => String(s.status || "").toUpperCase() === "FAILED").length;
+  const qaReviewIds = flatRows.filter((s) => Boolean(s.qaFlags?.shouldReview)).map((s) => s.id);
+  const qaReviewCount = qaReviewIds.length;
+  const qaReviewSignature = qaReviewIds.slice().sort().join("|");
+  const qaCommitReady =
+    qaReviewCount > 0 &&
+    qaPreviewSignature === qaReviewSignature &&
+    qaPreviewAt !== null &&
+    Date.now() - qaPreviewAt <= QA_PREVIEW_MAX_AGE_MS;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -96,6 +113,14 @@ export default function SubmissionsPage() {
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    if (qaPreviewSignature && qaPreviewSignature !== qaReviewSignature) {
+      setQaPreviewSignature("");
+      setQaPreviewAt(null);
+      setQaPreviewRequestId("");
+    }
+  }, [qaPreviewSignature, qaReviewSignature]);
 
   function persistColumns(next: { workflow?: boolean; uploaded?: boolean; grade?: boolean; assignmentTitle?: boolean }) {
     const payload = {
@@ -188,8 +213,22 @@ export default function SubmissionsPage() {
     await refresh();
   }
 
-  async function runBatchGrade(submissionIds: string[], retryFailedOnly = false) {
-    if (!submissionIds.length) return;
+  async function runBatchGrade(
+    submissionIds: string[],
+    options?: {
+      retryFailedOnly?: boolean;
+      dryRun?: boolean;
+      previewContext?: {
+        linkedPreviewRequestId?: string | null;
+        linkedPreviewSignature?: string | null;
+        linkedPreviewAt?: string | null;
+        queueSizeAtPreview?: number | null;
+      };
+    }
+  ): Promise<{ ok: boolean; requestId: string | null }> {
+    if (!submissionIds.length) return { ok: false, requestId: null };
+    const retryFailedOnly = !!options?.retryFailedOnly;
+    const dryRun = !!options?.dryRun;
     setBatchBusy(true);
     setErr("");
     setMsg("");
@@ -199,19 +238,27 @@ export default function SubmissionsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           submissionIds,
+          dryRun,
           retryFailedOnly,
           forceRetry: retryFailedOnly,
           concurrency: 1,
+          previewContext: options?.previewContext,
         }),
       });
       const s = res.summary;
       await refresh();
       if (s) {
-        const label = retryFailedOnly ? "Retry batch complete" : "Batch grading complete";
+        const label = dryRun
+          ? "Batch preview complete"
+          : retryFailedOnly
+            ? "Retry batch complete"
+            : "Batch grading complete";
         setMsg(`${label}: ${s.succeeded} succeeded, ${s.failed} failed, ${s.skipped} skipped.`);
       }
+      return { ok: true, requestId: String(res.requestId || "").trim() || null };
     } catch (e: any) {
-      setErr(e?.message || "Batch grading failed.");
+      setErr(e?.message || (dryRun ? "Batch preview failed." : "Batch grading failed."));
+      return { ok: false, requestId: null };
     } finally {
       setBatchBusy(false);
     }
@@ -266,14 +313,14 @@ export default function SubmissionsPage() {
 
   function onBatchGradeVisible() {
     const ids = flatRows.map((s) => s.id);
-    runBatchGrade(ids, false);
+    void runBatchGrade(ids, { retryFailedOnly: false });
   }
 
   function onRetryFailed() {
     const ids = flatRows
       .filter((s) => String(s.status || "").toUpperCase() === "FAILED")
       .map((s) => s.id);
-    runBatchGrade(ids, true);
+    void runBatchGrade(ids, { retryFailedOnly: true });
   }
 
   function onBatchGradeAutoReady() {
@@ -281,16 +328,50 @@ export default function SubmissionsPage() {
       laneGroups
         .find((lane) => lane.key === "AUTO_READY")
         ?.rows.map((s) => s.id) || [];
-    runBatchGrade(ids, false);
+    void runBatchGrade(ids, { retryFailedOnly: false });
+  }
+
+  async function onBatchPreviewQaReview() {
+    const ids = [...qaReviewIds];
+    const sig = qaReviewSignature;
+    const res = await runBatchGrade(ids, { retryFailedOnly: false, dryRun: true });
+    if (res.ok) {
+      setQaPreviewSignature(sig);
+      setQaPreviewAt(Date.now());
+      setQaPreviewRequestId(res.requestId || "");
+    }
+  }
+
+  function onBatchGradeQaReview() {
+    const ids = [...qaReviewIds];
+    if (!ids.length) return;
+    if (!qaCommitReady) {
+      setErr("Run 'Preview QA lane' on the current QA queue before commit grading.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Commit grading for ${ids.length} QA-flagged submission(s)?\n\nTip: run 'Preview QA lane' first to inspect outcomes before commit.`
+    );
+    if (!confirmed) return;
+    void runBatchGrade(ids, {
+      retryFailedOnly: false,
+      dryRun: false,
+      previewContext: {
+        linkedPreviewRequestId: qaPreviewRequestId || null,
+        linkedPreviewSignature: qaPreviewSignature || null,
+        linkedPreviewAt: qaPreviewAt ? new Date(qaPreviewAt).toISOString() : null,
+        queueSizeAtPreview: qaReviewCount,
+      },
+    });
   }
 
   function onBatchGradeLane(laneKey: LaneKey) {
     const ids = laneGroups.find((lane) => lane.key === laneKey)?.rows.map((s) => s.id) || [];
-    runBatchGrade(ids, false);
+    void runBatchGrade(ids, { retryFailedOnly: false });
   }
 
   function onRunGradeSingle(submissionId: string) {
-    runBatchGrade([submissionId], false);
+    void runBatchGrade([submissionId], { retryFailedOnly: false });
   }
 
   function onRetryFailedLane(laneKey: LaneKey) {
@@ -299,7 +380,7 @@ export default function SubmissionsPage() {
         .find((lane) => lane.key === laneKey)
         ?.rows.filter((s) => String(s.status || "").toUpperCase() === "FAILED")
         .map((s) => s.id) || [];
-    runBatchGrade(ids, true);
+    void runBatchGrade(ids, { retryFailedOnly: true });
   }
 
   return (
@@ -340,6 +421,10 @@ export default function SubmissionsPage() {
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Export-ready</div>
             <div className="mt-1 text-xl font-semibold text-emerald-900">{exportReady}</div>
           </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-rose-800">QA review queue</div>
+            <div className="mt-1 text-xl font-semibold text-rose-900">{qaReviewCount}</div>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
@@ -366,10 +451,24 @@ export default function SubmissionsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setLaneFilter("QA_REVIEW")}
+            className={cx("rounded-full border px-3 py-1 font-semibold", laneFilter === "QA_REVIEW" ? "border-rose-200 bg-rose-50 text-rose-900" : "border-zinc-200 bg-white text-zinc-700")}
+          >
+            QA lane
+          </button>
+          <button
+            type="button"
             onClick={() => setHandoffOnly((v) => !v)}
             className={cx("rounded-full border px-3 py-1 font-semibold", handoffOnly ? "border-sky-200 bg-sky-50 text-sky-900" : "border-zinc-200 bg-white text-zinc-700")}
           >
             Totara handoff mode
+          </button>
+          <button
+            type="button"
+            onClick={() => setQaReviewOnly((v) => !v)}
+            className={cx("rounded-full border px-3 py-1 font-semibold", qaReviewOnly ? "border-rose-200 bg-rose-50 text-rose-900" : "border-zinc-200 bg-white text-zinc-700")}
+          >
+            QA review only
           </button>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <span className="text-zinc-500">Columns:</span>
@@ -417,6 +516,8 @@ export default function SubmissionsPage() {
         failedVisibleCount={failedVisibleCount}
         onBatchGradeAutoReady={onBatchGradeAutoReady}
         onBatchGradeVisible={onBatchGradeVisible}
+        onBatchPreviewQaReview={onBatchPreviewQaReview}
+        onBatchGradeQaReview={onBatchGradeQaReview}
         onRetryFailed={onRetryFailed}
         onRegradeByBriefMapping={onRegradeByBriefMapping}
         unlinkedOnly={unlinkedOnly}
@@ -437,6 +538,10 @@ export default function SubmissionsPage() {
         setSortDir={setSortDir}
         handoffOnly={handoffOnly}
         setHandoffOnly={setHandoffOnly}
+        qaReviewOnly={qaReviewOnly}
+        setQaReviewOnly={setQaReviewOnly}
+        qaReviewCount={qaReviewCount}
+        qaCommitReady={qaCommitReady}
         statuses={statuses}
       />
 
