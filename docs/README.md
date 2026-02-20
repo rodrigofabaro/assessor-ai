@@ -1,6 +1,6 @@
 # Assessor AI Documentation
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 This folder is the operational source of truth for extraction, mapping, grading, and audit workflows.
 
@@ -52,7 +52,12 @@ node scripts/regression-pack.js
 
 ## Current Baseline
 
-As of 2026-02-19, the full extraction/grading scripted suite passes locally.
+As of 2026-02-20, the full extraction/grading scripted suite passes locally.
+
+Navigation baseline updates:
+
+- `/submissions/[submissionId]` and `/admin/settings` load as lazy client modules for faster route transitions.
+- `/submissions` uses a single upload entrypoint (`Upload assignment`) and compact batch controls (`Batch actions` menu).
 
 ## Documentation Rules
 

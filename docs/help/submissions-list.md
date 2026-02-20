@@ -1,12 +1,15 @@
 # Submissions List (`/submissions`)
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 Use this page as the operations queue.
 
 ## Primary Actions
 
 - filter by lane/status/search
+- use `Upload assignment` to add new evidence
+- run `Grade auto-ready` for the automation-safe queue
+- open `Batch actions` for secondary batch controls
 - resolve student links
 - run QA preview/commit
 - retry failed rows after fixes

@@ -1,7 +1,7 @@
 # Submissions Daily Tutorial (`/submissions`)
 
 Route: `http://localhost:3000/submissions`
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 Use this tutorial for daily operations from intake to graded outputs.
 
@@ -48,11 +48,16 @@ TODO screenshot: `/help/submissions/04-qa-preview-commit.png`
 
 Required sequence:
 
-1. `Preview QA lane`
+1. open `Batch actions` and run `Preview QA lane`
 2. inspect preview result
-3. `Commit QA lane`
+3. use `Commit QA lane`
 
 Commit is invalid if queue membership changed or preview expired.
+
+## 4b. Use the Primary Batch Action
+
+For standard throughput, use the visible `Grade auto-ready` button first.  
+Use `Batch actions` only when you need broader or recovery actions.
 
 ## 5. Verify Auto Grading
 

@@ -1,6 +1,7 @@
 # Assessor-AI Webapp
 
 Operational documentation lives in `docs/README.md`.
+Last updated: 2026-02-20
 
 ## Quick start
 
@@ -84,3 +85,14 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
   - compact top blocker strip + primary run action
   - editable audit feedback with marked-PDF regenerate path
   - assessment run history, page feedback map, and run-to-run diffs
+
+## Navigation and Performance Notes
+
+- Heavy routes are client-split and lazy-loaded with inline loading states:
+  - `/submissions/[submissionId]` -> `SubmissionDetailClient`
+  - `/admin/settings` -> `SettingsPageClient`
+- Submissions workspace now uses a single primary upload CTA:
+  - `Upload assignment` (header action in `/submissions`)
+- Batch controls in `/submissions` are simplified:
+  - primary visible action: `Grade auto-ready`
+  - secondary actions under `Batch actions`

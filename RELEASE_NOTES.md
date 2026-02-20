@@ -3,6 +3,33 @@
 Date: 2026-02-18  
 Branch: `release/project-finish`
 
+## Update: 2026-02-20 (main)
+
+### Navigation + Performance
+
+- Added lazy-loaded route wrappers for heavy pages:
+  - `/submissions/[submissionId]` via `SubmissionDetailClient`
+  - `/admin/settings` via `SettingsPageClient`
+- Updated internal submissions navigation to use client routing where applicable.
+
+### Submissions Workspace UX
+
+- Consolidated duplicate upload entrypoints into one primary action.
+- Renamed CTA to `Upload assignment`.
+- Simplified batch actions:
+  - kept `Grade auto-ready` as primary visible action
+  - moved secondary actions into `Batch actions` menu
+
+### Landing-Page Icon Pass
+
+- Added lightweight inline icon enhancements to landing-style surfaces:
+  - admin overview
+  - help topic sidebar
+
+### Documentation Sync
+
+- Updated root and operations/help docs for current UI labels and flow.
+
 ## Included Commits
 
 - `2b9f2a2` docs: polish admin help and add project completion checklist

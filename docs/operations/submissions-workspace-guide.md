@@ -1,7 +1,7 @@
 # Submissions Workspace Guide
 
 Route: `/submissions`
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ## What This Page Is
 
@@ -25,9 +25,20 @@ It is not the final place to validate detailed criterion evidence. Use submissio
 - do not batch grade rows with unresolved blockers
 - always review skipped reasons from batch result
 
+## Current Controls (2026-02-20)
+
+- Header has a single upload entrypoint: `Upload assignment`.
+- Primary batch button: `Grade auto-ready`.
+- Secondary batch actions are grouped under `Batch actions`:
+  - Grade visible
+  - Preview QA lane
+  - Commit QA lane
+  - Retry failed
+  - Regrade impacted
+- Compact lane pills summarize pressure (`Auto`, `Human`, `Blocked`, `Done`, `QA`).
+
 ## Known UX Pressure Points
 
-- dense controls can hide key actions on smaller viewports
 - lane card density can require excess scrolling
 - right-side controls can crowd evidence workspace
 
