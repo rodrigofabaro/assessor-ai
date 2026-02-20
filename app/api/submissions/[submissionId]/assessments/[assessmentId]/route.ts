@@ -49,12 +49,21 @@ export async function PATCH(
     const studentName = String(body.studentName || resultJson.studentFirstNameUsed || "Student");
     const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText, gradingCfg.maxFeedbackBullets);
     const criterionChecks = extractCriterionChecksFromResultJson(resultJson);
+    const submissionPageCount = Math.max(
+      0,
+      Number(
+        resultJson?.inputStrategy?.rawPdfPageCount ||
+          resultJson?.referenceContextSnapshot?.submissionPageCount ||
+          0
+      )
+    );
     const pageNotes = gradingCfg.pageNotesEnabled
       ? buildPageNotesFromCriterionChecks(criterionChecks, {
           maxPages: gradingCfg.pageNotesMaxPages,
           maxLinesPerPage: gradingCfg.pageNotesMaxLinesPerPage,
           tone: gradingCfg.pageNotesTone,
           includeCriterionCode: gradingCfg.studentSafeMarkedPdf ? false : gradingCfg.pageNotesIncludeCriterionCode,
+          totalPages: submissionPageCount,
         })
       : [];
 
@@ -88,6 +97,7 @@ export async function PATCH(
             maxPages: gradingCfg.pageNotesMaxPages,
             maxLinesPerPage: gradingCfg.pageNotesMaxLinesPerPage,
             includeCriterionCode: gradingCfg.studentSafeMarkedPdf ? false : gradingCfg.pageNotesIncludeCriterionCode,
+            totalPages: submissionPageCount,
           },
           feedbackOverride: {
             edited: true,

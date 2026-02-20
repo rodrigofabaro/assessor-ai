@@ -17,8 +17,20 @@ export type MarkedPdfPayload = {
   pageNotes?: Array<{ page: number; lines: string[] }>;
 };
 
+function sanitizeRenderableText(value: unknown) {
+  return String(value || "")
+    .replace(/\btype\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\benter\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\badd\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\binsert\s+text\b/gi, "")
+    .replace(/\bclick\s+to\s+add\s+text\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .trim();
+}
+
 function wrapText(text: string, maxWidth: number, font: any, size: number) {
-  const source = String(text || "").replace(/\s+/g, " ").trim();
+  const source = sanitizeRenderableText(text).replace(/\s+/g, " ").trim();
   if (!source) return [] as string[];
   const words = source.split(" ");
   const out: string[] = [];
@@ -56,7 +68,7 @@ function buildFeedbackRenderLines(text: string, maxWidth: number, font: any, siz
   const rawLines = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const out: string[] = [];
   for (const raw of rawLines) {
-    const line = String(raw || "").trim();
+    const line = sanitizeRenderableText(raw);
     if (!line) {
       if (out.length && out[out.length - 1] !== "") out.push("");
       continue;
@@ -211,7 +223,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     const page = pages[mappedPageIndex];
     const { width: pw, height: ph } = page.getSize();
     const lines = (Array.isArray(note?.lines) ? note.lines : [])
-      .map((l) => String(l || "").trim())
+      .map((l) => sanitizeRenderableText(l))
       .filter(Boolean)
       .slice(0, 3);
     if (!lines.length) continue;

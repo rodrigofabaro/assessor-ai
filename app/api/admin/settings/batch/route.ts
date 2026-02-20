@@ -6,12 +6,11 @@ import { readOpenAiModel, writeOpenAiModel } from "@/lib/openai/modelConfig";
 import { readGradingConfig, writeGradingConfig, type GradingConfig } from "@/lib/grading/config";
 import { readAutomationPolicy, writeAutomationPolicy, type AutomationPolicy } from "@/lib/admin/automationPolicy";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
+import { FEEDBACK_TEMPLATE_REQUIRED_TOKENS } from "@/lib/grading/feedbackDocument";
 
 export const runtime = "nodejs";
 
 const ALLOWED_MODELS = ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o", "gpt-5-mini"] as const;
-const REQUIRED_TEMPLATE_TOKENS = ["{overallGrade}", "{feedbackBullets}"] as const;
-
 type BatchBody = {
   ai?: {
     model?: string;
@@ -26,7 +25,7 @@ type BatchBody = {
 
 function validateGradingPayload(grading: Partial<GradingConfig>) {
   if (typeof grading.feedbackTemplate === "string") {
-    const missing = REQUIRED_TEMPLATE_TOKENS.filter((token) => !grading.feedbackTemplate!.includes(token));
+    const missing = FEEDBACK_TEMPLATE_REQUIRED_TOKENS.filter((token) => !grading.feedbackTemplate!.includes(token));
     if (missing.length) throw new Error(`feedbackTemplate is missing required placeholder(s): ${missing.join(", ")}`);
   }
 }
@@ -97,7 +96,38 @@ export async function PUT(req: Request) {
 
     let gradingResult: GradingConfig | null = null;
     if (gradingRequested) {
-      gradingResult = writeGradingConfig(body.grading || {});
+      const gradingInput = (body.grading || {}) as Record<string, unknown>;
+      const templateInput = typeof gradingInput.feedbackTemplate === "string" ? gradingInput.feedbackTemplate : null;
+      const templateScope =
+        String(gradingInput.feedbackTemplateScope || "").trim().toLowerCase() === "default"
+          ? "default"
+          : "active-user";
+      const nextTemplateByUserId = { ...(prevGrading.feedbackTemplateByUserId || {}) };
+      if (templateInput !== null && templateScope === "active-user" && ctx.user?.id) {
+        nextTemplateByUserId[ctx.user.id] = templateInput;
+      }
+      const gradingPatch: Partial<GradingConfig> = {
+        model: typeof gradingInput.model === "string" ? gradingInput.model : undefined,
+        tone: gradingInput.tone as any,
+        strictness: gradingInput.strictness as any,
+        useRubricIfAvailable: gradingInput.useRubricIfAvailable as any,
+        studentSafeMarkedPdf: gradingInput.studentSafeMarkedPdf as any,
+        maxFeedbackBullets: gradingInput.maxFeedbackBullets as any,
+        pageNotesEnabled: gradingInput.pageNotesEnabled as any,
+        pageNotesTone: gradingInput.pageNotesTone as any,
+        pageNotesMaxPages: gradingInput.pageNotesMaxPages as any,
+        pageNotesMaxLinesPerPage: gradingInput.pageNotesMaxLinesPerPage as any,
+        pageNotesIncludeCriterionCode: gradingInput.pageNotesIncludeCriterionCode as any,
+      };
+      if (templateInput !== null && (templateScope === "default" || !ctx.user?.id)) {
+        gradingPatch.feedbackTemplate = templateInput;
+      }
+      if (templateInput !== null && templateScope === "active-user" && ctx.user?.id) {
+        gradingPatch.feedbackTemplateByUserId = nextTemplateByUserId;
+      }
+      gradingResult = writeGradingConfig({
+        ...gradingPatch,
+      });
       appliedGrading = true;
       appendSettingsAuditEvent({
         actor: await getCurrentAuditActor(),
@@ -111,6 +141,8 @@ export async function PUT(req: Request) {
           strictnessTo: gradingResult.strictness,
           studentSafeMarkedPdfFrom: prevGrading.studentSafeMarkedPdf,
           studentSafeMarkedPdfTo: gradingResult.studentSafeMarkedPdf,
+          feedbackTemplateByUserCountFrom: Object.keys(prevGrading.feedbackTemplateByUserId || {}).length,
+          feedbackTemplateByUserCountTo: Object.keys(gradingResult.feedbackTemplateByUserId || {}).length,
         },
       });
     }

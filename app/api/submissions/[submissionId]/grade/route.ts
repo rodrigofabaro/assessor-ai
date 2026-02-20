@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { prisma } from "@/lib/prisma";
-import { readGradingConfig } from "@/lib/grading/config";
+import { readGradingConfig, resolveFeedbackTemplate } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { apiError, makeRequestId } from "@/lib/api/errors";
@@ -15,7 +15,7 @@ import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/g
 import { renderFeedbackTemplate } from "@/lib/grading/feedbackDocument";
 import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
-import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
@@ -455,6 +455,99 @@ function applyBandCompletionCap(
   };
 }
 
+function firstSentence(value: unknown, maxLen = 170) {
+  const compact = sanitizeStudentFeedbackLine(String(value || "").replace(/\s+/g, " ").trim());
+  if (!compact) return "";
+  const sentence = compact.split(/[.!?]/)[0] || compact;
+  if (sentence.length <= maxLen) return sentence;
+  return `${sentence.slice(0, Math.max(40, maxLen - 1))}...`;
+}
+
+function formatCriterionCodes(codes: string[], max = 6) {
+  const normalized = Array.from(
+    new Set(
+      (Array.isArray(codes) ? codes : [])
+        .map((code) => String(code || "").trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  if (!normalized.length) return "";
+  if (normalized.length <= max) return normalized.join(", ");
+  const shown = normalized.slice(0, Math.max(1, max));
+  return `${shown.join(", ")} (+${normalized.length - shown.length} more)`;
+}
+
+function buildHigherGradeGapBullets(input: {
+  finalGrade: string;
+  rawGrade: string;
+  gradePolicy: { wasCapped?: boolean; capReason?: string | null };
+  bandCapPolicy: {
+    missing?: { pass?: string[]; merit?: string[]; distinction?: string[] };
+  };
+  criterionChecks: Array<{ code?: string; decision?: string; rationale?: string }>;
+}) {
+  const out: string[] = [];
+  const finalGrade = String(input.finalGrade || "").trim().toUpperCase();
+  const rawGrade = String(input.rawGrade || "").trim().toUpperCase();
+  const missingPass = Array.isArray(input.bandCapPolicy?.missing?.pass) ? input.bandCapPolicy.missing.pass : [];
+  const missingMerit = Array.isArray(input.bandCapPolicy?.missing?.merit) ? input.bandCapPolicy.missing.merit : [];
+  const missingDistinction = Array.isArray(input.bandCapPolicy?.missing?.distinction)
+    ? input.bandCapPolicy.missing.distinction
+    : [];
+  const rationaleByCode = new Map<string, string>();
+  for (const row of Array.isArray(input.criterionChecks) ? input.criterionChecks : []) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code || rationaleByCode.has(code)) continue;
+    const decision = String(row?.decision || "").trim().toUpperCase();
+    if (decision === "ACHIEVED") continue;
+    const reason = firstSentence(row?.rationale || "");
+    if (reason) rationaleByCode.set(code, reason);
+  }
+  const missingReasonLine = (codes: string[]) =>
+    codes
+      .map((code) => {
+        const normalized = String(code || "").trim().toUpperCase();
+        const reason = rationaleByCode.get(normalized);
+        if (!normalized || !reason) return "";
+        return `${normalized}: ${reason}`;
+      })
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(" ");
+
+  if (input.gradePolicy?.wasCapped && String(input.gradePolicy?.capReason || "").includes("RESUBMISSION")) {
+    out.push("This submission is currently capped at PASS on resubmission policy until the reassessment conditions are met.");
+  }
+
+  if (finalGrade === "REFER") {
+    if (missingPass.length) {
+      out.push(`To achieve PASS, secure all Pass criteria, especially: ${formatCriterionCodes(missingPass)}.`);
+      const reasons = missingReasonLine(missingPass);
+      if (reasons) out.push(`Priority improvements: ${reasons}`);
+    }
+    return out;
+  }
+
+  if (finalGrade === "PASS" || finalGrade === "PASS_ON_RESUBMISSION") {
+    if (missingMerit.length) {
+      out.push(`To reach MERIT, all Merit criteria must be achieved, including: ${formatCriterionCodes(missingMerit)}.`);
+      const reasons = missingReasonLine(missingMerit);
+      if (reasons) out.push(`Merit gap to address: ${reasons}`);
+    } else if (rawGrade === "DISTINCTION" && missingDistinction.length) {
+      // Edge-case: model overcalled distinction but policy reduced grade.
+      out.push(`To reach DISTINCTION, secure all Distinction criteria, including: ${formatCriterionCodes(missingDistinction)}.`);
+    }
+    return out;
+  }
+
+  if (finalGrade === "MERIT" && missingDistinction.length) {
+    out.push(`To reach DISTINCTION, all Distinction criteria must be achieved, especially: ${formatCriterionCodes(missingDistinction)}.`);
+    const reasons = missingReasonLine(missingDistinction);
+    if (reasons) out.push(`Distinction gap to address: ${reasons}`);
+  }
+  return out;
+}
+
 function countWords(value: unknown) {
   const txt = String(value || "").trim();
   if (!txt) return 0;
@@ -634,7 +727,10 @@ export async function POST(
     dryRun?: boolean;
   };
   const dryRun = !!body.dryRun;
-  const actor = await getCurrentAuditActor();
+  const appCfg = await getOrCreateAppConfig();
+  const activeAuditUser = appCfg.activeAuditUser?.isActive ? appCfg.activeAuditUser : null;
+  const actor = activeAuditUser?.fullName || "system";
+  const activeAuditUserId = activeAuditUser?.id || null;
 
   const { apiKey } = resolveOpenAiApiKey("preferStandard");
   if (!apiKey) {
@@ -811,6 +907,8 @@ export async function POST(
   }
 
   const cfg = readGradingConfig().config;
+  const feedbackTemplateResolution = resolveFeedbackTemplate(cfg, activeAuditUserId);
+  const feedbackTemplate = feedbackTemplateResolution.template;
   const activeModel = readOpenAiModel().model || cfg.model;
   const tone = String(body.tone || cfg.tone || "professional");
   const strictness = String(body.strictness || cfg.strictness || "balanced");
@@ -1040,6 +1138,7 @@ export async function POST(
   const referenceContextSnapshot = {
     capturedAt: new Date().toISOString(),
     submissionId: submission.id,
+    submissionPageCount: Number(submission.extractionRuns?.[0]?.pageCount || 0),
     unit: {
       id: brief.unit.id,
       unitCode: brief.unit.unitCode,
@@ -1092,7 +1191,9 @@ export async function POST(
     strictness,
     useRubricIfAvailable: useRubric,
     model: activeModel,
-    feedbackTemplateHash: createHash("sha256").update(String(cfg.feedbackTemplate || "")).digest("hex"),
+    feedbackTemplateHash: createHash("sha256").update(String(feedbackTemplate || "")).digest("hex"),
+    feedbackTemplateScope: feedbackTemplateResolution.scope,
+    feedbackTemplateUserId: feedbackTemplateResolution.userId,
     resubmissionCapRuleActive: ["1", "true", "yes", "on"].includes(
       String(process.env.GRADE_RESUBMISSION_CAP_ENABLED || "false").toLowerCase()
     ),
@@ -1361,7 +1462,21 @@ export async function POST(
     const finalConfidence = confidenceResult.finalConfidence;
     const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
     const feedbackSummary = sanitizeStudentFeedbackLine(feedbackSummaryRaw) || "Feedback provided below.";
-    const feedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
+    const baseFeedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
+    const higherGradeGapBullets = buildHigherGradeGapBullets({
+      finalGrade: overallGrade,
+      rawGrade: rawOverallGrade,
+      gradePolicy,
+      bandCapPolicy,
+      criterionChecks: decision.criterionChecks,
+    });
+    const feedbackBullets = Array.from(
+      new Set(
+        [...baseFeedbackBullets, ...higherGradeGapBullets]
+          .map((line) => sanitizeStudentFeedbackLine(line))
+          .filter(Boolean)
+      )
+    ).slice(0, Math.max(1, cfg.maxFeedbackBullets));
     const systemNotes: string[] = [];
     if (modalityCompliance.missingCount > 0 && gradingInputMode !== "RAW_PDF_IMAGES") {
       const modalityCapApplied = confidenceResult.capsApplied.some((c) => c.name === "modality_missing_cap");
@@ -1400,6 +1515,8 @@ export async function POST(
       overallGrade,
       confidence: finalConfidence,
       rawOverallGradeWord: rawOverallGrade,
+      feedbackSummary,
+      feedbackBullets,
       gradePolicy,
     };
     const completedAtIso = new Date().toISOString();
@@ -1412,21 +1529,37 @@ export async function POST(
       completedAtIso,
     });
     const feedbackDate = toUkDate(completedAtIso);
+    const higherGradeGuidance = higherGradeGapBullets.length
+      ? higherGradeGapBullets.join(" ")
+      : "To progress to a higher band, make each criterion link explicit with page-based evidence.";
     const feedbackText = renderFeedbackTemplate({
-      template: cfg.feedbackTemplate,
+      template: feedbackTemplate,
       studentFirstName: studentFirstName || "Student",
+      studentFullName: submission?.student?.fullName || studentFirstName || "Student",
       feedbackSummary,
       feedbackBullets: feedbackBullets.length ? feedbackBullets : ["Feedback generated."],
       overallGrade,
       assessorName: actor,
       markedDate: feedbackDate,
+      unitCode: String(brief.unit?.unitCode || ""),
+      assignmentCode: String(brief.assignmentCode || ""),
+      submissionId: String(submission.id || ""),
+      confidence: finalConfidence,
+      gradingTone: tone,
+      gradingStrictness: strictness,
+      higherGradeGuidance,
     });
+    const submissionPageCount = Math.max(
+      0,
+      Number(submission.extractionRuns?.[0]?.pageCount || rawPdfPageCount || 0)
+    );
     const pageNotes = cfg.pageNotesEnabled
       ? buildPageNotesFromCriterionChecks(decision.criterionChecks, {
           maxPages: cfg.pageNotesMaxPages,
           maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
           tone: cfg.pageNotesTone,
           includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
+          totalPages: submissionPageCount,
         })
       : [];
 
@@ -1579,7 +1712,9 @@ export async function POST(
           extractionMode: extractionMode || "UNKNOWN",
           coverReady,
           studentFirstNameUsed: studentFirstName || null,
-          feedbackTemplateUsed: cfg.feedbackTemplate,
+          feedbackTemplateUsed: feedbackTemplate,
+          feedbackTemplateScopeUsed: feedbackTemplateResolution.scope,
+          feedbackTemplateUserIdUsed: feedbackTemplateResolution.userId,
           feedbackRenderedDate: feedbackDate,
           pageNotesGenerated: pageNotes,
           pageNotesConfigUsed: {
@@ -1588,6 +1723,7 @@ export async function POST(
             maxPages: cfg.pageNotesMaxPages,
             maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
             includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
+            totalPages: submissionPageCount,
           },
           modalityEvidenceSource,
           inputStrategy: inputStrategySnapshot,

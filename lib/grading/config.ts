@@ -16,6 +16,7 @@ export type GradingConfig = {
   studentSafeMarkedPdf: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate: string;
+  feedbackTemplateByUserId: Record<string, string>;
   pageNotesEnabled: boolean;
   pageNotesTone: GradingTone;
   pageNotesMaxPages: number;
@@ -34,6 +35,7 @@ export function defaultGradingConfig(): GradingConfig {
     studentSafeMarkedPdf: true,
     maxFeedbackBullets: 6,
     feedbackTemplate: getDefaultFeedbackTemplate(),
+    feedbackTemplateByUserId: {},
     pageNotesEnabled: true,
     pageNotesTone: "professional",
     pageNotesMaxPages: 6,
@@ -77,6 +79,20 @@ function normalizeTemplate(v: unknown): string {
   return value || getDefaultFeedbackTemplate();
 }
 
+function normalizeTemplateByUserId(v: unknown): Record<string, string> {
+  if (!v || typeof v !== "object") return {};
+  const src = v as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const [rawId, rawTemplate] of Object.entries(src)) {
+    const userId = String(rawId || "").trim();
+    if (!userId) continue;
+    const tpl = String(rawTemplate || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+    if (!tpl) continue;
+    out[userId] = tpl;
+  }
+  return out;
+}
+
 function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
   const base = defaultGradingConfig();
   return {
@@ -93,6 +109,9 @@ function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
         : base.studentSafeMarkedPdf,
     maxFeedbackBullets: normalizeBullets(input.maxFeedbackBullets ?? base.maxFeedbackBullets),
     feedbackTemplate: normalizeTemplate(input.feedbackTemplate ?? base.feedbackTemplate),
+    feedbackTemplateByUserId: normalizeTemplateByUserId(
+      input.feedbackTemplateByUserId ?? base.feedbackTemplateByUserId
+    ),
     pageNotesEnabled:
       typeof input.pageNotesEnabled === "boolean" ? input.pageNotesEnabled : base.pageNotesEnabled,
     pageNotesTone: normalizeTone(input.pageNotesTone ?? base.pageNotesTone),
@@ -126,4 +145,24 @@ export function writeGradingConfig(next: Partial<GradingConfig>) {
   const merged = normalizeConfig({ ...readGradingConfig().config, ...next });
   fs.writeFileSync(FILE_PATH, JSON.stringify(merged, null, 2), "utf8");
   return merged;
+}
+
+export function resolveFeedbackTemplate(config: GradingConfig, userId?: string | null) {
+  const activeUserId = String(userId || "").trim();
+  const byUser = config?.feedbackTemplateByUserId || {};
+  if (activeUserId) {
+    const userTemplate = String(byUser[activeUserId] || "").trim();
+    if (userTemplate) {
+      return {
+        template: userTemplate,
+        scope: "active-user" as const,
+        userId: activeUserId,
+      };
+    }
+  }
+  return {
+    template: String(config?.feedbackTemplate || "").trim() || getDefaultFeedbackTemplate(),
+    scope: "default" as const,
+    userId: null as string | null,
+  };
 }

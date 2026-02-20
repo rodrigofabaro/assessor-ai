@@ -10,8 +10,20 @@ const SYSTEM_FEEDBACK_PATTERNS: RegExp[] = [
   /\bmodel output\b/i,
 ];
 
-export function sanitizeStudentFeedbackLine(value: unknown): string {
+function stripPlaceholderText(value: string): string {
   return String(value || "")
+    .replace(/\btype\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\benter\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\badd\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\binsert\s+text\b/gi, "")
+    .replace(/\bclick\s+to\s+add\s+text\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .trim();
+}
+
+export function sanitizeStudentFeedbackLine(value: unknown): string {
+  return stripPlaceholderText(String(value || ""))
     .replace(/\s+/g, " ")
     .replace(/\b(automated review|schema validation|manual review|required schema|fallback)\b/gi, "")
     .replace(/\s{2,}/g, " ")
@@ -43,7 +55,7 @@ export function sanitizeStudentFeedbackText(value: unknown): string {
   if (!src.trim()) return "";
   const lines = src
     .split(/\r?\n/)
-    .map((line) => line.trimEnd())
+    .map((line) => stripPlaceholderText(line).trimEnd())
     .filter((line) => {
       const trimmed = line.trim();
       if (!trimmed) return true;
@@ -51,4 +63,3 @@ export function sanitizeStudentFeedbackText(value: unknown): string {
     });
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
-

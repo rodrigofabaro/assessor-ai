@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { readGradingConfig, writeGradingConfig } from "@/lib/grading/config";
+import { readGradingConfig, resolveFeedbackTemplate, writeGradingConfig } from "@/lib/grading/config";
 import { getSettingsReadContext, getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { FEEDBACK_TEMPLATE_ALL_TOKENS, FEEDBACK_TEMPLATE_REQUIRED_TOKENS } from "@/lib/grading/feedbackDocument";
 
 export const runtime = "nodejs";
-
-const REQUIRED_TEMPLATE_TOKENS = ["{overallGrade}", "{feedbackBullets}"] as const;
 
 export async function GET() {
   const readCtx = await getSettingsReadContext();
@@ -14,7 +13,17 @@ export async function GET() {
     return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
   }
   const { config, source } = readGradingConfig();
-  return NextResponse.json({ ...config, source });
+  const templateResolution = resolveFeedbackTemplate(config, readCtx.user?.id || null);
+  return NextResponse.json({
+    ...config,
+    feedbackTemplate: templateResolution.template,
+    feedbackTemplateScope: templateResolution.scope,
+    activeTemplateUserId: templateResolution.userId,
+    feedbackTemplateByUserCount: Object.keys(config.feedbackTemplateByUserId || {}).length,
+    feedbackTemplateAllTokens: FEEDBACK_TEMPLATE_ALL_TOKENS,
+    feedbackTemplateRequiredTokens: FEEDBACK_TEMPLATE_REQUIRED_TOKENS,
+    source,
+  });
 }
 
 export async function PUT(req: Request) {
@@ -25,9 +34,13 @@ export async function PUT(req: Request) {
     }
 
     const body = (await req.json()) as Record<string, unknown>;
-    if (typeof body.feedbackTemplate === "string") {
-      const tpl = body.feedbackTemplate;
-      const missing = REQUIRED_TEMPLATE_TOKENS.filter((t) => !tpl.includes(t));
+    const templateScope =
+      String(body.feedbackTemplateScope || "").trim().toLowerCase() === "default"
+        ? "default"
+        : "active-user";
+    const templateInput = typeof body.feedbackTemplate === "string" ? body.feedbackTemplate : null;
+    if (typeof templateInput === "string") {
+      const missing = FEEDBACK_TEMPLATE_REQUIRED_TOKENS.filter((t) => !templateInput.includes(t));
       if (missing.length) {
         return NextResponse.json(
           { error: `feedbackTemplate is missing required placeholder(s): ${missing.join(", ")}` },
@@ -36,6 +49,12 @@ export async function PUT(req: Request) {
       }
     }
     const prev = readGradingConfig().config;
+    const nextTemplateByUserId = { ...(prev.feedbackTemplateByUserId || {}) };
+    if (templateInput !== null) {
+      if (templateScope === "active-user" && ctx.user?.id) {
+        nextTemplateByUserId[ctx.user.id] = templateInput;
+      }
+    }
     const saved = writeGradingConfig({
       model: typeof body.model === "string" ? body.model : undefined,
       tone: body.tone as any,
@@ -43,13 +62,19 @@ export async function PUT(req: Request) {
       useRubricIfAvailable: body.useRubricIfAvailable as any,
       studentSafeMarkedPdf: body.studentSafeMarkedPdf as any,
       maxFeedbackBullets: body.maxFeedbackBullets as any,
-      feedbackTemplate: typeof body.feedbackTemplate === "string" ? body.feedbackTemplate : undefined,
+      feedbackTemplate:
+        templateInput !== null && (templateScope === "default" || !ctx.user?.id) ? templateInput : undefined,
+      feedbackTemplateByUserId:
+        templateInput !== null && templateScope === "active-user" && ctx.user?.id
+          ? nextTemplateByUserId
+          : undefined,
       pageNotesEnabled: body.pageNotesEnabled as any,
       pageNotesTone: body.pageNotesTone as any,
       pageNotesMaxPages: body.pageNotesMaxPages as any,
       pageNotesMaxLinesPerPage: body.pageNotesMaxLinesPerPage as any,
       pageNotesIncludeCriterionCode: body.pageNotesIncludeCriterionCode as any,
     });
+    const templateResolution = resolveFeedbackTemplate(saved, ctx.user?.id || null);
     appendSettingsAuditEvent({
       actor: await getCurrentAuditActor(),
       role: ctx.role,
@@ -64,11 +89,25 @@ export async function PUT(req: Request) {
         studentSafeMarkedPdfTo: saved.studentSafeMarkedPdf,
         maxFeedbackBulletsFrom: prev.maxFeedbackBullets,
         maxFeedbackBulletsTo: saved.maxFeedbackBullets,
+        feedbackTemplateScope: templateInput !== null ? (templateScope === "default" || !ctx.user?.id ? "default" : "active-user") : undefined,
+        feedbackTemplateByUserCountFrom: Object.keys(prev.feedbackTemplateByUserId || {}).length,
+        feedbackTemplateByUserCountTo: Object.keys(saved.feedbackTemplateByUserId || {}).length,
         pageNotesEnabledFrom: prev.pageNotesEnabled,
         pageNotesEnabledTo: saved.pageNotesEnabled,
       },
     });
-    return NextResponse.json({ ok: true, config: saved });
+    return NextResponse.json({
+      ok: true,
+      config: {
+        ...saved,
+        feedbackTemplate: templateResolution.template,
+        feedbackTemplateScope: templateResolution.scope,
+        activeTemplateUserId: templateResolution.userId,
+        feedbackTemplateByUserCount: Object.keys(saved.feedbackTemplateByUserId || {}).length,
+        feedbackTemplateAllTokens: FEEDBACK_TEMPLATE_ALL_TOKENS,
+        feedbackTemplateRequiredTokens: FEEDBACK_TEMPLATE_REQUIRED_TOKENS,
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to save grading config.";
     return NextResponse.json({ error: message }, { status: 500 });

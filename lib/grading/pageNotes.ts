@@ -24,10 +24,13 @@ function normalizeText(v: unknown) {
 
 function sanitizeStudentNoteText(v: string) {
   return normalizeText(v)
-    .replace(/\btype\s+text\s+here\b/gi, "")
+    .replace(/\btype\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\benter\s+(?:your\s+)?text\s+here\b/gi, "")
+    .replace(/\badd\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\binsert\s+text\b/gi, "")
     .replace(/\bclick\s+to\s+add\s+text\b/gi, "")
     .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
     .trim();
 }
 
@@ -108,23 +111,28 @@ export function buildPageNotesFromCriterionChecks(
     tone?: "supportive" | "professional" | "strict";
     includeCriterionCode?: boolean;
     minPage?: number;
+    totalPages?: number;
   }
 ): MarkedPageNote[] {
-  const maxPages = Math.max(1, Math.min(20, Number(options?.maxPages || 6)));
+  const configuredMaxPages = Math.max(1, Math.min(20, Number(options?.maxPages || 6)));
+  const totalPages = Math.max(0, Math.min(500, Number(options?.totalPages || 0)));
+  const adaptiveMaxPages =
+    totalPages >= 45
+      ? Math.max(configuredMaxPages, 12)
+      : totalPages >= 30
+        ? Math.max(configuredMaxPages, 9)
+        : totalPages >= 20
+          ? Math.max(configuredMaxPages, 7)
+          : configuredMaxPages;
+  const maxPages = Math.max(1, Math.min(20, adaptiveMaxPages));
   const maxLinesPerPage = Math.max(1, Math.min(8, Number(options?.maxLinesPerPage || 3)));
-  const minPage = Math.max(1, Math.min(20, Number(options?.minPage || 2)));
+  const minPage = Math.max(1, Math.min(20, Number(options?.minPage || 1)));
   const tone = String(options?.tone || "professional").toLowerCase();
   const includeCode = options?.includeCriterionCode !== false;
-  const preferredRows = (Array.isArray(rows) ? rows : []).filter((row) => {
-    const decision = decisionLabel(row);
-    return decision === "NOT_ACHIEVED" || decision === "UNCLEAR";
-  });
+  const normalizedRows = Array.isArray(rows) ? rows : [];
   const hasEvidence = (row: CriterionCheckLike) =>
     (Array.isArray(row?.evidence) ? row.evidence : []).some((e) => Number(e?.page || 0) > 0);
-  const preferredWithEvidence = preferredRows.filter(hasEvidence);
-  const sourceRows = preferredWithEvidence.length
-    ? preferredWithEvidence
-    : (Array.isArray(rows) ? rows : []).filter(hasEvidence);
+  const sourceRows = normalizedRows.filter(hasEvidence);
   const byPage = new Map<number, Array<{ line: string; priority: number }>>();
   const decisionPriority = (decision: string) =>
     decision === "NOT_ACHIEVED" ? 0 : decision === "UNCLEAR" ? 1 : 2;
@@ -145,14 +153,43 @@ export function buildPageNotesFromCriterionChecks(
     }
   }
 
-  return Array.from(byPage.entries())
-    .sort((a, b) => a[0] - b[0])
-    .slice(0, maxPages)
-    .map(([page, items]) => {
+  const allPages = Array.from(byPage.keys()).sort((a, b) => a - b);
+  if (!allPages.length) return [];
+
+  const criticalPages = allPages.filter((page) =>
+    (byPage.get(page) || []).some((item) => item.priority < 2)
+  );
+  const selected = new Set<number>();
+  for (const page of criticalPages) {
+    selected.add(page);
+    if (selected.size >= maxPages) break;
+  }
+  if (selected.size < maxPages) {
+    const remaining = allPages.filter((p) => !selected.has(p));
+    const needed = maxPages - selected.size;
+    if (remaining.length <= needed) {
+      for (const page of remaining) selected.add(page);
+    } else if (needed === 1) {
+      selected.add(remaining[Math.floor(remaining.length / 2)]);
+    } else {
+      for (let i = 0; i < needed; i += 1) {
+        const idx = Math.round((i * (remaining.length - 1)) / (needed - 1));
+        selected.add(remaining[idx]);
+      }
+    }
+  }
+
+  return Array.from(selected.values())
+    .sort((a, b) => a - b)
+    .map((page) => {
+      const items = byPage.get(page) || [];
       const critical = items.filter((i) => i.priority < 2).sort((a, b) => a.priority - b.priority);
-      const selected = critical.length
+      const noteItems = critical.length
         ? critical.slice(0, maxLinesPerPage)
-        : items.sort((a, b) => a.priority - b.priority).slice(0, 1);
-      return { page, lines: selected.map((i) => i.line) };
+        : items.sort((a, b) => a.priority - b.priority).slice(0, Math.min(2, maxLinesPerPage));
+      const lines = noteItems
+        .map((i) => sanitizeStudentNoteText(i.line))
+        .filter(Boolean);
+      return { page, lines };
     });
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { FEEDBACK_TEMPLATE_ALL_TOKENS, FEEDBACK_TEMPLATE_REQUIRED_TOKENS } from "@/lib/grading/feedbackDocument";
 
 type EndpointOkUsage = {
   available: true;
@@ -92,6 +93,11 @@ type GradingConfigPayload = {
   studentSafeMarkedPdf: boolean;
   maxFeedbackBullets: number;
   feedbackTemplate: string;
+  feedbackTemplateScope?: "active-user" | "default";
+  activeTemplateUserId?: string | null;
+  feedbackTemplateByUserCount?: number;
+  feedbackTemplateAllTokens?: string[];
+  feedbackTemplateRequiredTokens?: string[];
   pageNotesEnabled: boolean;
   pageNotesTone: "supportive" | "professional" | "strict";
   pageNotesMaxPages: number;
@@ -1276,6 +1282,47 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             </label>
             <label className="md:col-span-2 text-sm text-zinc-700">
               Feedback template
+              <div className="mt-1 grid gap-2 md:grid-cols-2">
+                <label className="text-xs text-zinc-600">
+                  Template scope
+                  <select
+                    value={gradingCfg.feedbackTemplateScope || "active-user"}
+                    onChange={(e) =>
+                      setGradingCfg((v) =>
+                        v
+                          ? {
+                              ...v,
+                              feedbackTemplateScope: e.target.value === "default" ? "default" : "active-user",
+                            }
+                          : v
+                      )
+                    }
+                    disabled={!canWriteSensitive}
+                    className="mt-1 h-9 w-full rounded-xl border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900"
+                  >
+                    <option value="active-user">Current active user template</option>
+                    <option value="default">Global default template</option>
+                  </select>
+                </label>
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-600">
+                  {gradingCfg.feedbackTemplateScope === "default" ? (
+                    <span>
+                      Saving as global fallback template (used when no user-specific template exists).
+                    </span>
+                  ) : (
+                    <span>
+                      Saving for active user:{" "}
+                      <span className="font-semibold text-zinc-800">
+                        {appCfg?.activeAuditUser?.fullName || "system"}
+                      </span>
+                      .
+                    </span>
+                  )}
+                  <div className="mt-1">
+                    Personal templates saved: {gradingCfg.feedbackTemplateByUserCount || 0}
+                  </div>
+                </div>
+              </div>
               <textarea
                 value={gradingCfg.feedbackTemplate || ""}
                 onChange={(e) => setGradingCfg((v) => (v ? { ...v, feedbackTemplate: e.target.value } : v))}
@@ -1284,8 +1331,8 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                 className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
               />
               <div className="mt-1 text-xs text-zinc-500">
-                Placeholders: {"{studentFirstName}"}, {"{feedbackSummary}"}, {"{feedbackBullets}"}, {"{overallGrade}"}, {"{assessorName}"}, {"{date}"}.
-                Required: {"{overallGrade}"} and {"{feedbackBullets}"}.
+                Placeholders: {(gradingCfg.feedbackTemplateAllTokens || FEEDBACK_TEMPLATE_ALL_TOKENS).join(", ")}.
+                Required: {(gradingCfg.feedbackTemplateRequiredTokens || FEEDBACK_TEMPLATE_REQUIRED_TOKENS).join(" and ")}.
               </div>
             </label>
             <div className="md:col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">

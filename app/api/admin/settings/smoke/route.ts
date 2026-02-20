@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { resolveOpenAiApiKey } from "@/lib/openai/client";
 import { getSettingsReadContext } from "@/lib/admin/settingsPermissions";
 import { readGradingConfig, type GradingConfig } from "@/lib/grading/config";
+import { FEEDBACK_TEMPLATE_REQUIRED_TOKENS } from "@/lib/grading/feedbackDocument";
 
 export const runtime = "nodejs";
-
-const REQUIRED_TEMPLATE_TOKENS = ["{overallGrade}", "{feedbackBullets}"] as const;
 
 type SmokeTarget = "ai" | "grading" | "all";
 
@@ -43,7 +42,7 @@ function runGradingSmoke(input?: Partial<GradingConfig>) {
 
   const tpl = String(cfg.feedbackTemplate || "").trim();
   if (!tpl) errors.push("Feedback template is empty.");
-  const missing = REQUIRED_TEMPLATE_TOKENS.filter((token) => !tpl.includes(token));
+  const missing = FEEDBACK_TEMPLATE_REQUIRED_TOKENS.filter((token) => !tpl.includes(token));
   if (missing.length) errors.push(`Feedback template missing required placeholders: ${missing.join(", ")}.`);
 
   const bullets = toInt(cfg.maxFeedbackBullets, 6);
@@ -65,7 +64,18 @@ function runGradingSmoke(input?: Partial<GradingConfig>) {
     .replaceAll("{feedbackBullets}", "- Strength: clear structure\n- Improve: add more explicit criterion evidence")
     .replaceAll("{overallGrade}", "PASS")
     .replaceAll("{assessorName}", "Assessor AI")
-    .replaceAll("{date}", new Date().toISOString().slice(0, 10));
+    .replaceAll("{date}", new Date().toISOString().slice(0, 10))
+    .replaceAll("{studentFullName}", "Alex Carter")
+    .replaceAll("{unitCode}", "4004")
+    .replaceAll("{assignmentCode}", "A1")
+    .replaceAll("{submissionId}", "sample-submission-id")
+    .replaceAll("{confidence}", "0.84")
+    .replaceAll("{gradingTone}", String(cfg.tone || "professional"))
+    .replaceAll("{gradingStrictness}", String(cfg.strictness || "balanced"))
+    .replaceAll(
+      "{higherGradeGuidance}",
+      "To reach the next band, ensure all higher-band criteria include explicit page-linked evidence."
+    );
 
   if (sample.length > 9000) warnings.push("Template output is very long; review for verbosity.");
 
