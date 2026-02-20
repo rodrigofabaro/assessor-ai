@@ -139,6 +139,30 @@ type AssessmentRequirement = {
   needsImage?: boolean;
 };
 
+type CriterionDecision = "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
+type OverrideReasonCode =
+  | "INSUFFICIENT_EVIDENCE"
+  | "RUBRIC_MISALIGNMENT"
+  | "CRITERION_INTERPRETATION"
+  | "POLICY_ALIGNMENT"
+  | "ASSESSOR_JUDGEMENT"
+  | "OTHER";
+
+type CriterionOverrideDraft = {
+  finalDecision: CriterionDecision;
+  reasonCode: OverrideReasonCode;
+  note: string;
+};
+
+const OVERRIDE_REASON_OPTIONS: Array<{ value: OverrideReasonCode; label: string }> = [
+  { value: "INSUFFICIENT_EVIDENCE", label: "Insufficient evidence" },
+  { value: "RUBRIC_MISALIGNMENT", label: "Rubric misalignment" },
+  { value: "CRITERION_INTERPRETATION", label: "Criterion interpretation" },
+  { value: "POLICY_ALIGNMENT", label: "Policy alignment" },
+  { value: "ASSESSOR_JUDGEMENT", label: "Assessor judgement" },
+  { value: "OTHER", label: "Other" },
+];
+
 function cx(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
@@ -218,6 +242,8 @@ export default function SubmissionDetailPage() {
   const [pdfViewport, setPdfViewport] = useState<"compact" | "comfort" | "full">("comfort");
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
   const [expandedFeedbackHistory, setExpandedFeedbackHistory] = useState<Record<string, boolean>>({});
+  const [criterionOverrideDrafts, setCriterionOverrideDrafts] = useState<Record<string, CriterionOverrideDraft>>({});
+  const [criterionOverrideBusyCode, setCriterionOverrideBusyCode] = useState<string | null>(null);
   const [feedbackEditorBusy, setFeedbackEditorBusy] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState("");
   const [feedbackStudentName, setFeedbackStudentName] = useState("");
@@ -370,6 +396,18 @@ export default function SubmissionDetailPage() {
     const rj = selectedAssessment?.resultJson;
     return rj && typeof rj === "object" ? (rj as Record<string, any>) : ({} as Record<string, any>);
   }, [selectedAssessment]);
+  const criterionOverrideMap = useMemo(() => {
+    const arr = Array.isArray(selectedResultJson?.assessorCriterionOverrides)
+      ? selectedResultJson.assessorCriterionOverrides
+      : [];
+    const map = new Map<string, any>();
+    for (const row of arr) {
+      const code = String(row?.code || "").trim().toUpperCase();
+      if (!/^[PMD]\d{1,2}$/.test(code)) continue;
+      map.set(code, row);
+    }
+    return map;
+  }, [selectedResultJson]);
   const gradeRunConfidenceSignals = useMemo(() => {
     const signals = selectedResultJson?.confidenceSignals || {};
     const extraction = Number(signals?.extractionConfidence);
@@ -1126,6 +1164,23 @@ export default function SubmissionDetailPage() {
   }, [selectedAssessment?.id, selectedAssessment?.feedbackText, selectedAssessment?.resultJson, selectedAssessment?.createdAt]);
 
   useEffect(() => {
+    const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
+    const next: Record<string, CriterionOverrideDraft> = {};
+    for (const row of rows) {
+      const code = String(row?.code || "").trim().toUpperCase();
+      if (!/^[PMD]\d{1,2}$/.test(code)) continue;
+      const existing = criterionOverrideMap.get(code);
+      const baseDecision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase();
+      next[code] = {
+        finalDecision: (existing?.finalDecision || baseDecision || "UNCLEAR") as CriterionDecision,
+        reasonCode: (existing?.reasonCode || "ASSESSOR_JUDGEMENT") as OverrideReasonCode,
+        note: String(existing?.note || ""),
+      };
+    }
+    setCriterionOverrideDrafts(next);
+  }, [selectedAssessment?.id, structuredGrading, criterionOverrideMap]);
+
+  useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!feedbackDirty) return;
       e.preventDefault();
@@ -1203,6 +1258,75 @@ export default function SubmissionDetailPage() {
       notifyToast("error", message);
     } finally {
       setFeedbackEditorBusy(false);
+    }
+  }
+
+  async function applyCriterionOverride(code: string) {
+    if (!submissionId || !selectedAssessment?.id) return;
+    const key = String(code || "").trim().toUpperCase();
+    if (!/^[PMD]\d{1,2}$/.test(key)) return;
+    const draft = criterionOverrideDrafts[key];
+    if (!draft) return;
+    setCriterionOverrideBusyCode(key);
+    setErr("");
+    setMsg("");
+    try {
+      await jsonFetch(`/api/submissions/${submissionId}/assessments/${selectedAssessment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentName: feedbackStudentName,
+          markedDate: feedbackMarkedDate || null,
+          criterionOverrides: [
+            {
+              code: key,
+              finalDecision: draft.finalDecision,
+              reasonCode: draft.reasonCode,
+              note: draft.note || "",
+            },
+          ],
+        }),
+      });
+      await refresh();
+      setMsg(`Override applied for ${key}.`);
+      notifyToast("success", `Override applied for ${key}.`);
+      setLastActionNote(`Criterion override applied (${key}) at ${new Date().toLocaleString()} by ${activeAuditActorName}`);
+    } catch (e: any) {
+      const message = e?.message || "Failed to apply criterion override.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setCriterionOverrideBusyCode(null);
+    }
+  }
+
+  async function clearCriterionOverride(code: string) {
+    if (!submissionId || !selectedAssessment?.id) return;
+    const key = String(code || "").trim().toUpperCase();
+    if (!/^[PMD]\d{1,2}$/.test(key)) return;
+    setCriterionOverrideBusyCode(key);
+    setErr("");
+    setMsg("");
+    try {
+      await jsonFetch(`/api/submissions/${submissionId}/assessments/${selectedAssessment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentName: feedbackStudentName,
+          markedDate: feedbackMarkedDate || null,
+          criterionOverrides: [{ code: key, remove: true }],
+        }),
+      });
+      await refresh();
+      setMsg(`Override cleared for ${key}.`);
+      notifyToast("success", `Override cleared for ${key}.`);
+      setLastActionNote(`Criterion override cleared (${key}) at ${new Date().toLocaleString()} by ${activeAuditActorName}`);
+    } catch (e: any) {
+      const message = e?.message || "Failed to clear criterion override.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setCriterionOverrideBusyCode(null);
     }
   }
 
@@ -2735,6 +2859,7 @@ export default function SubmissionDetailPage() {
                   </summary>
                   <div className="mt-3 space-y-2">
                     {(Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : []).slice(0, 24).map((row: any, idx: number) => {
+                      const code = String(row?.code || "").trim().toUpperCase();
                       const decision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase();
                       const tone =
                         decision === "ACHIEVED"
@@ -2744,6 +2869,9 @@ export default function SubmissionDetailPage() {
                             : "border-zinc-200 bg-zinc-50 text-zinc-800";
                       const rationale = String(row?.rationale || row?.comment || "").trim();
                       const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+                      const override = criterionOverrideMap.get(code);
+                      const overrideDraft = criterionOverrideDrafts[code];
+                      const busy = criterionOverrideBusyCode === code;
                       const pages = Array.from(
                         new Set(
                           evidence
@@ -2755,14 +2883,121 @@ export default function SubmissionDetailPage() {
                         <div key={`crit-${idx}`} className="rounded-lg border border-zinc-200 p-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-900">
-                              {String(row?.code || "—")}
+                              {String(code || "—")}
                             </span>
                             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{decision}</span>
+                            {override ? (
+                              <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-900">
+                                Overridden
+                              </span>
+                            ) : null}
                             {pages.length ? (
                               <span className="text-[11px] text-zinc-600">Pages: {pages.join(", ")}</span>
                             ) : null}
                           </div>
                           {rationale ? <div className="mt-1 text-xs text-zinc-700">{rationale}</div> : null}
+                          {code ? (
+                            <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 p-2">
+                              <div className="mb-1 text-[11px] font-semibold text-zinc-700">Assessor override</div>
+                              <div className="grid gap-1.5 md:grid-cols-4">
+                                <label className="text-[11px] text-zinc-600">
+                                  Final decision
+                                  <select
+                                    value={overrideDraft?.finalDecision || decision}
+                                    onChange={(e) =>
+                                      setCriterionOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [code]: {
+                                          finalDecision: e.target.value as CriterionDecision,
+                                          reasonCode: (prev[code]?.reasonCode || "ASSESSOR_JUDGEMENT") as OverrideReasonCode,
+                                          note: prev[code]?.note || "",
+                                        },
+                                      }))
+                                    }
+                                    className="mt-0.5 h-7 w-full rounded-md border border-zinc-300 bg-white px-2 text-[11px] text-zinc-900"
+                                  >
+                                    <option value="ACHIEVED">ACHIEVED</option>
+                                    <option value="NOT_ACHIEVED">NOT_ACHIEVED</option>
+                                    <option value="UNCLEAR">UNCLEAR</option>
+                                  </select>
+                                </label>
+                                <label className="text-[11px] text-zinc-600">
+                                  Reason
+                                  <select
+                                    value={overrideDraft?.reasonCode || "ASSESSOR_JUDGEMENT"}
+                                    onChange={(e) =>
+                                      setCriterionOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [code]: {
+                                          finalDecision: (prev[code]?.finalDecision || decision) as CriterionDecision,
+                                          reasonCode: e.target.value as OverrideReasonCode,
+                                          note: prev[code]?.note || "",
+                                        },
+                                      }))
+                                    }
+                                    className="mt-0.5 h-7 w-full rounded-md border border-zinc-300 bg-white px-2 text-[11px] text-zinc-900"
+                                  >
+                                    {OVERRIDE_REASON_OPTIONS.map((opt) => (
+                                      <option key={`${code}-${opt.value}`} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="text-[11px] text-zinc-600 md:col-span-2">
+                                  Assessor note (optional)
+                                  <input
+                                    value={overrideDraft?.note || ""}
+                                    onChange={(e) =>
+                                      setCriterionOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [code]: {
+                                          finalDecision: (prev[code]?.finalDecision || decision) as CriterionDecision,
+                                          reasonCode: (prev[code]?.reasonCode || "ASSESSOR_JUDGEMENT") as OverrideReasonCode,
+                                          note: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                    className="mt-0.5 h-7 w-full rounded-md border border-zinc-300 bg-white px-2 text-[11px] text-zinc-900"
+                                    placeholder="Why override this criterion?"
+                                  />
+                                </label>
+                              </div>
+                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => void applyCriterionOverride(code)}
+                                  disabled={busy}
+                                  className={cx(
+                                    "rounded-md px-2 py-1 text-[11px] font-semibold",
+                                    busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-sky-700 text-white hover:bg-sky-800"
+                                  )}
+                                >
+                                  {busy ? "Applying..." : "Apply override"}
+                                </button>
+                                {override ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void clearCriterionOverride(code)}
+                                    disabled={busy}
+                                    className={cx(
+                                      "rounded-md border px-2 py-1 text-[11px] font-semibold",
+                                      busy
+                                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                                    )}
+                                  >
+                                    Reset to model
+                                  </button>
+                                ) : null}
+                                {override ? (
+                                  <span className="text-[10px] text-zinc-500">
+                                    model: {String(override?.modelDecision || "—")} · reason: {String(override?.reasonCode || "—")}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}

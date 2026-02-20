@@ -97,6 +97,9 @@ export async function GET() {
     const evidenceDensitySummary = (latestJson?.evidenceDensitySummary || {}) as Record<string, unknown>;
     const rerunIntegrity = (latestJson?.rerunIntegrity || {}) as Record<string, unknown>;
     const decisionDiff = (rerunIntegrity?.decisionDiff || {}) as Record<string, unknown>;
+    const assessorOverrides = Array.isArray(latestJson?.assessorCriterionOverrides)
+      ? latestJson.assessorCriterionOverrides
+      : [];
     const gradingConfidence = Number(confidenceSignals?.gradingConfidence);
     const extractionConfidence = Number(confidenceSignals?.extractionConfidence);
     const totalCitations = Number(evidenceDensitySummary?.totalCitations || 0);
@@ -127,6 +130,9 @@ export async function GET() {
         `Criterion decision drift on re-run (${decisionChangedCount} change${decisionChangedCount === 1 ? "" : "s"}; stricter ${decisionStricterCount}, lenient ${decisionLenientCount})`
       );
     }
+    if (assessorOverrides.length > 0) {
+      reasons.push(`Assessor overrides applied (${assessorOverrides.length} criteria)`);
+    }
     const qaFlags = {
       shouldReview: reasons.length > 0,
       reasons,
@@ -139,6 +145,7 @@ export async function GET() {
         decisionChangedCount: Number.isFinite(decisionChangedCount) ? decisionChangedCount : 0,
         decisionStricterCount: Number.isFinite(decisionStricterCount) ? decisionStricterCount : 0,
         decisionLenientCount: Number.isFinite(decisionLenientCount) ? decisionLenientCount : 0,
+        assessorOverrideCount: assessorOverrides.length,
       },
     };
 

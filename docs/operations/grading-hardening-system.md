@@ -91,6 +91,16 @@ When reliability is uncertain, block or degrade gracefully with explicit audit d
   - changed codes
 - Stored under `resultJson.rerunIntegrity.decisionDiff` and surfaced as QA review signals.
 
+6. Assessor criterion override capture
+- Submission detail now supports criterion-level override capture with reason codes and notes.
+- Stored per criterion with:
+  - `modelDecision`
+  - `finalDecision`
+  - `reasonCode`
+  - `note`
+  - `updatedBy`, `updatedAt`
+- Applying overrides recomputes final grade policy and regenerates marked outputs for that run.
+
 ## Robust-Grading Backlog (recommended)
 
 1. Criterion calibration suite

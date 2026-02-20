@@ -9,6 +9,7 @@
 - Open `/admin/qa`.
 - Apply filters for the cohort, unit, and assignment you want to inspect.
 - Review the dataset table to verify student-level outcomes.
+- Use `QA Flags` to identify runs needing manual review first.
 - Check grade distribution and averages to spot anomalies.
 - Export the filtered report to CSV for meetings or records.
 
@@ -24,13 +25,18 @@
 ### Grade quality view
 - Inspect how many are REFER, PASS, PASS_ON_RESUBMISSION, MERIT, DISTINCTION, and ungraded.
 - Use average score as a fast signal, then verify detailed rows.
+- Use QA reasons to investigate:
+  - low confidence
+  - criteria without evidence
+  - regrade decision drift
+  - assessor overrides
 
 ## Reports
 - Export filtered submissions CSV.
+- CSV includes QA review reasons for each row.
 - Use exports for QA meetings, IV evidence packs, and trend review.
 
 ## Relationship With Audit
 - QA page is for analysis and reporting.
 - Audit page (`/admin/audit`) is the operational event log for defensibility.
 - Use both together: QA for patterns, Audit for trace evidence.
-

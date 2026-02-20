@@ -22,6 +22,29 @@ This is the single-submission grading workspace.
 5. verify marked PDF and student-safe feedback
 6. commit grade and verify latest run is selected in editor
 
+## Criterion Overrides (Assessor)
+
+Use this when assessor judgement disagrees with model criterion decisions.
+
+1. Open `Criterion Decisions` in outputs.
+2. For any criterion, set:
+   - `Final decision`
+   - `Reason`
+   - optional assessor note
+3. Click `Apply override`.
+
+System behavior:
+
+- Saves audit-safe override metadata per criterion:
+  - model decision
+  - final assessor decision
+  - reason code
+  - note
+  - actor + timestamp
+- Recomputes final grade policy from overridden criterion decisions.
+- Regenerates marked PDF and page notes from effective decisions.
+- Shows override state inline (`Overridden`) on criterion rows.
+
 ## Feedback Safety
 
 Student-facing feedback must not expose internal system controls (for example model fallback, strictness tuning, schema issues).
@@ -49,3 +72,7 @@ Use:
 - repeated regrades produce different criterion decisions
   - review `Diff vs previous run` and `GradeRun v2 signals` in outputs
   - check QA flags for decision-drift signals before release
+- assessor override applied but grade did not update
+  - ensure override was applied on the selected run (not a historical run)
+  - refresh and confirm selected run grade changed in outputs
+  - confirm reason code was selected before apply

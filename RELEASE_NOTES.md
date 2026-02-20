@@ -87,6 +87,15 @@ Branch: `release/project-finish`
   - `systemNotes`
   - `/api/submissions` QA review reasons.
 
+### Assessor Override Capture
+
+- Added criterion-level assessor override workflow in submission detail:
+  - final decision
+  - reason code
+  - optional note
+- Persisted per criterion in assessment result JSON with actor/timestamp.
+- Override application recomputes final grade policy and regenerates marked output for the selected run.
+
 ### QA Surface
 
 - QA research table now includes `QA Flags` column and exports review reasons in CSV.
