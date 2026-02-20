@@ -1034,10 +1034,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           >
             Grading {dirtyGrading ? "•" : ""}
           </Link>
-            <Link
+          <Link
               href="/admin/users"
               onClick={onGuardedLinkClick}
-              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-800 px-3 text-xs font-semibold text-white shadow-sm hover:bg-slate-900"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
             >
               Users
             </Link>
@@ -1763,7 +1763,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             <Link
               href="/admin/users"
               onClick={onGuardedLinkClick}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-700 px-4 text-sm font-semibold text-white hover:bg-slate-800"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
             >
               Manage users
             </Link>
