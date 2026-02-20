@@ -1,0 +1,28 @@
+{
+   "background": {
+      "service_worker": "eparaksts-background.js"
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "js": [ "content.js" ],
+      "matches": [ "*://*/*", "file:///*" ],
+      "run_at": "document_end"
+   } ],
+   "description": "eParaksts signing extension",
+   "host_permissions": [ "*://*/*", "file:///*" ],
+   "icons": {
+      "128": "icon128.png",
+      "48": "icon48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAm2M9gxSIpS8dkDwNgxsvsYYVJcuRbuUNIiNaSIV8DQjS/k/57SoVLyjlLuEKKCa/4eCHAt8OLtPxF745x+26spF/qdP/2t75nqWdSJzwwal8GKdJpJ9ajKjHLW1C6VDHwoWApktf10O8wwacqC3JAXdoVPfQ8PKBGZdBxxgLvczzaHMLNEyfMNDded2YcK59rZFn6YMRdXDbEQHSGegPBiRiL0oJYIb1QvOHVrSmyv+Uwapf6IGKaFPcdOZEc6m+iYWFlUmlSwcTacXsR+mfs+NdWZVuufpknqfAWKYh8HGic78DUXdksQm6l1vBvQ3zHEgRwUie+EzabjwUO+iguwIDAQAB",
+   "manifest_version": 3,
+   "minimum_chrome_version": "88.0",
+   "name": "eParaksts signing extension",
+   "permissions": [ "nativeMessaging" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.1.6",
+   "web_accessible_resources": [ {
+      "matches": [ "\u003Call_urls>" ],
+      "resources": [ "eparaksts-page.js" ]
+   } ]
+}

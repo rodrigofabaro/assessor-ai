@@ -10,6 +10,7 @@ This page now acts as a control panel with quick operational indicators and dire
 1. AI Usage
 OpenAI connectivity and usage/cost diagnostics.
 Active model selection.
+OpenAI key change checklist (TODO) and key location guidance.
 
 2. Grading
 Tone/strictness/rubric defaults.
@@ -26,3 +27,17 @@ Favicon/branding controls.
 2. Configure grading defaults and feedback template.
 3. Tune page-note settings and preview tone examples.
 4. Save and verify by running one grading cycle in submission detail.
+
+## OpenAI Keys TODO
+
+1. Add or rotate `OPENAI_ADMIN_KEY` (preferred key for full usage/cost visibility).
+2. Set `OPENAI_API_KEY` as fallback key.
+3. Restart app/runtime after key change.
+4. In `/admin/settings`, run `Test config`.
+5. Confirm OpenAI card shows expected key type and connected status.
+
+## Where to Change Keys
+
+- Local: `.env.local` in project root.
+- Production/staging: deployment platform secret/environment variables.
+- Never store keys in UI text fields, docs, or committed source files.

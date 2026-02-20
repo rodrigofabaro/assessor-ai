@@ -1054,6 +1054,37 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         {modelMessage ? <p className="mt-1 text-xs text-zinc-600">{modelMessage}</p> : null}
       </section>
 
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-900">OpenAI key change checklist</h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Use this TODO list whenever you add, replace, or rotate OpenAI keys.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">TODO</div>
+            <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
+              <li>Set `OPENAI_ADMIN_KEY` (preferred for usage/cost visibility).</li>
+              <li>Set `OPENAI_API_KEY` as fallback standard key.</li>
+              <li>Restart the app/service after changing key env vars.</li>
+              <li>Run `Test config` in this page and confirm status is connected.</li>
+              <li>Check `OpenAI key` card shows configured and expected key type.</li>
+            </ul>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Where to change keys</div>
+            <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
+              <li>Local development: update `.env.local` in the project root.</li>
+              <li>Server/production: update environment secrets in your deployment platform.</li>
+              <li>Do not paste secrets into settings forms, docs, or source files.</li>
+            </ul>
+            <div className="mt-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600">
+              Key resolution priority: <code>OPENAI_ADMIN_KEY</code> {"->"} <code>OPENAI_ADMIN_API_KEY</code> {"->"}{" "}
+              <code>OPENAI_ADMIN</code> {"->"} <code>OPENAI_API_KEY</code>.
+            </div>
+          </div>
+        </div>
+      </section>
+
       {data?.hints?.needsAdminKeyForOrgMetrics ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-amber-950">Permission note</h2>

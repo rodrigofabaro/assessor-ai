@@ -36,6 +36,14 @@ This document covers OpenAI operations settings available at:
   - `GET /api/admin/openai-model`
   - `PUT /api/admin/openai-model`
 
+## Key Rotation TODO
+
+1. Update `OPENAI_ADMIN_KEY` (preferred) in environment secrets.
+2. Ensure `OPENAI_API_KEY` fallback exists.
+3. Restart runtime after env change.
+4. Open `/admin/settings` and run `Test config`.
+5. Confirm key type and connectivity cards match expectation.
+
 ## APIs added/updated
 
 1. `GET /api/admin/openai-usage`
