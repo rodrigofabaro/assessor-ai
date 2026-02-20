@@ -932,77 +932,78 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   ]);
 
   return (
-    <div className="grid min-w-0 gap-4">
-      <section className="rounded-2xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white p-3 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-5 pb-10">
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[radial-gradient(circle_at_0%_0%,#f1f5f9_0%,#ffffff_46%)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+        <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-44 w-44 rounded-full bg-slate-100/80 blur-3xl" />
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-semibold tracking-wide text-slate-900">
               <TinyIcon name="settings" />
               System Configuration
             </div>
-            <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Settings</h1>
-            <p className="mt-1 text-xs text-zinc-700">AI, grading defaults, and app identity controls.</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Settings Workspace</h1>
+            <p className="mt-1 text-sm text-slate-600">AI, grading defaults, and app operations in one clean control panel.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={load}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50 disabled:opacity-60"
               disabled={loading}
             >
               <TinyIcon name="refresh" className="h-3.5 w-3.5" />
               {loading ? "Refreshing..." : "Refresh"}
             </button>
-            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
               <TinyIcon name="status" className="mr-1 h-3 w-3" />
               {loading ? "Loading..." : "Ready"}
             </span>
           </div>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+        <div className="relative mt-3 flex flex-wrap gap-2 text-xs">
           {showAi ? (
             <>
-              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-                <span className="text-zinc-500">AI connection</span>
-                <span className="text-zinc-900">{aiConnectionLabel}</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">
+                <span className="text-slate-500">AI connection</span>
+                <span className="text-slate-900">{aiConnectionLabel}</span>
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-                <span className="text-zinc-500">Token usage</span>
-                <span className="text-zinc-900">{effectiveUsageTotal}</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">
+                <span className="text-slate-500">Token usage</span>
+                <span className="text-slate-900">{effectiveUsageTotal}</span>
               </span>
             </>
           ) : null}
           {showGrading ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-              <span className="text-zinc-500">Grading profile</span>
-              <span className="text-zinc-900">{gradingProfileLabel}</span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">
+              <span className="text-slate-500">Grading profile</span>
+              <span className="text-slate-900">{gradingProfileLabel}</span>
             </span>
           ) : null}
           {showApp ? (
             <>
-              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-                <span className="text-zinc-500">Active assessor</span>
-                <span className="text-zinc-900">{activeAuditLabel}</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">
+                <span className="text-slate-500">Active assessor</span>
+                <span className="text-slate-900">{activeAuditLabel}</span>
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-                <span className="text-zinc-500">Active users</span>
-                <span className="text-zinc-900">{activeUsersCount}</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">
+                <span className="text-slate-500">Active users</span>
+                <span className="text-slate-900">{activeUsersCount}</span>
               </span>
             </>
           ) : null}
         </div>
       </section>
 
-      <section className="sticky top-2 z-20 rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+      <section className="sticky top-2 z-20 rounded-3xl border border-slate-200/80 bg-white/90 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur">
         <nav aria-label="Settings sections" className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/settings/ai"
             onClick={onGuardedLinkClick}
             aria-current={currentSectionFromPath === "#ai-usage" ? "location" : undefined}
             className={
-              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              "inline-flex h-9 items-center justify-center rounded-xl border px-3 text-xs font-semibold transition-colors " +
               (currentSectionFromPath === "#ai-usage"
-                ? "border-slate-300 bg-slate-100 text-slate-900"
-                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                ? "border-slate-400 bg-slate-900 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50")
             }
           >
             AI {dirtyAi ? "•" : ""}
@@ -1012,10 +1013,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             onClick={onGuardedLinkClick}
             aria-current={currentSectionFromPath === "#app-settings" ? "location" : undefined}
             className={
-              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              "inline-flex h-9 items-center justify-center rounded-xl border px-3 text-xs font-semibold transition-colors " +
               (currentSectionFromPath === "#app-settings"
-                ? "border-slate-300 bg-slate-100 text-slate-900"
-                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                ? "border-slate-400 bg-slate-900 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50")
             }
           >
             App {dirtyApp ? "•" : ""}
@@ -1025,21 +1026,21 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             onClick={onGuardedLinkClick}
             aria-current={currentSectionFromPath === "#grading-defaults" ? "location" : undefined}
             className={
-              "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
+              "inline-flex h-9 items-center justify-center rounded-xl border px-3 text-xs font-semibold transition-colors " +
               (currentSectionFromPath === "#grading-defaults"
-                ? "border-slate-300 bg-slate-100 text-slate-900"
-                : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")
+                ? "border-slate-400 bg-slate-900 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50")
             }
           >
             Grading {dirtyGrading ? "•" : ""}
           </Link>
-          <Link
-            href="/admin/users"
-            onClick={onGuardedLinkClick}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-700 px-3 text-xs font-semibold text-white hover:bg-slate-800"
-          >
-            Users
-          </Link>
+            <Link
+              href="/admin/users"
+              onClick={onGuardedLinkClick}
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-800 px-3 text-xs font-semibold text-white shadow-sm hover:bg-slate-900"
+            >
+              Users
+            </Link>
           <div className="ml-auto flex items-center gap-2">
             <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
               Role: {activeAuditRole}
@@ -1058,7 +1059,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               <button
                 onClick={saveAll}
                 disabled={!canWriteSensitive || !anyDirty || busyAny}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 px-3 text-xs font-semibold text-slate-900 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {batchSaving ? "Saving..." : "Save all"}
               </button>
@@ -1071,23 +1072,23 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </p>
         ) : null}
         {batchMsg ? (
-          <p className="mt-2 text-xs text-zinc-700">{batchMsg}</p>
+          <p className="mt-2 text-xs text-slate-700">{batchMsg}</p>
         ) : null}
       </section>
 
       {isAll ? (
-        <section className="grid gap-3 lg:grid-cols-3">
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <section className="grid gap-4 lg:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">AI section</div>
             <div className="mt-1 text-sm font-semibold text-zinc-900">{dirtyAi ? "Unsaved changes" : "In sync"}</div>
             <p className="mt-1 text-xs text-zinc-600">Model, cleanup approval, and endpoint health checks.</p>
           </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <article className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Grading section</div>
             <div className="mt-1 text-sm font-semibold text-zinc-900">{dirtyGrading ? "Unsaved changes" : "In sync"}</div>
             <p className="mt-1 text-xs text-zinc-600">Tone, strictness, feedback template, and page-note defaults.</p>
           </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <article className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">App section</div>
             <div className="mt-1 text-sm font-semibold text-zinc-900">{dirtyApp ? "Unsaved changes" : "In sync"}</div>
             <p className="mt-1 text-xs text-zinc-600">Active audit actor, automation policy, and branding identity.</p>
@@ -1098,7 +1099,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       {showAi ? (
       <>
       <section id="ai-usage" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5 scroll-mt-20">
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-900">
               <TinyIcon name="settings" className="h-3.5 w-3.5" />
@@ -1110,7 +1111,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           <p className="mt-1 text-xs text-zinc-500">Using {data?.keyType === "admin" ? "admin key" : "standard key"}</p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-900">
               <TinyIcon name="ai" className="h-3.5 w-3.5" />
@@ -1125,7 +1126,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-900">
               <TinyIcon name="grading" className="h-3.5 w-3.5" />
@@ -1137,7 +1138,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           <p className="mt-1 text-xs text-zinc-500">{usageSource}</p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-950">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-950">
               <TinyIcon name="cost" className="h-3.5 w-3.5" />
@@ -1151,7 +1152,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-900">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-violet-900">
               <TinyIcon name="local" className="h-3.5 w-3.5" />
@@ -1170,7 +1171,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </article>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">Agent model</h2>
@@ -1263,7 +1264,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Usage breakdown</h2>
         {loading ? <p className="mt-2 text-sm text-zinc-600">Loading usage...</p> : null}
         {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
@@ -1296,7 +1297,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Historical usage</h2>
         {!loading && data?.localUsage?.available && data.localUsage.days.length > 0 ? (
           <div className="mt-3 overflow-x-auto">
@@ -1330,7 +1331,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Recent OpenAI logs</h2>
         {!loading && data?.localUsage?.available && (data.localUsage.recentEvents || []).length > 0 ? (
           <div className="mt-3 overflow-x-auto">
@@ -1366,7 +1367,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Endpoint diagnostics</h2>
         <div className="mt-3 grid gap-2">
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
@@ -1388,7 +1389,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
       {showGrading ? (
       <>
-      <section id="grading-defaults" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
+      <section id="grading-defaults" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)] scroll-mt-20">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
@@ -1684,7 +1685,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">What this affects</h2>
         <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
           <li>Tutor-facing tone and strictness defaults on submission grading runs.</li>
@@ -1700,7 +1701,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
       {showApp ? (
       <>
-      <section id="app-settings" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
+      <section id="app-settings" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)] scroll-mt-20">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">App operations & audit ownership</h2>
@@ -1893,7 +1894,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </p>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">Turnitin (QA)</h2>
@@ -2071,7 +2072,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         {turnitinMsg ? <p className="mt-2 text-xs text-zinc-600">{turnitinMsg}</p> : null}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Branding: favicon</h2>
         <p className="mt-1 text-sm text-zinc-600">
           Upload an icon used by browser tabs (`/favicon.ico`). Supported: ICO/PNG/SVG (max 2MB).
@@ -2107,7 +2108,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       ) : null}
 
       {isAll && anyDirty ? (
-        <section className="sticky bottom-2 z-20 rounded-2xl border border-amber-300 bg-amber-50/95 p-3 shadow-sm backdrop-blur">
+        <section className="sticky bottom-2 z-20 rounded-3xl border border-amber-300 bg-amber-50/95 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)] backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm text-amber-900">
               <span className="font-semibold">Unsaved changes:</span>{" "}
@@ -2148,7 +2149,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       ) : null}
 
       {showApp ? (
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Settings audit trail</h2>
         <p className="mt-1 text-sm text-zinc-600">Recent changes to AI model, grading, app identity, and branding settings.</p>
         {settingsAudit.length ? (
