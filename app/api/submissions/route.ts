@@ -100,6 +100,20 @@ export async function GET() {
     const assessorOverrides = Array.isArray(latestJson?.assessorCriterionOverrides)
       ? latestJson.assessorCriterionOverrides
       : [];
+    const overrideReasonCodes = Array.from(
+      new Set<string>(
+        assessorOverrides
+          .map((row: any) => String(row?.reasonCode || "").trim().toUpperCase())
+          .filter((v: string): v is string => Boolean(v))
+      )
+    ).sort((a: string, b: string) => a.localeCompare(b));
+    const overrideCriteriaCodes = Array.from(
+      new Set<string>(
+        assessorOverrides
+          .map((row: any) => String(row?.code || "").trim().toUpperCase())
+          .filter((v: string): v is string => /^[PMD]\d{1,2}$/.test(v))
+      )
+    ).sort((a: string, b: string) => a.localeCompare(b));
     const gradingConfidence = Number(confidenceSignals?.gradingConfidence);
     const extractionConfidence = Number(confidenceSignals?.extractionConfidence);
     const totalCitations = Number(evidenceDensitySummary?.totalCitations || 0);
@@ -146,6 +160,11 @@ export async function GET() {
         decisionStricterCount: Number.isFinite(decisionStricterCount) ? decisionStricterCount : 0,
         decisionLenientCount: Number.isFinite(decisionLenientCount) ? decisionLenientCount : 0,
         assessorOverrideCount: assessorOverrides.length,
+      },
+      overrideSummary: {
+        count: assessorOverrides.length,
+        reasonCodes: overrideReasonCodes,
+        criteriaCodes: overrideCriteriaCodes,
       },
     };
 

@@ -33,6 +33,11 @@ type SubmissionResearchRow = {
       decisionStricterCount?: number;
       decisionLenientCount?: number;
     };
+    overrideSummary?: {
+      count?: number;
+      reasonCodes?: string[];
+      criteriaCodes?: string[];
+    };
   } | null;
 };
 
@@ -208,6 +213,50 @@ export default function AdminQaPage() {
       .sort((a, b) => a.assignmentRef.localeCompare(b.assignmentRef));
   }, [filtered, compareUnit]);
 
+  const overrideInsights = useMemo(() => {
+    const reasonCounts = new Map<string, number>();
+    const criterionCounts = new Map<string, number>();
+    const briefCounts = new Map<string, number>();
+    let runsWithOverrides = 0;
+    let totalOverrides = 0;
+
+    for (const r of filtered) {
+      const summary = r.qaFlags?.overrideSummary;
+      const count = Math.max(0, Number(summary?.count || 0));
+      if (count <= 0) continue;
+      runsWithOverrides += 1;
+      totalOverrides += count;
+
+      const reasonCodes = Array.isArray(summary?.reasonCodes) ? summary.reasonCodes : [];
+      for (const code of reasonCodes) {
+        const key = String(code || "").trim().toUpperCase();
+        if (!key) continue;
+        reasonCounts.set(key, (reasonCounts.get(key) || 0) + 1);
+      }
+
+      const criteriaCodes = Array.isArray(summary?.criteriaCodes) ? summary.criteriaCodes : [];
+      for (const code of criteriaCodes) {
+        const key = String(code || "").trim().toUpperCase();
+        if (!key) continue;
+        criterionCounts.set(key, (criterionCounts.get(key) || 0) + 1);
+      }
+
+      const unitCode = String(r.assignment?.unitCode || "Unknown").trim();
+      const assignmentRef = String(r.assignment?.assignmentRef || "Unknown").trim();
+      const briefKey = `${unitCode} ${assignmentRef}`.trim();
+      briefCounts.set(briefKey, (briefCounts.get(briefKey) || 0) + count);
+    }
+
+    const byCountDesc = (a: [string, number], b: [string, number]) => b[1] - a[1] || a[0].localeCompare(b[0]);
+    return {
+      runsWithOverrides,
+      totalOverrides,
+      topReasons: Array.from(reasonCounts.entries()).sort(byCountDesc).slice(0, 8),
+      topCriteria: Array.from(criterionCounts.entries()).sort(byCountDesc).slice(0, 8),
+      topBriefs: Array.from(briefCounts.entries()).sort(byCountDesc).slice(0, 8),
+    };
+  }, [filtered]);
+
   function exportFiltered() {
     downloadCsv(
       "qa-filtered-submissions.csv",
@@ -288,6 +337,63 @@ export default function AdminQaPage() {
       </section>
 
       {error ? <section className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</section> : null}
+
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 px-4 py-3">
+          <div className="text-sm font-semibold text-zinc-900">Assessor Override Breakdown</div>
+          <div className="mt-1 text-xs text-zinc-600">
+            Runs with overrides: <span className="font-semibold text-zinc-900">{overrideInsights.runsWithOverrides}</span> ·
+            Total overridden criteria: <span className="font-semibold text-zinc-900"> {overrideInsights.totalOverrides}</span>
+          </div>
+        </div>
+        <div className="grid gap-3 p-3 lg:grid-cols-3">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Top Reason Codes</div>
+            <div className="mt-2 space-y-1">
+              {overrideInsights.topReasons.length ? (
+                overrideInsights.topReasons.map(([code, count]) => (
+                  <div key={`or-${code}`} className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-800">{code}</span>
+                    <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 font-semibold text-zinc-700">{count}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-zinc-500">No override reasons in current filter.</div>
+              )}
+            </div>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Top Criteria Overridden</div>
+            <div className="mt-2 space-y-1">
+              {overrideInsights.topCriteria.length ? (
+                overrideInsights.topCriteria.map(([code, count]) => (
+                  <div key={`oc-${code}`} className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-800">{code}</span>
+                    <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 font-semibold text-zinc-700">{count}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-zinc-500">No overridden criteria in current filter.</div>
+              )}
+            </div>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Top Unit/AB Hotspots</div>
+            <div className="mt-2 space-y-1">
+              {overrideInsights.topBriefs.length ? (
+                overrideInsights.topBriefs.map(([brief, count]) => (
+                  <div key={`ob-${brief}`} className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-800">{brief}</span>
+                    <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 font-semibold text-zinc-700">{count}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-zinc-500">No hotspot data in current filter.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900">Submission QA dataset</div>
