@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { buildCopySummary } from "@/lib/submissionReady";
 import { isReadyToUpload } from "@/lib/submissionReady";
@@ -397,13 +398,13 @@ export default function SubmissionsPage() {
               Batch intake, extraction tracking, student resolution, and grading readiness in one place.
             </p>
           </div>
-          <a
+          <Link
             href="/upload"
             className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-sky-700 px-3 text-[11px] font-semibold text-white hover:bg-sky-800"
             title="Upload assignment"
           >
             ⬆ Upload assignment
-          </a>
+          </Link>
         </div>
 
         <div className="flex flex-wrap gap-1 text-[11px]">

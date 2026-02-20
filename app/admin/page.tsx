@@ -20,6 +20,75 @@ function statusTone(status: string) {
   return "border-sky-200 bg-sky-50 text-sky-900";
 }
 
+function Icon({ name, className = "h-4 w-4" }: { name: string; className?: string }) {
+  const common = {
+    className,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  switch (name) {
+    case "overview":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+      );
+    case "qa":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+      );
+    case "audit":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 3" />
+        </svg>
+      );
+    case "submissions":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <path d="M12 3v12" />
+          <path d="M7 8l5-5 5 5" />
+          <path d="M4 21h16" />
+        </svg>
+      );
+    case "settings":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z" />
+        </svg>
+      );
+    case "bindings":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 1 1-7 7l-1-1" />
+          <path d="M14 11a5 5 0 0 1-7 0l-1-1a5 5 0 1 1 7-7l1 1" />
+        </svg>
+      );
+    case "warning":
+      return (
+        <svg {...common} viewBox="0 0 24 24">
+          <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+          <path d="M12 9v4" />
+          <path d="M12 17h.01" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 function MetricCard({
   label,
   value,
@@ -27,6 +96,7 @@ function MetricCard({
   legend,
   actionLabel,
   actionHref,
+  icon,
 }: {
   label: string;
   value: string | number;
@@ -34,11 +104,15 @@ function MetricCard({
   legend?: string;
   actionLabel?: string;
   actionHref?: string;
+  icon?: string;
 }) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          {icon ? <Icon name={icon} className="h-3.5 w-3.5" /> : null}
+          {label}
+        </div>
         {legend ? (
           <span
             className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 px-1.5 text-[11px] font-semibold text-zinc-700"
@@ -71,15 +145,22 @@ function ActionCard({
   desc,
   href,
   cta,
+  icon,
 }: {
   title: string;
   desc: string;
   href: string;
   cta: string;
+  icon: string;
 }) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
+      <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-700">
+          <Icon name={icon} className="h-3.5 w-3.5" />
+        </span>
+        {title}
+      </h3>
       <p className="mt-1 text-sm text-zinc-700">{desc}</p>
       <Link
         href={href}
@@ -197,6 +278,7 @@ export default async function AdminIndex() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
+              <Icon name="overview" className="h-3.5 w-3.5" />
               Operations Overview
             </div>
             <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Admin Control Tower</h1>
@@ -209,22 +291,25 @@ export default async function AdminIndex() {
           </span>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Link href="/admin/qa" className="inline-flex h-9 items-center rounded-lg bg-sky-700 px-3 text-xs font-semibold text-white hover:bg-sky-800">
+          <Link href="/admin/qa" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-sky-700 px-3 text-xs font-semibold text-white hover:bg-sky-800">
+            <Icon name="qa" className="h-3.5 w-3.5" />
             Open QA workspace
           </Link>
-          <Link href="/admin/audit" className="inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100">
+          <Link href="/admin/audit" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100">
+            <Icon name="audit" className="h-3.5 w-3.5" />
             Open audit log
           </Link>
-          <Link href="/submissions" className="inline-flex h-9 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50">
+          <Link href="/submissions" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50">
+            <Icon name="submissions" className="h-3.5 w-3.5" />
             Open submissions
           </Link>
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Total submissions" value={totalSubmissions} hint="All uploaded submissions in the system." />
-        <MetricCard label="Students" value={totalStudents} hint="Student records available for linking and QA." />
-        <MetricCard label="Graded submissions" value={gradedAssessments} hint="Assessments that returned a grade." />
+        <MetricCard label="Total submissions" value={totalSubmissions} hint="All uploaded submissions in the system." icon="submissions" />
+        <MetricCard label="Students" value={totalStudents} hint="Student records available for linking and QA." icon="overview" />
+        <MetricCard label="Graded submissions" value={gradedAssessments} hint="Assessments that returned a grade." icon="qa" />
         <MetricCard
           label="Automation ready"
           value={autoReadySubmissions}
@@ -232,6 +317,7 @@ export default async function AdminIndex() {
           legend="Review path: Submissions -> QA review only -> Preview QA lane -> Commit QA lane."
           actionLabel="Open QA review path"
           actionHref="#automation-review"
+          icon="qa"
         />
         <MetricCard
           label="Open blockers"
@@ -240,6 +326,7 @@ export default async function AdminIndex() {
           legend="Resolve in order: lock gaps (specs/briefs), linking/OCR issues, then failed runs from Audit."
           actionLabel="Locate blockers now"
           actionHref="#blocker-locator"
+          icon="warning"
         />
       </section>
 
@@ -273,10 +360,10 @@ export default async function AdminIndex() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
-        <ActionCard title="QA Research" desc="Analyze grading outcomes, confidence signals, and quality trends by learner, unit, and assignment." href="/admin/qa" cta="Go to QA" />
-        <ActionCard title="Audit Log" desc="Inspect trace events for extraction, scope changes, grading runs, and operational overrides." href="/admin/audit" cta="Go to Audit" />
-        <ActionCard title="Settings" desc="Adjust global model and policy defaults used by extraction and grading workflows." href="/admin/settings" cta="Open Settings" />
-        <ActionCard title="Bindings" desc="Validate assignment-to-brief bindings so grading resolves against the intended locked criteria set." href="/admin/bindings" cta="Open Bindings" />
+        <ActionCard title="QA Research" desc="Analyze grading outcomes, confidence signals, and quality trends by learner, unit, and assignment." href="/admin/qa" cta="Go to QA" icon="qa" />
+        <ActionCard title="Audit Log" desc="Inspect trace events for extraction, scope changes, grading runs, and operational overrides." href="/admin/audit" cta="Go to Audit" icon="audit" />
+        <ActionCard title="Settings" desc="Adjust global model and policy defaults used by extraction and grading workflows." href="/admin/settings" cta="Open Settings" icon="settings" />
+        <ActionCard title="Bindings" desc="Validate assignment-to-brief bindings so grading resolves against the intended locked criteria set." href="/admin/bindings" cta="Open Bindings" icon="bindings" />
       </section>
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600 shadow-sm">
         Advanced ops pages:{" "}
@@ -292,7 +379,10 @@ export default async function AdminIndex() {
 
       <section className="grid gap-3 lg:grid-cols-2">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-zinc-900">Needs attention now</h2>
+          <h2 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
+            <Icon name="warning" className="h-4 w-4 text-amber-700" />
+            Needs attention now
+          </h2>
           <div className="mt-3 grid gap-2">
             {attention.map((item) => (
               <Link key={item.label} href={item.href} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm hover:border-sky-200 hover:bg-sky-50">
