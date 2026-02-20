@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import type { LaneFilter, SortBy, SortDir, Timeframe } from "@/lib/submissions/useSubmissionsList";
 import { cx } from "@/lib/submissions/utils";
 import { IconButton } from "./IconButton";
@@ -238,16 +236,28 @@ export function SubmissionsToolbar({
           </details>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="text-xs text-zinc-500 hidden lg:block">
-            Lanes: auto-ready {autoReadyCount} · needs human {needsHumanCount} · blocked {blockedCount} · completed {completedCount}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="hidden items-center gap-1 lg:flex">
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] font-semibold text-zinc-600">
+              Auto {autoReadyCount}
+            </span>
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] font-semibold text-zinc-600">
+              Human {needsHumanCount}
+            </span>
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] font-semibold text-zinc-600">
+              Blocked {blockedCount}
+            </span>
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] font-semibold text-zinc-600">
+              Done {completedCount}
+            </span>
+            <span className={cx(
+              "rounded-full border px-2 py-1 text-[10px] font-semibold",
+              qaCommitReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"
+            )}>
+              QA {qaReviewCount}
+            </span>
           </div>
-          <div className="text-xs text-rose-700 hidden lg:block">
-            QA queue: {qaReviewCount}
-          </div>
-          <div className={cx("text-xs hidden lg:block", qaCommitReady ? "text-emerald-700" : "text-amber-700")}>
-            {qaCommitReady ? "QA commit: ready" : "QA commit: preview required"}
-          </div>
+
           <button
             type="button"
             onClick={onBatchGradeAutoReady}
@@ -262,88 +272,92 @@ export function SubmissionsToolbar({
           >
             {batchBusy ? "Queueing..." : `Grade auto-ready (${autoReadyCount})`}
           </button>
-          <button
-            type="button"
-            onClick={onBatchGradeVisible}
-            disabled={batchBusy || visibleCount === 0}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
-              batchBusy || visibleCount === 0
-                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                : "bg-sky-700 text-white hover:bg-sky-800"
-            )}
-            title="Grade all visible submissions"
-          >
-            {batchBusy ? "Queueing..." : `Grade visible (${visibleCount})`}
-          </button>
-          <button
-            type="button"
-            onClick={onBatchPreviewQaReview}
-            disabled={batchBusy || qaReviewCount === 0}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
-              batchBusy || qaReviewCount === 0
-                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                : "bg-rose-700 text-white hover:bg-rose-800"
-            )}
-            title="Run dry-run grading preview for QA queue submissions"
-          >
-            {batchBusy ? "Queueing..." : `Preview QA lane (${qaReviewCount})`}
-          </button>
-          <button
-            type="button"
-            onClick={onBatchGradeQaReview}
-            disabled={batchBusy || qaReviewCount === 0 || !qaCommitReady}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
-              batchBusy || qaReviewCount === 0 || !qaCommitReady
-                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                : "bg-rose-900 text-white hover:bg-rose-950"
-            )}
-            title={
-              qaCommitReady
-                ? "Commit grading for QA queue submissions"
-                : "Run Preview QA lane for the current QA queue before commit"
-            }
-          >
-            {batchBusy ? "Queueing..." : `Commit QA lane (${qaReviewCount})`}
-          </button>
-          <button
-            type="button"
-            onClick={onRetryFailed}
-            disabled={batchBusy || failedVisibleCount === 0}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
-              batchBusy || failedVisibleCount === 0
-                ? "cursor-not-allowed bg-zinc-200 text-zinc-600"
-                : "bg-amber-600 text-white hover:bg-amber-700"
-            )}
-            title="Retry failed submissions in current view"
-          >
-            {`Retry failed (${failedVisibleCount})`}
-          </button>
-          <button
-            type="button"
-            onClick={onRegradeByBriefMapping}
-            disabled={batchBusy}
-            className={cx(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm",
-              batchBusy ? "cursor-not-allowed bg-zinc-200 text-zinc-600" : "bg-violet-700 text-white hover:bg-violet-800"
-            )}
-            title="Regrade all submissions affected by a changed brief mapping"
-          >
-            Regrade impacted
-          </button>
+
+          <details className="group relative">
+            <summary className="inline-flex h-9 cursor-pointer list-none items-center rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100 [&::-webkit-details-marker]:hidden">
+              Batch actions
+            </summary>
+            <div className="absolute right-0 z-30 mt-2 w-[260px] rounded-xl border border-zinc-200 bg-white p-2 shadow-lg">
+              <div className="grid gap-1.5">
+                <button
+                  type="button"
+                  onClick={onBatchGradeVisible}
+                  disabled={batchBusy || visibleCount === 0}
+                  className={cx(
+                    "w-full rounded-lg px-3 py-2 text-left text-sm font-semibold",
+                    batchBusy || visibleCount === 0
+                      ? "cursor-not-allowed bg-zinc-100 text-zinc-500"
+                      : "bg-sky-50 text-sky-900 hover:bg-sky-100"
+                  )}
+                  title="Grade all visible submissions"
+                >
+                  Grade visible ({visibleCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={onBatchPreviewQaReview}
+                  disabled={batchBusy || qaReviewCount === 0}
+                  className={cx(
+                    "w-full rounded-lg px-3 py-2 text-left text-sm font-semibold",
+                    batchBusy || qaReviewCount === 0
+                      ? "cursor-not-allowed bg-zinc-100 text-zinc-500"
+                      : "bg-rose-50 text-rose-900 hover:bg-rose-100"
+                  )}
+                  title="Run dry-run grading preview for QA queue submissions"
+                >
+                  Preview QA lane ({qaReviewCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={onBatchGradeQaReview}
+                  disabled={batchBusy || qaReviewCount === 0 || !qaCommitReady}
+                  className={cx(
+                    "w-full rounded-lg px-3 py-2 text-left text-sm font-semibold",
+                    batchBusy || qaReviewCount === 0 || !qaCommitReady
+                      ? "cursor-not-allowed bg-zinc-100 text-zinc-500"
+                      : "bg-rose-100 text-rose-900 hover:bg-rose-200"
+                  )}
+                  title={
+                    qaCommitReady
+                      ? "Commit grading for QA queue submissions"
+                      : "Run Preview QA lane for the current QA queue before commit"
+                  }
+                >
+                  Commit QA lane ({qaReviewCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={onRetryFailed}
+                  disabled={batchBusy || failedVisibleCount === 0}
+                  className={cx(
+                    "w-full rounded-lg px-3 py-2 text-left text-sm font-semibold",
+                    batchBusy || failedVisibleCount === 0
+                      ? "cursor-not-allowed bg-zinc-100 text-zinc-500"
+                      : "bg-amber-50 text-amber-900 hover:bg-amber-100"
+                  )}
+                  title="Retry failed submissions in current view"
+                >
+                  Retry failed ({failedVisibleCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={onRegradeByBriefMapping}
+                  disabled={batchBusy}
+                  className={cx(
+                    "w-full rounded-lg px-3 py-2 text-left text-sm font-semibold",
+                    batchBusy ? "cursor-not-allowed bg-zinc-100 text-zinc-500" : "bg-violet-50 text-violet-900 hover:bg-violet-100"
+                  )}
+                  title="Regrade all submissions affected by a changed brief mapping"
+                >
+                  Regrade impacted
+                </button>
+              </div>
+            </div>
+          </details>
+
           <IconButton title="Refresh" onClick={refresh} disabled={busy}>
             ↻ <span>Refresh</span>
           </IconButton>
-          <Link
-            href="/submissions/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-800"
-            title="Upload"
-          >
-            ⬆ <span>Upload</span>
-          </Link>
         </div>
       </div>
     </section>

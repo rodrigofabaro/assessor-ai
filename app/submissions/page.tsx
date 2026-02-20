@@ -400,8 +400,9 @@ export default function SubmissionsPage() {
           <a
             href="/upload"
             className="inline-flex h-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-700 px-3 text-[11px] font-semibold text-white hover:bg-sky-800"
+            title="Upload evidence"
           >
-            Upload
+            Upload evidence
           </a>
         </div>
 
