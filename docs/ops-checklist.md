@@ -27,7 +27,10 @@ Run these in a second terminal while `pnpm dev` is running:
 
 ```powershell
 $Base = "http://localhost:3000"
-$SampleFile = (Resolve-Path ".\tmp-brief-target.pdf").Path
+
+# Build a local sample PDF (deterministic, no external files needed)
+node -e "const { PDFDocument } = require('pdf-lib'); (async () => { const d = await PDFDocument.create(); const p = d.addPage([595,842]); p.drawText('Ops checklist sample submission'); const b = await d.save(); require('fs').writeFileSync('tmp-ops-sample.pdf', b); })();"
+$SampleFile = (Resolve-Path ".\tmp-ops-sample.pdf").Path
 
 # 1) Upload sample submission
 $upload = Invoke-RestMethod -Method Post -Uri "$Base/api/submissions/upload" -Form @{

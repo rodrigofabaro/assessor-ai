@@ -76,6 +76,10 @@ reference_uploads/
 .tmp-*.json
 .tmp-iv-docx/
 .tmp-mock-submissions/
+.tmp-chrome-profile/
+.tmp-edge-profile/
+\[0\]
+tmp-ops-sample.pdf
 .codex-dev.log
 .codex-dev.err
 submission_marked/

@@ -17,6 +17,14 @@ This release is considered complete when the workflows listed under **In Scope**
 7. Feedback editing, marked PDF generation, and marked-file export flow.
 8. QA analytics dataset and audit timeline/event logging.
 
+## Acceptance Checklist (Observable)
+
+1. Upload -> Extract -> Grade -> Marked PDF export succeeds for a sample submission.
+2. Each assessment stores a `referenceContextSnapshot` with locked spec/brief context.
+3. Assessor criterion override recomputes effective grade and regenerates selected run outputs.
+4. QA queue supports preview then commit path with deterministic request linkage.
+5. Submissions and QA pages load via server-side pagination/filtering without full-dataset fetch.
+
 ## Explicitly Out Of Scope
 
 1. Passive learning from submissions or automatic model self-improvement.
@@ -29,3 +37,5 @@ This release is considered complete when the workflows listed under **In Scope**
 
 1. Any behavior change to grading decisions, caps, or confidence policy requires a new version bump.
 2. Any workflow added outside the in-scope list requires updating this file before merge.
+3. Release requires a Git tag `v1.0.0` on the merge commit.
+4. No silent grading changes: prompts, post-decision guards, grade caps, and contradiction-guard defaults must be documented in `RELEASE_NOTES.md`.
