@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readOpenAiModel, writeOpenAiModel } from "@/lib/openai/modelConfig";
-import { getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
+import { getSettingsReadContext, getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
@@ -14,6 +14,10 @@ const ALLOWED_MODELS = [
 export const runtime = "nodejs";
 
 export async function GET() {
+  const readCtx = await getSettingsReadContext();
+  if (!readCtx.canRead) {
+    return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
+  }
   const model = readOpenAiModel();
   return NextResponse.json({
     model: model.model,

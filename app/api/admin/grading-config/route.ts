@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readGradingConfig, writeGradingConfig } from "@/lib/grading/config";
-import { getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
+import { getSettingsReadContext, getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
@@ -9,6 +9,10 @@ export const runtime = "nodejs";
 const REQUIRED_TEMPLATE_TOKENS = ["{overallGrade}", "{feedbackBullets}"] as const;
 
 export async function GET() {
+  const readCtx = await getSettingsReadContext();
+  if (!readCtx.canRead) {
+    return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
+  }
   const { config, source } = readGradingConfig();
   return NextResponse.json({ ...config, source });
 }

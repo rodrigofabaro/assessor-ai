@@ -134,6 +134,43 @@ type SettingsAuditEvent = {
   changes?: Record<string, unknown>;
 };
 
+type SettingsDefaultsPayload = {
+  defaults: {
+    ai: {
+      model: string;
+      autoCleanupApproved: boolean;
+      allowedModels: string[];
+    };
+    grading: GradingConfigPayload;
+    app: {
+      automationPolicy: AutomationPolicyPayload;
+    };
+  };
+};
+
+type SmokeAiResult = {
+  ok: boolean;
+  status: number;
+  keyType: string | null;
+  message: string;
+  modelAvailable: boolean;
+};
+
+type SmokeGradingResult = {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+  samplePreview: string;
+};
+
+type SmokeResponse = {
+  ok: boolean;
+  target: "ai" | "grading" | "all";
+  checkedAt: string;
+  ai?: SmokeAiResult;
+  grading?: SmokeGradingResult;
+};
+
 type LocalAiSnapshot = {
   enabled: boolean;
   baseUrl: string;
@@ -192,6 +229,40 @@ function isEndpointError(value: AnyEndpoint): value is EndpointError {
   return value.available === false;
 }
 
+function prettifyChangeKey(raw: string) {
+  return raw
+    .replace(/From$/i, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function summarizeAuditChanges(changes?: Record<string, unknown>) {
+  if (!changes || typeof changes !== "object") return [];
+  const keys = Object.keys(changes);
+  const seen = new Set<string>();
+  const rows: Array<{ label: string; from?: unknown; to?: unknown; value?: unknown }> = [];
+
+  for (const key of keys) {
+    if (seen.has(key)) continue;
+    if (key.endsWith("From")) {
+      const base = key.slice(0, -4);
+      const toKey = `${base}To`;
+      const label = prettifyChangeKey(base);
+      rows.push({ label, from: changes[key], to: changes[toKey] });
+      seen.add(key);
+      seen.add(toKey);
+      continue;
+    }
+    if (key.endsWith("To") && keys.includes(`${key.slice(0, -2)}From`)) {
+      continue;
+    }
+    rows.push({ label: prettifyChangeKey(key), value: changes[key] });
+    seen.add(key);
+  }
+  return rows;
+}
+
 export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) {
   const pathname = usePathname();
   const [data, setData] = useState<UsagePayload | null>(null);
@@ -214,6 +285,15 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const [activeSectionHash, setActiveSectionHash] = useState("#ai-usage");
   const [settingsAudit, setSettingsAudit] = useState<SettingsAuditEvent[]>([]);
   const [localAi, setLocalAi] = useState<LocalAiSnapshot | null>(null);
+  const [defaults, setDefaults] = useState<SettingsDefaultsPayload["defaults"] | null>(null);
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [batchMsg, setBatchMsg] = useState("");
+  const [smokeAiBusy, setSmokeAiBusy] = useState(false);
+  const [smokeGradingBusy, setSmokeGradingBusy] = useState(false);
+  const [smokeAiResult, setSmokeAiResult] = useState<SmokeAiResult | null>(null);
+  const [smokeGradingResult, setSmokeGradingResult] = useState<SmokeGradingResult | null>(null);
+  const [smokeCheckedAt, setSmokeCheckedAt] = useState("");
+  const [copiedAuditEventId, setCopiedAuditEventId] = useState<string | null>(null);
 
   const [baseModel, setBaseModel] = useState("");
   const [baseAutoCleanupApproved, setBaseAutoCleanupApproved] = useState(false);
@@ -263,10 +343,11 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         setBaseGradingCfgJson(JSON.stringify(gradingJson));
       }
 
-      const [appCfgRes, appUsersRes, settingsAuditRes] = await Promise.all([
+      const [appCfgRes, appUsersRes, settingsAuditRes, defaultsRes] = await Promise.all([
         fetch("/api/admin/app-config", { method: "GET", cache: "no-store" }),
         fetch("/api/admin/users", { method: "GET", cache: "no-store" }),
         fetch("/api/admin/settings-audit?take=30", { method: "GET", cache: "no-store" }),
+        fetch("/api/admin/settings/defaults", { method: "GET", cache: "no-store" }),
       ]);
       if (appCfgRes.ok) {
         const appCfgJson = (await appCfgRes.json()) as AppConfigPayload;
@@ -282,6 +363,12 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         const settingsAuditJson = (await settingsAuditRes.json()) as { events?: SettingsAuditEvent[] };
         setSettingsAudit(Array.isArray(settingsAuditJson.events) ? settingsAuditJson.events : []);
       }
+      if (defaultsRes.ok) {
+        const defaultsJson = (await defaultsRes.json()) as SettingsDefaultsPayload;
+        setDefaults(defaultsJson?.defaults || null);
+      } else {
+        setDefaults(null);
+      }
 
       const devRes = await fetch("/api/dev/build-info", { method: "GET", cache: "no-store" });
       if (devRes.ok) {
@@ -294,6 +381,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
       setData(null);
       setLocalAi(null);
+      setDefaults(null);
     } finally {
       setLoading(false);
     }
@@ -352,6 +440,49 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         : pathname?.startsWith("/admin/settings/app")
           ? "#app-settings"
           : activeSectionHash;
+  const baseGradingCfg = useMemo(() => {
+    if (!baseGradingCfgJson) return null;
+    try {
+      return JSON.parse(baseGradingCfgJson) as GradingConfigPayload;
+    } catch {
+      return null;
+    }
+  }, [baseGradingCfgJson]);
+  const baseAutomationPolicy = useMemo(() => {
+    if (!baseAutomationPolicyJson) return null;
+    try {
+      return JSON.parse(baseAutomationPolicyJson) as AutomationPolicyPayload;
+    } catch {
+      return null;
+    }
+  }, [baseAutomationPolicyJson]);
+  const automationEnabled = !!appCfg?.automationPolicy?.enabled;
+  const automationControlDisabled = !canWriteSensitive || !automationEnabled;
+  const busyAny = savingModel || gradingSaving || appSaving || faviconBusy || batchSaving || smokeAiBusy || smokeGradingBusy;
+
+  const confirmLeaveIfDirty = useCallback(() => {
+    if (!anyDirty) return true;
+    if (typeof window === "undefined") return true;
+    return window.confirm("You have unsaved settings changes. Leave this page and discard them?");
+  }, [anyDirty]);
+
+  const onGuardedLinkClick = useCallback(
+    (e: any) => {
+      if (!confirmLeaveIfDirty()) e.preventDefault();
+    },
+    [confirmLeaveIfDirty]
+  );
+
+  useEffect(() => {
+    if (!anyDirty || typeof window === "undefined") return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [anyDirty]);
+
   const saveModel = useCallback(async () => {
     if (!model) return;
     setSavingModel(true);
@@ -441,15 +572,185 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
     }
   }, [faviconFile, load]);
 
+  const revertAiDraft = useCallback(() => {
+    setModel(baseModel || model);
+    setAutoCleanupApproved(baseAutoCleanupApproved);
+    setModelMessage("AI draft reverted to last loaded values.");
+  }, [baseAutoCleanupApproved, baseModel, model]);
+
+  const resetAiToDefaults = useCallback(() => {
+    if (!defaults?.ai) return;
+    setModel(defaults.ai.model);
+    setAutoCleanupApproved(!!defaults.ai.autoCleanupApproved);
+    setModelMessage("AI draft reset to defaults.");
+  }, [defaults]);
+
+  const revertGradingDraft = useCallback(() => {
+    if (!baseGradingCfg) return;
+    setGradingCfg(baseGradingCfg);
+    setGradingMsg("Grading draft reverted to last loaded values.");
+  }, [baseGradingCfg]);
+
+  const resetGradingToDefaults = useCallback(() => {
+    if (!defaults?.grading) return;
+    setGradingCfg(defaults.grading);
+    setGradingMsg("Grading draft reset to defaults.");
+  }, [defaults]);
+
+  const revertAppDraft = useCallback(() => {
+    setAppCfg((prev) =>
+      prev
+        ? {
+            ...prev,
+            activeAuditUserId: baseActiveAuditUserId || null,
+            automationPolicy: baseAutomationPolicy || prev.automationPolicy,
+          }
+        : prev
+    );
+    setFaviconFile(null);
+    setAppMsg("App draft reverted to last loaded values.");
+  }, [baseActiveAuditUserId, baseAutomationPolicy]);
+
+  const resetAppToDefaults = useCallback(() => {
+    if (!defaults?.app) return;
+    setAppCfg((prev) =>
+      prev
+        ? {
+            ...prev,
+            activeAuditUserId: null,
+            automationPolicy: defaults.app.automationPolicy,
+          }
+        : prev
+    );
+    setFaviconFile(null);
+    setAppMsg("App draft reset to defaults.");
+  }, [defaults]);
+
+  const runAiSmoke = useCallback(async () => {
+    setSmokeAiBusy(true);
+    setModelMessage("");
+    try {
+      const res = await fetch("/api/admin/settings/smoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "ai", ai: { model } }),
+      });
+      const json = (await res.json()) as SmokeResponse & { error?: string };
+      if (!res.ok) throw new Error(json.error || "AI smoke test failed.");
+      setSmokeAiResult(json.ai || null);
+      setSmokeCheckedAt(json.checkedAt || new Date().toISOString());
+      setModelMessage(json.ai?.ok ? "AI smoke test passed." : `AI smoke test failed: ${json.ai?.message || "Unknown issue"}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "AI smoke test failed.";
+      setSmokeAiResult({
+        ok: false,
+        status: 0,
+        keyType: null,
+        message,
+        modelAvailable: false,
+      });
+      setModelMessage(message);
+    } finally {
+      setSmokeAiBusy(false);
+    }
+  }, [model]);
+
+  const runGradingSmoke = useCallback(async () => {
+    setSmokeGradingBusy(true);
+    setGradingMsg("");
+    try {
+      const res = await fetch("/api/admin/settings/smoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "grading", grading: gradingCfg || undefined }),
+      });
+      const json = (await res.json()) as SmokeResponse & { error?: string };
+      if (!res.ok) throw new Error(json.error || "Grading smoke test failed.");
+      setSmokeGradingResult(json.grading || null);
+      setSmokeCheckedAt(json.checkedAt || new Date().toISOString());
+      setGradingMsg(json.grading?.ok ? "Grading smoke test passed." : "Grading smoke test found configuration issues.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Grading smoke test failed.";
+      setSmokeGradingResult({
+        ok: false,
+        errors: [message],
+        warnings: [],
+        samplePreview: "",
+      });
+      setGradingMsg(message);
+    } finally {
+      setSmokeGradingBusy(false);
+    }
+  }, [gradingCfg]);
+
+  const runAllSmoke = useCallback(async () => {
+    await runAiSmoke();
+    await runGradingSmoke();
+  }, [runAiSmoke, runGradingSmoke]);
+
+  const copyAuditEvent = useCallback(async (evt: SettingsAuditEvent) => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(evt, null, 2));
+      setCopiedAuditEventId(evt.id);
+      window.setTimeout(() => setCopiedAuditEventId(null), 1200);
+    } catch {
+      // no-op
+    }
+  }, []);
+
   const saveAll = useCallback(async () => {
     if (!canWriteSensitive) return;
-    if (dirtyAi) await saveModel();
-    if (dirtyGrading) await saveGradingConfig();
-    if (dirtyApp) {
-      await saveAppConfig();
-      if (faviconFile) await uploadFavicon();
+    if (!anyDirty) return;
+    setBatchSaving(true);
+    setBatchMsg("");
+    try {
+      const payload: Record<string, unknown> = {};
+      if (dirtyAi) payload.ai = { model, autoCleanupApproved };
+      if (dirtyGrading && gradingCfg) payload.grading = gradingCfg;
+      if (dirtyApp && appCfg) {
+        payload.app = {
+          activeAuditUserId: appCfg?.activeAuditUserId || null,
+          automationPolicy: appCfg?.automationPolicy || null,
+        };
+      }
+
+      const res = await fetch("/api/admin/settings/batch", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; rollback?: { ok?: boolean } };
+      if (!res.ok || !json?.ok) {
+        const rollbackMsg = json?.rollback && json.rollback.ok === false ? " Rollback required manual follow-up." : "";
+        throw new Error((json?.error || "Batch save failed.") + rollbackMsg);
+      }
+
+      if (faviconFile) {
+        await uploadFavicon();
+      }
+
+      setBatchMsg("All changed settings were saved atomically.");
+      await load();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Batch save failed.";
+      setBatchMsg(message);
+    } finally {
+      setBatchSaving(false);
     }
-  }, [canWriteSensitive, dirtyAi, dirtyApp, dirtyGrading, faviconFile, saveAppConfig, saveGradingConfig, saveModel, uploadFavicon]);
+  }, [
+    anyDirty,
+    appCfg,
+    autoCleanupApproved,
+    canWriteSensitive,
+    dirtyAi,
+    dirtyApp,
+    dirtyGrading,
+    faviconFile,
+    gradingCfg,
+    load,
+    model,
+    uploadFavicon,
+  ]);
 
   return (
     <div className="grid min-w-0 gap-4">
@@ -503,6 +804,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         <nav aria-label="Settings sections" className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/settings/ai"
+            onClick={onGuardedLinkClick}
             aria-current={currentSectionFromPath === "#ai-usage" ? "location" : undefined}
             className={
               "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
@@ -515,6 +817,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </Link>
           <Link
             href="/admin/settings/app"
+            onClick={onGuardedLinkClick}
             aria-current={currentSectionFromPath === "#app-settings" ? "location" : undefined}
             className={
               "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
@@ -527,6 +830,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </Link>
           <Link
             href="/admin/settings/grading"
+            onClick={onGuardedLinkClick}
             aria-current={currentSectionFromPath === "#grading-defaults" ? "location" : undefined}
             className={
               "inline-flex h-9 items-center justify-center rounded-lg border px-3 text-xs font-semibold " +
@@ -539,6 +843,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </Link>
           <Link
             href="/admin/users"
+            onClick={onGuardedLinkClick}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-700 px-3 text-xs font-semibold text-white hover:bg-slate-800"
           >
             Users
@@ -556,10 +861,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             {isAll ? (
               <button
                 onClick={saveAll}
-                disabled={!canWriteSensitive || !anyDirty || savingModel || gradingSaving || appSaving || faviconBusy}
+                disabled={!canWriteSensitive || !anyDirty || busyAny}
                 className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Save all
+                {batchSaving ? "Saving..." : "Save all"}
               </button>
             ) : null}
           </div>
@@ -569,7 +874,30 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             Read-only mode. Active audit role must be ADMIN/OWNER/SUPERADMIN to change settings.
           </p>
         ) : null}
+        {batchMsg ? (
+          <p className="mt-2 text-xs text-zinc-700">{batchMsg}</p>
+        ) : null}
       </section>
+
+      {isAll ? (
+        <section className="grid gap-3 lg:grid-cols-3">
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">AI section</div>
+            <div className="mt-1 text-sm font-semibold text-zinc-900">{dirtyAi ? "Unsaved changes" : "In sync"}</div>
+            <p className="mt-1 text-xs text-zinc-600">Model, cleanup approval, and endpoint health checks.</p>
+          </article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Grading section</div>
+            <div className="mt-1 text-sm font-semibold text-zinc-900">{dirtyGrading ? "Unsaved changes" : "In sync"}</div>
+            <p className="mt-1 text-xs text-zinc-600">Tone, strictness, feedback template, and page-note defaults.</p>
+          </article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">App section</div>
+            <div className="mt-1 text-sm font-semibold text-zinc-900">{dirtyApp ? "Unsaved changes" : "In sync"}</div>
+            <p className="mt-1 text-xs text-zinc-600">Active audit actor, automation policy, and branding identity.</p>
+          </article>
+        </section>
+      ) : null}
 
       {showAi ? (
       <>
@@ -637,8 +965,35 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">Agent model</h2>
-        <p className="mt-1 text-sm text-zinc-600">Select which OpenAI model the agent should use.</p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Agent model</h2>
+            <p className="mt-1 text-sm text-zinc-600">Select which OpenAI model the agent should use.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={runAiSmoke}
+              disabled={smokeAiBusy}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+            >
+              {smokeAiBusy ? "Testing..." : "Test config"}
+            </button>
+            <button
+              onClick={revertAiDraft}
+              disabled={!canWriteSensitive || !dirtyAi}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              Revert
+            </button>
+            <button
+              onClick={resetAiToDefaults}
+              disabled={!canWriteSensitive || !defaults?.ai}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+            >
+              Reset defaults
+            </button>
+          </div>
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <select
             value={model}
@@ -673,6 +1028,23 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         <p className="mt-2 text-xs text-zinc-500">
           Current: {data?.model || model || "unknown"} ({data?.modelSource || "env"})
         </p>
+        {smokeAiResult ? (
+          <div
+            className={
+              "mt-2 rounded-lg border px-3 py-2 text-xs " +
+              (smokeAiResult.ok
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-rose-200 bg-rose-50 text-rose-900")
+            }
+          >
+            <div className="font-semibold">{smokeAiResult.ok ? "AI smoke check passed" : "AI smoke check failed"}</div>
+            <div className="mt-1">{smokeAiResult.message}</div>
+            <div className="mt-1 text-[11px] opacity-80">
+              status {smokeAiResult.status || 0} · key {smokeAiResult.keyType || "none"} · checked{" "}
+              {smokeCheckedAt ? new Date(smokeCheckedAt).toLocaleString() : "now"}
+            </div>
+          </div>
+        ) : null}
         {modelMessage ? <p className="mt-1 text-xs text-zinc-600">{modelMessage}</p> : null}
       </section>
 
@@ -811,8 +1183,35 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       {showGrading ? (
       <>
       <section id="grading-defaults" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
-        <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
-        <p className="mt-1 text-sm text-zinc-600">Controls default tone/strictness/rubric behavior when tutors run grading.</p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Grading defaults</h2>
+            <p className="mt-1 text-sm text-zinc-600">Controls default tone/strictness/rubric behavior when tutors run grading.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={runGradingSmoke}
+              disabled={smokeGradingBusy}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+            >
+              {smokeGradingBusy ? "Testing..." : "Test config"}
+            </button>
+            <button
+              onClick={revertGradingDraft}
+              disabled={!canWriteSensitive || !dirtyGrading || !baseGradingCfg}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              Revert
+            </button>
+            <button
+              onClick={resetGradingToDefaults}
+              disabled={!canWriteSensitive || !defaults?.grading}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+            >
+              Reset defaults
+            </button>
+          </div>
+        </div>
         {gradingCfg ? (
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <label className="text-sm text-zinc-700">
@@ -989,13 +1388,47 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               </div>
             </div>
             <div className="md:col-span-2">
-              <button
-                onClick={saveGradingConfig}
-                disabled={!canWriteSensitive || gradingSaving}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
-              >
-                {gradingSaving ? "Saving..." : "Save grading defaults"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={saveGradingConfig}
+                  disabled={!canWriteSensitive || gradingSaving}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+                >
+                  {gradingSaving ? "Saving..." : "Save grading defaults"}
+                </button>
+              </div>
+              {smokeGradingResult ? (
+                <div
+                  className={
+                    "mt-2 rounded-lg border px-3 py-2 text-xs " +
+                    (smokeGradingResult.ok
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-rose-200 bg-rose-50 text-rose-900")
+                  }
+                >
+                  <div className="font-semibold">
+                    {smokeGradingResult.ok ? "Grading smoke check passed" : "Grading smoke check found issues"}
+                  </div>
+                  {smokeGradingResult.errors.length ? (
+                    <div className="mt-1">
+                      Errors: {smokeGradingResult.errors.join(" | ")}
+                    </div>
+                  ) : null}
+                  {smokeGradingResult.warnings.length ? (
+                    <div className="mt-1">
+                      Warnings: {smokeGradingResult.warnings.join(" | ")}
+                    </div>
+                  ) : null}
+                  {smokeGradingResult.samplePreview ? (
+                    <div className="mt-1 rounded border border-zinc-200 bg-white p-2 text-[11px] text-zinc-700">
+                      Preview: {smokeGradingResult.samplePreview}
+                    </div>
+                  ) : null}
+                  <div className="mt-1 text-[11px] opacity-80">
+                    checked {smokeCheckedAt ? new Date(smokeCheckedAt).toLocaleString() : "now"}
+                  </div>
+                </div>
+              ) : null}
               {gradingMsg ? <p className="mt-2 text-xs text-zinc-600">{gradingMsg}</p> : null}
             </div>
           </div>
@@ -1021,10 +1454,30 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       {showApp ? (
       <>
       <section id="app-settings" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
-        <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Choose who appears as actor in upload/link/grading audit records when no explicit actor is provided.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              Choose who appears as actor in upload/link/grading audit records when no explicit actor is provided.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={revertAppDraft}
+              disabled={!canWriteSensitive || !dirtyApp}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              Revert
+            </button>
+            <button
+              onClick={resetAppToDefaults}
+              disabled={!canWriteSensitive || !defaults?.app}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+            >
+              Reset defaults
+            </button>
+          </div>
+        </div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
           <select
@@ -1054,10 +1507,11 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               disabled={!canWriteSensitive || appSaving || !appCfg}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
             >
-              {appSaving ? "Saving..." : "Save actor setting"}
+              {appSaving ? "Saving..." : "Save app settings"}
             </button>
             <Link
               href="/admin/users"
+              onClick={onGuardedLinkClick}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-700 px-4 text-sm font-semibold text-white hover:bg-slate-800"
             >
               Manage users
@@ -1114,7 +1568,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                       : v
                   )
                 }
-                disabled={!canWriteSensitive}
+                disabled={automationControlDisabled}
                 className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
               >
                 <option value="hybrid">Hybrid (recommended)</option>
@@ -1141,7 +1595,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                       : v
                   )
                 }
-                disabled={!canWriteSensitive}
+                disabled={automationControlDisabled}
                 className="h-4 w-4 rounded border-zinc-300"
               />
               Allow batch grading automations
@@ -1165,12 +1619,17 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                       : v
                   )
                 }
-                disabled={!canWriteSensitive}
+                disabled={automationControlDisabled}
                 className="h-4 w-4 rounded border-zinc-300"
               />
               Require reason on batch runs
             </label>
           </div>
+          {!automationEnabled ? (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Automation pipeline is disabled. Provider/batch/reason controls are paused until it is re-enabled.
+            </div>
+          ) : null}
           <p className="mt-2 text-xs text-zinc-500">
             Source: {appCfg?.automationPolicySource || "default"}.
           </p>
@@ -1216,20 +1675,93 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       </>
       ) : null}
 
+      {anyDirty ? (
+        <section className="sticky bottom-2 z-20 rounded-2xl border border-amber-300 bg-amber-50/95 p-3 shadow-sm backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm text-amber-900">
+              <span className="font-semibold">Unsaved changes:</span>{" "}
+              {[dirtyAi ? "AI" : null, dirtyGrading ? "Grading" : null, dirtyApp ? "App" : null].filter(Boolean).join(", ")}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={runAllSmoke}
+                disabled={busyAny}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+              >
+                Test all
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  revertAiDraft();
+                  revertGradingDraft();
+                  revertAppDraft();
+                }}
+                disabled={busyAny}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+              >
+                Revert all
+              </button>
+              <button
+                type="button"
+                onClick={saveAll}
+                disabled={!canWriteSensitive || busyAny}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 text-xs font-semibold text-amber-950 hover:bg-amber-200 disabled:opacity-60"
+              >
+                {batchSaving ? "Saving..." : "Save all atomically"}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Settings audit trail</h2>
         <p className="mt-1 text-sm text-zinc-600">Recent changes to AI model, grading, app identity, and branding settings.</p>
         {settingsAudit.length ? (
           <div className="mt-3 space-y-2">
             {settingsAudit.map((evt) => (
-              <div key={evt.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
-                <div className="font-semibold text-zinc-900">
-                  {new Date(evt.ts).toLocaleString()} · {evt.action} · {evt.target}
+              <div key={evt.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-semibold text-zinc-900">
+                    {new Date(evt.ts).toLocaleString()} · {evt.action} · {evt.target}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void copyAuditEvent(evt)}
+                    className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    {copiedAuditEventId === evt.id ? "Copied" : "Copy"}
+                  </button>
                 </div>
-                <div>
+                <div className="mt-1">
                   Actor: {evt.actor} ({evt.role})
                 </div>
-                {evt.changes ? <div className="mt-1 text-zinc-600">{JSON.stringify(evt.changes)}</div> : null}
+                {evt.changes ? (
+                  <div className="mt-2 grid gap-1">
+                    {summarizeAuditChanges(evt.changes).map((row, idx) => (
+                      <div key={`${evt.id}-change-${idx}`} className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-[11px] text-zinc-700">
+                        <span className="font-semibold text-zinc-800">{row.label}:</span>{" "}
+                        {"from" in row ? (
+                          <>
+                            <span className="rounded bg-zinc-100 px-1">{String(row.from ?? "null")}</span>{" "}
+                            {"->"}{" "}
+                            <span className="rounded bg-zinc-100 px-1">{String(row.to ?? "null")}</span>
+                          </>
+                        ) : (
+                          <span className="rounded bg-zinc-100 px-1">{String(row.value ?? "null")}</span>
+                        )}
+                      </div>
+                    ))}
+                    <details className="rounded-md border border-zinc-200 bg-white p-2">
+                      <summary className="cursor-pointer text-[11px] font-semibold text-zinc-700">Raw payload</summary>
+                      <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-zinc-600">
+                        {JSON.stringify(evt.changes, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

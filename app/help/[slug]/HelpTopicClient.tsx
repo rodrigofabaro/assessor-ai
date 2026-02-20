@@ -63,6 +63,29 @@ export default function HelpTopicClient({ tutorial }: { tutorial: HelpTutorial }
     () => tutorial.issues.filter((issue) => sectionMatchesQuery(q, [issue.issue, issue.cause, issue.fix])),
     [q, tutorial.issues]
   );
+  const visibleSuccessCriteria = useMemo(
+    () =>
+      (tutorial.successCriteria || [])
+        .map((item, idxItem) => ({ item, idxItem }))
+        .filter((entry) => sectionMatchesQuery(q, [entry.item])),
+    [q, tutorial.successCriteria]
+  );
+  const visibleDecisionGuide = useMemo(
+    () =>
+      (tutorial.decisionGuide || [])
+        .map((rule, idxRule) => ({ rule, idxRule }))
+        .filter((entry) => sectionMatchesQuery(q, [entry.rule.if, entry.rule.then, entry.rule.because])),
+    [q, tutorial.decisionGuide]
+  );
+  const visibleCommonMistakes = useMemo(
+    () =>
+      (tutorial.commonMistakes || [])
+        .map((mistake, idxMistake) => ({ mistake, idxMistake }))
+        .filter((entry) =>
+          sectionMatchesQuery(q, [entry.mistake.mistake, entry.mistake.risk, entry.mistake.correct])
+        ),
+    [q, tutorial.commonMistakes]
+  );
   const visibleControls = useMemo(
     () => {
       const base = (tutorial.uiControls || []).filter((control) =>
@@ -149,6 +172,9 @@ export default function HelpTopicClient({ tutorial }: { tutorial: HelpTutorial }
   useEffect(() => {
     const sectionIds = [
       "tutorial-purpose",
+      "tutorial-success",
+      "tutorial-decisions",
+      "tutorial-mistakes",
       "tutorial-preflight",
       "tutorial-steps",
       "tutorial-controls",
@@ -281,6 +307,88 @@ export default function HelpTopicClient({ tutorial }: { tutorial: HelpTutorial }
                   </div>
                 ))}
               </div>
+            </div>
+          </section>
+
+          <section id="tutorial-success" className="rounded-xl border border-zinc-200 bg-white p-3">
+            <h2 className="text-sm font-semibold text-zinc-900">Success Criteria</h2>
+            <p className="mt-1 text-xs text-zinc-600">Use this checklist to confirm the page is being used correctly.</p>
+            <div className="mt-3 grid gap-2">
+              {visibleSuccessCriteria.map((entry) => (
+                <div
+                  key={`success-${entry.idxItem}`}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+                >
+                  {highlight(entry.item, query)}
+                </div>
+              ))}
+              {visibleSuccessCriteria.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+                  No success criteria match the current search.
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section id="tutorial-decisions" className="rounded-xl border border-zinc-200 bg-white p-3">
+            <h2 className="text-sm font-semibold text-zinc-900">Decision Guide</h2>
+            <p className="mt-1 text-xs text-zinc-600">If/then guidance for common operational decisions on this page.</p>
+            <div className="mt-3 space-y-2">
+              {visibleDecisionGuide.map((entry) => (
+                <details
+                  key={`decision-${entry.idxRule}`}
+                  open={entry.idxRule === 0}
+                  className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50"
+                >
+                  <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-zinc-900 [&::-webkit-details-marker]:hidden">
+                    If: {highlight(entry.rule.if, query)}
+                  </summary>
+                  <div className="space-y-2 border-t border-zinc-200 bg-white px-3 py-2">
+                    <div className="rounded-md border border-sky-200 bg-sky-50 px-2.5 py-2 text-sm text-sky-900">
+                      <span className="font-semibold">Then:</span> {highlight(entry.rule.then, query)}
+                    </div>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-sm text-zinc-700">
+                      <span className="font-semibold">Because:</span> {highlight(entry.rule.because, query)}
+                    </div>
+                  </div>
+                </details>
+              ))}
+              {visibleDecisionGuide.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+                  No decision rules match the current search.
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section id="tutorial-mistakes" className="rounded-xl border border-zinc-200 bg-white p-3">
+            <h2 className="text-sm font-semibold text-zinc-900">Common Mistakes to Avoid</h2>
+            <p className="mt-1 text-xs text-zinc-600">Frequent failure patterns and the safe correction path.</p>
+            <div className="mt-3 space-y-2">
+              {visibleCommonMistakes.map((entry, idxMistake) => (
+                <details
+                  key={`mistake-${entry.idxMistake}`}
+                  open={idxMistake === 0}
+                  className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50"
+                >
+                  <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-zinc-900 [&::-webkit-details-marker]:hidden">
+                    {highlight(entry.mistake.mistake, query)}
+                  </summary>
+                  <div className="space-y-2 border-t border-zinc-200 bg-white px-3 py-2">
+                    <div className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
+                      <span className="font-semibold">Risk:</span> {highlight(entry.mistake.risk, query)}
+                    </div>
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-sm text-emerald-900">
+                      <span className="font-semibold">Correct approach:</span> {highlight(entry.mistake.correct, query)}
+                    </div>
+                  </div>
+                </details>
+              ))}
+              {visibleCommonMistakes.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+                  No common-mistake entries match the current search.
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -572,6 +680,9 @@ export default function HelpTopicClient({ tutorial }: { tutorial: HelpTutorial }
         <nav className="mt-2 grid gap-1">
           {[
             { id: "tutorial-purpose", label: "Purpose / How / Why" },
+            { id: "tutorial-success", label: "Success Criteria" },
+            { id: "tutorial-decisions", label: "Decision Guide" },
+            { id: "tutorial-mistakes", label: "Common Mistakes" },
             { id: "tutorial-preflight", label: "Preflight Checklist" },
             { id: "tutorial-steps", label: "Step-by-Step" },
             { id: "tutorial-controls", label: "UI Controls Reference" },

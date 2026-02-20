@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readOpenAiUsageHistory } from "@/lib/openai/usageLog";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { resolveOpenAiApiKey } from "@/lib/openai/client";
+import { getSettingsReadContext } from "@/lib/admin/settingsPermissions";
 
 export const runtime = "nodejs";
 
@@ -247,6 +248,10 @@ function parseCostTotals(payload: JsonObject) {
 }
 
 export async function GET() {
+  const readCtx = await getSettingsReadContext();
+  if (!readCtx.canRead) {
+    return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
+  }
   const { apiKey, keyType } = resolveOpenAiApiKey("preferAdmin");
   const activeKeyName =
     keyType === "admin"

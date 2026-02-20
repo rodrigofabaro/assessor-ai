@@ -6,6 +6,18 @@ export type HelpIssue = {
   fix: string;
 };
 
+export type HelpDecisionRule = {
+  if: string;
+  then: string;
+  because: string;
+};
+
+export type HelpMistake = {
+  mistake: string;
+  risk: string;
+  correct: string;
+};
+
 export type HelpScreenshot = {
   title: string;
   caption: string;
@@ -41,6 +53,9 @@ export type HelpTutorial = {
   preflight: string[];
   steps: HelpStep[];
   issues: HelpIssue[];
+  successCriteria?: string[];
+  decisionGuide?: HelpDecisionRule[];
+  commonMistakes?: HelpMistake[];
   screenshots?: HelpScreenshot[];
   uiControls?: HelpUiControl[];
 };
@@ -715,29 +730,54 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
   },
   "admin-settings": {
     audience: "Platform administrators",
-    purpose: "Configure grading behavior, AI model selection, and app-level policies.",
+    purpose: "Configure AI, grading, and app policy with safe tests, atomic save, and auditable change tracking.",
     howItWorks: [
-      "Settings persist model, grading template, and note behavior.",
-      "Policy toggles affect automation and mutation controls.",
+      "Settings are split into AI, Grading, and App sections with independent draft state.",
+      "Test config actions validate AI connectivity and grading template/schema before save.",
+      "Save all uses an atomic batch update path to avoid partial cross-section saves.",
+      "Unsaved-change guard warns before navigation and keeps edits safe.",
     ],
     whyItMatters: [
-      "Centralized policy prevents per-operator drift.",
-      "Settings changes should be deliberate and audited.",
+      "Centralized policy prevents per-operator drift and hidden local overrides.",
+      "Atomic saves reduce mixed-state incidents when multiple sections change together.",
+      "Structured audit entries improve rollback and governance analysis.",
     ],
     preflight: [
       "Confirm active audit user identity.",
       "Document expected impact before changing grading settings.",
+      "Run current smoke checks so you can compare before/after behavior.",
     ],
     steps: [
       {
-        id: "configure-policy",
-        title: "Apply policy changes with validation",
-        what: "Change one policy group at a time and test on sample submissions.",
+        id: "draft-and-validate",
+        title: "Draft changes and validate first",
+        what: "Edit only the controls you intend to change, then run test checks before saving.",
         how: [
-          "Save setting changes.",
-          "Run controlled sample and review output panels.",
+          "Use `Test config` in AI and Grading sections.",
+          "Check warnings/errors and resolve them before commit.",
         ],
-        why: "Prevents multi-variable uncertainty in grading behavior.",
+        why: "Validation-first flow catches misconfiguration before it reaches production runs.",
+      },
+      {
+        id: "save-atomically",
+        title: "Commit safely with atomic save",
+        what: "Use Save all when multiple sections changed so config updates are committed together.",
+        how: [
+          "Review dirty indicators for AI/Grading/App.",
+          "Use `Save all atomically` from top bar or unsaved-changes bar.",
+          "If needed, use section `Revert` or `Reset defaults` before save.",
+        ],
+        why: "Atomic commit reduces partial-save risk and cross-section drift.",
+      },
+      {
+        id: "audit-confirm",
+        title: "Confirm audit output",
+        what: "Review structured from/to changes in the settings audit trail after save.",
+        how: [
+          "Open latest audit entry and inspect key diffs.",
+          "Copy event payload when documenting change approvals.",
+        ],
+        why: "Post-save audit confirmation ensures governance traceability.",
       },
     ],
     issues: [
@@ -745,6 +785,11 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         issue: "Model change not reflected in run",
         cause: "Effective model resolved from active config at run time.",
         fix: "Re-open run and inspect model snapshot in result metadata.",
+      },
+      {
+        issue: "Save all fails with rollback message",
+        cause: "One section failed validation during batch commit.",
+        fix: "Use section smoke tests, correct invalid fields, then run Save all again.",
       },
     ],
   },
@@ -868,6 +913,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       meaning: "Indicates whether submission can proceed toward grading.",
       useWhen: "Post-upload validation.",
       impact: "Determines whether row enters auto-ready or manual lanes.",
+    },
+    {
+      kind: "Button",
+      label: "Upload / Submit action",
+      location: "Upload form action bar",
+      meaning: "Creates submission records from selected files and metadata.",
+      useWhen: "After validating file set and learner context.",
+      impact: "Commits intake to queue and starts downstream workflow.",
+    },
+    {
+      kind: "Alert",
+      label: "Unsupported file / quality warnings",
+      location: "Upload validation feedback",
+      meaning: "Warns when file type or document quality may fail extraction.",
+      useWhen: "Before final upload confirmation.",
+      impact: "Prevents avoidable failures from entering operational queue.",
     },
   ],
   "submissions-list": [
@@ -1041,6 +1102,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       useWhen: "Queue-wide failures or governance-sensitive incidents.",
       impact: "Prevents risky fixes at wrong permission level.",
     },
+    {
+      kind: "Card",
+      label: "Queue triage priority matrix",
+      location: "Support guide operational sequence",
+      meaning: "Orders blocker handling by dependency and risk.",
+      useWhen: "Planning daily workload or incident response.",
+      impact: "Stabilizes queue before throughput actions.",
+    },
+    {
+      kind: "Card",
+      label: "Support handover checklist",
+      location: "Support guide closure section",
+      meaning: "Records what was fixed, what remains, and who owns next action.",
+      useWhen: "End of shift or escalation transfer.",
+      impact: "Reduces rework and context loss between operators.",
+    },
   ],
   "submissions-onboarding": [
     {
@@ -1058,6 +1135,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       meaning: "Tracks completion of onboarding steps.",
       useWhen: "Guided first-run execution.",
       impact: "Ensures full flow is validated end-to-end.",
+    },
+    {
+      kind: "Card",
+      label: "Expected lane outcomes",
+      location: "Onboarding scenario definitions",
+      meaning: "Shows where each sample should land after upload and linking.",
+      useWhen: "Validating first-run environment behavior.",
+      impact: "Quickly detects configuration drift.",
+    },
+    {
+      kind: "Alert",
+      label: "Preview/commit audit mismatch",
+      location: "Onboarding verification notes",
+      meaning: "Flags missing or stale QA linkage in audit.",
+      useWhen: "Final onboarding verification pass.",
+      impact: "Prevents certifying an unverified operational setup.",
     },
   ],
   "submission-detail": [
@@ -1267,6 +1360,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       useWhen: "Weekly QA reviews and incident follow-up.",
       impact: "Informs tuning and process improvements.",
     },
+    {
+      kind: "Card",
+      label: "Run-level evidence table",
+      location: "Admin QA detail list",
+      meaning: "Shows confidence, caps, and anomalies per run.",
+      useWhen: "Selecting candidates for manual moderation.",
+      impact: "Improves risk-focused QA sampling.",
+    },
+    {
+      kind: "Button",
+      label: "Open submission from QA result",
+      location: "Admin QA row actions",
+      meaning: "Jumps into full submission detail for evidence inspection.",
+      useWhen: "QA finding needs page-level confirmation.",
+      impact: "Shortens path from trend signal to root-cause review.",
+    },
   ],
   "admin-specs": [
     {
@@ -1284,6 +1393,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       meaning: "Indicates whether spec version is locked for stable use.",
       useWhen: "Before linking briefs or publishing changes.",
       impact: "Prevents unreviewed spec drift.",
+    },
+    {
+      kind: "Filter",
+      label: "Quick filter (Needs review / Locked / Failed)",
+      location: "Specs extract inbox",
+      meaning: "Scopes the list to specific remediation states.",
+      useWhen: "Prioritizing backlog cleanup.",
+      impact: "Keeps focus on highest-risk spec records.",
+    },
+    {
+      kind: "Button",
+      label: "Force re-extract",
+      location: "Spec detail actions",
+      meaning: "Re-runs extraction for locked or problematic records with intent.",
+      useWhen: "Correcting known extraction defects after source validation.",
+      impact: "Refreshes extracted structure while preserving governance flow.",
     },
   ],
   "admin-briefs": [
@@ -1345,6 +1470,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       useWhen: "Preparing docs for spec/brief usage.",
       impact: "Stabilizes downstream extraction dependencies.",
     },
+    {
+      kind: "Card",
+      label: "Reference lifecycle status card",
+      location: "Reference inbox rows",
+      meaning: "Shows where each document sits in upload-to-lock lifecycle.",
+      useWhen: "Daily reference operations.",
+      impact: "Avoids acting on the wrong lifecycle stage.",
+    },
+    {
+      kind: "Alert",
+      label: "In-use protection warning",
+      location: "Reference mutation confirmations",
+      meaning: "Warns that document is already used in live grading context.",
+      useWhen: "Attempting delete/unlock/replace on active references.",
+      impact: "Prevents destructive drift in historical grading runs.",
+    },
   ],
   "admin-library": [
     {
@@ -1362,6 +1503,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       meaning: "Toggles criterion inclusion with governed confirmation.",
       useWhen: "Intentional scope exception handling.",
       impact: "Updates grading scope snapshot for linked submissions.",
+    },
+    {
+      kind: "Alert",
+      label: "Scope-change confirmation dialog",
+      location: "Criterion toggle flow",
+      meaning: "Requires explicit reason and acknowledgement before mutation.",
+      useWhen: "Applying inclusion/exclusion changes.",
+      impact: "Creates traceable governance justification.",
+    },
+    {
+      kind: "Card",
+      label: "Scope state indicators",
+      location: "Library row summary",
+      meaning: "Shows active/excluded mix at a glance for each brief.",
+      useWhen: "Pre-grade scope validation.",
+      impact: "Reduces surprise criteria omissions in grading outcomes.",
     },
   ],
   "admin-bindings": [
@@ -1381,15 +1538,39 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       useWhen: "Before saving binding changes.",
       impact: "Prevents high-impact grading context errors.",
     },
+    {
+      kind: "Button",
+      label: "Save binding",
+      location: "Bindings action bar",
+      meaning: "Persists assignment-to-brief mapping update.",
+      useWhen: "After resolving all validation warnings.",
+      impact: "Immediately affects criteria resolution in future runs.",
+    },
+    {
+      kind: "Card",
+      label: "Binding health summary",
+      location: "Bindings overview panel",
+      meaning: "Aggregates linked, unresolved, and conflicting mappings.",
+      useWhen: "Before enabling batch grading.",
+      impact: "Highlights readiness and risk in one view.",
+    },
   ],
   "admin-settings": [
     {
       kind: "Field",
       label: "Model selection",
-      location: "Admin settings grading section",
+      location: "AI section - Agent model card",
       meaning: "Default model used for grading runs where not overridden.",
       useWhen: "Policy tuning or model migration.",
       impact: "Changes run behavior across the platform.",
+    },
+    {
+      kind: "Button",
+      label: "Test config (AI)",
+      location: "AI section action bar",
+      meaning: "Runs connectivity smoke check against OpenAI and selected model availability.",
+      useWhen: "Before saving model or key-related changes.",
+      impact: "Prevents saving unusable AI config to live workflow.",
     },
     {
       kind: "Toggle",
@@ -1401,11 +1582,59 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
     },
     {
       kind: "Button",
-      label: "Save settings",
-      location: "Settings page action bar",
-      meaning: "Persists global configuration changes.",
-      useWhen: "After controlled setting edits.",
-      impact: "Applies defaults to subsequent operations.",
+      label: "Save all / Save all atomically",
+      location: "Top settings bar and unsaved-changes bar",
+      meaning: "Commits AI + grading + app changes using batch save path.",
+      useWhen: "When multiple sections are edited together.",
+      impact: "Avoids partial cross-section saves and mixed-state drift.",
+    },
+    {
+      kind: "Alert",
+      label: "Unsaved changes guard",
+      location: "Navigation leave warning + sticky unsaved bar",
+      meaning: "Signals local edits are not yet persisted and guards accidental exit.",
+      useWhen: "Navigating away or switching pages with dirty state.",
+      impact: "Prevents accidental loss of config edits.",
+    },
+    {
+      kind: "Card",
+      label: "Section status cards",
+      location: "Settings overview strip",
+      meaning: "Shows whether AI/Grading/App sections are in sync or dirty.",
+      useWhen: "Before committing changes.",
+      impact: "Improves clarity of pending scope.",
+    },
+    {
+      kind: "Button",
+      label: "Revert / Reset defaults",
+      location: "Section action bars",
+      meaning: "Revert restores last loaded values; reset applies baseline defaults.",
+      useWhen: "Undoing drafts or returning to known-safe baseline.",
+      impact: "Reduces risky manual re-entry and speeds rollback.",
+    },
+    {
+      kind: "Button",
+      label: "Test config (Grading)",
+      location: "Grading section action bar",
+      meaning: "Validates grading template placeholders and config limits before save.",
+      useWhen: "Before committing grading prompt/tone/note changes.",
+      impact: "Prevents invalid grading config from being persisted.",
+    },
+    {
+      kind: "Alert",
+      label: "Automation-disabled dependency warning",
+      location: "App section automation policy card",
+      meaning: "Provider and batch controls are disabled when pipeline toggle is off.",
+      useWhen: "Changing automation enable state.",
+      impact: "Avoids inconsistent policy combinations.",
+    },
+    {
+      kind: "Card",
+      label: "Structured settings audit entries",
+      location: "Settings audit trail list",
+      meaning: "Displays from/to diffs with copy action and raw payload toggle.",
+      useWhen: "Reviewing or documenting settings changes.",
+      impact: "Improves governance traceability and incident rollback speed.",
     },
   ],
   "admin-audit-users": [
@@ -1433,7 +1662,535 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       useWhen: "Team changes or permission hardening.",
       impact: "Controls access to high-impact mutations.",
     },
+    {
+      kind: "Card",
+      label: "QA preview-to-commit integrity panel",
+      location: "Audit page top table",
+      meaning: "Verifies each commit references a matching preview run.",
+      useWhen: "Checking QA process compliance.",
+      impact: "Protects against unsafe direct commit behavior.",
+    },
+    {
+      kind: "Button",
+      label: "Open linked entity",
+      location: "Audit event rows",
+      meaning: "Navigates to submission/reference associated with an event.",
+      useWhen: "Moving from log evidence to object-level remediation.",
+      impact: "Speeds incident triage and validation loops.",
+    },
   ],
+};
+
+const DEEP_GUIDE_BY_SLUG: Record<
+  string,
+  {
+    successCriteria: string[];
+    decisionGuide: HelpDecisionRule[];
+    commonMistakes: HelpMistake[];
+  }
+> = {
+  "home": {
+    successCriteria: [
+      "You can route to Upload, Submissions, or Admin in one click without second-guessing.",
+      "You can explain what each top summary card means for today's priority.",
+      "You can identify when to escalate to Admin instead of continuing normal queue work.",
+    ],
+    decisionGuide: [
+      {
+        if: "Queue pressure or blockers are high",
+        then: "Open Submissions first and triage blockers before intake or regrade actions.",
+        because: "Throughput work on top of unresolved blockers compounds failure volume.",
+      },
+      {
+        if: "Governance questions or lock uncertainty appear",
+        then: "Open Admin and validate lock/readiness state before operational mutations.",
+        because: "Governance state defines whether downstream grading is safe.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Jumping straight to grading from the landing page.",
+        risk: "Runs execute with unresolved blockers or stale context.",
+        correct: "Read summary cards first and route according to risk and ownership.",
+      },
+      {
+        mistake: "Treating Home as static information only.",
+        risk: "You miss fast remediation links and lose response time.",
+        correct: "Use Home as an operations router, not just a dashboard snapshot.",
+      },
+    ],
+  },
+  "upload": {
+    successCriteria: [
+      "Every intended file appears exactly once in Submissions.",
+      "Uploads are linked with enough metadata to avoid avoidable manual resolution.",
+      "You can spot low-quality scans before they become extraction failures.",
+    ],
+    decisionGuide: [
+      {
+        if: "Source files are mixed quality or unknown templates",
+        then: "Upload in small batches and verify first outcomes before full volume.",
+        because: "Small-batch validation prevents broad queue contamination.",
+      },
+      {
+        if: "Same learner/assignment appears twice",
+        then: "Pause and verify whether duplicate upload or genuine resubmission.",
+        because: "Duplicate records distort lane pressure and grading coverage.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Uploading large unverified batches with new formats.",
+        risk: "Mass OCR/extraction failures and heavy manual cleanup.",
+        correct: "Run controlled pilot uploads first, then scale volume.",
+      },
+      {
+        mistake: "Skipping post-upload queue verification.",
+        risk: "Missing files or duplicates are detected too late.",
+        correct: "Immediately confirm row creation and key metadata in Submissions.",
+      },
+    ],
+  },
+  "submissions-list": {
+    successCriteria: [
+      "Blocked and Needs Human lanes trend downward before bulk grading actions.",
+      "QA preview/commit workflow is used only with current preview context.",
+      "Batch actions target intentional, filtered subsets rather than broad accidental scope.",
+    ],
+    decisionGuide: [
+      {
+        if: "Lane counts are rising in Blocked or Needs Human",
+        then: "Stop grading batches and clear context blockers first.",
+        because: "Unresolved context causes predictable rework and weak audit trails.",
+      },
+      {
+        if: "QA commit button is unavailable or stale",
+        then: "Run Preview QA lane again and commit only if queue is unchanged.",
+        because: "Commit requires traceable alignment with the latest preview snapshot.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Using Grade all visible with broad filters still active.",
+        risk: "High-impact unintended queue mutation.",
+        correct: "Narrow filters explicitly and verify visible count before batch actions.",
+      },
+      {
+        mistake: "Treating QA lane as optional.",
+        risk: "Lower defensibility and weaker moderation outcomes.",
+        correct: "Use preview then commit for QA-marked records every time.",
+      },
+    ],
+  },
+  "submissions-support": {
+    successCriteria: [
+      "Support actions follow a repeatable blocker-first sequence.",
+      "Escalations include clear evidence (status, context, and route to reproduce).",
+      "Support handovers preserve exactly what was done and what remains.",
+    ],
+    decisionGuide: [
+      {
+        if: "Issue is isolated to one submission",
+        then: "Resolve in submission detail and record root cause in notes.",
+        because: "Single-record fixes should not trigger broad operational changes.",
+      },
+      {
+        if: "Issue pattern affects multiple rows",
+        then: "Escalate through Admin/Audit with sample evidence and counts.",
+        because: "Systemic issues require policy or pipeline-level intervention.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Applying global workarounds for local data defects.",
+        risk: "Wide regression risk and inconsistent grading behavior.",
+        correct: "Keep local fixes local; escalate only repeated pattern failures.",
+      },
+      {
+        mistake: "Closing support action without verifying queue movement.",
+        risk: "Hidden blockers remain and resurface later.",
+        correct: "Re-check lane state and affected records after every fix.",
+      },
+    ],
+  },
+  "submissions-onboarding": {
+    successCriteria: [
+      "All planned sample scenarios land in expected lanes.",
+      "New operator can explain preview/commit guard without prompting.",
+      "Onboarding run leaves a clear audit chain from upload to result.",
+    ],
+    decisionGuide: [
+      {
+        if: "One sample behaves unexpectedly",
+        then: "Pause onboarding and inspect extraction/linking assumptions before proceeding.",
+        because: "Continuing hides early configuration issues.",
+      },
+      {
+        if: "QA linkage is missing in audit",
+        then: "Repeat preview+commit sequence on current queue state.",
+        because: "Training is incomplete without validated traceability.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Skipping onboarding verification on a new environment.",
+        risk: "Undetected environment drift during live operations.",
+        correct: "Always run the controlled first-run scenario before live volume.",
+      },
+      {
+        mistake: "Focusing only on grade output, not process evidence.",
+        risk: "Operator cannot debug failures later.",
+        correct: "Validate both outcomes and process trace data during onboarding.",
+      },
+    ],
+  },
+  "submission-detail": {
+    successCriteria: [
+      "Page-level and overall feedback are aligned with criterion evidence.",
+      "Student-facing output excludes internal system tuning language.",
+      "Confidence warnings are understood and either accepted or remediated.",
+    ],
+    decisionGuide: [
+      {
+        if: "Evidence is thin or missing for a criterion",
+        then: "Document the gap in page/overall feedback and avoid unsupported claims.",
+        because: "Evidence traceability is required for defensible outcomes.",
+      },
+      {
+        if: "Constructive notes feel generic",
+        then: "Anchor notes to what is visible on that page and what to improve next.",
+        because: "Targeted notes improve learner actionability and fairness.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Leaving placeholder text or template-like comments in notes.",
+        risk: "Learner-facing quality drops and trust is reduced.",
+        correct: "Write concrete, page-specific comments and remove placeholders.",
+      },
+      {
+        mistake: "Exposing internal controls (tone/strictness/system hints) in learner feedback.",
+        risk: "Confusing and non-compliant student output.",
+        correct: "Keep internal diagnostics in audit; keep learner feedback educational.",
+      },
+    ],
+  },
+  "students-pages": {
+    successCriteria: [
+      "Each learner has one authoritative record unless a justified merge path exists.",
+      "Submission history reflects accurate learner identity after linking changes.",
+      "Manual linking decisions are repeatable and explainable.",
+    ],
+    decisionGuide: [
+      {
+        if: "Two near-identical student profiles appear",
+        then: "Validate identifiers before merge or relink actions.",
+        because: "Name-only matching is insufficient for identity-critical operations.",
+      },
+      {
+        if: "Link confidence is low",
+        then: "Use explicit external reference or email to confirm.",
+        because: "False links propagate grading and audit errors.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Linking based on surname similarity alone.",
+        risk: "Wrong learner receives grading evidence.",
+        correct: "Require at least one strong identifier match before link confirmation.",
+      },
+      {
+        mistake: "Ignoring historical anomalies after relink.",
+        risk: "Silent identity corruption in reports and audits.",
+        correct: "Review student submission history immediately after any link mutation.",
+      },
+    ],
+  },
+  "admin-index": {
+    successCriteria: [
+      "Blocker backlog is actioned in dependency order.",
+      "Automation-ready rows are routed through QA review discipline.",
+      "Admin decisions are backed by current, not stale, page signals.",
+    ],
+    decisionGuide: [
+      {
+        if: "Open blockers is high",
+        then: "Address lock and extraction blockers before initiating new grading batches.",
+        because: "Running more grading during blocker pressure degrades reliability.",
+      },
+      {
+        if: "Automation-ready rises but quality concerns remain",
+        then: "Increase QA sampling and force preview-first review path.",
+        because: "Eligibility is not equivalent to quality assurance completion.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Treating KPI cards as success indicators without drill-down.",
+        risk: "Hidden operational risk remains unresolved.",
+        correct: "Use KPI cards as routing signals, then verify root causes in target modules.",
+      },
+      {
+        mistake: "Clearing symptoms instead of dependency blockers.",
+        risk: "Failures recur in subsequent cycles.",
+        correct: "Fix lock/extraction/link foundations first, then rerun workflows.",
+      },
+    ],
+  },
+  "admin-qa": {
+    successCriteria: [
+      "Sampling prioritizes risk (low confidence, caps, high variance) rather than convenience.",
+      "QA notes map back to specific criteria/evidence patterns.",
+      "QA outcomes feed concrete tuning actions in settings/policy.",
+    ],
+    decisionGuide: [
+      {
+        if: "Confidence is high but narrative quality is weak",
+        then: "Escalate feedback quality standards rather than confidence thresholds only.",
+        because: "Confidence scoring and communication quality are different dimensions.",
+      },
+      {
+        if: "Quality defects cluster by unit or brief",
+        then: "Inspect upstream spec/brief extraction and scope assumptions.",
+        because: "Recurring defects are often rooted in reference context.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Sampling only PASS outcomes.",
+        risk: "Misses drift patterns in higher/lower bands.",
+        correct: "Sample across bands with explicit risk weighting.",
+      },
+      {
+        mistake: "Logging findings without remediation owners.",
+        risk: "Known defects persist across cycles.",
+        correct: "Attach each QA finding to owner, target module, and follow-up date.",
+      },
+    ],
+  },
+  "admin-specs": {
+    successCriteria: [
+      "LO and criteria extraction is complete before lock.",
+      "Failed/uncertain extracts are corrected before downstream usage.",
+      "Spec lock decisions are consistent with issue/version intent.",
+    ],
+    decisionGuide: [
+      {
+        if: "Criteria are missing or malformed",
+        then: "Re-extract and validate before lock or import.",
+        because: "Spec defects propagate directly to brief mapping and grading scope.",
+      },
+      {
+        if: "Spec is already used downstream",
+        then: "Prefer controlled new-version update over destructive edits.",
+        because: "Stable lineage is required for governance and reproducibility.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Locking after a superficial scan only.",
+        risk: "Hidden extraction gaps become grading contract defects.",
+        correct: "Verify LO headers, criteria counts, and warning details before lock.",
+      },
+      {
+        mistake: "Using failed docs as if they were complete extracts.",
+        risk: "False confidence in downstream mapping health.",
+        correct: "Resolve failed state first, then promote only validated extracts.",
+      },
+    ],
+  },
+  "admin-briefs": {
+    successCriteria: [
+      "Brief lock passes with acceptable extraction and mapping health.",
+      "Criteria scope changes have reasoned, auditable confirmation.",
+      "Overview/tasks views present complete LO and criteria context.",
+    ],
+    decisionGuide: [
+      {
+        if: "Quality gate blocks locking",
+        then: "Fix extraction/mapping issues before attempting governance overrides.",
+        because: "Quality gate exists to stop unstable briefs entering live grading.",
+      },
+      {
+        if: "External evidence mode requires exclusion",
+        then: "Apply criterion toggle with explicit reason and verify downstream impact.",
+        because: "Scope changes alter grade envelope and expected learner evidence.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Changing scope without documenting operational reason.",
+        risk: "Future moderation cannot explain grade-envelope changes.",
+        correct: "Always provide clear reason and keep change history auditable.",
+      },
+      {
+        mistake: "Locking while LO/criteria text is incomplete.",
+        risk: "Brief appears valid but grading logic is partially blind.",
+        correct: "Confirm LO text and all expected criteria (for example M3/M4 continuity) before lock.",
+      },
+    ],
+  },
+  "admin-reference": {
+    successCriteria: [
+      "Reference documents move predictably from upload to lock.",
+      "Failed documents have clear remediation paths before retries.",
+      "Live-use safeguards are respected when versioning references.",
+    ],
+    decisionGuide: [
+      {
+        if: "Reference is in active downstream use",
+        then: "Create a new version rather than deleting/unlocking aggressively.",
+        because: "Immutable lineage protects grading reproducibility.",
+      },
+      {
+        if: "Extraction repeatedly fails for a file",
+        then: "Validate file integrity/OCR source quality before more retries.",
+        because: "Repeated retries without source correction waste queue capacity.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Prioritizing new uploads while failures accumulate.",
+        risk: "Backlog quality degrades and lock readiness stalls.",
+        correct: "Clear failed/high-risk docs first, then continue normal ingestion.",
+      },
+      {
+        mistake: "Unlock/delete attempts on in-use docs.",
+        risk: "Potential downstream breakage and governance violation.",
+        correct: "Use versioned updates and maintain historical continuity.",
+      },
+    ],
+  },
+  "admin-library": {
+    successCriteria: [
+      "Criteria inclusion/exclusion state is transparent at a glance.",
+      "Scope exceptions are intentional and reversible with audit trail.",
+      "Library view supports pre-grade validation for each active brief.",
+    ],
+    decisionGuide: [
+      {
+        if: "A criterion should not be graded from submitted file evidence",
+        then: "Toggle criterion out with confirmation and reason.",
+        because: "Explicit scope management avoids unfair grade caps from missing modalities.",
+      },
+      {
+        if: "Unexpected exclusions appear",
+        then: "Review change history before re-including criteria.",
+        because: "Reversal without context can reintroduce known governance exceptions.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Using library toggles as ad-hoc experiment controls.",
+        risk: "Frequent unstable scope drift in live grading.",
+        correct: "Apply toggles through governed intent with change reason.",
+      },
+      {
+        mistake: "Ignoring downstream impact after scope change.",
+        risk: "Surprising grade-envelope shifts in active submissions.",
+        correct: "Follow with impacted regrade/review process when applicable.",
+      },
+    ],
+  },
+  "admin-bindings": {
+    successCriteria: [
+      "Every active assignment resolves to the intended locked brief.",
+      "Binding changes are validated against at least one real submission sample.",
+      "Binding conflicts are cleared before queue-wide grading.",
+    ],
+    decisionGuide: [
+      {
+        if: "Assignment mapping is ambiguous",
+        then: "Resolve conflict before enabling automated grading for that assignment.",
+        because: "Ambiguous binding can route grading to the wrong criteria set.",
+      },
+      {
+        if: "Binding was changed after grading already occurred",
+        then: "Use impacted regrade flow with documented reason.",
+        because: "Past outputs may reflect outdated criteria context.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Treating binding edits as low-impact metadata.",
+        risk: "High-impact grading context regressions.",
+        correct: "Handle bindings as governance-critical configuration.",
+      },
+      {
+        mistake: "Skipping post-change sample validation.",
+        risk: "Incorrect mappings are discovered late in production.",
+        correct: "Validate with real sample submission immediately after change.",
+      },
+    ],
+  },
+  "admin-settings": {
+    successCriteria: [
+      "Global model/policy changes are deliberate, tested, and explained.",
+      "Operators understand effective settings before running grading.",
+      "Configuration drift is minimized across environments.",
+      "Multi-section edits are committed through atomic save with a clean audit trail.",
+    ],
+    decisionGuide: [
+      {
+        if: "Need to change model or strictness behavior",
+        then: "Draft in section, run smoke test, then commit with section save or Save all atomically.",
+        because: "Validation before commit prevents broken config from reaching production.",
+      },
+      {
+        if: "Unexpected behavior appears after setting edits",
+        then: "Inspect effective run metadata and audit event timeline.",
+        because: "Stored settings and effective runtime context may differ by timing.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Applying multiple policy changes in one pass.",
+        risk: "Root cause of behavior shifts becomes unclear.",
+        correct: "Use section-level tests and atomic save so grouped changes stay traceable.",
+      },
+      {
+        mistake: "Assuming UI-selected model always equals effective model in prior runs.",
+        risk: "Incorrect conclusions during QA investigation.",
+        correct: "Use run metadata snapshots to confirm effective configuration.",
+      },
+      {
+        mistake: "Navigating away with dirty sections.",
+        risk: "Silent loss of operational policy edits.",
+        correct: "Use unsaved bar actions (Revert all or Save all atomically) before leaving.",
+      },
+    ],
+  },
+  "admin-audit-users": {
+    successCriteria: [
+      "Critical actions are traceable by actor, time, entity, and request context.",
+      "Audit filters can isolate incidents quickly.",
+      "User permissions align with operational responsibility boundaries.",
+    ],
+    decisionGuide: [
+      {
+        if: "Incident timeline is unclear",
+        then: "Filter by entity and timeframe, then reconstruct event chain top-down.",
+        because: "Structured timeline analysis reduces false assumptions.",
+      },
+      {
+        if: "Sensitive action lacks clear owner attribution",
+        then: "Review active audit actor/user mapping before further mutations.",
+        because: "Attribution integrity is required for governance and rollback decisions.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Reviewing audit feed without scoping filters.",
+        risk: "High-noise analysis and missed causal events.",
+        correct: "Start with narrow filters, then widen scope only when needed.",
+      },
+      {
+        mistake: "Leaving broad permissions assigned after temporary tasks.",
+        risk: "Unnecessary high-impact access persists.",
+        correct: "Re-tighten roles after task completion and verify user state.",
+      },
+    ],
+  },
 };
 
 export function getHelpTutorial(slug: string): HelpTutorial | null {
@@ -1441,11 +2198,15 @@ export function getHelpTutorial(slug: string): HelpTutorial | null {
   if (!meta) return null;
   const body = TUTORIALS_BY_SLUG[slug];
   if (!body) return null;
+  const deepGuide = DEEP_GUIDE_BY_SLUG[slug];
   return {
     slug: meta.slug,
     title: meta.title,
     route: meta.route,
     ...body,
+    successCriteria: body.successCriteria || deepGuide?.successCriteria || [],
+    decisionGuide: body.decisionGuide || deepGuide?.decisionGuide || [],
+    commonMistakes: body.commonMistakes || deepGuide?.commonMistakes || [],
     uiControls: body.uiControls || UI_CONTROLS_BY_SLUG[slug] || [],
   };
 }

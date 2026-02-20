@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
-import { getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
+import { getSettingsReadContext, getSettingsWriteContext } from "@/lib/admin/settingsPermissions";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { readAutomationPolicy, writeAutomationPolicy } from "@/lib/admin/automationPolicy";
 
 export async function GET() {
+  const readCtx = await getSettingsReadContext();
+  if (!readCtx.canRead) {
+    return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
+  }
   const cfg = await getOrCreateAppConfig();
   const automation = readAutomationPolicy();
   return NextResponse.json({
