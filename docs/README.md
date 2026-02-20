@@ -13,6 +13,8 @@ This folder is the operational source of truth for extraction, mapping, grading,
 5. End-to-end weakness review: `docs/operations/extraction-grading-weakness-review-2026-02-19.md`
 6. Template and UI/UX recommendations: `docs/operations/template-ui-ux-recommendations-2026-02-19.md`
 7. Route help center: `docs/help/README.md`
+8. Release scope contract: `RELEASE.md`
+9. Reproducible operations checklist: `docs/ops-checklist.md`
 
 ## Scope Map
 

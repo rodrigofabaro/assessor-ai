@@ -17,8 +17,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const isDev = process.env.NODE_ENV === "development";
-  const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "0.4-stable-rc1").trim();
-  const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "stable candidate").trim();
+  const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0").trim();
+  const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "completed").trim();
 
   return (
     <html lang="en">

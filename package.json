@@ -24,6 +24,7 @@
     "test:brief-equation-false-positives": "node scripts/brief-equation-false-positives.test.js",
     "test:regression-pack": "node scripts/regression-pack.js",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
+    "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"

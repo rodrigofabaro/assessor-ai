@@ -20,6 +20,8 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 ## Key docs
 
 - Docs hub: `docs/README.md`
+- Release scope contract: `RELEASE.md`
+- Reproducible ops checklist: `docs/ops-checklist.md`
 - Local startup troubleshooting: `docs/operations/local-dev-troubleshooting.md`
 - Integrity checks: `docs/operations/integrity-checks.md`
 - Codex workflow: `docs/codex/README.md`
