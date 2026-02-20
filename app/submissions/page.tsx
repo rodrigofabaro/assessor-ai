@@ -62,6 +62,13 @@ export default function SubmissionsPage() {
     qaReviewOnly,
     setQaReviewOnly,
 
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+
     statuses,
     laneGroups,
   } = useSubmissionsList();
@@ -508,6 +515,52 @@ export default function SubmissionsPage() {
         qaCommitReady={qaCommitReady}
         statuses={statuses}
       />
+
+      <section className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+        <div>
+          Server results: <span className="font-semibold text-zinc-900">{totalItems}</span> rows · Page{" "}
+          <span className="font-semibold text-zinc-900">{page}</span> of{" "}
+          <span className="font-semibold text-zinc-900">{Math.max(1, totalPages)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="inline-flex items-center gap-1">
+            <span className="text-zinc-600">Page size</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Math.max(10, Math.min(200, Number(e.target.value) || 80)))}
+              className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs"
+            >
+              {[40, 80, 120, 160].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={busy || page <= 1}
+            className={cx(
+              "inline-flex h-8 items-center rounded-lg border px-2.5 font-semibold",
+              busy || page <= 1 ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400" : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100"
+            )}
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(Math.max(1, totalPages), p + 1))}
+            disabled={busy || page >= totalPages}
+            className={cx(
+              "inline-flex h-8 items-center rounded-lg border px-2.5 font-semibold",
+              busy || page >= totalPages ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400" : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100"
+            )}
+          >
+            Next
+          </button>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <SubmissionsTable

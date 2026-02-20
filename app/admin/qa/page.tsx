@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TinyIcon } from "@/components/ui/TinyIcon";
+import type { PaginatedResponse } from "@/lib/submissions/types";
 
 const GRADE_BANDS = ["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION"] as const;
 type GradeBand = (typeof GRADE_BANDS)[number];
@@ -79,32 +80,74 @@ export default function AdminQaPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [course, setCourse] = useState("ALL");
   const [unit, setUnit] = useState("ALL");
   const [assignment, setAssignment] = useState("ALL");
   const [grade, setGrade] = useState("ALL");
   const [status, setStatus] = useState("ALL");
   const [compareUnit, setCompareUnit] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(60);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/submissions?view=qa&qa=1&includeFeedback=0", { cache: "no-store" });
-      const json = (await res.json()) as SubmissionResearchRow[] & { error?: string };
+      const params = new URLSearchParams();
+      params.set("view", "qa");
+      params.set("qa", "1");
+      params.set("includeFeedback", "0");
+      params.set("paginate", "1");
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+      params.set("timeframe", "all");
+      params.set("sortBy", "uploadedAt");
+      params.set("sortDir", "desc");
+      if (debouncedQ) params.set("q", debouncedQ);
+      if (course !== "ALL") params.set("course", course);
+      if (unit !== "ALL") params.set("unitCode", unit);
+      if (assignment !== "ALL") params.set("assignmentRef", assignment);
+      if (grade !== "ALL") params.set("grade", grade);
+      if (status !== "ALL") params.set("status", status);
+
+      const res = await fetch(`/api/submissions?${params.toString()}`, { cache: "no-store" });
+      const json = (await res.json()) as PaginatedResponse<SubmissionResearchRow> & { error?: string };
       if (!res.ok) throw new Error((json as any)?.error || `Submissions fetch failed (${res.status})`);
-      setRows(Array.isArray(json) ? json : []);
+      const nextRows = Array.isArray(json?.items) ? json.items : [];
+      setRows(nextRows);
+      setTotalItems(Math.max(0, Number(json?.pageInfo?.totalItems || 0)));
+      setTotalPages(Math.max(1, Number(json?.pageInfo?.totalPages || 1)));
     } catch (e: any) {
       setRows([]);
+      setTotalItems(0);
+      setTotalPages(1);
       setError(e?.message || "Failed to load QA dataset.");
     } finally {
       setBusy(false);
     }
-  }
+  }, [page, pageSize, debouncedQ, course, unit, assignment, grade, status]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedQ(q.trim()), 250);
+    return () => window.clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, course, unit, assignment, grade, status, pageSize]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const filtered = rows;
 
   const optionList = useMemo(() => {
     const courses = new Set<string>();
@@ -124,35 +167,13 @@ export default function AdminQaPage() {
       statuses: ["ALL", ...Array.from(statuses).sort((a, b) => a.localeCompare(b))],
     };
   }, [rows]);
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return rows.filter((r) => {
-      const g = asGradeBand(r.grade);
-      if (course !== "ALL" && String(r.student?.courseName || "") !== course) return false;
-      if (unit !== "ALL" && String(r.assignment?.unitCode || "") !== unit) return false;
-      if (assignment !== "ALL" && String(r.assignment?.assignmentRef || "") !== assignment) return false;
-      if (grade !== "ALL" && String(g || "UNGRADED") !== grade) return false;
-      if (status !== "ALL" && String(r.status || "") !== status) return false;
-      if (!needle) return true;
-      const hay = [
-        r.filename,
-        r.student?.fullName,
-        r.student?.email,
-        r.student?.courseName,
-        r.assignment?.unitCode,
-        r.assignment?.assignmentRef,
-        r.assignment?.title,
-        r.grade,
-        r.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [rows, q, course, unit, assignment, grade, status]);
-
+  
+  useEffect(() => {
+    if (compareUnit !== "ALL" && !optionList.units.includes(compareUnit)) {
+      setCompareUnit("ALL");
+    }
+  }, [compareUnit, optionList.units]);
+  
   const metrics = useMemo(() => {
     const graded = filtered.filter((r) => !!asGradeBand(r.grade));
     const points = graded.reduce((acc, r) => acc + gradePoints(asGradeBand(r.grade)), 0);
@@ -175,7 +196,7 @@ export default function AdminQaPage() {
       byGrade,
     };
   }, [filtered]);
-
+  
   const byCourse = useMemo(() => {
     const map = new Map<string, { total: number; graded: number; points: number }>();
     for (const r of filtered) {
@@ -193,7 +214,7 @@ export default function AdminQaPage() {
       .map(([courseName, row]) => ({ courseName, ...row, avg: row.graded ? row.points / row.graded : 0 }))
       .sort((a, b) => b.total - a.total || a.courseName.localeCompare(b.courseName));
   }, [filtered]);
-
+  
   const compareRows = useMemo(() => {
     const source = compareUnit === "ALL" ? filtered : filtered.filter((r) => r.assignment?.unitCode === compareUnit);
     const map = new Map<string, { total: number; grades: Record<string, number> }>();
@@ -212,7 +233,7 @@ export default function AdminQaPage() {
       .map(([assignmentRef, row]) => ({ assignmentRef, ...row }))
       .sort((a, b) => a.assignmentRef.localeCompare(b.assignmentRef));
   }, [filtered, compareUnit]);
-
+  
   const overrideInsights = useMemo(() => {
     const reasonCounts = new Map<string, number>();
     const criterionCounts = new Map<string, number>();
@@ -308,12 +329,52 @@ export default function AdminQaPage() {
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-          <MetricCard label="Filtered submissions" value={metrics.total} />
+          <MetricCard label="Current page rows" value={metrics.total} />
           <MetricCard label="Graded" value={metrics.graded} />
           <MetricCard label="Students" value={metrics.students} />
           <MetricCard label="Courses" value={metrics.courses} />
           <MetricCard label="Units" value={metrics.units} />
           <MetricCard label="Avg score" value={metrics.avgScore.toFixed(2)} />
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+          <div>
+            Server results: <span className="font-semibold text-zinc-900">{totalItems}</span> rows · Page{" "}
+            <span className="font-semibold text-zinc-900">{page}</span> of{" "}
+            <span className="font-semibold text-zinc-900">{Math.max(1, totalPages)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="inline-flex items-center gap-1">
+              <span className="text-zinc-600">Page size</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Math.max(20, Math.min(200, Number(e.target.value) || 60)))}
+                className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs"
+              >
+                {[40, 60, 100, 150].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={busy || page <= 1}
+              className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 font-semibold text-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(Math.max(1, totalPages), p + 1))}
+              disabled={busy || page >= totalPages}
+              className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 font-semibold text-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+            >
+              Next
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs">

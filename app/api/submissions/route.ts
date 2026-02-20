@@ -5,6 +5,9 @@ import { computeExtractionQuality } from "@/lib/submissions/extractionQuality";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 
 type SubmissionsView = "workspace" | "qa";
+type TimeframeParam = "today" | "week" | "all";
+type SortByParam = "uploadedAt" | "status" | "student" | "grade";
+type SortDirParam = "asc" | "desc";
 
 function parseBool(raw: string | null, fallback: boolean) {
   if (raw === null || raw === undefined || String(raw).trim() === "") return fallback;
@@ -12,6 +15,54 @@ function parseBool(raw: string | null, fallback: boolean) {
   if (["1", "true", "yes", "on"].includes(normalized)) return true;
   if (["0", "false", "no", "off"].includes(normalized)) return false;
   return fallback;
+}
+
+function parsePositiveInt(raw: string | null, fallback: number, min: number, max: number) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
+function parseTimeframe(raw: string | null): TimeframeParam {
+  const v = String(raw || "").trim().toLowerCase();
+  if (v === "today") return "today";
+  if (v === "week") return "week";
+  return "all";
+}
+
+function parseSortBy(raw: string | null): SortByParam {
+  const v = String(raw || "").trim();
+  if (v === "status") return "status";
+  if (v === "student") return "student";
+  if (v === "grade") return "grade";
+  return "uploadedAt";
+}
+
+function parseSortDir(raw: string | null): SortDirParam {
+  return String(raw || "").trim().toLowerCase() === "asc" ? "asc" : "desc";
+}
+
+function timeframeBounds(timeframe: TimeframeParam): { gte: Date; lt: Date } | null {
+  if (timeframe === "all") return null;
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  if (timeframe === "today") return { gte: startOfToday, lt: endOfToday };
+  const day = startOfToday.getDay(); // 0=Sun
+  const offsetToMonday = (day + 6) % 7;
+  const startOfWeek = new Date(startOfToday.getTime() - offsetToMonday * 24 * 60 * 60 * 1000);
+  const endOfWeek = new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return { gte: startOfWeek, lt: endOfWeek };
+}
+
+function buildOrderBy(sortBy: SortByParam, sortDir: SortDirParam) {
+  if (sortBy === "status") {
+    return [{ status: sortDir }, { uploadedAt: "desc" as const }, { id: "desc" as const }];
+  }
+  if (sortBy === "student") {
+    return [{ student: { fullName: sortDir } }, { uploadedAt: "desc" as const }, { id: "desc" as const }];
+  }
+  return [{ uploadedAt: sortDir }, { id: sortDir }];
 }
 
 function computeQaFlags(latestJson: Record<string, unknown>) {
@@ -52,23 +103,17 @@ function computeQaFlags(latestJson: Record<string, unknown>) {
   if (Number.isFinite(extractionConfidence) && extractionConfidence >= 0 && extractionConfidence < lowConfidenceThreshold) {
     reasons.push(`Low extraction confidence (${extractionConfidence.toFixed(2)})`);
   }
-  if (criteriaWithoutEvidence > 0) {
-    reasons.push(`${criteriaWithoutEvidence} criteria without evidence`);
-  }
+  if (criteriaWithoutEvidence > 0) reasons.push(`${criteriaWithoutEvidence} criteria without evidence`);
   if (Number.isFinite(totalCitations) && totalCitations > 0 && totalCitations <= 2) {
     reasons.push("Very sparse evidence citations");
   }
-  if (rerunDriftDetected) {
-    reasons.push("Reference context drift on re-run");
-  }
+  if (rerunDriftDetected) reasons.push("Reference context drift on re-run");
   if (decisionChangedCount > 0) {
     reasons.push(
       `Criterion decision drift on re-run (${decisionChangedCount} change${decisionChangedCount === 1 ? "" : "s"}; stricter ${decisionStricterCount}, lenient ${decisionLenientCount})`
     );
   }
-  if (assessorOverrides.length > 0) {
-    reasons.push(`Assessor overrides applied (${assessorOverrides.length} criteria)`);
-  }
+  if (assessorOverrides.length > 0) reasons.push(`Assessor overrides applied (${assessorOverrides.length} criteria)`);
 
   return {
     shouldReview: reasons.length > 0,
@@ -92,47 +137,143 @@ function computeQaFlags(latestJson: Record<string, unknown>) {
   };
 }
 
+function buildWorkspaceWhere(opts: {
+  q: string;
+  statusFilter: string;
+  unlinkedOnly: boolean;
+  timeframe: TimeframeParam;
+}) {
+  const and: any[] = [];
+  if (opts.statusFilter) and.push({ status: opts.statusFilter as any });
+  if (opts.unlinkedOnly) and.push({ studentId: null });
+  const bounds = timeframeBounds(opts.timeframe);
+  if (bounds) and.push({ uploadedAt: bounds });
+  if (opts.q) {
+    and.push({
+      OR: [
+        { filename: { contains: opts.q, mode: "insensitive" } },
+        { student: { is: { fullName: { contains: opts.q, mode: "insensitive" } } } },
+        { student: { is: { email: { contains: opts.q, mode: "insensitive" } } } },
+        { student: { is: { externalRef: { contains: opts.q, mode: "insensitive" } } } },
+        { assignment: { is: { title: { contains: opts.q, mode: "insensitive" } } } },
+        { assignment: { is: { unitCode: { contains: opts.q, mode: "insensitive" } } } },
+        { assignment: { is: { assignmentRef: { contains: opts.q, mode: "insensitive" } } } },
+      ],
+    });
+  }
+  return and.length ? { AND: and } : {};
+}
+
+function buildQaWhere(opts: {
+  q: string;
+  statusFilter: string;
+  timeframe: TimeframeParam;
+  course: string;
+  unitCode: string;
+  assignmentRef: string;
+  grade: string;
+}) {
+  const and: any[] = [];
+  if (opts.statusFilter) and.push({ status: opts.statusFilter as any });
+  const bounds = timeframeBounds(opts.timeframe);
+  if (bounds) and.push({ uploadedAt: bounds });
+  if (opts.course) and.push({ student: { is: { courseName: opts.course } } });
+  if (opts.unitCode) and.push({ assignment: { is: { unitCode: opts.unitCode } } });
+  if (opts.assignmentRef) and.push({ assignment: { is: { assignmentRef: opts.assignmentRef } } });
+
+  const grade = String(opts.grade || "").trim().toUpperCase();
+  if (grade && grade !== "ALL") {
+    if (grade === "UNGRADED") {
+      and.push({ NOT: { assessments: { some: { overallGrade: { not: null } } } } });
+    } else if (["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION"].includes(grade)) {
+      and.push({ assessments: { some: { overallGrade: grade } } });
+    }
+  }
+
+  if (opts.q) {
+    and.push({
+      OR: [
+        { filename: { contains: opts.q, mode: "insensitive" } },
+        { student: { is: { fullName: { contains: opts.q, mode: "insensitive" } } } },
+        { student: { is: { email: { contains: opts.q, mode: "insensitive" } } } },
+        { student: { is: { courseName: { contains: opts.q, mode: "insensitive" } } } },
+        { assignment: { is: { unitCode: { contains: opts.q, mode: "insensitive" } } } },
+        { assignment: { is: { assignmentRef: { contains: opts.q, mode: "insensitive" } } } },
+        { assignment: { is: { title: { contains: opts.q, mode: "insensitive" } } } },
+      ],
+    });
+  }
+  return and.length ? { AND: and } : {};
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const view: SubmissionsView = String(searchParams.get("view") || "").trim().toLowerCase() === "qa" ? "qa" : "workspace";
   const includeQa = parseBool(searchParams.get("qa"), view === "qa");
   const includeFeedback = parseBool(searchParams.get("includeFeedback"), view === "workspace");
+  const paginate = parseBool(searchParams.get("paginate"), false);
+  const page = parsePositiveInt(searchParams.get("page"), 1, 1, 100000);
+  const pageSizeDefault = view === "qa" ? 60 : 80;
+  const pageSize = parsePositiveInt(searchParams.get("pageSize"), pageSizeDefault, 10, 200);
+  const q = String(searchParams.get("q") || "").trim();
+  const statusFilter = String(searchParams.get("status") || "").trim();
+  const timeframe = parseTimeframe(searchParams.get("timeframe"));
+  const sortBy = parseSortBy(searchParams.get("sortBy"));
+  const sortDir = parseSortDir(searchParams.get("sortDir"));
+  const skip = paginate ? (page - 1) * pageSize : undefined;
+  const take = paginate ? pageSize : undefined;
+  const orderBy = buildOrderBy(sortBy, sortDir);
 
   if (view === "qa") {
-    const rows = await prisma.submission.findMany({
-      orderBy: [{ uploadedAt: "desc" }, { id: "desc" }],
-      select: {
-        id: true,
-        filename: true,
-        uploadedAt: true,
-        status: true,
-        student: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            courseName: true,
-          },
-        },
-        assignment: {
-          select: {
-            unitCode: true,
-            assignmentRef: true,
-            title: true,
-          },
-        },
-        assessments: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: {
-            overallGrade: true,
-            createdAt: true,
-            ...(includeFeedback ? { feedbackText: true } : {}),
-            ...(includeQa ? { resultJson: true } : {}),
-          },
-        },
-      },
+    const where = buildQaWhere({
+      q,
+      statusFilter,
+      timeframe,
+      course: String(searchParams.get("course") || "").trim(),
+      unitCode: String(searchParams.get("unitCode") || "").trim(),
+      assignmentRef: String(searchParams.get("assignmentRef") || "").trim().toUpperCase(),
+      grade: String(searchParams.get("grade") || "").trim(),
     });
+
+    const [totalItems, rows] = await Promise.all([
+      paginate ? prisma.submission.count({ where }) : Promise.resolve(0),
+      prisma.submission.findMany({
+        where,
+        orderBy,
+        ...(paginate ? { skip, take } : {}),
+        select: {
+          id: true,
+          filename: true,
+          uploadedAt: true,
+          status: true,
+          student: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              courseName: true,
+            },
+          },
+          assignment: {
+            select: {
+              unitCode: true,
+              assignmentRef: true,
+              title: true,
+            },
+          },
+          assessments: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              overallGrade: true,
+              createdAt: true,
+              ...(includeFeedback ? { feedbackText: true } : {}),
+              ...(includeQa ? { resultJson: true } : {}),
+            },
+          },
+        },
+      }),
+    ]);
 
     const submissions = rows.map((s: any) => {
       const latest = s.assessments?.[0] || null;
@@ -155,65 +296,90 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json(submissions);
+    if (!paginate) return NextResponse.json(submissions);
+    const total = totalItems;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return NextResponse.json({
+      items: submissions,
+      pageInfo: {
+        page,
+        pageSize,
+        totalItems: total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   }
 
-  const rows = await prisma.submission.findMany({
-    orderBy: [{ uploadedAt: "desc" }, { id: "desc" }],
-    select: {
-      id: true,
-      filename: true,
-      uploadedAt: true,
-      status: true,
-      studentId: true,
-      assignmentId: true,
-      student: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          externalRef: true,
-          courseName: true,
-        },
-      },
-      assignment: {
-        select: {
-          id: true,
-          title: true,
-          unitCode: true,
-          assignmentRef: true,
-        },
-      },
-      assessments: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: {
-          overallGrade: true,
-          annotatedPdfPath: true,
-          createdAt: true,
-          ...(includeFeedback ? { feedbackText: true } : {}),
-          ...(includeQa ? { resultJson: true } : {}),
-        },
-      },
-      _count: {
-        select: {
-          extractionRuns: true,
-          assessments: true,
-        },
-      },
-      extractionRuns: {
-        orderBy: { startedAt: "desc" },
-        take: 1,
-        select: {
-          status: true,
-          overallConfidence: true,
-          pageCount: true,
-          warnings: true,
-          sourceMeta: true,
-        },
-      },
-    },
+  const where = buildWorkspaceWhere({
+    q,
+    statusFilter,
+    unlinkedOnly: parseBool(searchParams.get("unlinked"), false),
+    timeframe,
   });
+
+  const [totalItems, rows] = await Promise.all([
+    paginate ? prisma.submission.count({ where }) : Promise.resolve(0),
+    prisma.submission.findMany({
+      where,
+      orderBy,
+      ...(paginate ? { skip, take } : {}),
+      select: {
+        id: true,
+        filename: true,
+        uploadedAt: true,
+        status: true,
+        studentId: true,
+        assignmentId: true,
+        student: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            externalRef: true,
+            courseName: true,
+          },
+        },
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            unitCode: true,
+            assignmentRef: true,
+          },
+        },
+        assessments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            overallGrade: true,
+            annotatedPdfPath: true,
+            createdAt: true,
+            ...(includeFeedback ? { feedbackText: true } : {}),
+            ...(includeQa ? { resultJson: true } : {}),
+          },
+        },
+        _count: {
+          select: {
+            extractionRuns: true,
+            assessments: true,
+          },
+        },
+        extractionRuns: {
+          orderBy: { startedAt: "desc" },
+          take: 1,
+          select: {
+            status: true,
+            overallConfidence: true,
+            pageCount: true,
+            warnings: true,
+            sourceMeta: true,
+          },
+        },
+      },
+    }),
+  ]);
 
   const submissions = rows.map((s: any) => {
     const latest = s.assessments?.[0] || null;
@@ -275,5 +441,18 @@ export async function GET(req: Request) {
     };
   });
 
-  return NextResponse.json(submissions);
+  if (!paginate) return NextResponse.json(submissions);
+  const total = totalItems;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  return NextResponse.json({
+    items: submissions,
+    pageInfo: {
+      page,
+      pageSize,
+      totalItems: total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  });
 }

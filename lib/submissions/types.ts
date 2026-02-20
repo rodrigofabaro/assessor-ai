@@ -79,3 +79,15 @@ export type TriageResponse = {
     coverage?: any;
   };
 };
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  pageInfo: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+};

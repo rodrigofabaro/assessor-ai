@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isReadyToUpload } from "@/lib/submissionReady";
 import { jsonFetch } from "./api";
-import type { SubmissionRow } from "./types";
+import type { PaginatedResponse, SubmissionRow } from "./types";
 import { groupByDay } from "./logic";
 
 export type Timeframe = "today" | "week" | "all";
@@ -30,16 +30,34 @@ const LANE_ORDER: LaneMeta[] = [
   { key: "COMPLETED", label: "Completed", description: "Assessment complete and outputs available." },
 ];
 
+const DEFAULT_PAGE_SIZE = 80;
+
+function rankGrade(value: string) {
+  const x = String(value || "").toUpperCase();
+  if (x === "DISTINCTION") return 5;
+  if (x === "MERIT") return 4;
+  if (x === "PASS") return 3;
+  if (x === "PASS_ON_RESUBMISSION") return 2;
+  if (x === "REFER") return 1;
+  return 0;
+}
+
 export function useSubmissionsList() {
   const [items, setItems] = useState<SubmissionRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>("");
   const [msg, setMsg] = useState<string>("");
   const [hydratedFromUrl, setHydratedFromUrl] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const [unlinkedOnly, setUnlinkedOnly] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("all");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
   const [laneFilter, setLaneFilter] = useState<LaneFilter>("ALL");
@@ -47,24 +65,18 @@ export function useSubmissionsList() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [handoffOnly, setHandoffOnly] = useState(false);
   const [qaReviewOnly, setQaReviewOnly] = useState(false);
+  const hasAppliedInitialFilterState = useRef(false);
 
-  async function refresh() {
-    setBusy(true);
-    setErr("");
-    setMsg("");
-    try {
-      const list = await jsonFetch<SubmissionRow[]>("/api/submissions?view=workspace&qa=1&includeFeedback=1", { cache: "no-store" });
-      setItems(Array.isArray(list) ? list : []);
-    } catch (e: any) {
-      setErr(e?.message || String(e));
-    } finally {
-      setBusy(false);
-    }
+  function refresh() {
+    setRefreshNonce((n) => n + 1);
   }
 
   useEffect(() => {
-    refresh();
-  }, []);
+    const t = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [query]);
 
   useEffect(() => {
     if (typeof window === "undefined" || hydratedFromUrl) return;
@@ -82,8 +94,15 @@ export function useSubmissionsList() {
 
     const q = params.get("q");
     const status = params.get("status");
-    if (q !== null) setQuery(q);
+    const pageRaw = Number(params.get("page") || 1);
+    const pageSizeRaw = Number(params.get("pageSize") || DEFAULT_PAGE_SIZE);
+    if (q !== null) {
+      setQuery(q);
+      setDebouncedQuery(q.trim());
+    }
     if (status !== null) setStatusFilter(status);
+    if (Number.isFinite(pageRaw) && pageRaw >= 1) setPage(Math.floor(pageRaw));
+    if (Number.isFinite(pageSizeRaw) && pageSizeRaw >= 10 && pageSizeRaw <= 200) setPageSize(Math.floor(pageSizeRaw));
 
     if (laneRaw === "ALL" || laneRaw === "QA_REVIEW" || laneRaw === "AUTO_READY" || laneRaw === "NEEDS_HUMAN" || laneRaw === "BLOCKED" || laneRaw === "COMPLETED") {
       setLaneFilter(laneRaw as LaneFilter);
@@ -96,6 +115,73 @@ export function useSubmissionsList() {
 
     setHydratedFromUrl(true);
   }, [hydratedFromUrl]);
+
+  useEffect(() => {
+    if (!hydratedFromUrl) return;
+    if (!hasAppliedInitialFilterState.current) {
+      hasAppliedInitialFilterState.current = true;
+      return;
+    }
+    setPage(1);
+  }, [unlinkedOnly, timeframe, statusFilter, debouncedQuery, pageSize, hydratedFromUrl]);
+
+  useEffect(() => {
+    if (!hydratedFromUrl) return;
+    let cancelled = false;
+
+    async function run() {
+      setBusy(true);
+      setErr("");
+      setMsg("");
+      try {
+        const params = new URLSearchParams();
+        params.set("view", "workspace");
+        params.set("qa", "1");
+        params.set("includeFeedback", "1");
+        params.set("paginate", "1");
+        params.set("page", String(page));
+        params.set("pageSize", String(pageSize));
+        params.set("timeframe", timeframe);
+        params.set("sortBy", sortBy);
+        params.set("sortDir", sortDir);
+        if (debouncedQuery) params.set("q", debouncedQuery);
+        if (statusFilter) params.set("status", statusFilter);
+        if (unlinkedOnly) params.set("unlinked", "1");
+        const payload = await jsonFetch<PaginatedResponse<SubmissionRow>>(`/api/submissions?${params.toString()}`, { cache: "no-store" });
+        if (cancelled) return;
+        const nextItems = Array.isArray(payload?.items) ? payload.items : [];
+        setItems(nextItems);
+        const info = payload?.pageInfo || {
+          page,
+          pageSize,
+          totalItems: nextItems.length,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        };
+        setTotalItems(Math.max(0, Number(info.totalItems || 0)));
+        setTotalPages(Math.max(1, Number(info.totalPages || 1)));
+      } catch (e: any) {
+        if (!cancelled) {
+          setItems([]);
+          setTotalItems(0);
+          setTotalPages(1);
+          setErr(e?.message || String(e));
+        }
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydratedFromUrl, page, pageSize, timeframe, sortBy, sortDir, statusFilter, unlinkedOnly, debouncedQuery, refreshNonce]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !hydratedFromUrl) return;
@@ -113,12 +199,28 @@ export function useSubmissionsList() {
     if (timeframe !== "all") params.set("timeframe", timeframe); else params.delete("timeframe");
     if (sortBy !== "uploadedAt") params.set("sortBy", sortBy); else params.delete("sortBy");
     if (sortDir !== "desc") params.set("sortDir", sortDir); else params.delete("sortDir");
+    if (page > 1) params.set("page", String(page)); else params.delete("page");
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize)); else params.delete("pageSize");
 
     const qs = params.toString();
     const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
     const current = `${window.location.pathname}${window.location.search}`;
     if (next !== current) window.history.replaceState({}, "", next);
-  }, [hydratedFromUrl, unlinkedOnly, readyOnly, handoffOnly, qaReviewOnly, query, statusFilter, laneFilter, timeframe, sortBy, sortDir]);
+  }, [
+    hydratedFromUrl,
+    unlinkedOnly,
+    readyOnly,
+    handoffOnly,
+    qaReviewOnly,
+    query,
+    statusFilter,
+    laneFilter,
+    timeframe,
+    sortBy,
+    sortDir,
+    page,
+    pageSize,
+  ]);
 
   const statuses = useMemo(() => {
     const set = new Set<string>();
@@ -128,22 +230,7 @@ export function useSubmissionsList() {
 
   const filtered = useMemo(() => {
     const list = Array.isArray(items) ? items : [];
-    const byLink = unlinkedOnly ? list.filter((s) => !s.studentId) : list;
-
-    const q = (query || "").trim().toLowerCase();
-    const byQuery = q
-      ? byLink.filter((s) => {
-          const hay = [s.filename, s.student?.fullName, s.student?.email, s.student?.externalRef, s.assignment?.title]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return hay.includes(q);
-        })
-      : byLink;
-
-    const byStatus = statusFilter ? byQuery.filter((s) => String(s.status) === statusFilter) : byQuery;
-
-    const byReady = readyOnly ? byStatus.filter((s) => isReadyToUpload(s)) : byStatus;
+    const byReady = readyOnly ? list.filter((s) => isReadyToUpload(s)) : list;
 
     const byLane =
       laneFilter === "ALL"
@@ -171,46 +258,15 @@ export function useSubmissionsList() {
         return av.localeCompare(bv) * dir;
       }
       if (sortBy === "grade") {
-        const rank = (v: string) => {
-          const x = String(v || "").toUpperCase();
-          if (x === "DISTINCTION") return 5;
-          if (x === "MERIT") return 4;
-          if (x === "PASS") return 3;
-          if (x === "PASS_ON_RESUBMISSION") return 2;
-          if (x === "REFER") return 1;
-          return 0;
-        };
-        return (rank(String(a.grade || a.overallGrade || "")) - rank(String(b.grade || b.overallGrade || ""))) * dir;
+        return (rankGrade(String(a.grade || a.overallGrade || "")) - rankGrade(String(b.grade || b.overallGrade || ""))) * dir;
       }
       const at = new Date(a.uploadedAt).getTime() || 0;
       const bt = new Date(b.uploadedAt).getTime() || 0;
       return (at - bt) * dir;
     });
 
-    if (timeframe === "all") return sorted;
-
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const endOfToday = startOfToday + 24 * 60 * 60 * 1000;
-
-    if (timeframe === "today") {
-      return sorted.filter((s) => {
-        const t = new Date(s.uploadedAt).getTime();
-        return !Number.isNaN(t) && t >= startOfToday && t < endOfToday;
-      });
-    }
-
-    // "This week" = week starting Monday.
-    const day = now.getDay(); // 0=Sun
-    const offsetToMonday = (day + 6) % 7;
-    const startOfWeek = startOfToday - offsetToMonday * 24 * 60 * 60 * 1000;
-    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000;
-
-    return sorted.filter((s) => {
-      const t = new Date(s.uploadedAt).getTime();
-      return !Number.isNaN(t) && t >= startOfWeek && t < endOfWeek;
-    });
-  }, [items, unlinkedOnly, timeframe, query, statusFilter, readyOnly, laneFilter, sortBy, sortDir, handoffOnly, qaReviewOnly]);
+    return sorted;
+  }, [items, readyOnly, laneFilter, handoffOnly, qaReviewOnly, sortBy, sortDir]);
 
   const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
 
@@ -266,6 +322,13 @@ export function useSubmissionsList() {
     setQaReviewOnly,
     readyOnly,
     setReadyOnly,
+
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
 
     statuses,
     filtered,
