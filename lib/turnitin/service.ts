@@ -111,6 +111,55 @@ function sanitizeScore(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+function sanitizeAiPercent(value: unknown) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const normalized = n > 0 && n <= 1 ? n * 100 : n;
+  return Math.max(0, Math.min(100, Math.round(normalized)));
+}
+
+function findAiPercentCandidate(payload: unknown, depth = 0): number | null {
+  if (depth > 4 || payload === null || payload === undefined) return null;
+  if (typeof payload === "number") return sanitizeAiPercent(payload);
+  if (typeof payload !== "object") return null;
+
+  const rec = payload as Record<string, unknown>;
+  const directCandidates = [
+    rec.ai_writing_percentage,
+    rec.ai_generated_percentage,
+    rec.ai_score,
+    rec.aiw_score,
+    (rec.ai_writing as Record<string, unknown> | undefined)?.percentage,
+    (rec.ai_writing as Record<string, unknown> | undefined)?.score,
+    (rec.ai_report as Record<string, unknown> | undefined)?.percentage,
+    (rec.ai_report as Record<string, unknown> | undefined)?.score,
+  ];
+  for (const candidate of directCandidates) {
+    const parsed = sanitizeAiPercent(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  for (const [key, value] of Object.entries(rec)) {
+    const normalizedKey = String(key || "").trim().toLowerCase();
+    const keyLooksAi = normalizedKey.includes("ai");
+    const keyLooksScore =
+      normalizedKey.includes("percent") ||
+      normalizedKey.includes("percentage") ||
+      normalizedKey.includes("score") ||
+      normalizedKey.includes("prob");
+    if (keyLooksAi && keyLooksScore) {
+      const parsed = sanitizeAiPercent(value);
+      if (parsed !== null) return parsed;
+    }
+    if (value && typeof value === "object") {
+      const nested = findAiPercentCandidate(value, depth + 1);
+      if (nested !== null) return nested;
+    }
+  }
+
+  return null;
+}
+
 function withStateUpdate(
   submissionId: string,
   patch: Partial<TurnitinSubmissionState>
@@ -124,6 +173,7 @@ export function readTurnitinCapability() {
     enabled: cfg.enabled,
     qaOnly: cfg.qaOnly,
     autoSendOnExtract: cfg.autoSendOnExtract,
+    autoDetectAiWritingOnGrade: cfg.autoDetectAiWritingOnGrade,
     configured: Boolean(cfg.apiKey),
     apiKeySource: cfg.apiKeySource,
     baseUrl: cfg.baseUrl,
@@ -208,6 +258,7 @@ export async function refreshTurnitinSubmission(submissionId: string) {
     const next: Partial<TurnitinSubmissionState> = {
       turnitinSubmissionId,
       status,
+      aiWritingPercentage: findAiPercentCandidate(similarity),
       overallMatchPercentage: sanitizeScore(similarity?.overall_match_percentage),
       internetMatchPercentage: sanitizeScore(similarity?.internet_match_percentage),
       publicationMatchPercentage: sanitizeScore(similarity?.publication_match_percentage),
@@ -286,4 +337,20 @@ export async function maybeAutoSendTurnitinForSubmission(submissionId: string) {
   const existing = getTurnitinSubmissionState(submissionId);
   if (existing?.turnitinSubmissionId) return existing;
   return sendSubmissionToTurnitin(submissionId);
+}
+
+export async function maybeAutoDetectAiWritingForSubmission(submissionId: string) {
+  const cfg = resolveTurnitinRuntimeConfig();
+  if (!cfg.enabled || !cfg.autoDetectAiWritingOnGrade) return null;
+  if (cfg.qaOnly && !isQaLikeStage()) return null;
+  try {
+    return await syncTurnitinSubmission(submissionId);
+  } catch (error) {
+    const existing = getTurnitinSubmissionState(submissionId);
+    return withStateUpdate(submissionId, {
+      status: existing?.status || "FAILED",
+      turnitinSubmissionId: existing?.turnitinSubmissionId || null,
+      lastError: toErrorMessage(error),
+    });
+  }
 }

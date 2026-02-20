@@ -212,8 +212,13 @@ export async function getTurnitinSimilarity(input: {
     internet_match_percentage?: number;
     publication_match_percentage?: number;
     submitted_works_match_percentage?: number;
+    ai_writing_percentage?: number;
+    ai_generated_percentage?: number;
+    ai_score?: number;
+    aiw_score?: number;
     time_requested?: string;
     time_generated?: string;
+    [key: string]: unknown;
   }>(input.cfg, `/submissions/${input.turnitinSubmissionId}/similarity`, { method: "GET" });
 }
 

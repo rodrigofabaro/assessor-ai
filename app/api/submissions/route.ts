@@ -419,6 +419,7 @@ export async function GET(req: Request) {
       },
     }),
   ]);
+  const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
 
   const submissions = rows.map((s: any) => {
     const latest = s.assessments?.[0] || null;
@@ -477,6 +478,7 @@ export async function GET(req: Request) {
       automationRecommendedAction: automation.recommendedAction,
       extractionQuality,
       qaFlags,
+      turnitin: turnitinStateBySubmissionId[s.id] || null,
     };
   });
 

@@ -193,6 +193,7 @@ type TurnitinConfigPayload = {
   enabled: boolean;
   qaOnly: boolean;
   autoSendOnExtract: boolean;
+  autoDetectAiWritingOnGrade: boolean;
   baseUrl: string;
   ownerUserId: string;
   viewerUserId: string;
@@ -844,6 +845,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           enabled: !!turnitinCfg.enabled,
           qaOnly: !!turnitinCfg.qaOnly,
           autoSendOnExtract: !!turnitinCfg.autoSendOnExtract,
+          autoDetectAiWritingOnGrade: !!turnitinCfg.autoDetectAiWritingOnGrade,
           baseUrl: turnitinCfg.baseUrl,
           ownerUserId: turnitinCfg.ownerUserId,
           viewerUserId: turnitinCfg.viewerUserId,
@@ -1952,6 +1954,16 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                   className="h-4 w-4 rounded border-zinc-300"
                 />
                 Auto-send after extraction
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={!!turnitinCfg.autoDetectAiWritingOnGrade}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, autoDetectAiWritingOnGrade: e.target.checked } : v))}
+                  disabled={!canWriteSensitive}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                Auto-refresh AI writing score after grading
               </label>
             </div>
 

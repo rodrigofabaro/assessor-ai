@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LANE } from "@/components/PageContainer";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 type MainItem = { label: string; href: string };
 type AdminItem = { label: string; href: string; accent: string };
@@ -19,10 +20,14 @@ const ADMIN_ITEMS: AdminItem[] = [
   { label: "Briefs", href: "/admin/briefs", accent: "emerald" },
   { label: "Library", href: "/admin/library", accent: "teal" },
   { label: "QA", href: "/admin/qa", accent: "indigo" },
-  { label: "Settings", href: "/admin/settings", accent: "slate" },
   { label: "Specs", href: "/admin/specs", accent: "cyan" },
   { label: "Students", href: "/admin/students", accent: "violet" },
 ];
+const ADMIN_SETTINGS_ITEM: AdminItem = {
+  label: "Settings",
+  href: "/admin/settings",
+  accent: "slate",
+};
 
 function accentClasses(accent: string) {
   switch (accent) {
@@ -141,6 +146,21 @@ export default function TopNav() {
                   </Link>
                 );
               })}
+              <Link
+                href={ADMIN_SETTINGS_ITEM.href}
+                aria-current={isAdminItemActive(pathname, ADMIN_SETTINGS_ITEM.href) ? "page" : undefined}
+                aria-label="Settings"
+                title="Settings"
+                className={
+                  "ml-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1 " +
+                  (isAdminItemActive(pathname, ADMIN_SETTINGS_ITEM.href)
+                    ? accentClasses(ADMIN_SETTINGS_ITEM.accent)
+                    : "border-transparent text-zinc-600 hover:bg-white hover:text-zinc-900")
+                }
+              >
+                <TinyIcon name="settings" className="h-3.5 w-3.5" />
+                <span className="sr-only">Settings</span>
+              </Link>
             </nav>
           ) : null}
         </div>
@@ -183,6 +203,21 @@ export default function TopNav() {
                 </Link>
               );
             })}
+            <Link
+              href={ADMIN_SETTINGS_ITEM.href}
+              aria-current={isAdminItemActive(pathname, ADMIN_SETTINGS_ITEM.href) ? "page" : undefined}
+              aria-label="Settings"
+              title="Settings"
+              className={
+                "ml-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1 " +
+                (isAdminItemActive(pathname, ADMIN_SETTINGS_ITEM.href)
+                  ? accentClasses(ADMIN_SETTINGS_ITEM.accent)
+                  : "border-transparent text-zinc-600 hover:bg-white hover:text-zinc-900")
+              }
+            >
+              <TinyIcon name="settings" className="h-3.5 w-3.5" />
+              <span className="sr-only">Settings</span>
+            </Link>
           </nav>
         </div>
       ) : null}

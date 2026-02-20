@@ -13,6 +13,7 @@ export type TurnitinSubmissionState = {
   submissionId: string;
   turnitinSubmissionId: string | null;
   status: TurnitinSubmissionStatus;
+  aiWritingPercentage: number | null;
   overallMatchPercentage: number | null;
   internetMatchPercentage: number | null;
   publicationMatchPercentage: number | null;
@@ -44,6 +45,7 @@ function makeDefault(submissionId: string): TurnitinSubmissionState {
     submissionId,
     turnitinSubmissionId: null,
     status: "NOT_SENT",
+    aiWritingPercentage: null,
     overallMatchPercentage: null,
     internetMatchPercentage: null,
     publicationMatchPercentage: null,
@@ -64,6 +66,7 @@ function normalizeOne(submissionId: string, value: Partial<TurnitinSubmissionSta
     submissionId,
     turnitinSubmissionId: String(value.turnitinSubmissionId || "").trim() || null,
     status: normalizeStatus(value.status),
+    aiWritingPercentage: toFiniteNumber(value.aiWritingPercentage),
     overallMatchPercentage: toFiniteNumber(value.overallMatchPercentage),
     internetMatchPercentage: toFiniteNumber(value.internetMatchPercentage),
     publicationMatchPercentage: toFiniteNumber(value.publicationMatchPercentage),
