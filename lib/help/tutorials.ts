@@ -153,6 +153,179 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
       },
     ],
   },
+  "operations-playbook": {
+    audience: "Operations leads, assessors, and QA reviewers",
+    purpose: "Run the end-to-end grading pipeline consistently from settings and references through upload, grading, QA, and audit.",
+    howItWorks: [
+      "Starts with locked reference truth (spec + brief + criteria mapping).",
+      "Moves each submission through extraction readiness, preview, commit, and feedback checks.",
+      "Closes with QA flags, override analytics, and audit trace verification.",
+    ],
+    whyItMatters: [
+      "Ensures grading quality is repeatable across all briefs.",
+      "Turns assessor disagreement into structured improvement signals instead of ad-hoc rework.",
+    ],
+    preflight: [
+      "Confirm active audit user and grading defaults in Admin Settings.",
+      "Confirm spec/brief/rubric are extracted and locked for the target assignment.",
+      "Confirm assignment binding points to the intended locked brief version.",
+    ],
+    steps: [
+      {
+        id: "configure-governance",
+        title: "Set governance defaults",
+        what: "Use Admin Settings to set model, policy, and release labels before running volume.",
+        how: [
+          "Confirm active audit user.",
+          "Set tone, strictness, rubric usage, and page-note behavior.",
+          "Confirm global contradiction guard and confidence policy defaults.",
+        ],
+        why: "Stable defaults reduce run-to-run drift and simplify QA interpretation.",
+        checks: [
+          "Footer shows intended stable candidate version label.",
+          "No unreviewed high-impact setting changes pending.",
+        ],
+      },
+      {
+        id: "lock-references",
+        title: "Lock references and binding",
+        what: "Ensure specs, briefs, rubric support material, and assignment bindings are production-ready.",
+        how: [
+          "Verify spec extraction and lock status.",
+          "Verify brief extraction, criteria scope, and exclusions.",
+          "Verify assignment-to-brief binding is correct for the unit/AB.",
+        ],
+        why: "Wrong reference context causes systemic grading errors regardless of model quality.",
+        checks: [
+          "Brief and spec are LOCKED.",
+          "Mapped criteria and expected criteria match.",
+        ],
+      },
+      {
+        id: "upload-and-triage",
+        title: "Upload and triage submissions",
+        what: "Upload files, link student/assignment as needed, and confirm extraction readiness.",
+        how: [
+          "Upload batch in controlled size.",
+          "Resolve unlinked student or assignment rows first.",
+          "Run extraction and verify quality signals before grading preview.",
+        ],
+        why: "Good intake quality lowers manual regrade and failed-run volume.",
+        checks: [
+          "Submission has student and assignment linked.",
+          "Extraction gate is acceptable for preview.",
+        ],
+      },
+      {
+        id: "preview-and-commit",
+        title: "Preview then commit grading",
+        what: "Use preview to inspect criterion decisions and confidence, then commit only when ready.",
+        how: [
+          "Run preview and inspect criterion decisions + evidence pages.",
+          "Review cap reasons and confidence decomposition.",
+          "Commit grade and verify latest run is selected.",
+        ],
+        why: "Preview/commit discipline prevents stale or unsupported outcomes entering final output.",
+        checks: [
+          "Final grade aligns with criterion decisions and policy caps.",
+          "Marked PDF regenerated for committed run.",
+        ],
+      },
+      {
+        id: "assessor-overrides",
+        title: "Capture assessor overrides",
+        what: "When assessor judgement disagrees with model decisions, use criterion override controls.",
+        how: [
+          "Set final decision, reason code, and optional note per criterion.",
+          "Apply override and verify recomputed final grade.",
+          "If needed, reset criterion back to model decision.",
+        ],
+        why: "Structured overrides preserve fairness and create data for hardening rules.",
+        checks: [
+          "Override badge is visible on changed criteria.",
+          "Result stores override metadata (reason + actor + timestamp).",
+        ],
+      },
+      {
+        id: "qa-and-audit-close",
+        title: "Run QA and audit close-out",
+        what: "Use QA analytics and audit logs to validate quality before release.",
+        how: [
+          "Check QA Flags and Assessor Override Breakdown card.",
+          "Review hotspots by reason code, criterion, and unit/AB.",
+          "Confirm audit event trail for the final run.",
+        ],
+        why: "Final release confidence comes from evidence-backed QA and traceability, not grade output alone.",
+        checks: [
+          "High-risk QA flags reviewed and resolved or accepted with rationale.",
+          "Audit chain can explain who changed what and why.",
+        ],
+      },
+    ],
+    issues: [
+      {
+        issue: "Preview and selected run show different grades",
+        cause: "Historical run is selected in workspace.",
+        fix: "Select latest run and refresh after commit.",
+      },
+      {
+        issue: "Assessor override applied but impact unclear",
+        cause: "Override reason/note missing or run context not refreshed.",
+        fix: "Re-open latest run, confirm override badge, and inspect updated grade policy block.",
+      },
+      {
+        issue: "Frequent overrides cluster on same criteria",
+        cause: "Prompt/rule/rubric guidance mismatch.",
+        fix: "Use QA breakdown hotspots to prioritize next hardening changes.",
+      },
+    ],
+    screenshots: [
+      {
+        title: "Queue operations baseline",
+        caption: "Submissions workspace with lane and readiness context before grading.",
+        src: "/help/screenshots/operations-playbook-queue.png",
+      },
+      {
+        title: "Submissions list and filtering",
+        caption: "Filter and triage controls used before preview/commit runs.",
+        src: "/help/screenshots/operations-playbook-submissions-list.png",
+      },
+      {
+        title: "Submission detail criterion decisions",
+        caption: "Criterion decisions and assessor override controls on a live run.",
+        src: "/help/screenshots/operations-playbook-submission-detail.png",
+      },
+    ],
+    successCriteria: [
+      "Each run is traceable from settings/reference context through final grade and feedback.",
+      "Override-heavy criteria are visible in QA and tracked for hardening actions.",
+      "Release decisions are based on QA signals and audit evidence, not grade output alone.",
+    ],
+    decisionGuide: [
+      {
+        if: "QA shows repeated overrides for the same criterion across briefs",
+        then: "Prioritize guard/prompt/rubric improvements for that criterion family first.",
+        because: "High-frequency disagreement is the strongest reliability signal.",
+      },
+      {
+        if: "Confidence is high but assessor disagrees often",
+        then: "Treat as calibration defect and tune decision rules, not just confidence thresholds.",
+        because: "Confidence can be internally consistent while still aligned to the wrong rubric interpretation.",
+      },
+    ],
+    commonMistakes: [
+      {
+        mistake: "Skipping preview and committing directly under pressure.",
+        risk: "Incorrect grades and avoidable regrade load.",
+        correct: "Always run preview first for new or recently changed contexts.",
+      },
+      {
+        mistake: "Treating assessor overrides as one-off fixes.",
+        risk: "The same disagreement repeats in future cohorts.",
+        correct: "Feed override hotspots into regular hardening updates.",
+      },
+    ],
+  },
   "submissions-list": {
     audience: "Daily queue operators",
     purpose: "Control queue flow across Blocked, Needs Human, QA, Auto-ready, and Completed lanes.",

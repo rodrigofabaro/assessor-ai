@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { safeJson, cx } from "@/lib/upload/utils";
@@ -105,6 +106,15 @@ export function UploadPageClient() {
                 Auto extract enabled
               </span>
             </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/help/operations-playbook"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+            >
+              <TinyIcon name="workflow" className="h-3.5 w-3.5" />
+              Open Operations Playbook
+            </Link>
           </div>
         </div>
       </section>

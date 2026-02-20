@@ -1,12 +1,13 @@
 # Help Center Index
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 This folder contains route-by-route operator help.
 
 ## High Priority Guides
 
 - `docs/help/submissions-support.md` - daily queue tutorial with screenshot slots
+- `docs/help/operations-playbook.md` - end-to-end operating runbook with local screenshot set
 - `docs/help/submissions-onboarding.md` - first-run onboarding checklist
 - `docs/help/submission-detail.md` - grading workspace guide
 - `docs/help/admin-briefs.md` - brief extraction, mapping, lock controls
