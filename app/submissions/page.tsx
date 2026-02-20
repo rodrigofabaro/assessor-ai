@@ -399,10 +399,10 @@ export default function SubmissionsPage() {
           </div>
           <a
             href="/upload"
-            className="inline-flex h-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-700 px-3 text-[11px] font-semibold text-white hover:bg-sky-800"
-            title="Upload evidence"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-sky-700 px-3 text-[11px] font-semibold text-white hover:bg-sky-800"
+            title="Upload assignment"
           >
-            Upload evidence
+            ⬆ Upload assignment
           </a>
         </div>
 
