@@ -122,6 +122,13 @@ type StudentSearchResult = {
   externalRef?: string | null;
 };
 
+type AssignmentOption = {
+  id: string;
+  unitCode: string;
+  assignmentRef?: string | null;
+  title: string;
+};
+
 type AssessmentRequirement = {
   task?: string;
   section?: string;
@@ -199,6 +206,9 @@ export default function SubmissionDetailPage() {
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
+  const [assignmentBusy, setAssignmentBusy] = useState(false);
+  const [assignmentOptions, setAssignmentOptions] = useState<AssignmentOption[]>([]);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
   const [coverEditBusy, setCoverEditBusy] = useState(false);
   const [coverSaveState, setCoverSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [pdfView, setPdfView] = useState<"original" | "marked">("original");
@@ -207,6 +217,7 @@ export default function SubmissionDetailPage() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [pdfViewport, setPdfViewport] = useState<"compact" | "comfort" | "full">("comfort");
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
+  const [expandedFeedbackHistory, setExpandedFeedbackHistory] = useState<Record<string, boolean>>({});
   const [feedbackEditorBusy, setFeedbackEditorBusy] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState("");
   const [feedbackStudentName, setFeedbackStudentName] = useState("");
@@ -281,6 +292,7 @@ export default function SubmissionDetailPage() {
         grade: a.overallGrade || "—",
         when: safeDate(a.createdAt),
         summary: summarizeFeedbackText(String(a.feedbackText || ""), 150) || "No feedback text.",
+        fullText: String(a.feedbackText || "").trim(),
       })),
     [gradingHistory]
   );
@@ -686,6 +698,26 @@ export default function SubmissionDetailPage() {
   }, []);
 
   useEffect(() => {
+    let alive = true;
+    async function loadAssignments() {
+      try {
+        const list = await jsonFetch<AssignmentOption[]>("/api/assignments", { cache: "no-store" });
+        if (alive) setAssignmentOptions(Array.isArray(list) ? list : []);
+      } catch {
+        if (alive) setAssignmentOptions([]);
+      }
+    }
+    loadAssignments();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setSelectedAssignmentId(String(submission?.assignment?.id || ""));
+  }, [submission?.assignment?.id]);
+
+  useEffect(() => {
     if (!submissionId) return;
     if (!submission) return;
     const hasRun = (submission.extractionRuns?.length ?? 0) > 0;
@@ -751,6 +783,8 @@ export default function SubmissionDetailPage() {
         setLastActionNote(`Preview generated at ${new Date().toLocaleString()}`);
       } else {
         setGradingPreview(null);
+        // Always switch editor/view back to latest run after commit.
+        setSelectedAssessmentId("");
         await refresh();
         setMsg(`Grading complete: ${String(res?.assessment?.overallGrade || "done")}`);
         notifyToast("success", "Grading complete.");
@@ -839,6 +873,28 @@ export default function SubmissionDetailPage() {
       clearTimeout(t);
     };
   }, [studentQuery]);
+
+  async function linkAssignment(assignmentId: string | null) {
+    if (!submissionId) return;
+    setAssignmentBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const nextAssignmentId = String(assignmentId || "").trim();
+      await jsonFetch(`/api/submissions/${submissionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId: nextAssignmentId || null }),
+      });
+      await jsonFetch(`/api/submissions/${submissionId}/triage`, { method: "POST" }).catch(() => null);
+      await refresh();
+      setMsg(nextAssignmentId ? "Assignment linked." : "Assignment cleared.");
+    } catch (e: any) {
+      setErr(e?.message || "Assignment update failed.");
+    } finally {
+      setAssignmentBusy(false);
+    }
+  }
 
   async function linkStudent(studentId: string) {
     if (!studentId) return;
@@ -1506,6 +1562,43 @@ export default function SubmissionDetailPage() {
                 {item.actionable ? <span className="text-sky-700">•</span> : null}
               </div>
               <div className="truncate text-[12px] font-semibold text-zinc-900">{item.value}</div>
+              {item.key === "assignment" && !submission?.assignment ? (
+                <div className="mt-1.5 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <select
+                    value={selectedAssignmentId}
+                    onChange={(e) => setSelectedAssignmentId(e.target.value)}
+                    disabled={assignmentBusy || !assignmentOptions.length}
+                    className="h-7 min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-1.5 text-[11px] text-zinc-900"
+                    title="Select assignment"
+                  >
+                    <option value="">
+                      {assignmentOptions.length ? "Select assignment..." : "No assignments available"}
+                    </option>
+                    {assignmentOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {`${opt.unitCode} ${opt.assignmentRef || ""}`.trim()} - {opt.title}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void linkAssignment(selectedAssignmentId || null);
+                    }}
+                    disabled={!selectedAssignmentId || assignmentBusy}
+                    className={cx(
+                      "h-7 shrink-0 rounded-md px-2 text-[11px] font-semibold",
+                      !selectedAssignmentId || assignmentBusy
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                        : "bg-sky-700 text-white hover:bg-sky-800"
+                    )}
+                    title="Link selected assignment"
+                  >
+                    {assignmentBusy ? "Linking..." : "Link"}
+                  </button>
+                </div>
+              ) : null}
             </button>
           ))}
         </div>
@@ -1579,26 +1672,6 @@ export default function SubmissionDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {notePages.length ? (
-                  <div className="hidden items-center gap-1 md:flex">
-                    <span className="text-[11px] text-zinc-500">Notes:</span>
-                    {notePages.slice(0, 8).map((p) => (
-                      <button
-                        key={`np-${p}`}
-                        type="button"
-                        onClick={() => setPdfJumpPage(p)}
-                        className={cx(
-                          "inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold",
-                          pdfJumpPage === p
-                            ? "border-sky-300 bg-sky-50 text-sky-900"
-                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                        )}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
                 <label className="text-xs text-zinc-500">
                   Viewport
                   <select
@@ -1617,7 +1690,7 @@ export default function SubmissionDetailPage() {
               </div>
             </div>
 
-            <div className={`${pdfViewportClass} w-full bg-zinc-50`}>
+            <div className={`${pdfViewportClass} relative w-full bg-zinc-50`}>
               {/* PDF render (works for scanned + digital PDFs) */}
               {submissionId ? (
                 <iframe
@@ -1628,6 +1701,32 @@ export default function SubmissionDetailPage() {
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-zinc-600">Loading…</div>
               )}
+              <div className="pointer-events-none absolute bottom-2 right-2 z-20">
+                <div className="pointer-events-auto rounded-lg border border-zinc-200 bg-white/95 p-1 shadow-sm backdrop-blur">
+                  <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Notes</div>
+                  {notePages.length ? (
+                    <div className="flex max-w-[220px] flex-wrap gap-1">
+                      {notePages.slice(0, 8).map((p) => (
+                        <button
+                          key={`np-${p}`}
+                          type="button"
+                          onClick={() => setPdfJumpPage(p)}
+                          className={cx(
+                            "inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold",
+                            pdfJumpPage === p
+                              ? "border-sky-300 bg-sky-50 text-sky-900"
+                              : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-1 pb-0.5 text-[10px] text-zinc-500">No page notes yet</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2599,10 +2698,26 @@ export default function SubmissionDetailPage() {
                   <div className="mt-2 space-y-2">
                     {feedbackHistory.map((row) => (
                       <div key={`fb-${row.id}`} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
-                        <div className="text-[11px] font-semibold text-zinc-800">
-                          {row.index === 0 ? "Latest" : `Run ${feedbackHistory.length - row.index}`} · {row.grade} · {row.when}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] font-semibold text-zinc-800">
+                            {row.index === 0 ? "Latest" : `Run ${feedbackHistory.length - row.index}`} · {row.grade} · {row.when}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedFeedbackHistory((prev) => ({
+                                ...prev,
+                                [row.id]: !prev[row.id],
+                              }))
+                            }
+                            className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                          >
+                            {expandedFeedbackHistory[row.id] ? "Collapse" : "Expand"}
+                          </button>
                         </div>
-                        <div className="mt-1 text-xs text-zinc-700">{row.summary}</div>
+                        <div className="mt-1 text-xs text-zinc-700">
+                          {expandedFeedbackHistory[row.id] ? row.fullText || "No feedback text." : row.summary}
+                        </div>
                       </div>
                     ))}
                   </div>

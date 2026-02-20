@@ -3,12 +3,14 @@
   "tone": "professional",
   "strictness": "balanced",
   "useRubricIfAvailable": true,
+  "studentSafeMarkedPdf": true,
   "maxFeedbackBullets": 6,
-  "feedbackTemplate": "Hello {studentFirstName},\n\n{feedbackSummary}\n\n{feedbackBullets}\n\nFinal grade: {overallGrade}\n\nAssessor: {assessorName}\nDate: {date}",
+  "feedbackTemplate": "Hello {studentFirstName},\n\n{feedbackSummary}\n\n{feedbackBullets}\n\n{higherGradeGuidance}\n\nFinal grade: {overallGrade}",
+  "feedbackTemplateByUserId": {},
   "pageNotesEnabled": true,
   "pageNotesTone": "professional",
   "pageNotesMaxPages": 6,
   "pageNotesMaxLinesPerPage": 3,
   "pageNotesIncludeCriterionCode": true,
-  "updatedAt": "2026-02-18T13:48:26.3131822Z"
+  "updatedAt": "2026-02-20T11:14:38.957Z"
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { FEEDBACK_TEMPLATE_ALL_TOKENS, FEEDBACK_TEMPLATE_REQUIRED_TOKENS } from "@/lib/grading/feedbackDocument";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 type EndpointOkUsage = {
   available: true;
@@ -764,6 +765,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">
+              <TinyIcon name="settings" />
               System Configuration
             </div>
             <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Settings</h1>
@@ -772,12 +774,14 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={load}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               disabled={loading}
             >
+              <TinyIcon name="refresh" className="h-3.5 w-3.5" />
               {loading ? "Refreshing..." : "Refresh"}
             </button>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              <TinyIcon name="status" className="mr-1 h-3 w-3" />
               {loading ? "Loading..." : "Ready"}
             </span>
           </div>
@@ -910,7 +914,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       <section id="ai-usage" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5 scroll-mt-20">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-900">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-900">⚙️</span>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-900">
+              <TinyIcon name="settings" className="h-3.5 w-3.5" />
+            </span>
             OpenAI key
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{data?.configured ? "Configured" : "Not configured"}</div>
@@ -920,7 +926,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-900">🔌</span>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-900">
+              <TinyIcon name="ai" className="h-3.5 w-3.5" />
+            </span>
             API connection
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">
@@ -933,7 +941,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-900">🧮</span>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-900">
+              <TinyIcon name="grading" className="h-3.5 w-3.5" />
+            </span>
             Token usage
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{effectiveUsageTotal}</div>
@@ -943,7 +953,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-950">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-950">💳</span>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-950">
+              <TinyIcon name="cost" className="h-3.5 w-3.5" />
+            </span>
             Spend / cost
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{costTotal}</div>
@@ -955,7 +967,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-900">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-violet-900">🦙</span>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-violet-900">
+              <TinyIcon name="local" className="h-3.5 w-3.5" />
+            </span>
             Llama / Local AI
           </div>
           <div className="mt-3 text-lg font-semibold text-zinc-900">{localAiLabel}</div>

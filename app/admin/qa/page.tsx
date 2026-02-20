@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 const GRADE_BANDS = ["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION"] as const;
 type GradeBand = (typeof GRADE_BANDS)[number];
@@ -223,6 +224,7 @@ export default function AdminQaPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-900">
+              <TinyIcon name="qa" />
               QA Analytics
             </div>
             <h1 className="text-sm font-semibold tracking-tight text-zinc-900">QA Research</h1>
@@ -231,6 +233,7 @@ export default function AdminQaPage() {
             </p>
           </div>
           <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+            <TinyIcon name="status" className="mr-1 h-3 w-3" />
             {busy ? "Loading..." : "Ready"}
           </span>
         </div>
@@ -242,7 +245,7 @@ export default function AdminQaPage() {
           <select value={assignment} onChange={(e) => setAssignment(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{optionList.assignments.map((v) => <option key={v} value={v}>AB: {v}</option>)}</select>
           <select value={grade} onChange={(e) => setGrade(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{["ALL", ...GRADE_BANDS, "UNGRADED"].map((v) => <option key={v} value={v}>Grade: {v}</option>)}</select>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{optionList.statuses.map((v) => <option key={v} value={v}>Status: {v}</option>)}</select>
-          <button type="button" onClick={load} className="h-10 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800">Refresh</button>
+          <button type="button" onClick={load} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800"><TinyIcon name="refresh" className="h-3.5 w-3.5" />Refresh</button>
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
@@ -263,10 +266,12 @@ export default function AdminQaPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={exportFiltered} className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
+          <button type="button" onClick={exportFiltered} className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
+            <TinyIcon name="submissions" className="h-3 w-3" />
             Export filtered report
           </button>
-          <Link href="/admin/audit" className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
+          <Link href="/admin/audit" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
+            <TinyIcon name="audit" className="h-3 w-3" />
             Open audit log
           </Link>
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 
 type StudentSummary = {
@@ -145,7 +146,10 @@ export default async function StudentPage({
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Student profile</div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <TinyIcon name="users" className="h-3 w-3" />
+                Student profile
+              </div>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">{student.fullName ?? "Unnamed student"}</h1>
               <div className="mt-1 break-all text-sm text-zinc-700">
                 <span>ID: {student.id}</span>
@@ -157,21 +161,24 @@ export default async function StudentPage({
 
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               <Link
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800 sm:flex-none"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800 sm:flex-none"
                 href={`/submissions/new?studentId=${encodeURIComponent(student.id)}`}
               >
+                <TinyIcon name="upload" className="h-3.5 w-3.5" />
                 Upload submission
               </Link>
               <Link
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:flex-none"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:flex-none"
                 href={`/submissions?studentId=${encodeURIComponent(student.id)}`}
               >
+                <TinyIcon name="submissions" className="h-3.5 w-3.5" />
                 All submissions
               </Link>
               <Link
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:flex-none"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 sm:flex-none"
                 href="/admin/students"
               >
+                <TinyIcon name="users" className="h-3.5 w-3.5" />
                 Manage student
               </Link>
             </div>

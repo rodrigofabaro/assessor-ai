@@ -221,7 +221,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     const mappedPageIndex = pageNo - 1 + summaryPageOffset;
     if (mappedPageIndex < 0 || mappedPageIndex >= pages.length) continue;
     const page = pages[mappedPageIndex];
-    const { width: pw, height: ph } = page.getSize();
+    const { width: pw } = page.getSize();
     const lines = (Array.isArray(note?.lines) ? note.lines : [])
       .map((l) => sanitizeRenderableText(l))
       .filter(Boolean)
@@ -234,7 +234,8 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     const wrappedRows = wrapped.reduce((sum, rows) => sum + Math.max(1, rows.length), 0);
     const noteH = 18 + wrappedRows * noteLineH + 10;
     const nx = pw - noteW - margin;
-    const ny = Math.max(margin, (ph - noteH) / 2);
+    // Keep page notes consistently in the bottom-right corner.
+    const ny = margin;
     page.drawRectangle({
       x: nx,
       y: ny,

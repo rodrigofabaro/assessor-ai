@@ -10,6 +10,7 @@ import { AssignmentPicker } from "@/components/upload/AssignmentPicker";
 import { FilePicker } from "@/components/upload/FilePicker";
 import { AddStudentModal } from "@/components/upload/AddStudentModal";
 import { UploadActions } from "@/components/upload/UploadActions";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 type UploadResponse = {
   submissions?: unknown[];
@@ -87,6 +88,7 @@ export function UploadPageClient() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">
+              <TinyIcon name="workflow" />
               Workflow Operations
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Upload Student Work</h1>
@@ -98,7 +100,10 @@ export function UploadPageClient() {
                 Batch: {files.length} file{files.length === 1 ? "" : "s"}
               </span>
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 font-semibold text-zinc-700">Size: {totalMb} MB</span>
-              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 font-semibold text-sky-800">Auto extract enabled</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 font-semibold text-sky-800">
+                <TinyIcon name="status" className="h-3 w-3" />
+                Auto extract enabled
+              </span>
             </div>
           </div>
         </div>

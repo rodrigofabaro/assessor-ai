@@ -29,6 +29,8 @@ function sanitizeStudentNoteText(v: string) {
     .replace(/\badd\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\binsert\s+text\b/gi, "")
     .replace(/\bclick\s+to\s+add\s+text\b/gi, "")
+    .replace(/\(\s*\.{2,}\s*\)/g, "")
+    .replace(/\.{3,}/g, ".")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+([,.;:!?])/g, "$1")
     .trim();
@@ -45,23 +47,88 @@ function decisionLabel(row: CriterionCheckLike) {
 function compactLine(v: string, maxLen = 130) {
   const s = sanitizeStudentNoteText(v);
   if (s.length <= maxLen) return s;
-  return `${s.slice(0, Math.max(20, maxLen - 1))}...`;
+  const clippedRaw = s.slice(0, Math.max(20, maxLen));
+  const sentenceStop = Math.max(clippedRaw.lastIndexOf(". "), clippedRaw.lastIndexOf("! "), clippedRaw.lastIndexOf("? "));
+  if (sentenceStop > Math.floor(maxLen * 0.55)) {
+    return clippedRaw.slice(0, sentenceStop + 1).trim();
+  }
+  const clipped = clippedRaw.replace(/\s+\S*$/, "").replace(/[,(;:\s-]+$/, "").trim();
+  return clipped || s.slice(0, Math.max(20, maxLen)).trim();
+}
+
+function toSentence(v: string) {
+  const s = sanitizeStudentNoteText(v);
+  if (!s) return "";
+  if (/[.!?]$/.test(s)) return s;
+  return `${s}.`;
 }
 
 function summarizeReason(v: string) {
   const src = sanitizeStudentNoteText(v)
     .replace(/\b(the\s+)?criterion\b/gi, "requirement")
     .replace(/\bthis\s+criterion\b/gi, "this requirement")
-    .replace(/\bclear(er)?\s+evidence\b/gi, "specific evidence");
+    .replace(/\bclear(er)?\s+evidence\b/gi, "specific evidence")
+    .replace(/\bthe\s+(submission|report|work)\b/gi, "your work");
   if (!src) return "";
   const firstSentence = src.split(/[.!?]/)[0] || src;
-  return compactLine(firstSentence, 90);
+  return compactLine(firstSentence, 110);
 }
 
 function summarizeEvidence(v: string) {
-  const src = sanitizeStudentNoteText(v);
+  const src = sanitizeStudentNoteText(v)
+    .replace(/^["']+/, "")
+    .replace(/["']+$/, "")
+    .replace(/\s*\.\s*$/, "");
   if (!src) return "";
-  return compactLine(src, 80);
+  return compactLine(src, 70);
+}
+
+function cleanEvidenceLead(v: string) {
+  const src = sanitizeStudentNoteText(v);
+  return src.replace(/^current\s+text\s*[:\-]\s*/i, "").trim();
+}
+
+function hashSeed(v: string) {
+  let seed = 0;
+  for (let i = 0; i < v.length; i += 1) seed = (seed + v.charCodeAt(i) * (i + 1)) % 10007;
+  return seed;
+}
+
+function pickVariant(options: string[], seedSource: string) {
+  if (!options.length) return "";
+  const idx = hashSeed(seedSource) % options.length;
+  return options[idx];
+}
+
+function lowerFirst(v: string) {
+  const s = sanitizeStudentNoteText(v);
+  if (!s) return "";
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
+function inferActionFromRationale(rationale: string, decision: string) {
+  const src = sanitizeStudentNoteText(rationale);
+  const lower = src.toLowerCase();
+  if (!src) {
+    return decision === "ACHIEVED"
+      ? "add one sentence that explains the impact of this evidence"
+      : "add explicit evidence and explain how it meets the requirement";
+  }
+  if (/\b(alternative|milestone|gantt|critical path|monitor)\b/i.test(lower)) {
+    return "compare at least one alternative milestone-tracking method and justify your chosen approach";
+  }
+  if (/\b(lacks depth|critical(ly)? evaluat|critical(ly)? analys|not critically)\b/i.test(lower)) {
+    return "deepen evaluation: what worked, what did not, and what you would change next";
+  }
+  if (/\b(recommendation|further development|improvement)\b/i.test(lower) && /\b(not|insufficient|unclear|limited)\b/i.test(lower)) {
+    return "add specific, measurable recommendations and expected impact";
+  }
+  if (/\b(not|insufficient|unclear|limited|missing|does not|cannot)\b/i.test(lower)) {
+    return `address this gap: ${lowerFirst(src)}`;
+  }
+  return decision === "ACHIEVED"
+    ? `extend this by ${lowerFirst(src)}`
+    : `add clearer evidence: ${lowerFirst(src)}`;
 }
 
 function toPageAnchoredLine(
@@ -75,23 +142,38 @@ function toPageAnchoredLine(
   const rationale = summarizeReason(normalizeText(row?.rationale || row?.comment || ""));
   const quote = sanitizeStudentNoteText(String(evidence?.quote || ""));
   const visual = sanitizeStudentNoteText(String(evidence?.visualDescription || ""));
-  const context = summarizeEvidence(quote || visual);
-  const base =
-    decision === "NOT_ACHIEVED"
-      ? tone === "strict"
-        ? "This page needs stronger evidence and clearer evaluation."
-        : "Strengthen this section with specific evidence and clearer evaluation."
+  const context = summarizeEvidence(cleanEvidenceLead(quote || visual));
+  const seedSource = `${code}|${decision}|${context}|${rationale}`;
+  const achievedLead = pickVariant(
+    ["Strong evidence here", "Good progress on this page", "This section is working well"],
+    seedSource
+  );
+  const weakLead = pickVariant(
+    ["Improve this section next", "Target this page for improvement", "This page needs a stronger link to the requirement"],
+    seedSource
+  );
+  const unclearLead = pickVariant(
+    ["Clarify this section", "Make this point clearer", "This page needs clearer explanation"],
+    seedSource
+  );
+  const lead =
+    decision === "ACHIEVED"
+      ? achievedLead
       : decision === "UNCLEAR"
-        ? tone === "strict"
-          ? "The point on this page is unclear; tighten the technical explanation."
-          : "Clarify exactly what this page demonstrates and why it matters."
-        : tone === "supportive"
-          ? "Good evidence appears on this page; keep linking it to the requirement."
-          : "Evidence on this page is relevant; keep the requirement link explicit.";
-  const anchor = context ? `Current text: "${context}".` : "";
-  const improvement = rationale ? `Next step: ${rationale}.` : "";
-  const merged = [base, anchor, improvement].filter(Boolean).join(" ");
-  const line = compactLine(merged, 175);
+        ? unclearLead
+        : weakLead;
+  const evidenceLine = context ? toSentence(`Evidence: ${context}`) : "";
+  const action = inferActionFromRationale(rationale, decision);
+  const actionPrefix =
+    decision === "ACHIEVED"
+      ? tone === "supportive"
+        ? "To push higher"
+        : "To strengthen further"
+      : "Next step";
+  const actionLine = toSentence(`${actionPrefix}: ${action}`);
+  const fallback = toSentence("Add a direct evidence statement that clearly matches the requirement");
+  const merged = [toSentence(lead), evidenceLine, actionLine].filter(Boolean).join(" ") || fallback;
+  const line = compactLine(merged, 165);
   return includeCode ? compactLine(`${code}: ${line}`, 170) : line;
 }
 

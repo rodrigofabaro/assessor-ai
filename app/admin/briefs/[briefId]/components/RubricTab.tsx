@@ -76,11 +76,15 @@ export function RubricTab({ vm }: { vm: any }) {
         accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="hidden"
         onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            await vm.uploadRubric(file);
+          const input = e.currentTarget;
+          const file = input.files?.[0];
+          try {
+            if (file) {
+              await vm.uploadRubric(file);
+            }
+          } finally {
+            input.value = "";
           }
-          e.currentTarget.value = "";
         }}
       />
     </section>

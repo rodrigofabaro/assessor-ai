@@ -21,6 +21,7 @@
 
 import { useMemo, useState } from "react";
 import { badge, formatDate, useLibraryAdmin } from "./library.logic";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 function pickIssueLabel(u: any): string {
   const a = u?.specVersionLabel ? String(u.specVersionLabel).trim() : "";
@@ -210,7 +211,8 @@ export default function LibraryView({
         <header className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">
+              <h1 className="inline-flex items-center gap-1.5 text-lg font-semibold tracking-tight">
+                <TinyIcon name="reference" className="h-4 w-4" />
                 Specs library
               </h1>
               <p className="mt-1 text-sm text-zinc-700">
@@ -219,7 +221,17 @@ export default function LibraryView({
               </p>
             </div>
             <div className="text-xs text-zinc-600">
-              {vm.busy ? <span>⏳ {vm.busy}</span> : <span>Ready</span>}
+              {vm.busy ? (
+                <span className="inline-flex items-center gap-1">
+                  <TinyIcon name="status" className="h-3 w-3" />
+                  {vm.busy}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <TinyIcon name="status" className="h-3 w-3" />
+                  Ready
+                </span>
+              )}
             </div>
           </div>
 

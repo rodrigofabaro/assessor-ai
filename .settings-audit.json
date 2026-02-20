@@ -1,5 +1,37 @@
 [
   {
+    "id": "3edf7db9-75bc-438f-b380-fc683b650a99",
+    "ts": "2026-02-20T11:23:41.547Z",
+    "actor": "Rodrigo Fabaro",
+    "role": "ADMIN",
+    "action": "MODEL_UPDATED",
+    "target": "openai-model",
+    "changes": {
+      "modelFrom": "gpt-4.1-mini",
+      "modelTo": "gpt-4o",
+      "autoCleanupApprovedFrom": false,
+      "autoCleanupApprovedTo": false
+    }
+  },
+  {
+    "id": "c04d734f-676d-4ef1-a1e6-880229b93bed",
+    "ts": "2026-02-20T11:14:38.966Z",
+    "actor": "Rodrigo Fabaro",
+    "role": "ADMIN",
+    "action": "GRADING_CONFIG_UPDATED_BATCH",
+    "target": "grading-config",
+    "changes": {
+      "toneFrom": "professional",
+      "toneTo": "professional",
+      "strictnessFrom": "balanced",
+      "strictnessTo": "balanced",
+      "studentSafeMarkedPdfFrom": true,
+      "studentSafeMarkedPdfTo": true,
+      "feedbackTemplateByUserCountFrom": 0,
+      "feedbackTemplateByUserCountTo": 0
+    }
+  },
+  {
     "id": "5334c663-f534-44aa-8dfa-c57dd165ed97",
     "ts": "2026-02-20T09:10:39.293Z",
     "actor": "Rodrigo Fabaro",

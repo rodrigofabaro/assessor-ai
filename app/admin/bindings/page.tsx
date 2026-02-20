@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 type RecordStatus = "DRAFT" | "LOCKED";
 
@@ -183,6 +184,7 @@ export default function AssignmentBindingsAdminPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-900">
+              <TinyIcon name="bindings" />
               Exception Workflow
             </div>
             <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Phase 2.5 — Assignment Reference Binding</h1>
@@ -195,11 +197,13 @@ export default function AssignmentBindingsAdminPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={load}
-              className="h-10 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-900 hover:bg-sky-100"
             >
+              <TinyIcon name="refresh" className="h-3.5 w-3.5" />
               Refresh
             </button>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              <TinyIcon name="status" className="mr-1 h-3 w-3" />
               {savingId ? "Saving..." : "Ready"}
             </span>
           </div>

@@ -22,6 +22,7 @@ import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { computeGradingConfidence } from "@/lib/grading/confidenceScoring";
 import { chooseGradingInputStrategy } from "@/lib/grading/inputStrategy";
+import { extractFile } from "@/lib/extraction";
 
 export const runtime = "nodejs";
 
@@ -455,12 +456,313 @@ function applyBandCompletionCap(
   };
 }
 
+function enforceBriefCriterionDecisionGuards(input: {
+  unitCode: string;
+  assignmentCode: string;
+  decision: any;
+}) {
+  const notes: string[] = [];
+  const next = input?.decision && typeof input.decision === "object" ? { ...input.decision } : {};
+  const rows = Array.isArray(next.criterionChecks) ? [...next.criterionChecks] : [];
+  const unitCode = String(input.unitCode || "").trim();
+  const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+
+  // Brief-specific guard: U4004 A1 M2 must evidence an alternative milestone monitoring method
+  // with explicit justification; otherwise treat as not achieved.
+  if (unitCode === "4004" && assignmentCode === "A1") {
+    const idx = rows.findIndex((row: any) => String(row?.code || "").trim().toUpperCase() === "M2");
+    if (idx >= 0) {
+      const row = { ...(rows[idx] || {}) };
+      const rowDecision = String(row?.decision || "").trim().toUpperCase();
+      if (rowDecision === "ACHIEVED") {
+        const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+        const evidenceText = evidence
+          .map((ev: any) => `${String(ev?.quote || "")} ${String(ev?.visualDescription || "")}`.trim())
+          .filter(Boolean)
+          .join(" ");
+        const corpus = normalizeText(`${String(row?.rationale || row?.comment || "")} ${evidenceText}`).toLowerCase();
+        const hasAlternativeMethod =
+          /\b(design structure matrix|dsm|program evaluation and review technique|pert|work breakdown structure|wbs|kanban|alternative method|alternative monitoring)\b/i.test(
+            corpus
+          );
+        const hasJustification = /\b(justif|rationale|because|reason|compar|versus|vs\.?)\b/i.test(corpus);
+        if (!hasAlternativeMethod || !hasJustification) {
+          row.decision = "NOT_ACHIEVED";
+          row.confidence = Math.min(Number(row?.confidence || 0.55), 0.45);
+          row.rationale = sanitizeStudentFeedbackLine(
+            "M2 not achieved: evidence does not clearly demonstrate an alternative milestone monitoring method (beyond Gantt) with explicit justified selection."
+          );
+          rows[idx] = row;
+          notes.push(
+            "Decision guard applied: U4004 A1 M2 requires explicit alternative milestone monitoring method evidence plus justification."
+          );
+        }
+      }
+    }
+  }
+
+  next.criterionChecks = rows;
+  return { decision: next, notes };
+}
+
 function firstSentence(value: unknown, maxLen = 170) {
   const compact = sanitizeStudentFeedbackLine(String(value || "").replace(/\s+/g, " ").trim());
   if (!compact) return "";
   const sentence = compact.split(/[.!?]/)[0] || compact;
   if (sentence.length <= maxLen) return sentence;
   return `${sentence.slice(0, Math.max(40, maxLen - 1))}...`;
+}
+
+function clipNoEllipsis(value: unknown, maxLen = 320) {
+  const text = normalizeText(value);
+  if (!text) return "";
+  if (text.length <= maxLen) return text;
+  const clipped = text.slice(0, Math.max(80, maxLen));
+  const sentenceStop = Math.max(clipped.lastIndexOf(". "), clipped.lastIndexOf("! "), clipped.lastIndexOf("? "));
+  if (sentenceStop > Math.floor(maxLen * 0.55)) {
+    return clipped.slice(0, sentenceStop + 1).trim();
+  }
+  return clipped.replace(/\s+\S*$/, "").replace(/[,:;(\-\s]+$/, "").trim();
+}
+
+function buildRubricHintsByCriterionCode(rubricText: string) {
+  const lines = String(rubricText || "")
+    .split(/\r?\n/)
+    .map((line) => normalizeText(line))
+    .filter(Boolean);
+  const buckets = new Map<string, string[]>();
+  let activeCode = "";
+
+  for (const line of lines) {
+    const header = line.match(/^([PMD]\d{1,2})\b(?:[\s:.\-–—]+(.*))?$/i);
+    if (header) {
+      activeCode = String(header[1] || "").toUpperCase();
+      if (!buckets.has(activeCode)) buckets.set(activeCode, []);
+      const remainder = normalizeText(header[2] || "");
+      if (remainder) buckets.get(activeCode)!.push(remainder);
+      continue;
+    }
+
+    if (!activeCode) continue;
+    if (/^(?:p|m|d)\d{1,2}\b/i.test(line)) continue;
+    if (/^(?:page|task)\b/i.test(line) && line.length <= 24) continue;
+    buckets.get(activeCode)!.push(line);
+  }
+
+  const out = new Map<string, string>();
+  for (const [code, rows] of buckets.entries()) {
+    const merged = clipNoEllipsis(rows.join(" "), 300);
+    if (merged) out.set(code, merged);
+  }
+  return out;
+}
+
+async function resolveRubricSupportContext(input: {
+  useRubric: boolean;
+  rubricAttachment: any;
+  criteriaCodes: string[];
+  briefSupportNotes?: string | null;
+}) {
+  const criteriaCodes = Array.from(
+    new Set(
+      (Array.isArray(input.criteriaCodes) ? input.criteriaCodes : [])
+        .map((code) => String(code || "").trim().toUpperCase())
+        .filter((code) => /^[PMD]\d{1,2}$/.test(code))
+    )
+  );
+  const rubricAttachment = input.rubricAttachment || null;
+  const briefSupportNotes = normalizeText(input.briefSupportNotes || "");
+  const attachedDocId = String(rubricAttachment?.documentId || "").trim() || null;
+  const warnings: string[] = [];
+
+  if (!input.useRubric) {
+    return {
+      hint: "Rubric usage disabled for this run.",
+      promptContext: "Rubric usage disabled by grading settings for this run.",
+      meta: {
+        enabled: false,
+        attachmentDetected: Boolean(attachedDocId),
+        documentId: attachedDocId,
+        filename: String(rubricAttachment?.originalFilename || "").trim() || null,
+        source: "none",
+        textChars: 0,
+        criteriaHintsCount: 0,
+        criteriaCodesCovered: [] as string[],
+        warnings,
+      },
+    };
+  }
+
+  if (!attachedDocId && !briefSupportNotes) {
+    return {
+      hint: "No rubric attachment used.",
+      promptContext: "No rubric attachment found for this brief.",
+      meta: {
+        enabled: true,
+        attachmentDetected: false,
+        documentId: null,
+        filename: null,
+        source: "none",
+        textChars: 0,
+        criteriaHintsCount: 0,
+        criteriaCodesCovered: [] as string[],
+        warnings,
+      },
+    };
+  }
+
+  if (!attachedDocId && briefSupportNotes) {
+    const hintsByCode = buildRubricHintsByCriterionCode(briefSupportNotes);
+    const coveredCodes = criteriaCodes.filter((code) => hintsByCode.has(code));
+    const maxHints = safeEnvInt("GRADE_RUBRIC_MAX_CRITERIA_HINTS", 40, 5, 120);
+    const criterionHints = coveredCodes.slice(0, maxHints).map((code) => ({
+      code,
+      hint: hintsByCode.get(code) || "",
+    }));
+    const lines: string[] = [
+      "Use brief-level supportive guidance across all criteria where relevant, while keeping decisions evidence-led.",
+    ];
+    if (criterionHints.length) {
+      lines.push("Support guidance by criterion code:");
+      for (const row of criterionHints) lines.push(`- ${row.code}: ${row.hint}`);
+    } else {
+      lines.push(`Support guidance excerpt: ${clipNoEllipsis(briefSupportNotes, 1200)}`);
+    }
+    return {
+      hint:
+        criterionHints.length > 0
+          ? `Brief support guidance loaded (${criterionHints.length} criterion hints).`
+          : "Brief support guidance loaded.",
+      promptContext: lines.join("\n"),
+      meta: {
+        enabled: true,
+        attachmentDetected: false,
+        documentId: null,
+        filename: null,
+        source: "stored_preview",
+        textChars: briefSupportNotes.length,
+        criteriaHintsCount: criterionHints.length,
+        criteriaCodesCovered: coveredCodes,
+        warnings,
+      },
+    };
+  }
+
+  const rubricDoc = await prisma.referenceDocument.findUnique({
+    where: { id: attachedDocId },
+    select: {
+      id: true,
+      originalFilename: true,
+      storagePath: true,
+      extractedJson: true,
+      sourceMeta: true,
+      status: true,
+    },
+  });
+  if (!rubricDoc) {
+    warnings.push("Attached rubric document was not found.");
+    return {
+      hint: "Rubric attachment metadata exists, but document was not found.",
+      promptContext: "Rubric attachment exists but could not be loaded.",
+      meta: {
+        enabled: true,
+        attachmentDetected: true,
+        documentId: attachedDocId,
+        filename: String(rubricAttachment?.originalFilename || "").trim() || null,
+        source: "none",
+        textChars: 0,
+        criteriaHintsCount: 0,
+        criteriaCodesCovered: [] as string[],
+        warnings,
+      },
+    };
+  }
+
+  let rubricText = "";
+  let source: "none" | "stored_preview" | "extracted_file" = "none";
+  const supportNotes = normalizeText(
+    [briefSupportNotes, normalizeText((rubricDoc.sourceMeta as any)?.rubricSupportNotes || "")]
+      .filter(Boolean)
+      .join("\n\n")
+  );
+
+  const sourceMetaPreview = normalizeText((rubricDoc.sourceMeta as any)?.rubricTextPreview || "");
+  if (sourceMetaPreview) {
+    rubricText = sourceMetaPreview;
+    source = "stored_preview";
+  }
+
+  if (!rubricText) {
+    const extractedPreview = normalizeText((rubricDoc.extractedJson as any)?.preview || "");
+    if (extractedPreview) {
+      rubricText = extractedPreview;
+      source = "stored_preview";
+    }
+  }
+
+  if (!rubricText) {
+    try {
+      const extracted = await extractFile(rubricDoc.storagePath, rubricDoc.originalFilename);
+      rubricText = normalizeText((extracted.pages || []).map((p) => p.text || "").join("\n\n"));
+      source = rubricText ? "extracted_file" : "none";
+      if (Array.isArray(extracted.warnings) && extracted.warnings.length) {
+        warnings.push(...extracted.warnings.slice(0, 6).map((w) => `extract: ${w}`));
+      }
+    } catch (e: any) {
+      warnings.push(`Rubric extraction failed: ${String(e?.message || e)}`);
+    }
+  }
+
+  const rubricCharLimit = safeEnvInt("GRADE_RUBRIC_TEXT_MAX_CHARS", 14000, 1200, 60000);
+  rubricText = clipNoEllipsis([rubricText, supportNotes].filter(Boolean).join("\n\n"), rubricCharLimit);
+
+  const hintsByCode = buildRubricHintsByCriterionCode(rubricText);
+  const coveredCodes = criteriaCodes.filter((code) => hintsByCode.has(code));
+  const maxHints = safeEnvInt("GRADE_RUBRIC_MAX_CRITERIA_HINTS", 40, 5, 120);
+  const criterionHints = coveredCodes.slice(0, maxHints).map((code) => ({
+    code,
+    hint: hintsByCode.get(code) || "",
+  }));
+
+  const promptLines: string[] = [
+    "Use rubric/supportive guidance across all criteria where relevant, but keep decisions evidence-led against the official criteria list.",
+  ];
+  if (criterionHints.length) {
+    promptLines.push("Rubric expectations by criterion code:");
+    for (const row of criterionHints) {
+      promptLines.push(`- ${row.code}: ${row.hint}`);
+    }
+  } else if (rubricText) {
+    promptLines.push(`Rubric excerpt: ${clipNoEllipsis(rubricText, 1200)}`);
+  } else {
+    promptLines.push("Rubric text could not be extracted; continue without rubric-specific guidance.");
+  }
+  if (warnings.length) {
+    promptLines.push(`Rubric warnings: ${warnings.slice(0, 3).join(" | ")}`);
+  }
+
+  const hint =
+    criterionHints.length > 0
+      ? `Rubric attached: ${String(rubricDoc.originalFilename || rubricAttachment?.originalFilename || "yes")} (${criterionHints.length} criterion hint${criterionHints.length === 1 ? "" : "s"}).`
+      : rubricText
+        ? `Rubric attached: ${String(rubricDoc.originalFilename || rubricAttachment?.originalFilename || "yes")} (generic guidance extracted).`
+        : `Rubric attached: ${String(rubricDoc.originalFilename || rubricAttachment?.originalFilename || "yes")} (text extraction unavailable).`;
+
+  return {
+    hint,
+    promptContext: promptLines.join("\n"),
+    meta: {
+      enabled: true,
+      attachmentDetected: true,
+      documentId: rubricDoc.id,
+      filename: String(rubricDoc.originalFilename || "").trim() || null,
+      source,
+      textChars: rubricText.length,
+      criteriaHintsCount: criterionHints.length,
+      criteriaCodesCovered: coveredCodes,
+      warnings,
+    },
+  };
 }
 
 function formatCriterionCodes(codes: string[], max = 6) {
@@ -1000,7 +1302,13 @@ export async function POST(
   }
 
   const rubricAttachment = (brief.briefDocument?.sourceMeta as any)?.rubricAttachment || null;
-  const rubricHint = useRubric && rubricAttachment ? `Rubric attached: ${String(rubricAttachment.originalFilename || "yes")}` : "No rubric attachment used.";
+  const rubricSupport = await resolveRubricSupportContext({
+    useRubric,
+    rubricAttachment,
+    criteriaCodes,
+    briefSupportNotes: normalizeText((brief.briefDocument?.sourceMeta as any)?.rubricSupportNotes || ""),
+  });
+  const rubricHint = rubricSupport.hint;
   const assessmentRequirements = extractAssessmentRequirementsFromBrief(brief.briefDocument?.extractedJson);
   const assessmentRequirementsText = summarizeAssessmentRequirements(assessmentRequirements);
   const latestRunMeta = (submission.extractionRuns?.[0]?.sourceMeta as any) || {};
@@ -1226,6 +1534,7 @@ export async function POST(
     `Assignment code: ${brief.assignmentCode}`,
     `Feedback addressee first name: ${studentFirstName || "Unknown (infer if possible)"}`,
     rubricHint,
+    rubricSupport.promptContext,
     "",
     "Detected modality requirements from assignment brief (chart/table/image/equation):",
     assessmentRequirementsText,
@@ -1357,8 +1666,8 @@ export async function POST(
       }),
       },
       {
-        timeoutMs: Number(process.env.OPENAI_GRADE_TIMEOUT_MS || 60000),
-        retries: Number(process.env.OPENAI_GRADE_RETRIES || 2),
+        timeoutMs: Number(process.env.OPENAI_GRADE_TIMEOUT_MS || 90000),
+        retries: Number(process.env.OPENAI_GRADE_RETRIES || 3),
       }
     );
 
@@ -1376,7 +1685,7 @@ export async function POST(
 
     const parsed = extractStructuredModelJson(json) || {};
     const validated = validateGradeDecision(parsed, criteriaCodes);
-    const decision =
+    let decision =
       "errors" in validated
         ? {
             overallGradeWord: "REFER" as const,
@@ -1399,6 +1708,12 @@ export async function POST(
             confidence: 0.25,
           }
         : validated.data;
+    const decisionGuard = enforceBriefCriterionDecisionGuards({
+      unitCode: String(brief.unit?.unitCode || ""),
+      assignmentCode: String(brief.assignmentCode || ""),
+      decision,
+    });
+    decision = decisionGuard.decision;
     const achievedWithoutEvidence = decision.criterionChecks.find(
       (row) => row.decision === "ACHIEVED" && (!Array.isArray(row.evidence) || row.evidence.length === 0)
     );
@@ -1478,6 +1793,9 @@ export async function POST(
       )
     ).slice(0, Math.max(1, cfg.maxFeedbackBullets));
     const systemNotes: string[] = [];
+    if (decisionGuard.notes.length) {
+      systemNotes.push(...decisionGuard.notes);
+    }
     if (modalityCompliance.missingCount > 0 && gradingInputMode !== "RAW_PDF_IMAGES") {
       const modalityCapApplied = confidenceResult.capsApplied.some((c) => c.name === "modality_missing_cap");
       systemNotes.push(
@@ -1508,6 +1826,18 @@ export async function POST(
     }
     if (gradePolicy.wasCapped) {
       systemNotes.push("Grade capped due to resubmission policy.");
+    }
+    if (useRubric) {
+      if (rubricSupport.meta.criteriaHintsCount > 0) {
+        systemNotes.push(
+          `Rubric guidance applied across criteria (${rubricSupport.meta.criteriaHintsCount} criterion hints).`
+        );
+      } else if (rubricSupport.meta.attachmentDetected) {
+        systemNotes.push("Rubric attachment detected but criterion-level hints were not available.");
+      }
+      if (Array.isArray(rubricSupport.meta.warnings) && rubricSupport.meta.warnings.length) {
+        systemNotes.push(...rubricSupport.meta.warnings.slice(0, 2).map((w: string) => `Rubric warning: ${w}`));
+      }
     }
     const responseWithPolicy = {
       ...decision,
@@ -1633,6 +1963,7 @@ export async function POST(
             inputStrategy: inputStrategySnapshot,
             evidenceDensitySummary,
             referenceContextSnapshot,
+            rubricGuidance: rubricSupport.meta,
             gradingDefaultsSnapshot,
             extractionGate,
           },
@@ -1693,6 +2024,7 @@ export async function POST(
           strictness,
           useRubric,
           rubricAttachment,
+          rubricGuidance: rubricSupport.meta,
           promptHash,
           promptChars: prompt.length,
           criteriaSnapshot: {

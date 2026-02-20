@@ -92,7 +92,7 @@ export async function GET(
 }
 
 // PATCH /api/submissions/[submissionId]
-// Supports linking a submission to a student (audit-friendly: records linkedAt/by)
+// Supports assignment linking, student linking (audit-friendly), and cover metadata updates.
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
@@ -171,6 +171,48 @@ export async function PATCH(
       }
 
       return NextResponse.json({ ok: true, extractionRun: updatedRun });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body || {}, "assignmentId")) {
+      const assignmentIdRaw = body?.assignmentId;
+      const assignmentId = typeof assignmentIdRaw === "string" ? assignmentIdRaw.trim() : "";
+
+      if (assignmentId) {
+        const assignment = await prisma.assignment.findUnique({
+          where: { id: assignmentId },
+          select: { id: true },
+        });
+        if (!assignment) {
+          return NextResponse.json({ error: "Assignment not found." }, { status: 404 });
+        }
+      }
+
+      const updated = await prisma.submission.update({
+        where: { id: submissionId },
+        data: {
+          assignmentId: assignmentId || null,
+        },
+        select: {
+          id: true,
+          assignmentId: true,
+          assignment: {
+            select: {
+              id: true,
+              unitCode: true,
+              assignmentRef: true,
+              title: true,
+            },
+          },
+        },
+      });
+
+      try {
+        await triggerAutoGradeIfAutoReady(submissionId, req.url);
+      } catch (e) {
+        console.warn("AUTO_GRADE_AFTER_ASSIGNMENT_LINK_FAILED", e);
+      }
+
+      return NextResponse.json({ ok: true, submission: updated });
     }
 
     const studentId = typeof body.studentId === "string" ? body.studentId.trim() : "";

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 type AppUser = {
   id: string;
@@ -128,6 +129,7 @@ export default function AdminUsersPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-900">
+              <TinyIcon name="users" />
               Identity Operations
             </div>
             <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Users & Audit Identity</h1>
@@ -140,14 +142,17 @@ export default function AdminUsersPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="inline-flex h-10 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
             >
+              <TinyIcon name="refresh" className="h-3.5 w-3.5" />
               {loading ? "Refreshing..." : "Refresh"}
             </button>
-            <Link href="/admin/settings" className="inline-flex h-10 items-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
+            <Link href="/admin/settings" className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
+              <TinyIcon name="settings" className="h-3.5 w-3.5" />
               Open settings
             </Link>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              <TinyIcon name="status" className="mr-1 h-3 w-3" />
               {loading ? "Loading users..." : "Ready"}
             </span>
           </div>

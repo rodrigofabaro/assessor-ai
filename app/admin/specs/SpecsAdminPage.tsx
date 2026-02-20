@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import LibraryView from "../library/LibraryView";
 import { ui } from "@/components/ui/uiClasses";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 import { useSpecsAdmin } from "./specs.logic";
 import { SpecList, SpecViewer, UnitEditorPanel } from "./specs.ui";
 
@@ -253,8 +254,12 @@ export default function SpecsAdminPage() {
       <section className="rounded-2xl border border-cyan-200 bg-gradient-to-r from-cyan-50 via-white to-white p-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="text-sm font-semibold tracking-tight text-zinc-900">Specifications</h1>
-            <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-900">
+            <h1 className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-zinc-900">
+              <TinyIcon name="reference" className="h-3.5 w-3.5" />
+              Specifications
+            </h1>
+            <span className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-900">
+              <TinyIcon name="submissions" className="h-3 w-3" />
               Register
             </span>
           </div>
@@ -285,6 +290,7 @@ export default function SpecsAdminPage() {
               {headerBusy === "extract" ? "Extracting..." : "Extract selected"}
             </button>
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+              <TinyIcon name="status" className="mr-1 h-3 w-3" />
               {uploading ? uploadStatus : vm.busy ? `Processing: ${vm.busy}` : "Ready"}
             </span>
           </div>

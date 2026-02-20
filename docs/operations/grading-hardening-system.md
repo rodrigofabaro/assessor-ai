@@ -63,3 +63,46 @@ Minimum requirements:
 ## Operational Principle
 
 When reliability is uncertain, block or degrade gracefully with explicit audit details. Never silently pass.
+
+## 2026-02-20 Hardening Additions
+
+1. Brief-specific decision guards
+- Deterministic post-model guards can override criterion decisions when required evidence patterns are missing.
+- Current guard in production:
+  - Unit `4004` / Assignment `A1` / Criterion `M2`
+  - Requires explicit alternative milestone monitoring method evidence plus justification/comparison.
+
+2. Run synchronization in assessor workspace
+- After commit, the latest assessment run is auto-selected to prevent stale-editor decisions.
+
+3. Student note quality controls
+- Note generator removes placeholder/ellipsis artifacts and favors concise action-oriented coaching.
+- Marked PDF notes are rendered bottom-right for consistent student scanning.
+
+## Robust-Grading Backlog (recommended)
+
+1. Criterion calibration suite
+- Maintain locked calibration submissions for each brief (pass/merit/distinction + borderline).
+- Run calibration automatically on model/prompt/config changes.
+
+2. Cross-run drift controls
+- Flag and optionally block promotion when criterion decisions change materially without new evidence/extraction improvements.
+
+3. Evidence sufficiency contracts
+- Per criterion minimums:
+  - citation count
+  - page spread
+  - rationale specificity score
+- Reject `ACHIEVED` when sufficiency contract fails.
+
+4. Structured disagreement loop
+- Capture assessor disagreement as labeled data:
+  - criterion code
+  - disagreement reason
+  - corrected decision
+  - expected evidence pattern
+- Feed into guard rules and prompt refinements.
+
+5. Rubric-normalization layer
+- Parse free-form rubric support notes into criterion-level hints.
+- Map hints into consistent rule primitives (`must_include`, `exclude_if_only`, `comparison_required`, etc.).

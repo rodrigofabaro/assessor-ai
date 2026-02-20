@@ -3,6 +3,7 @@
 import { formatDate, getInboxCounts, type Criterion, type Unit, useReferenceAdmin } from "./reference.logic";
 import { ReferenceList } from "./components/ReferenceList";
 import { ReferenceToolbar } from "./components/ReferenceToolbar";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 
 export default function ReferenceAdminPage() {
@@ -14,6 +15,7 @@ export default function ReferenceAdminPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
+              <TinyIcon name="reference" />
               Reference Operations
             </div>
             <h1 className="mt-1 text-sm font-semibold tracking-tight text-zinc-900">Reference Ops (advanced)</h1>
@@ -29,6 +31,7 @@ export default function ReferenceAdminPage() {
           </div>
 
           <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+            <TinyIcon name="status" className="mr-1 h-3 w-3" />
             {vm.busy ? `Working: ${vm.busy}` : "Ready"}
           </span>
         </div>

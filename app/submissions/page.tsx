@@ -13,6 +13,7 @@ import { QueueTermsCard } from "@/components/submissions/QueueTermsCard";
 import { ResolveDrawer } from "@/components/submissions/ResolveDrawer";
 import { cx } from "@/lib/submissions/utils";
 import { jsonFetch } from "@/lib/http";
+import { TinyIcon } from "@/components/ui/TinyIcon";
 
 const QA_PREVIEW_MAX_AGE_MS = 30 * 60 * 1000;
 
@@ -391,6 +392,7 @@ export default function SubmissionsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-900">
+              <TinyIcon name="workflow" className="h-3 w-3" />
               Workflow Operations
             </div>
             <h1 className="text-xl font-semibold tracking-tight">Submissions Workspace</h1>
@@ -403,7 +405,8 @@ export default function SubmissionsPage() {
             className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-sky-700 px-3 text-[11px] font-semibold text-white hover:bg-sky-800"
             title="Upload assignment"
           >
-            ⬆ Upload assignment
+            <TinyIcon name="upload" className="h-3 w-3" />
+            Upload assignment
           </Link>
         </div>
 
