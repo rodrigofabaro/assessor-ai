@@ -1,153 +1,54 @@
 # Release Notes
 
-Date: 2026-02-18  
-Branch: `release/project-finish`
+## 1.0.0 (Completed)
 
-## Update: 2026-02-20 (main)
+Date: 2026-02-20  
+Release Branch: `main`
 
-### Navigation + Performance
+### Shipped In 1.0.0
 
-- Added lazy-loaded route wrappers for heavy pages:
-  - `/submissions/[submissionId]` via `SubmissionDetailClient`
-  - `/admin/settings` via `SettingsPageClient`
-- Updated internal submissions navigation to use client routing where applicable.
+1. Submission detail workspace hardening:
+   - run history sync and commit-grade run selection
+   - feedback history expand/collapse
+   - notes navigator pinned bottom-right
+2. Grading reliability hardening:
+   - global contradiction guard for criterion decisions
+   - brief-specific M2 policy guard for 4004 A1
+   - decision drift telemetry across re-grades
+3. Assessor override workflow:
+   - criterion-level override + reason code + note
+   - effective-grade recomputation and output regeneration
+4. QA and operations:
+   - QA flags/reasons and override breakdown surfaces
+   - ops playbook help page and upload quick-link
+5. Performance pass:
+   - lean submissions API modes
+   - DB indexes for high-frequency list/latest-run paths
+   - server-side pagination and filtering (workspace and QA)
+6. Release governance:
+   - footer moved to `1.0.0` completed defaults
+   - release scope contract in `RELEASE.md`
+   - reproducible runbook in `docs/ops-checklist.md`
 
-### Submissions Workspace UX
+### Updates (Post-Payload Notes)
 
-- Consolidated duplicate upload entrypoints into one primary action.
-- Renamed CTA to `Upload assignment`.
-- Simplified batch actions:
-  - kept `Grade auto-ready` as primary visible action
-  - moved secondary actions into `Batch actions` menu
+1. Local build can hit intermittent `.next/trace` lock on Windows during repeated runs.
+2. Git credential flows may fail in restricted terminal contexts and require system-level credential path.
 
-### Landing-Page Icon Pass
+### Reference Snapshot
 
-- Added lightweight inline icon enhancements to landing-style surfaces:
-  - admin overview
-  - help topic sidebar
+1. Grading blocks if brief/spec locks are missing (`GRADE_BRIEF_NOT_LOCKED`, `GRADE_SPEC_NOT_LOCKED`).
+2. Each assessment stores `referenceContextSnapshot` including:
+   - unit lock metadata
+   - spec document id/version/lock timestamp
+   - brief id/assignment code/brief document lock timestamp
+   - mapped vs extracted criteria alignment snapshot.
 
-### Documentation Sync
+### Validation Results
 
-- Updated root and operations/help docs for current UI labels and flow.
-
-## Update: 2026-02-20 (grading reliability + workspace UX)
-
-### Submission Workspace
-
-- Feedback Summary History now supports per-run `Expand/Collapse` to read full historical feedback.
-- Notes navigator is fixed to bottom-right of the PDF viewport.
-- After `Commit grade`, the workspace now re-selects the latest assessment run so the grade badge and feedback editor stay in sync.
-
-### Notes Generation + Rendering
-
-- Reworked student page-note wording to be more natural and action-oriented:
-  - avoid repetitive templates and placeholder fragments
-  - produce concise evidence + next-step guidance
-  - remove noisy ellipsis artifacts
-- Marked PDF note placement now renders at bottom-right of each page (not vertically centered).
-
-### Grading Policy Hardening
-
-- Added brief-specific decision guard for Unit `4004` Assignment `A1`:
-  - Criterion `M2` cannot remain `ACHIEVED` unless evidence/rationale shows:
-    - an alternative milestone monitoring method, and
-    - explicit justification/comparison for chosen method.
-- Guard decisions are captured in `systemNotes` for audit traceability.
-
-### Robust Grading Next Steps (recommended)
-
-- Add criterion-level calibration sets (gold-standard exemplars and borderline cases) and run them on every model/prompt change.
-- Add deterministic post-decision guards for all high-dispute criteria (not only M2) using brief metadata.
-- Enforce evidence-coverage thresholds per criterion (minimum citation count + page spread + rationale quality checks).
-- Add disagreement workflow:
-  - assessor override with reason code
-  - structured disagreement capture
-  - replay queue for prompt/policy tuning.
-- Add run-to-run drift monitor that blocks automatic promotion when criterion decisions swing without new evidence.
-- Add extraction-quality gates per modality (tables/charts/equations/images) with targeted penalties and explicit warnings.
-
-## Update: 2026-02-20 (stable hardening pass: all briefs)
-
-### Grading Reliability (All Briefs)
-
-- Added cross-brief contradiction guard:
-  - if a criterion is marked `ACHIEVED` but rationale language indicates missing/insufficient evidence, the decision is downgraded automatically.
-  - controlled via `GRADE_GLOBAL_CONTRADICTION_GUARD_ENABLED` (default `true`).
-- Prompt contract strengthened:
-  - model is explicitly instructed not to return `ACHIEVED` when rationale indicates evidence gaps.
-
-### Regrade Drift Telemetry
-
-- Added criterion-level decision drift tracking against the previous run:
-  - changed criteria count
-  - stricter vs lenient movement counts
-  - changed codes list
-- Drift now feeds:
-  - `resultJson.rerunIntegrity.decisionDiff`
-  - `systemNotes`
-  - `/api/submissions` QA review reasons.
-
-### Assessor Override Capture
-
-- Added criterion-level assessor override workflow in submission detail:
-  - final decision
-  - reason code
-  - optional note
-- Persisted per criterion in assessment result JSON with actor/timestamp.
-- Override application recomputes final grade policy and regenerates marked output for the selected run.
-
-### QA Surface
-
-- QA research table now includes `QA Flags` column and exports review reasons in CSV.
-
-### Stable Footer Version
-
-- Footer version label is now env-driven for release cadence:
-  - `NEXT_PUBLIC_APP_VERSION` (default `0.4-stable-rc1`)
-  - `NEXT_PUBLIC_RELEASE_LABEL` (default `stable candidate`)
-
-## Included Commits
-
-- `2b9f2a2` docs: polish admin help and add project completion checklist
-- `b9c7c3c` style(ui): finish sky-accent consistency on remaining workflows
-- `595f73b` style(ui): unify primary actions and interaction tokens across app
-- `fd42054` chore(lint): resolve help and submission unused/effect warnings
-- `abf5637` style(admin): standardize template and color scheme across top-level pages
-
-## What Shipped
-
-- Admin UI standardized across top-level pages and key deeper workflows.
-- App-wide primary action styling unified (sky accent) across major routes and shared components.
-- Help/admin docs updated for current operations model.
-- Lint blockers resolved in help/submission code.
-- Project completion checklist added: `docs/PROJECT_COMPLETION_CHECKLIST.md`.
-
-## Validation Results
-
-- `pnpm lint`: PASS
-- `pnpm exec tsc --noEmit --incremental false`: PASS
-- `pnpm run test:tasks-tab`: PASS
-- `pnpm run test:ai-fallback`: PASS
-- `pnpm run test:word-math`: PASS
-- `pnpm run test:grading-schema`: PASS
-- `pnpm run test:extraction-readiness`: PASS
-- `pnpm run test:extraction-integrity`: PASS
-- `pnpm run test:brief-readiness`: PASS
-
-## Known Operational Blockers
-
-- Git push from this machine is blocked by credentials:
-  - `SEC_E_NO_CREDENTIALS (0x8009030E)`
-- `pnpm run build` was not consistently confirmable in-session due local `.next/trace` lock/timeouts.
-
-## Deploy Runbook
-
-1. Restore GitHub auth on machine.
-2. Push branch:
-   - `git push origin release/project-finish`
-3. Run pre-deploy checks:
-   - `pnpm lint`
-   - `pnpm exec tsc --noEmit --incremental false`
+1. `pnpm exec tsc --noEmit`: PASS
+2. `pnpm run build`: PASS (with occasional local `.next/trace` lock retries on Windows)
+3. Core regression scripts used in release cycle:
    - `pnpm run test:tasks-tab`
    - `pnpm run test:ai-fallback`
    - `pnpm run test:word-math`
@@ -155,16 +56,16 @@ Branch: `release/project-finish`
    - `pnpm run test:extraction-readiness`
    - `pnpm run test:extraction-integrity`
    - `pnpm run test:brief-readiness`
-4. Run production build in clean session:
-   - `Remove-Item .next\\trace -Force -ErrorAction SilentlyContinue`
-   - `pnpm run build`
-5. Deploy and smoke-test key routes:
-   - `/`
-   - `/upload`
-   - `/submissions`
-   - `/submissions/[submissionId]`
-   - `/admin`
-   - `/admin/qa`
-   - `/admin/audit`
-   - `/admin/reference`
-   - `/admin/settings`
+
+### Known Blockers And Mitigations
+
+1. Git credential/auth failures in some terminal contexts.
+   - Mitigation: use system Git credential manager flow and retry `git push` outside restricted sandbox context.
+2. `.next/trace` file lock during repeated local builds.
+   - Mitigation:
+     - `Remove-Item .next\\trace -Force -ErrorAction SilentlyContinue`
+     - rerun `pnpm run build`
+
+### Rollback
+
+If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs/footer bump/perf rollout), then redeploy and run smoke checks on `/submissions`, `/submissions/[submissionId]`, `/admin/qa`, and `/admin/settings`.

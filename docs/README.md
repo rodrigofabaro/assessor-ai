@@ -15,6 +15,7 @@ This folder is the operational source of truth for extraction, mapping, grading,
 7. Route help center: `docs/help/README.md`
 8. Release scope contract: `RELEASE.md`
 9. Reproducible operations checklist: `docs/ops-checklist.md`
+10. Stable baseline snapshot: `docs/operations/stable-app-baseline.md`
 
 ## Scope Map
 
