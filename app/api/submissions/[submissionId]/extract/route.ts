@@ -358,9 +358,11 @@ export async function POST(
 
             // breadcrumbs for QA/debugging
             derivedTextChars: combinedText.length,
+            extractedChars: combinedText.length,
             rawIsScanned: res.isScanned ?? null,
             rawOverallConfidence: res.overallConfidence ?? null,
             qualitySignals: {
+              derivedTextChars: combinedText.length,
               pageCount: finalPages.length,
               meaningfulPageCount,
               pageTextCoverage: Number(pageTextCoverage.toFixed(3)),

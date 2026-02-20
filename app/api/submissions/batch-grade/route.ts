@@ -140,7 +140,6 @@ export async function POST(req: Request) {
       select: {
         id: true,
         status: true,
-        extractedText: true,
         extractionRuns: {
           orderBy: { startedAt: "desc" },
           take: 1,
@@ -160,7 +159,7 @@ export async function POST(req: Request) {
         s.id,
         evaluateExtractionReadiness({
           submissionStatus: s.status,
-          extractedText: s.extractedText,
+          extractedText: null,
           latestRun: s.extractionRuns?.[0] || null,
         }),
       ])

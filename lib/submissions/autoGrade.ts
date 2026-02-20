@@ -19,7 +19,6 @@ export async function triggerAutoGradeIfAutoReady(submissionId: string, requestU
       status: true,
       studentId: true,
       assignmentId: true,
-      extractedText: true,
       assignment: {
         select: {
           assignmentBriefId: true,
@@ -47,7 +46,7 @@ export async function triggerAutoGradeIfAutoReady(submissionId: string, requestU
   const latestRun = submission.extractionRuns?.[0] || null;
   const extractionQuality = computeExtractionQuality({
     submissionStatus: submission.status,
-    extractedText: submission.extractedText,
+    extractedText: null,
     latestRun: latestRun
       ? {
           status: latestRun.status,
@@ -63,7 +62,7 @@ export async function triggerAutoGradeIfAutoReady(submissionId: string, requestU
     status: submission.status,
     studentId: submission.studentId,
     assignmentId: submission.assignmentId,
-    extractedText: submission.extractedText,
+    extractedText: null,
     _count: submission._count,
     extractionQuality,
   });
@@ -80,4 +79,3 @@ export async function triggerAutoGradeIfAutoReady(submissionId: string, requestU
     status: res.status,
   };
 }
-

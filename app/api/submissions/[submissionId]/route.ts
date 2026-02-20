@@ -12,9 +12,31 @@ export async function GET(
 
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
-    include: {
-      student: true,
-      assignment: true,
+    select: {
+      id: true,
+      filename: true,
+      status: true,
+      uploadedAt: true,
+      studentLinkedAt: true,
+      studentLinkedBy: true,
+      studentId: true,
+      assignmentId: true,
+      student: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          externalRef: true,
+        },
+      },
+      assignment: {
+        select: {
+          id: true,
+          unitCode: true,
+          assignmentRef: true,
+          title: true,
+        },
+      },
       assessments: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -28,8 +50,27 @@ export async function GET(
       },
       extractionRuns: {
         orderBy: { startedAt: "desc" },
-        include: {
-          pages: { orderBy: { pageNumber: "asc" } },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          isScanned: true,
+          overallConfidence: true,
+          engineVersion: true,
+          startedAt: true,
+          finishedAt: true,
+          warnings: true,
+          error: true,
+          sourceMeta: true,
+          pages: {
+            orderBy: { pageNumber: "asc" },
+            select: {
+              id: true,
+              pageNumber: true,
+              text: true,
+              confidence: true,
+            },
+          },
         },
       },
     },

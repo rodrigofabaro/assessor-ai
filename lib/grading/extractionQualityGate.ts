@@ -36,6 +36,28 @@ function parseWarnings(raw: unknown): string[] {
   return [];
 }
 
+function inferExtractedChars(extractedText: string, sourceMeta: any): number {
+  const textChars = String(extractedText || "").trim().length;
+  if (textChars > 0) return textChars;
+  const candidates = [
+    Number(sourceMeta?.derivedTextChars || 0),
+    Number(sourceMeta?.extractedChars || 0),
+    Number(sourceMeta?.qualitySignals?.derivedTextChars || 0),
+  ].filter((n) => Number.isFinite(n) && n > 0);
+  if (!candidates.length) return 0;
+  return Math.max(...candidates.map((n) => Math.floor(n)));
+}
+
+function hasExtractedCharSignal(extractedText: string, sourceMeta: any): boolean {
+  if (String(extractedText || "").trim().length > 0) return true;
+  const candidates = [
+    Number(sourceMeta?.derivedTextChars || 0),
+    Number(sourceMeta?.extractedChars || 0),
+    Number(sourceMeta?.qualitySignals?.derivedTextChars || 0),
+  ];
+  return candidates.some((n) => Number.isFinite(n) && n > 0);
+}
+
 function envNumber(name: string, fallback: number) {
   const value = Number(process.env[name] || fallback);
   if (!Number.isFinite(value)) return fallback;
@@ -51,17 +73,19 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   const minPages = Math.max(1, Math.floor(envNumber("GRADING_MIN_PAGE_COUNT", 1)));
   const maxWarningsBeforeBlock = Math.max(2, Math.floor(envNumber("GRADING_MAX_WARNINGS_BEFORE_BLOCK", 8)));
 
-  const extractedText = String(input.extractedText || "");
-  const extractedChars = extractedText.trim().length;
   const run = input.latestRun || null;
+  const extractedText = String(input.extractedText || "");
+  const sourceMeta = (run?.sourceMeta as any) || {};
+  const extractedChars = inferExtractedChars(extractedText, sourceMeta);
+  const hasCharSignal = hasExtractedCharSignal(extractedText, sourceMeta);
   const runStatus = String(run?.status || "").toUpperCase();
   const pageCount = Number(run?.pageCount || 0);
   const overallConfidence = Number(run?.overallConfidence || 0);
   const runWarnings = parseWarnings(run?.warnings);
-  const extractionMode = String((run?.sourceMeta as any)?.extractionMode || "")
+  const extractionMode = String(sourceMeta?.extractionMode || "")
     .trim()
     .toUpperCase();
-  const coverReady = isCoverMetadataReady((run?.sourceMeta as any)?.coverMetadata);
+  const coverReady = isCoverMetadataReady(sourceMeta?.coverMetadata);
 
   if (!run) blockers.push("No extraction run found.");
   if (runStatus === "NEEDS_OCR") {
@@ -81,7 +105,9 @@ export function evaluateExtractionReadiness(input: ExtractionReadinessInput): Ex
   }
 
   if (extractedChars < minChars) {
-    if (extractionMode === "COVER_ONLY") {
+    if (!hasCharSignal) {
+      warnings.push("Extracted text length signal is unavailable for this run.");
+    } else if (extractionMode === "COVER_ONLY") {
       warnings.push(
         `Cover-only extraction has short body text (${extractedChars} chars), which is expected for this mode.`
       );

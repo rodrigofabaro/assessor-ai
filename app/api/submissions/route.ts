@@ -7,9 +7,30 @@ import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 export async function GET() {
   const rows = await prisma.submission.findMany({
     orderBy: { uploadedAt: "desc" },
-    include: {
-      student: true,
-      assignment: true,
+    select: {
+      id: true,
+      filename: true,
+      uploadedAt: true,
+      status: true,
+      studentId: true,
+      assignmentId: true,
+      student: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          externalRef: true,
+          courseName: true,
+        },
+      },
+      assignment: {
+        select: {
+          id: true,
+          title: true,
+          unitCode: true,
+          assignmentRef: true,
+        },
+      },
       assessments: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -47,7 +68,7 @@ export async function GET() {
     const latestRun = s.extractionRuns?.[0] || null;
     const extractionQuality = computeExtractionQuality({
       submissionStatus: s.status,
-      extractedText: s.extractedText,
+      extractedText: null,
       latestRun: latestRun
         ? {
             status: latestRun.status,
@@ -63,7 +84,7 @@ export async function GET() {
       status: s.status,
       studentId: s.studentId,
       assignmentId: s.assignmentId,
-      extractedText: s.extractedText,
+      extractedText: null,
       _count: s._count,
       grade: latest?.overallGrade || null,
       overallGrade: latest?.overallGrade || null,
@@ -110,7 +131,15 @@ export async function GET() {
     };
 
     return {
-      ...s,
+      id: s.id,
+      filename: s.filename,
+      uploadedAt: s.uploadedAt,
+      status: s.status,
+      studentId: s.studentId,
+      assignmentId: s.assignmentId,
+      student: s.student,
+      assignment: s.assignment,
+      _count: s._count,
       grade: latest?.overallGrade || null,
       overallGrade: latest?.overallGrade || null,
       feedback: feedbackText,

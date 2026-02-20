@@ -5,7 +5,6 @@ import { isReadyToUpload } from "@/lib/submissionReady";
 import { jsonFetch } from "./api";
 import type { SubmissionRow } from "./types";
 import { groupByDay } from "./logic";
-import { deriveAutomationState } from "./automation";
 
 export type Timeframe = "today" | "week" | "all";
 export type LaneKey = "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED";
@@ -152,19 +151,7 @@ export function useSubmissionsList() {
         : laneFilter === "QA_REVIEW"
           ? byReady.filter((row) => Boolean(row.qaFlags?.shouldReview))
           : byReady.filter((row) => {
-              const key = (row.automationState ||
-                deriveAutomationState({
-                  status: row.status,
-                  studentId: row.studentId,
-                  assignmentId: row.assignmentId,
-                  extractedText: row.extractedText,
-                  _count: row._count,
-                  grade: row.grade,
-                  overallGrade: row.overallGrade,
-                  feedback: row.feedback,
-                  markedPdfPath: row.markedPdfPath,
-                  extractionQuality: row.extractionQuality,
-                }).state) as LaneKey;
+              const key = (row.automationState || "NEEDS_HUMAN") as LaneKey;
               return key === laneFilter;
             });
 
@@ -232,19 +219,7 @@ export function useSubmissionsList() {
     for (const lane of LANE_ORDER) byLane.set(lane.key, []);
 
     for (const row of filtered) {
-      const key = (row.automationState ||
-        deriveAutomationState({
-          status: row.status,
-          studentId: row.studentId,
-          assignmentId: row.assignmentId,
-          extractedText: row.extractedText,
-          _count: row._count,
-          grade: row.grade,
-          overallGrade: row.overallGrade,
-          feedback: row.feedback,
-          markedPdfPath: row.markedPdfPath,
-          extractionQuality: row.extractionQuality,
-        }).state) as LaneKey;
+      const key = (row.automationState || "NEEDS_HUMAN") as LaneKey;
       byLane.get(key)?.push(row);
     }
 
