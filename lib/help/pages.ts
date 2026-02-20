@@ -8,7 +8,7 @@ export type HelpPageMeta = {
 export const HELP_PAGES: HelpPageMeta[] = [
   { slug: "home", title: "Home Dashboard", route: "/", icon: "home" },
   { slug: "upload", title: "Upload", route: "/upload", icon: "upload" },
-  { slug: "operations-playbook", title: "Operations Playbook", route: "/upload, /submissions, /submissions/[submissionId], /admin/qa", icon: "submissions" },
+  { slug: "operations-playbook", title: "Operations Playbook", route: "/upload, /submissions, /submissions/[submissionId], /admin/settings, /admin/qa", icon: "submissions" },
   { slug: "submissions-list", title: "Submissions List", route: "/submissions", icon: "submissions" },
   { slug: "submissions-support", title: "Submissions Support Guide", route: "/submissions", icon: "submissions" },
   { slug: "submissions-onboarding", title: "Submissions Onboarding (First Run)", route: "/submissions", icon: "submissions" },

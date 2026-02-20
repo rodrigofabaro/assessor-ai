@@ -9,8 +9,9 @@ This guide is the end-to-end operating sequence:
 3. Assignment binding
 4. Upload and triage
 5. Preview and commit grading
-6. Assessor criterion overrides (when needed)
-7. QA review and audit close-out
+6. Turnitin sync/report checks (when enabled)
+7. Assessor criterion overrides (when needed)
+8. QA review and audit close-out
 
 ## Local Screenshot Set
 
@@ -23,8 +24,10 @@ Use these local screenshots in training/handover packs:
 ## Notes
 
 - This playbook is intended for operations leads and senior assessors.
+- Turnitin behavior is configured in `Admin Settings > App` and executed from QA row actions.
 - For page-specific details, still use route guides:
   - `docs/help/upload.md`
   - `docs/help/submissions-list.md`
   - `docs/help/submission-detail.md`
+  - `docs/help/admin-settings.md`
   - `docs/help/admin-qa.md`

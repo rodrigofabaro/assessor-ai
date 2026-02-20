@@ -29,6 +29,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Phase 1 grading runbook: `docs/operations/phase1-submission-grading-runbook.md`
 - Grading hardening system: `docs/operations/grading-hardening-system.md`
 - OpenAI settings operations: `docs/operations/openai-settings.md`
+- Route help center: `docs/help/README.md`
 
 ## Common commands
 
@@ -59,10 +60,22 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 
 ## Current navigation notes (admin)
 
-- Primary admin top-nav sections are: `Audit`, `Briefs`, `Library`, `Overview`, `QA`, `Settings`, `Specs`, `Students`, `Users`.
+- Primary admin top-nav sections are: `Overview`, `Audit`, `Briefs`, `Library`, `QA`, `Specs`, `Students`, `Users`.
+- `Settings` is a cog icon pinned at the far-right of the admin sections rail.
 - Advanced admin pages are still available by direct URL:
   - `/admin/reference`
   - `/admin/bindings`
+
+## Turnitin notes
+
+- Turnitin controls are in `Admin > Settings > App`.
+- QA workspace supports:
+  - row-level `Send to Turnitin` / `Refresh %`
+  - page-level `Send page to Turnitin`
+  - report link (`Open report`) when viewer URL is available
+- Submissions workspace shows AI-writing status badges when Turnitin state exists:
+  - `AI <n>%` when available
+  - `AI pending` when Turnitin submission is queued
 
 ## Current behavior notes (submissions, Phase 1)
 

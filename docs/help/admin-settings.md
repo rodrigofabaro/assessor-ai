@@ -1,43 +1,64 @@
 # `/admin/settings` Help
 
+Last updated: 2026-02-20
+
 ## Purpose
 
-Configure AI and grading defaults plus app-level identity settings.
-This page now acts as a control panel with quick operational indicators and direct links to Users and QA.
+Configure platform behavior in three scoped sections:
 
-## Areas
+1. `AI`: model + connectivity
+2. `Grading`: tone/strictness/template/page-notes
+3. `App`: audit actor, automation policy, branding, and Turnitin
 
-1. AI Usage
-OpenAI connectivity and usage/cost diagnostics.
-Active model selection.
-OpenAI key change checklist (TODO) and key location guidance.
+This page is the policy control surface for operations and QA.
+
+## Section map
+
+1. AI
+- OpenAI connection state and usage diagnostics
+- active model selection
+- AI smoke test before save
 
 2. Grading
-Tone/strictness/rubric defaults.
-Feedback template.
-Page-note controls (enable notes, tone, limits, and criterion-code inclusion).
+- tone, strictness, rubric behavior
+- feedback template controls
+- page-notes controls (enable, tone, limits, criterion code)
+- grading config smoke test before save
 
 3. App
-Active audit user (assessor identity source).
-Favicon/branding controls.
+- active audit user (assessor attribution source)
+- automation policy toggles
+- Turnitin configuration and smoke test
+- favicon upload
 
-## How to use
+## Turnitin workflow in Settings
 
-1. Set active audit user first (assessor identity policy).
-2. Configure grading defaults and feedback template.
-3. Tune page-note settings and preview tone examples.
-4. Save and verify by running one grading cycle in submission detail.
+Use the App section card `Turnitin (QA)`:
 
-## OpenAI Keys TODO
+1. Set/verify:
+- integration enabled
+- QA-only restriction (recommended outside production-wide rollout)
+- auto-send on extraction (optional)
+- auto-refresh AI writing score after grading (optional)
+- base URL, owner user id, viewer user id, locale
+- integration name/version
+- API key
 
-1. Add or rotate `OPENAI_ADMIN_KEY` (preferred key for full usage/cost visibility).
-2. Set `OPENAI_API_KEY` as fallback key.
-3. Restart app/runtime after key change.
-4. In `/admin/settings`, run `Test config`.
-5. Confirm OpenAI card shows expected key type and connected status.
+2. Run `Test Turnitin`.
+3. Save Turnitin config.
 
-## Where to Change Keys
+## Save strategy
 
-- Local: `.env.local` in project root.
-- Production/staging: deployment platform secret/environment variables.
-- Never store keys in UI text fields, docs, or committed source files.
+Use this order for high-safety changes:
+
+1. Draft section changes.
+2. Run section smoke test(s).
+3. Use `Save all atomically` when multiple sections changed.
+4. Verify settings audit trail entry and from/to diffs.
+
+## Important behavior
+
+- Unsaved-change guard prevents accidental navigation loss.
+- `Revert` restores last loaded values.
+- `Reset defaults` applies baseline defaults for that section.
+- Saved values are auditable through settings audit events.

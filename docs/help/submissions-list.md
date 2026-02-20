@@ -14,6 +14,7 @@ Use this page as the operations queue.
 - run QA preview/commit
 - retry failed rows after fixes
 - open row detail for deep review
+- monitor Turnitin AI badges (`AI <n>%` or `AI pending`) when available
 
 ## Lane Intent
 

@@ -1,47 +1,65 @@
-# Admin QA
+# Admin QA (`/admin/qa`)
+
+Last updated: 2026-02-20
 
 ## Purpose
-- Use this page as the QA research workspace for marked submissions.
-- Filter by student, course, unit code, AB number, status, and grade.
-- Compare outcomes quickly before IV or standardisation meetings.
 
-## Core Workflow
-- Open `/admin/qa`.
-- Apply filters for the cohort, unit, and assignment you want to inspect.
-- Review `Assessor Override Breakdown` to identify reason-code and criterion hotspots.
-- Review the dataset table to verify student-level outcomes.
-- Use `QA Flags` to identify runs needing manual review first.
-- Check grade distribution and averages to spot anomalies.
-- Export the filtered report to CSV for meetings or records.
+Use this page as the QA research and reporting workspace for graded submissions.
 
-## What You Can Analyze
-### Students and courses
-- Identify all submissions for a specific student or course.
-- Track grade spread by course.
+It combines:
+- outcome analytics
+- QA risk flags
+- assessor override insights
+- Turnitin send/refresh/report operations
 
-### Unit and assignment comparisons
-- Compare AB outcomes inside the same unit.
-- Identify unusual grade patterns between AB numbers.
+## Core workflow
 
-### Grade quality view
-- Inspect how many are REFER, PASS, PASS_ON_RESUBMISSION, MERIT, DISTINCTION, and ungraded.
-- Use average score as a fast signal, then verify detailed rows.
-- Use QA reasons to investigate:
-  - low confidence
-  - criteria without evidence
-  - regrade decision drift
-  - assessor overrides
-- Use override breakdown to investigate:
-  - most common override reason codes
-  - most frequently overridden criteria
-  - highest override unit/AB hotspots
+1. Open `/admin/qa`.
+2. Filter by cohort, unit, assignment, status, and grade.
+3. Review summary cards and `Assessor Override Breakdown`.
+4. Inspect `Submission QA dataset` rows.
+5. Prioritize rows with QA flags or low-confidence patterns.
+6. Export filtered CSV when needed.
 
-## Reports
-- Export filtered submissions CSV.
-- CSV includes QA review reasons for each row.
-- Use exports for QA meetings, IV evidence packs, and trend review.
+## Turnitin in QA
 
-## Relationship With Audit
-- QA page is for analysis and reporting.
-- Audit page (`/admin/audit`) is the operational event log for defensibility.
-- Use both together: QA for patterns, Audit for trace evidence.
+In the dataset table, each row has a Turnitin column.
+
+You can:
+- `Send to Turnitin` for unsent rows
+- `Refresh %` for already-sent rows
+- open `Open report` when viewer URL exists
+- see similarity + AI-writing percentages when available
+
+Page-level action:
+- `Send page to Turnitin` queues all visible unsent rows.
+
+## What to analyze
+
+1. Student and course patterns
+- identify grade spread by student/course
+- spot clusters of weak outputs
+
+2. Unit and assignment comparisons
+- compare outcomes by AB in the same unit
+- identify unusual distribution shifts
+
+3. QA risk signals
+- low confidence
+- criteria without evidence
+- regrade drift
+- frequent assessor overrides
+
+4. Turnitin indicators
+- similarity % trend
+- AI-writing % trend
+- report availability and error hotspots
+
+## Relationship with Audit
+
+- QA page: analytics and moderation decisions
+- Audit page (`/admin/audit`): event-level trace evidence
+
+Use both together:
+- QA identifies pattern and severity
+- Audit explains timeline, actor, and causality

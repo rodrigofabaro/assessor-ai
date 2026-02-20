@@ -159,6 +159,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     howItWorks: [
       "Starts with locked reference truth (spec + brief + criteria mapping).",
       "Moves each submission through extraction readiness, preview, commit, and feedback checks.",
+      "Adds Turnitin submission/report checks from QA when integration is enabled.",
       "Closes with QA flags, override analytics, and audit trace verification.",
     ],
     whyItMatters: [
@@ -167,6 +168,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     ],
     preflight: [
       "Confirm active audit user and grading defaults in Admin Settings.",
+      "Confirm Turnitin config in App settings if similarity/AI-writing checks are required.",
       "Confirm spec/brief/rubric are extracted and locked for the target assignment.",
       "Confirm assignment binding points to the intended locked brief version.",
     ],
@@ -229,6 +231,21 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         checks: [
           "Final grade aligns with criterion decisions and policy caps.",
           "Marked PDF regenerated for committed run.",
+        ],
+      },
+      {
+        id: "turnitin-checks",
+        title: "Run Turnitin checks in QA (optional by policy)",
+        what: "Queue/refresh Turnitin state for targeted rows and confirm report availability.",
+        how: [
+          "From `/admin/qa`, use row action `Send to Turnitin` for unsent rows.",
+          "Use `Refresh %` for sent rows to update similarity and AI-writing percentages.",
+          "Open `Open report` when viewer URL is available and record findings in QA notes.",
+        ],
+        why: "Plagiarism and AI-writing indicators should be reviewed in the same moderation loop as grading risk signals.",
+        checks: [
+          "Rows show Turnitin status and percentages when ready.",
+          "Any Turnitin errors are triaged before final QA sign-off.",
         ],
       },
       {
@@ -664,6 +681,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     purpose: "Analyze output quality trends and audit grading defensibility.",
     howItWorks: [
       "QA pages aggregate run quality signals and outcomes.",
+      "Turnitin status and percentages are available per-row when integration is enabled.",
       "Supports targeted review and export workflows.",
     ],
     whyItMatters: [
@@ -672,6 +690,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     ],
     preflight: [
       "Define sampling strategy for units and grade bands.",
+      "Confirm Turnitin policy for the review cycle (required vs optional).",
       "Confirm latest runs are selected.",
     ],
     steps: [
@@ -685,12 +704,28 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         ],
         why: "Risk-based sampling gives better QA coverage per hour.",
       },
+      {
+        id: "turnitin-pass",
+        title: "Execute Turnitin pass for selected rows",
+        what: "Send or refresh Turnitin state and include similarity/AI-writing indicators in QA decisioning.",
+        how: [
+          "Use `Send to Turnitin` for unsent rows.",
+          "Use `Refresh %` to update rows already sent.",
+          "Open report URL for deep evidence review when needed.",
+        ],
+        why: "Turnitin data adds an external integrity signal to moderation outcomes.",
+      },
     ],
     issues: [
       {
         issue: "High confidence but weak narrative",
         cause: "Confidence reflects signals, not writing quality alone.",
         fix: "Use criterion evidence and feedback quality checks together.",
+      },
+      {
+        issue: "Turnitin row stays pending",
+        cause: "Report generation not complete yet or credentials/config mismatch.",
+        fix: "Retry `Refresh %`, then verify Turnitin settings smoke check and row error details.",
       },
     ],
   },
@@ -907,6 +942,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     howItWorks: [
       "Settings are split into AI, Grading, and App sections with independent draft state.",
       "Test config actions validate AI connectivity and grading template/schema before save.",
+      "Turnitin controls live in the App section with dedicated smoke test and save path.",
       "Save all uses an atomic batch update path to avoid partial cross-section saves.",
       "Unsaved-change guard warns before navigation and keeps edits safe.",
     ],
@@ -917,6 +953,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     ],
     preflight: [
       "Confirm active audit user identity.",
+      "Confirm whether Turnitin should run QA-only or across broader environments.",
       "Document expected impact before changing grading settings.",
       "Run current smoke checks so you can compare before/after behavior.",
     ],
@@ -930,6 +967,17 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
           "Check warnings/errors and resolve them before commit.",
         ],
         why: "Validation-first flow catches misconfiguration before it reaches production runs.",
+      },
+      {
+        id: "turnitin-app-policy",
+        title: "Configure Turnitin policy in App section",
+        what: "Set Turnitin integration behavior and validate connectivity before relying on QA actions.",
+        how: [
+          "Set enabled/QA-only/auto-send/auto-AI-refresh toggles per policy.",
+          "Set base URL, owner/viewer IDs, locale, and API key.",
+          "Run `Test Turnitin` and resolve failures before save.",
+        ],
+        why: "Broken Turnitin settings create false confidence in plagiarism/AI-writing workflows.",
       },
       {
         id: "save-atomically",
@@ -963,6 +1011,11 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         issue: "Save all fails with rollback message",
         cause: "One section failed validation during batch commit.",
         fix: "Use section smoke tests, correct invalid fields, then run Save all again.",
+      },
+      {
+        issue: "Turnitin smoke passes but QA rows fail",
+        cause: "Row-level submission/EULA/viewer prerequisites are incomplete.",
+        fix: "Check row error details in `/admin/qa` and verify owner/viewer IDs in App settings.",
       },
     ],
   },
@@ -1549,6 +1602,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       useWhen: "QA finding needs page-level confirmation.",
       impact: "Shortens path from trend signal to root-cause review.",
     },
+    {
+      kind: "Button",
+      label: "Send to Turnitin / Refresh %",
+      location: "Admin QA dataset Turnitin column",
+      meaning: "Queues submission to Turnitin or refreshes stored percentages.",
+      useWhen: "Running plagiarism and AI-writing checks for sampled rows.",
+      impact: "Adds integrity indicators to QA moderation workflow.",
+    },
+    {
+      kind: "Button",
+      label: "Send page to Turnitin",
+      location: "Admin QA header actions",
+      meaning: "Queues all visible unsent rows on current page in one action.",
+      useWhen: "Bulk-starting Turnitin processing for current QA filter set.",
+      impact: "Reduces repetitive per-row queue actions.",
+    },
   ],
   "admin-specs": [
     {
@@ -1792,6 +1861,22 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       meaning: "Validates grading template placeholders and config limits before save.",
       useWhen: "Before committing grading prompt/tone/note changes.",
       impact: "Prevents invalid grading config from being persisted.",
+    },
+    {
+      kind: "Button",
+      label: "Test Turnitin",
+      location: "App section - Turnitin card",
+      meaning: "Checks Turnitin API connectivity and base configuration validity.",
+      useWhen: "Before enabling Turnitin or changing keys/IDs/base URL.",
+      impact: "Prevents broken Turnitin config from entering live QA workflows.",
+    },
+    {
+      kind: "Toggle",
+      label: "Turnitin behavior toggles",
+      location: "App section - Turnitin card",
+      meaning: "Controls enablement, QA-only guard, auto-send, and auto AI-writing refresh.",
+      useWhen: "Defining operational policy for Turnitin integration.",
+      impact: "Directly changes when/how Turnitin data appears in QA/submissions workflows.",
     },
     {
       kind: "Alert",
@@ -2115,6 +2200,7 @@ const DEEP_GUIDE_BY_SLUG: Record<
       "Sampling prioritizes risk (low confidence, caps, high variance) rather than convenience.",
       "QA notes map back to specific criteria/evidence patterns.",
       "QA outcomes feed concrete tuning actions in settings/policy.",
+      "Turnitin indicators are reviewed for selected rows and linked reports open when needed.",
     ],
     decisionGuide: [
       {
@@ -2127,6 +2213,11 @@ const DEEP_GUIDE_BY_SLUG: Record<
         then: "Inspect upstream spec/brief extraction and scope assumptions.",
         because: "Recurring defects are often rooted in reference context.",
       },
+      {
+        if: "Turnitin status/errors remain unresolved on high-risk rows",
+        then: "Delay sign-off for those rows and fix config or refresh path first.",
+        because: "Moderation should include integrity checks when policy requires them.",
+      },
     ],
     commonMistakes: [
       {
@@ -2138,6 +2229,11 @@ const DEEP_GUIDE_BY_SLUG: Record<
         mistake: "Logging findings without remediation owners.",
         risk: "Known defects persist across cycles.",
         correct: "Attach each QA finding to owner, target module, and follow-up date.",
+      },
+      {
+        mistake: "Ignoring Turnitin row errors during export/sign-off.",
+        risk: "Incomplete integrity review and rework after moderation meeting.",
+        correct: "Resolve or explicitly defer Turnitin failures with rationale before closure.",
       },
     ],
   },
@@ -2302,6 +2398,7 @@ const DEEP_GUIDE_BY_SLUG: Record<
       "Operators understand effective settings before running grading.",
       "Configuration drift is minimized across environments.",
       "Multi-section edits are committed through atomic save with a clean audit trail.",
+      "Turnitin settings are tested and policy toggles match QA operating expectations.",
     ],
     decisionGuide: [
       {
@@ -2313,6 +2410,11 @@ const DEEP_GUIDE_BY_SLUG: Record<
         if: "Unexpected behavior appears after setting edits",
         then: "Inspect effective run metadata and audit event timeline.",
         because: "Stored settings and effective runtime context may differ by timing.",
+      },
+      {
+        if: "Turnitin checks fail in QA",
+        then: "Run Turnitin smoke in App settings and validate owner/viewer IDs and API key source.",
+        because: "Row-level failures often come from policy/config mismatches, not QA table logic.",
       },
     ],
     commonMistakes: [
@@ -2330,6 +2432,11 @@ const DEEP_GUIDE_BY_SLUG: Record<
         mistake: "Navigating away with dirty sections.",
         risk: "Silent loss of operational policy edits.",
         correct: "Use unsaved bar actions (Revert all or Save all atomically) before leaving.",
+      },
+      {
+        mistake: "Enabling Turnitin without validating QA-only/auto-send toggles against environment policy.",
+        risk: "Unexpected external calls or missing checks in intended environments.",
+        correct: "Confirm toggle intent and run smoke checks before enabling.",
       },
     ],
   },

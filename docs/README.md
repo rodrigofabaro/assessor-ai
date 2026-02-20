@@ -16,6 +16,7 @@ This folder is the operational source of truth for extraction, mapping, grading,
 8. Release scope contract: `RELEASE.md`
 9. Reproducible operations checklist: `docs/ops-checklist.md`
 10. Stable baseline snapshot: `docs/operations/stable-app-baseline.md`
+11. Turnitin controls and QA workflow: `docs/help/admin-settings.md`, `docs/help/admin-qa.md`
 
 ## Scope Map
 
@@ -61,6 +62,8 @@ Navigation baseline updates:
 
 - `/submissions/[submissionId]` and `/admin/settings` load as lazy client modules for faster route transitions.
 - `/submissions` uses a single upload entrypoint (`Upload assignment`) and compact batch controls (`Batch actions` menu).
+- Admin settings are section-scoped (`AI`, `Grading`, `App`) with unsaved-change guard and atomic save.
+- Turnitin is configured in Settings App section and surfaced in QA/submissions workflows.
 
 ## Documentation Rules
 

@@ -15,7 +15,8 @@ Landing page to enter the platform quickly and see high-level status.
   - Students
   - System status
 - Admin workspace shortcuts section links to:
-  - Overview, Audit, Briefs, Library, QA, Settings, Specs, Students, Users
+  - Overview, Audit, Briefs, Library, QA, Specs, Students, Users
+  - Settings is available via cog icon at the far-right of the admin section bar
 - Advanced tools (direct links): `Reference` and `Bindings`
 
 ## How to use
