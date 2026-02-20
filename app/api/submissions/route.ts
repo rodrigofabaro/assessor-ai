@@ -96,11 +96,15 @@ export async function GET() {
     const confidenceSignals = (latestJson?.confidenceSignals || {}) as Record<string, unknown>;
     const evidenceDensitySummary = (latestJson?.evidenceDensitySummary || {}) as Record<string, unknown>;
     const rerunIntegrity = (latestJson?.rerunIntegrity || {}) as Record<string, unknown>;
+    const decisionDiff = (rerunIntegrity?.decisionDiff || {}) as Record<string, unknown>;
     const gradingConfidence = Number(confidenceSignals?.gradingConfidence);
     const extractionConfidence = Number(confidenceSignals?.extractionConfidence);
     const totalCitations = Number(evidenceDensitySummary?.totalCitations || 0);
     const criteriaWithoutEvidence = Number(evidenceDensitySummary?.criteriaWithoutEvidence || 0);
     const rerunDriftDetected = Boolean((rerunIntegrity as any)?.snapshotDiff?.changed);
+    const decisionChangedCount = Number(decisionDiff?.changedCount || 0);
+    const decisionStricterCount = Number(decisionDiff?.stricterCount || 0);
+    const decisionLenientCount = Number(decisionDiff?.lenientCount || 0);
     const lowConfidenceThreshold = Math.max(0.2, Math.min(0.95, Number(process.env.QA_LOW_CONFIDENCE_THRESHOLD || 0.6)));
     const reasons: string[] = [];
     if (Number.isFinite(gradingConfidence) && gradingConfidence >= 0 && gradingConfidence < lowConfidenceThreshold) {
@@ -118,6 +122,11 @@ export async function GET() {
     if (rerunDriftDetected) {
       reasons.push("Reference context drift on re-run");
     }
+    if (decisionChangedCount > 0) {
+      reasons.push(
+        `Criterion decision drift on re-run (${decisionChangedCount} change${decisionChangedCount === 1 ? "" : "s"}; stricter ${decisionStricterCount}, lenient ${decisionLenientCount})`
+      );
+    }
     const qaFlags = {
       shouldReview: reasons.length > 0,
       reasons,
@@ -127,6 +136,9 @@ export async function GET() {
         totalCitations: Number.isFinite(totalCitations) ? totalCitations : 0,
         criteriaWithoutEvidence: Number.isFinite(criteriaWithoutEvidence) ? criteriaWithoutEvidence : 0,
         rerunDriftDetected,
+        decisionChangedCount: Number.isFinite(decisionChangedCount) ? decisionChangedCount : 0,
+        decisionStricterCount: Number.isFinite(decisionStricterCount) ? decisionStricterCount : 0,
+        decisionLenientCount: Number.isFinite(decisionLenientCount) ? decisionLenientCount : 0,
       },
     };
 

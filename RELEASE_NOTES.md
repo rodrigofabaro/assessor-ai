@@ -66,6 +66,37 @@ Branch: `release/project-finish`
 - Add run-to-run drift monitor that blocks automatic promotion when criterion decisions swing without new evidence.
 - Add extraction-quality gates per modality (tables/charts/equations/images) with targeted penalties and explicit warnings.
 
+## Update: 2026-02-20 (stable hardening pass: all briefs)
+
+### Grading Reliability (All Briefs)
+
+- Added cross-brief contradiction guard:
+  - if a criterion is marked `ACHIEVED` but rationale language indicates missing/insufficient evidence, the decision is downgraded automatically.
+  - controlled via `GRADE_GLOBAL_CONTRADICTION_GUARD_ENABLED` (default `true`).
+- Prompt contract strengthened:
+  - model is explicitly instructed not to return `ACHIEVED` when rationale indicates evidence gaps.
+
+### Regrade Drift Telemetry
+
+- Added criterion-level decision drift tracking against the previous run:
+  - changed criteria count
+  - stricter vs lenient movement counts
+  - changed codes list
+- Drift now feeds:
+  - `resultJson.rerunIntegrity.decisionDiff`
+  - `systemNotes`
+  - `/api/submissions` QA review reasons.
+
+### QA Surface
+
+- QA research table now includes `QA Flags` column and exports review reasons in CSV.
+
+### Stable Footer Version
+
+- Footer version label is now env-driven for release cadence:
+  - `NEXT_PUBLIC_APP_VERSION` (default `0.4-stable-rc1`)
+  - `NEXT_PUBLIC_RELEASE_LABEL` (default `stable candidate`)
+
 ## Included Commits
 
 - `2b9f2a2` docs: polish admin help and add project completion checklist

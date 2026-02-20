@@ -25,6 +25,15 @@ type SubmissionResearchRow = {
     assignmentRef?: string | null;
     title?: string | null;
   } | null;
+  qaFlags?: {
+    shouldReview?: boolean;
+    reasons?: string[];
+    metrics?: {
+      decisionChangedCount?: number;
+      decisionStricterCount?: number;
+      decisionLenientCount?: number;
+    };
+  } | null;
 };
 
 function asGradeBand(v: unknown): GradeBand | null {
@@ -202,7 +211,7 @@ export default function AdminQaPage() {
   function exportFiltered() {
     downloadCsv(
       "qa-filtered-submissions.csv",
-      ["Submission ID", "Filename", "Student", "Course", "Unit", "AB", "Status", "Grade", "Uploaded", "Graded"],
+      ["Submission ID", "Filename", "Student", "Course", "Unit", "AB", "Status", "Grade", "Uploaded", "Graded", "QA Review Reasons"],
       filtered.map((r) => [
         r.id,
         r.filename || "",
@@ -214,6 +223,7 @@ export default function AdminQaPage() {
         r.grade || "",
         r.uploadedAt || "",
         r.gradedAt || "",
+        Array.isArray(r.qaFlags?.reasons) ? r.qaFlags!.reasons!.join(" | ") : "",
       ])
     );
   }
@@ -291,13 +301,14 @@ export default function AdminQaPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">AB</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Status</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">QA Flags</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Graded</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="text-sm">
@@ -310,6 +321,18 @@ export default function AdminQaPage() {
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{r.assignment?.assignmentRef || "—"}</td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{r.grade || "UNGRADED"}</td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{r.status || "—"}</td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      {r.qaFlags?.shouldReview ? (
+                        <div className="space-y-1">
+                          <div className="text-[11px] font-semibold text-amber-800">Review</div>
+                          <div className="text-[11px] text-zinc-600">
+                            {(Array.isArray(r.qaFlags?.reasons) ? r.qaFlags!.reasons!.slice(0, 2) : []).join(" · ") || "Flagged"}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-emerald-700">Clear</span>
+                      )}
+                    </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.gradedAt)}</td>
                   </tr>

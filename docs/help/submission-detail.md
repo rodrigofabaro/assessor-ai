@@ -46,3 +46,6 @@ Use:
 - notes feel generic or repetitive
   - regenerate marked PDF from the selected run to apply latest notes logic
   - confirm notes appear in bottom-right of marked pages
+- repeated regrades produce different criterion decisions
+  - review `Diff vs previous run` and `GradeRun v2 signals` in outputs
+  - check QA flags for decision-drift signals before release

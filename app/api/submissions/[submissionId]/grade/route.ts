@@ -456,6 +456,134 @@ function applyBandCompletionCap(
   };
 }
 
+function normalizeDecisionLabel(value: unknown): "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR" {
+  const up = String(value || "").trim().toUpperCase();
+  if (up === "ACHIEVED" || up === "NOT_ACHIEVED" || up === "UNCLEAR") return up;
+  return "UNCLEAR";
+}
+
+function reasonSnippet(value: unknown, maxLen = 170) {
+  const compact = sanitizeStudentFeedbackLine(String(value || "").replace(/\s+/g, " ").trim());
+  if (!compact) return "";
+  if (compact.length <= maxLen) return compact;
+  return compact.slice(0, Math.max(40, maxLen - 1)).replace(/\s+\S*$/, "").trim();
+}
+
+function rationaleIndicatesEvidenceGap(rationale: unknown) {
+  const src = normalizeText(rationale).toLowerCase();
+  if (!src) return false;
+  const negativeSignals = [
+    /\bnot\s+(?:fully\s+)?(?:met|achieved|demonstrated|evidenced|clear|sufficient|adequate)\b/i,
+    /\binsufficient(?:ly)?\b/i,
+    /\blacks?\b/i,
+    /\bmissing\b/i,
+    /\bdoes\s+not\b/i,
+    /\bfails?\s+to\b/i,
+    /\bnot\s+sufficient(?:ly)?\b/i,
+    /\bnot\s+clearly\b/i,
+    /\bunclear\b/i,
+    /\blimited\b/i,
+    /\bnot\s+enough\b/i,
+  ];
+  const positiveSignals = [
+    /\bfully\s+met\b/i,
+    /\bwell\s+evidenced\b/i,
+    /\bclearly\s+demonstrat(?:ed|es|ing)\b/i,
+    /\bstrong\s+evidence\b/i,
+    /\bmeets\s+the\s+requirement\b/i,
+  ];
+  const negativeCount = negativeSignals.reduce((sum, pattern) => sum + (pattern.test(src) ? 1 : 0), 0);
+  const positiveCount = positiveSignals.reduce((sum, pattern) => sum + (pattern.test(src) ? 1 : 0), 0);
+  return negativeCount > 0 && negativeCount >= positiveCount + 1;
+}
+
+function extractCriterionRowsFromAssessmentResult(resultJson: any) {
+  const r = resultJson && typeof resultJson === "object" ? resultJson : {};
+  const fromResponse = Array.isArray(r?.response?.criterionChecks) ? r.response.criterionChecks : null;
+  const fromStructured = Array.isArray(r?.structuredGradingV2?.criterionChecks) ? r.structuredGradingV2.criterionChecks : null;
+  const rows = fromResponse || fromStructured || [];
+  return Array.isArray(rows) ? rows : [];
+}
+
+function compareCriterionDecisionDiff(
+  previousRows: any[],
+  nextRows: any[]
+) {
+  const prevMap = new Map<string, string>();
+  const nextMap = new Map<string, string>();
+  for (const row of Array.isArray(previousRows) ? previousRows : []) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code) continue;
+    prevMap.set(code, normalizeDecisionLabel(row?.decision));
+  }
+  for (const row of Array.isArray(nextRows) ? nextRows : []) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code) continue;
+    nextMap.set(code, normalizeDecisionLabel(row?.decision));
+  }
+  const codes = Array.from(new Set([...prevMap.keys(), ...nextMap.keys()])).sort((a, b) => a.localeCompare(b));
+  const decisionRank: Record<string, number> = { NOT_ACHIEVED: 0, UNCLEAR: 1, ACHIEVED: 2 };
+  const changes: Array<{ code: string; from: string; to: string; direction: "stricter" | "lenient" | "lateral" }> = [];
+  let stricterCount = 0;
+  let lenientCount = 0;
+  let lateralCount = 0;
+
+  for (const code of codes) {
+    const from = prevMap.get(code) || "UNCLEAR";
+    const to = nextMap.get(code) || "UNCLEAR";
+    if (from === to) continue;
+    const fromRank = Number(decisionRank[from] ?? 1);
+    const toRank = Number(decisionRank[to] ?? 1);
+    const direction = toRank < fromRank ? "stricter" : toRank > fromRank ? "lenient" : "lateral";
+    if (direction === "stricter") stricterCount += 1;
+    else if (direction === "lenient") lenientCount += 1;
+    else lateralCount += 1;
+    changes.push({ code, from, to, direction });
+  }
+
+  return {
+    comparedCount: codes.length,
+    changedCount: changes.length,
+    stricterCount,
+    lenientCount,
+    lateralCount,
+    changedCodes: changes.map((c) => c.code),
+    changes: changes.slice(0, 30),
+  };
+}
+
+function enforceCrossBriefCriterionDecisionGuards(input: { rows: any[] }) {
+  const enabled = !["0", "false", "no", "off"].includes(
+    String(process.env.GRADE_GLOBAL_CONTRADICTION_GUARD_ENABLED || "true").toLowerCase()
+  );
+  if (!enabled) {
+    return { rows: Array.isArray(input.rows) ? [...input.rows] : [], adjustedCount: 0, adjustedCodes: [] as string[] };
+  }
+
+  const rows = Array.isArray(input.rows) ? [...input.rows] : [];
+  const adjustedCodes: string[] = [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = { ...(rows[i] || {}) };
+    const decision = normalizeDecisionLabel(row?.decision);
+    if (decision !== "ACHIEVED") continue;
+    const rationale = String(row?.rationale || row?.comment || "").trim();
+    if (!rationaleIndicatesEvidenceGap(rationale)) continue;
+    row.decision = "NOT_ACHIEVED";
+    row.confidence = Math.min(Number(row?.confidence || 0.55), 0.45);
+    row.rationale = sanitizeStudentFeedbackLine(
+      `Guard adjusted: rationale indicates evidence gaps for this requirement. ${reasonSnippet(rationale, 160)}`
+    );
+    rows[i] = row;
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (code) adjustedCodes.push(code);
+  }
+  return {
+    rows,
+    adjustedCount: adjustedCodes.length,
+    adjustedCodes: Array.from(new Set(adjustedCodes)).sort((a, b) => a.localeCompare(b)),
+  };
+}
+
 function enforceBriefCriterionDecisionGuards(input: {
   unitCode: string;
   assignmentCode: string;
@@ -463,9 +591,17 @@ function enforceBriefCriterionDecisionGuards(input: {
 }) {
   const notes: string[] = [];
   const next = input?.decision && typeof input.decision === "object" ? { ...input.decision } : {};
-  const rows = Array.isArray(next.criterionChecks) ? [...next.criterionChecks] : [];
+  let rows = Array.isArray(next.criterionChecks) ? [...next.criterionChecks] : [];
   const unitCode = String(input.unitCode || "").trim();
   const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+
+  const crossBriefGuard = enforceCrossBriefCriterionDecisionGuards({ rows });
+  rows = crossBriefGuard.rows;
+  if (crossBriefGuard.adjustedCount > 0) {
+    notes.push(
+      `Decision guard applied: ${crossBriefGuard.adjustedCount} criterion decision(s) were downgraded because rationale language indicated evidence gaps (${crossBriefGuard.adjustedCodes.join(", ")}).`
+    );
+  }
 
   // Brief-specific guard: U4004 A1 M2 must evidence an alternative milestone monitoring method
   // with explicit justification; otherwise treat as not achieved.
@@ -1519,6 +1655,7 @@ export async function POST(
     "- ACHIEVED is only valid with page-linked evidence.",
     "- evidence must include at least one item with numeric page and either quote or visualDescription.",
     "- decision must be one of: ACHIEVED, NOT_ACHIEVED, UNCLEAR.",
+    "- Do not mark a criterion as ACHIEVED if your rationale indicates missing/insufficient/unclear evidence.",
     "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
     "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
     "",
@@ -1904,12 +2041,24 @@ export async function POST(
       },
     });
     const previousSnapshot = (previousAssessment?.resultJson as any)?.referenceContextSnapshot || null;
+    const previousCriterionChecks = extractCriterionRowsFromAssessmentResult((previousAssessment?.resultJson as any) || {});
+    const decisionDiff = compareCriterionDecisionDiff(previousCriterionChecks, decision.criterionChecks as any[]);
     const rerunIntegrity = {
       previousAssessmentId: previousAssessment?.id || null,
       previousAssessmentAt: previousAssessment?.createdAt?.toISOString?.() || null,
       previousOverallGrade: previousAssessment?.overallGrade || null,
       snapshotDiff: diffReferenceSnapshots(previousSnapshot, referenceContextSnapshot),
+      decisionDiff,
     };
+    if (decisionDiff.changedCount > 0) {
+      const directionBits: string[] = [];
+      if (decisionDiff.stricterCount > 0) directionBits.push(`${decisionDiff.stricterCount} stricter`);
+      if (decisionDiff.lenientCount > 0) directionBits.push(`${decisionDiff.lenientCount} lenient`);
+      if (decisionDiff.lateralCount > 0) directionBits.push(`${decisionDiff.lateralCount} lateral`);
+      systemNotes.push(
+        `Regrade decision drift vs previous run: ${decisionDiff.changedCount} criterion change(s) (${directionBits.join(", ") || "mixed"}).`
+      );
+    }
 
     if (dryRun) {
       appendOpsEvent({
@@ -1966,6 +2115,7 @@ export async function POST(
             rubricGuidance: rubricSupport.meta,
             gradingDefaultsSnapshot,
             extractionGate,
+            rerunIntegrity,
           },
           requestId,
         },
@@ -2142,6 +2292,8 @@ export async function POST(
           previousAssessmentId: rerunIntegrity.previousAssessmentId,
           driftDetected: rerunIntegrity.snapshotDiff.changed,
           driftReason: rerunIntegrity.snapshotDiff.reason,
+          decisionChangedCount: rerunIntegrity.decisionDiff.changedCount,
+          decisionChangedCodes: rerunIntegrity.decisionDiff.changedCodes.slice(0, 12),
         },
       },
     });

@@ -17,6 +17,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const isDev = process.env.NODE_ENV === "development";
+  const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "0.4-stable-rc1").trim();
+  const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "stable candidate").trim();
 
   return (
     <html lang="en">
@@ -32,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-zinc-200/40 bg-zinc-50">
           <div className={LANE + " py-1.5"}>
             <div className="text-center text-[11px] leading-4 text-zinc-400">
-              Assessor AI · v0.3 · © {new Date().getFullYear()} Rodrigo
+              Assessor AI · v{appVersion} · {releaseLabel} · © {new Date().getFullYear()} Rodrigo
             </div>
           </div>
         </footer>

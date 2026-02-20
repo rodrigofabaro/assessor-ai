@@ -79,6 +79,18 @@ When reliability is uncertain, block or degrade gracefully with explicit audit d
 - Note generator removes placeholder/ellipsis artifacts and favors concise action-oriented coaching.
 - Marked PDF notes are rendered bottom-right for consistent student scanning.
 
+4. Cross-brief contradiction guard (all briefs)
+- If a criterion decision is `ACHIEVED` but rationale language indicates evidence is missing/insufficient/unclear, the decision is downgraded automatically.
+- This is a conservative anti-overmarking control and is enabled by default.
+- Env toggle: `GRADE_GLOBAL_CONTRADICTION_GUARD_ENABLED=true`.
+
+5. Regrade decision drift telemetry
+- Each run now records criterion-level drift versus the previous run:
+  - changed criteria count
+  - stricter vs lenient movement
+  - changed codes
+- Stored under `resultJson.rerunIntegrity.decisionDiff` and surfaced as QA review signals.
+
 ## Robust-Grading Backlog (recommended)
 
 1. Criterion calibration suite
