@@ -8,6 +8,7 @@ type SubmissionsView = "workspace" | "qa";
 type TimeframeParam = "today" | "week" | "all";
 type SortByParam = "uploadedAt" | "status" | "student" | "grade";
 type SortDirParam = "asc" | "desc";
+type LaneFilterParam = "AUTO_READY" | "NEEDS_HUMAN" | "BLOCKED" | "COMPLETED" | "QA_REVIEW" | "ALL";
 
 function parseBool(raw: string | null, fallback: boolean) {
   if (raw === null || raw === undefined || String(raw).trim() === "") return fallback;
@@ -42,6 +43,14 @@ function parseSortDir(raw: string | null): SortDirParam {
   return String(raw || "").trim().toLowerCase() === "asc" ? "asc" : "desc";
 }
 
+function parseLaneFilter(raw: string | null): LaneFilterParam {
+  const v = String(raw || "").trim().toUpperCase();
+  if (v === "AUTO_READY" || v === "NEEDS_HUMAN" || v === "BLOCKED" || v === "COMPLETED" || v === "QA_REVIEW") {
+    return v as LaneFilterParam;
+  }
+  return "ALL";
+}
+
 function timeframeBounds(timeframe: TimeframeParam): { gte: Date; lt: Date } | null {
   if (timeframe === "all") return null;
   const now = new Date();
@@ -63,6 +72,23 @@ function buildOrderBy(sortBy: SortByParam, sortDir: SortDirParam) {
     return [{ student: { fullName: sortDir } }, { uploadedAt: "desc" as const }, { id: "desc" as const }];
   }
   return [{ uploadedAt: sortDir }, { id: sortDir }];
+}
+
+function gradeRank(raw: string) {
+  const up = String(raw || "").trim().toUpperCase();
+  if (up === "DISTINCTION") return 5;
+  if (up === "MERIT") return 4;
+  if (up === "PASS") return 3;
+  if (up === "PASS_ON_RESUBMISSION") return 2;
+  if (up === "REFER") return 1;
+  return 0;
+}
+
+function isReadyToUploadLike(row: { grade?: string | null; overallGrade?: string | null; feedback?: string | null; markedPdfPath?: string | null }) {
+  const grade = String(row.grade ?? row.overallGrade ?? "").trim();
+  const hasFeedback = Boolean(String(row.feedback || "").trim());
+  const hasMarkedPdf = Boolean(String(row.markedPdfPath || "").trim());
+  return Boolean(grade && hasFeedback && hasMarkedPdf);
 }
 
 function computeQaFlags(latestJson: Record<string, unknown>) {
@@ -217,6 +243,10 @@ export async function GET(req: Request) {
   const pageSize = parsePositiveInt(searchParams.get("pageSize"), pageSizeDefault, 10, 200);
   const q = String(searchParams.get("q") || "").trim();
   const statusFilter = String(searchParams.get("status") || "").trim();
+  const laneFilter = parseLaneFilter(searchParams.get("lane"));
+  const readyOnly = parseBool(searchParams.get("ready"), false);
+  const handoffOnly = parseBool(searchParams.get("handoff"), false);
+  const qaReviewOnly = parseBool(searchParams.get("qaOnly"), false);
   const timeframe = parseTimeframe(searchParams.get("timeframe"));
   const sortBy = parseSortBy(searchParams.get("sortBy"));
   const sortDir = parseSortDir(searchParams.get("sortDir"));
@@ -319,12 +349,17 @@ export async function GET(req: Request) {
     timeframe,
   });
 
-  const [totalItems, rows] = await Promise.all([
-    paginate ? prisma.submission.count({ where }) : Promise.resolve(0),
+  const requiresWorkspacePostFilter =
+    laneFilter !== "ALL" || readyOnly || handoffOnly || qaReviewOnly || sortBy === "grade";
+  const includeWorkspaceQa = includeQa || laneFilter === "QA_REVIEW" || qaReviewOnly;
+  const includeWorkspaceFeedback = includeFeedback || readyOnly || handoffOnly;
+
+  const [countBeforeFilter, rows] = await Promise.all([
+    paginate && !requiresWorkspacePostFilter ? prisma.submission.count({ where }) : Promise.resolve(0),
     prisma.submission.findMany({
       where,
       orderBy,
-      ...(paginate ? { skip, take } : {}),
+      ...(paginate && !requiresWorkspacePostFilter ? { skip, take } : {}),
       select: {
         id: true,
         filename: true,
@@ -356,8 +391,8 @@ export async function GET(req: Request) {
             overallGrade: true,
             annotatedPdfPath: true,
             createdAt: true,
-            ...(includeFeedback ? { feedbackText: true } : {}),
-            ...(includeQa ? { resultJson: true } : {}),
+            ...(includeWorkspaceFeedback ? { feedbackText: true } : {}),
+            ...(includeWorkspaceQa ? { resultJson: true } : {}),
           },
         },
         _count: {
@@ -383,7 +418,7 @@ export async function GET(req: Request) {
 
   const submissions = rows.map((s: any) => {
     const latest = s.assessments?.[0] || null;
-    const feedbackText = includeFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
+    const feedbackText = includeWorkspaceFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
     const latestRun = s.extractionRuns?.[0] || null;
     const extractionQuality = computeExtractionQuality({
       submissionStatus: s.status,
@@ -411,8 +446,8 @@ export async function GET(req: Request) {
       markedPdfPath: latest?.annotatedPdfPath || null,
       extractionQuality,
     });
-    const latestJson = includeQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
-    const qaFlags = includeQa ? computeQaFlags(latestJson) : null;
+    const latestJson = includeWorkspaceQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
+    const qaFlags = includeWorkspaceQa ? computeQaFlags(latestJson) : null;
 
     return {
       id: s.id,
@@ -429,7 +464,7 @@ export async function GET(req: Request) {
       feedback: feedbackText,
       markedPdfPath: latest?.annotatedPdfPath || null,
       gradedAt: latest?.createdAt || null,
-      assessmentActor: includeQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
+      assessmentActor: includeWorkspaceQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
       extractionMode: String((latestRun?.sourceMeta as any)?.extractionMode || "").toUpperCase() || null,
       coverReady: Boolean((latestRun?.sourceMeta as any)?.coverReady),
       automationState: automation.state,
@@ -441,11 +476,41 @@ export async function GET(req: Request) {
     };
   });
 
-  if (!paginate) return NextResponse.json(submissions);
-  const total = totalItems;
+  let filteredSubmissions = submissions;
+  if (requiresWorkspacePostFilter) {
+    if (readyOnly || handoffOnly) {
+      filteredSubmissions = filteredSubmissions.filter((row) => isReadyToUploadLike(row));
+    }
+    if (laneFilter === "QA_REVIEW") {
+      filteredSubmissions = filteredSubmissions.filter((row) => Boolean(row.qaFlags?.shouldReview));
+    } else if (laneFilter !== "ALL") {
+      filteredSubmissions = filteredSubmissions.filter((row) => String(row.automationState || "") === laneFilter);
+    }
+    if (qaReviewOnly) {
+      filteredSubmissions = filteredSubmissions.filter((row) => Boolean(row.qaFlags?.shouldReview));
+    }
+    if (sortBy === "grade") {
+      const dir = sortDir === "asc" ? 1 : -1;
+      filteredSubmissions = [...filteredSubmissions].sort((a: any, b: any) => {
+        const av = gradeRank(String(a.grade || a.overallGrade || ""));
+        const bv = gradeRank(String(b.grade || b.overallGrade || ""));
+        if (av !== bv) return (av - bv) * dir;
+        const at = new Date(a.uploadedAt || 0).getTime() || 0;
+        const bt = new Date(b.uploadedAt || 0).getTime() || 0;
+        return (at - bt) * -1;
+      });
+    }
+  }
+
+  if (!paginate) return NextResponse.json(filteredSubmissions);
+  const pagedItems =
+    requiresWorkspacePostFilter
+      ? filteredSubmissions.slice(Math.max(0, (page - 1) * pageSize), Math.max(0, (page - 1) * pageSize) + pageSize)
+      : filteredSubmissions;
+  const total = requiresWorkspacePostFilter ? filteredSubmissions.length : countBeforeFilter;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   return NextResponse.json({
-    items: submissions,
+    items: pagedItems,
     pageInfo: {
       page,
       pageSize,

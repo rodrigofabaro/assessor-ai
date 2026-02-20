@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isReadyToUpload } from "@/lib/submissionReady";
 import { jsonFetch } from "./api";
 import type { PaginatedResponse, SubmissionRow } from "./types";
 import { groupByDay } from "./logic";
@@ -123,7 +122,7 @@ export function useSubmissionsList() {
       return;
     }
     setPage(1);
-  }, [unlinkedOnly, timeframe, statusFilter, debouncedQuery, pageSize, hydratedFromUrl]);
+  }, [unlinkedOnly, timeframe, statusFilter, debouncedQuery, pageSize, laneFilter, readyOnly, handoffOnly, qaReviewOnly, sortBy, sortDir, hydratedFromUrl]);
 
   useEffect(() => {
     if (!hydratedFromUrl) return;
@@ -147,6 +146,10 @@ export function useSubmissionsList() {
         if (debouncedQuery) params.set("q", debouncedQuery);
         if (statusFilter) params.set("status", statusFilter);
         if (unlinkedOnly) params.set("unlinked", "1");
+        if (laneFilter !== "ALL") params.set("lane", laneFilter);
+        if (readyOnly) params.set("ready", "1");
+        if (handoffOnly) params.set("handoff", "1");
+        if (qaReviewOnly) params.set("qaOnly", "1");
         const payload = await jsonFetch<PaginatedResponse<SubmissionRow>>(`/api/submissions?${params.toString()}`, { cache: "no-store" });
         if (cancelled) return;
         const nextItems = Array.isArray(payload?.items) ? payload.items : [];
@@ -177,7 +180,7 @@ export function useSubmissionsList() {
     return () => {
       cancelled = true;
     };
-  }, [hydratedFromUrl, page, pageSize, timeframe, sortBy, sortDir, statusFilter, unlinkedOnly, debouncedQuery, refreshNonce]);
+  }, [hydratedFromUrl, page, pageSize, timeframe, sortBy, sortDir, statusFilter, unlinkedOnly, laneFilter, readyOnly, handoffOnly, qaReviewOnly, debouncedQuery, refreshNonce]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -230,22 +233,7 @@ export function useSubmissionsList() {
 
   const filtered = useMemo(() => {
     const list = Array.isArray(items) ? items : [];
-    const byReady = readyOnly ? list.filter((s) => isReadyToUpload(s)) : list;
-
-    const byLane =
-      laneFilter === "ALL"
-        ? byReady
-        : laneFilter === "QA_REVIEW"
-          ? byReady.filter((row) => Boolean(row.qaFlags?.shouldReview))
-          : byReady.filter((row) => {
-              const key = (row.automationState || "NEEDS_HUMAN") as LaneKey;
-              return key === laneFilter;
-            });
-
-    const byHandoff = handoffOnly ? byLane.filter((s) => isReadyToUpload(s)) : byLane;
-    const byQaReview = qaReviewOnly ? byHandoff.filter((s) => Boolean(s.qaFlags?.shouldReview)) : byHandoff;
-
-    const sorted = [...byQaReview].sort((a, b) => {
+    const sorted = [...list].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
       if (sortBy === "student") {
         const av = String(a.student?.fullName || "").toLowerCase();
@@ -266,7 +254,7 @@ export function useSubmissionsList() {
     });
 
     return sorted;
-  }, [items, readyOnly, laneFilter, handoffOnly, qaReviewOnly, sortBy, sortDir]);
+  }, [items, sortBy, sortDir]);
 
   const dayGroups = useMemo(() => groupByDay(filtered), [filtered]);
 
