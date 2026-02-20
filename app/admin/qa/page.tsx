@@ -40,6 +40,19 @@ type SubmissionResearchRow = {
       criteriaCodes?: string[];
     };
   } | null;
+  turnitin?: {
+    turnitinSubmissionId?: string | null;
+    status?: string | null;
+    overallMatchPercentage?: number | null;
+    internetMatchPercentage?: number | null;
+    publicationMatchPercentage?: number | null;
+    submittedWorksMatchPercentage?: number | null;
+    reportRequestedAt?: string | null;
+    reportGeneratedAt?: string | null;
+    viewerUrl?: string | null;
+    lastError?: string | null;
+    updatedAt?: string | null;
+  } | null;
 };
 
 function asGradeBand(v: unknown): GradeBand | null {
@@ -91,6 +104,9 @@ export default function AdminQaPage() {
   const [pageSize, setPageSize] = useState(60);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [turnitinBusyById, setTurnitinBusyById] = useState<Record<string, boolean>>({});
+  const [turnitinBatchBusy, setTurnitinBatchBusy] = useState(false);
+  const [turnitinMsg, setTurnitinMsg] = useState("");
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -146,6 +162,63 @@ export default function AdminQaPage() {
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  async function runTurnitinAction(submissionId: string, action: "send" | "refresh" | "sync" = "sync") {
+    const sid = String(submissionId || "").trim();
+    if (!sid) return;
+    setTurnitinMsg("");
+    setTurnitinBusyById((prev) => ({ ...prev, [sid]: true }));
+    try {
+      const res = await fetch(`/api/submissions/${encodeURIComponent(sid)}/turnitin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; state?: any };
+      if (!res.ok || !json?.ok) throw new Error(json?.error || `Turnitin action failed (${res.status})`);
+      setTurnitinMsg(
+        `Turnitin ${action} complete for ${sid}: ${String(json?.state?.status || "updated")} ${
+          Number.isFinite(Number(json?.state?.overallMatchPercentage))
+            ? `(${Number(json.state.overallMatchPercentage)}%)`
+            : ""
+        }`
+      );
+      await load();
+    } catch (e: any) {
+      setTurnitinMsg(e?.message || "Turnitin action failed.");
+    } finally {
+      setTurnitinBusyById((prev) => {
+        const next = { ...prev };
+        delete next[sid];
+        return next;
+      });
+    }
+  }
+
+  async function sendPageToTurnitin() {
+    if (!filtered.length) return;
+    const pending = filtered
+      .filter((r) => !String(r.turnitin?.turnitinSubmissionId || "").trim())
+      .map((r) => r.id);
+    if (!pending.length) {
+      setTurnitinMsg("All visible rows already have a Turnitin submission id.");
+      return;
+    }
+
+    setTurnitinBatchBusy(true);
+    setTurnitinMsg(`Sending ${pending.length} row(s) to Turnitin...`);
+    try {
+      for (const sid of pending) {
+        await runTurnitinAction(sid, "send");
+      }
+      await load();
+      setTurnitinMsg(`Queued ${pending.length} row(s) to Turnitin.`);
+    } catch (e: any) {
+      setTurnitinMsg(e?.message || "Failed to send page rows to Turnitin.");
+    } finally {
+      setTurnitinBatchBusy(false);
+    }
+  }
 
   const filtered = rows;
 
@@ -390,11 +463,21 @@ export default function AdminQaPage() {
             <TinyIcon name="submissions" className="h-3 w-3" />
             Export filtered report
           </button>
+          <button
+            type="button"
+            onClick={sendPageToTurnitin}
+            disabled={busy || turnitinBatchBusy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
+          >
+            <TinyIcon name="refresh" className="h-3 w-3" />
+            {turnitinBatchBusy ? "Sending..." : "Send page to Turnitin"}
+          </button>
           <Link href="/admin/audit" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
             <TinyIcon name="audit" className="h-3 w-3" />
             Open audit log
           </Link>
         </div>
+        {turnitinMsg ? <p className="mt-2 text-xs text-zinc-700">{turnitinMsg}</p> : null}
       </section>
 
       {error ? <section className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</section> : null}
@@ -469,13 +552,14 @@ export default function AdminQaPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Status</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">QA Flags</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Turnitin</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Graded</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="text-sm">
@@ -499,6 +583,50 @@ export default function AdminQaPage() {
                       ) : (
                         <span className="text-[11px] text-emerald-700">Clear</span>
                       )}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      <div className="space-y-1">
+                        <div className="text-[11px]">
+                          {r.turnitin?.status ? (
+                            <span className="font-semibold text-zinc-800">{String(r.turnitin.status)}</span>
+                          ) : (
+                            <span className="text-zinc-500">Not sent</span>
+                          )}
+                          {Number.isFinite(Number(r.turnitin?.overallMatchPercentage))
+                            ? ` · ${Number(r.turnitin?.overallMatchPercentage)}%`
+                            : ""}
+                        </div>
+                        {r.turnitin?.viewerUrl ? (
+                          <a
+                            href={String(r.turnitin.viewerUrl)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex text-[11px] font-semibold text-sky-700 hover:underline"
+                          >
+                            Open report
+                          </a>
+                        ) : null}
+                        {r.turnitin?.lastError ? (
+                          <div className="text-[11px] text-rose-700">{String(r.turnitin.lastError)}</div>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void runTurnitinAction(
+                              r.id,
+                              String(r.turnitin?.turnitinSubmissionId || "").trim() ? "refresh" : "send"
+                            )
+                          }
+                          disabled={Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
+                          className="inline-flex h-7 items-center rounded-md border border-teal-300 bg-teal-50 px-2 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
+                        >
+                          {turnitinBusyById[r.id]
+                            ? "Working..."
+                            : String(r.turnitin?.turnitinSubmissionId || "").trim()
+                              ? "Refresh %"
+                              : "Send to Turnitin"}
+                        </button>
+                      </div>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.gradedAt)}</td>

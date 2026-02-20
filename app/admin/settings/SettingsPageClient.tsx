@@ -137,7 +137,7 @@ type SettingsAuditEvent = {
   actor: string;
   role: string;
   action: string;
-  target: "openai-model" | "grading-config" | "app-config" | "favicon" | "automation-policy";
+  target: "openai-model" | "grading-config" | "app-config" | "favicon" | "automation-policy" | "turnitin-config";
   changes?: Record<string, unknown>;
 };
 
@@ -186,6 +186,23 @@ type TurnitinSmokeResult = {
   keySource?: string;
   baseUrl?: string;
   checkedAt: string;
+};
+
+type TurnitinConfigPayload = {
+  source: "default" | "settings";
+  enabled: boolean;
+  qaOnly: boolean;
+  autoSendOnExtract: boolean;
+  baseUrl: string;
+  ownerUserId: string;
+  viewerUserId: string;
+  locale: string;
+  integrationName: string;
+  integrationVersion: string;
+  hasApiKey: boolean;
+  apiKeyPreview: string;
+  apiKeySource: string;
+  updatedAt?: string;
 };
 
 type LocalAiSnapshot = {
@@ -312,6 +329,11 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const [smokeGradingResult, setSmokeGradingResult] = useState<SmokeGradingResult | null>(null);
   const [smokeTurnitinResult, setSmokeTurnitinResult] = useState<TurnitinSmokeResult | null>(null);
   const [smokeCheckedAt, setSmokeCheckedAt] = useState("");
+  const [turnitinCfg, setTurnitinCfg] = useState<TurnitinConfigPayload | null>(null);
+  const [turnitinApiKeyDraft, setTurnitinApiKeyDraft] = useState("");
+  const [turnitinClearApiKey, setTurnitinClearApiKey] = useState(false);
+  const [turnitinSaving, setTurnitinSaving] = useState(false);
+  const [turnitinMsg, setTurnitinMsg] = useState("");
   const [copiedAuditEventId, setCopiedAuditEventId] = useState<string | null>(null);
 
   const [baseModel, setBaseModel] = useState("");
@@ -337,74 +359,130 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/openai-usage", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const json = (await res.json()) as UsagePayload;
-      setData(json);
-      if (json.model) setModel(json.model);
-
-      const modelRes = await fetch("/api/admin/openai-model", { method: "GET", cache: "no-store" });
-      if (modelRes.ok) {
-        const modelJson = (await modelRes.json()) as ModelPayload;
-        setAllowedModels(modelJson.allowedModels || []);
-        setAutoCleanupApproved(!!modelJson.autoCleanupApproved);
-        setBaseAutoCleanupApproved(!!modelJson.autoCleanupApproved);
-        setBaseModel(modelJson.model || "");
-        if (!json.model && modelJson.model) setModel(modelJson.model);
-      }
-
-      const gradingRes = await fetch("/api/admin/grading-config", { method: "GET", cache: "no-store" });
-      if (gradingRes.ok) {
-        const gradingJson = (await gradingRes.json()) as GradingConfigPayload;
-        setGradingCfg(gradingJson);
-        setBaseGradingCfgJson(JSON.stringify(gradingJson));
-      }
-
-      const [appCfgRes, appUsersRes, settingsAuditRes, defaultsRes] = await Promise.all([
-        fetch("/api/admin/app-config", { method: "GET", cache: "no-store" }),
-        fetch("/api/admin/users", { method: "GET", cache: "no-store" }),
-        fetch("/api/admin/settings-audit?take=30", { method: "GET", cache: "no-store" }),
-        fetch("/api/admin/settings/defaults", { method: "GET", cache: "no-store" }),
-      ]);
+      const appCfgRes = await fetch("/api/admin/app-config", { method: "GET", cache: "no-store" });
       if (appCfgRes.ok) {
         const appCfgJson = (await appCfgRes.json()) as AppConfigPayload;
         setAppCfg(appCfgJson);
         setBaseActiveAuditUserId(String(appCfgJson.activeAuditUserId || ""));
         setBaseAutomationPolicyJson(JSON.stringify(appCfgJson.automationPolicy || {}));
+      } else {
+        setAppCfg(null);
+        setBaseActiveAuditUserId("");
+        setBaseAutomationPolicyJson("");
       }
-      if (appUsersRes.ok) {
-        const usersJson = (await appUsersRes.json()) as { users?: AppUser[] };
-        setAppUsers(Array.isArray(usersJson.users) ? usersJson.users : []);
+
+      if (showAi) {
+        const res = await fetch("/api/admin/openai-usage", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const json = (await res.json()) as UsagePayload;
+        setData(json);
+        if (json.model) setModel(json.model);
+
+        const [modelRes, devRes] = await Promise.all([
+          fetch("/api/admin/openai-model", { method: "GET", cache: "no-store" }),
+          fetch("/api/dev/build-info", { method: "GET", cache: "no-store" }),
+        ]);
+
+        if (modelRes.ok) {
+          const modelJson = (await modelRes.json()) as ModelPayload;
+          setAllowedModels(modelJson.allowedModels || []);
+          setAutoCleanupApproved(!!modelJson.autoCleanupApproved);
+          setBaseAutoCleanupApproved(!!modelJson.autoCleanupApproved);
+          setBaseModel(modelJson.model || "");
+          if (!json.model && modelJson.model) setModel(modelJson.model);
+        } else {
+          setAllowedModels([]);
+          setAutoCleanupApproved(false);
+          setBaseAutoCleanupApproved(false);
+          setBaseModel("");
+        }
+
+        if (devRes.ok) {
+          const devJson = (await devRes.json()) as { localAi?: LocalAiSnapshot };
+          setLocalAi(devJson?.localAi || null);
+        } else {
+          setLocalAi(null);
+        }
+      } else {
+        setData(null);
+        setAllowedModels([]);
+        setLocalAi(null);
       }
-      if (settingsAuditRes.ok) {
-        const settingsAuditJson = (await settingsAuditRes.json()) as { events?: SettingsAuditEvent[] };
-        setSettingsAudit(Array.isArray(settingsAuditJson.events) ? settingsAuditJson.events : []);
+
+      if (showGrading) {
+        const gradingRes = await fetch("/api/admin/grading-config", { method: "GET", cache: "no-store" });
+        if (gradingRes.ok) {
+          const gradingJson = (await gradingRes.json()) as GradingConfigPayload;
+          setGradingCfg(gradingJson);
+          setBaseGradingCfgJson(JSON.stringify(gradingJson));
+        } else {
+          setGradingCfg(null);
+          setBaseGradingCfgJson("");
+        }
+      } else {
+        setGradingCfg(null);
+        setBaseGradingCfgJson("");
       }
-      if (defaultsRes.ok) {
-        const defaultsJson = (await defaultsRes.json()) as SettingsDefaultsPayload;
-        setDefaults(defaultsJson?.defaults || null);
+
+      if (showApp) {
+        const [appUsersRes, settingsAuditRes, turnitinRes] = await Promise.all([
+          fetch("/api/admin/users", { method: "GET", cache: "no-store" }),
+          fetch("/api/admin/settings-audit?take=30", { method: "GET", cache: "no-store" }),
+          fetch("/api/admin/turnitin/config", { method: "GET", cache: "no-store" }),
+        ]);
+        if (appUsersRes.ok) {
+          const usersJson = (await appUsersRes.json()) as { users?: AppUser[] };
+          setAppUsers(Array.isArray(usersJson.users) ? usersJson.users : []);
+        } else {
+          setAppUsers([]);
+        }
+        if (settingsAuditRes.ok) {
+          const settingsAuditJson = (await settingsAuditRes.json()) as { events?: SettingsAuditEvent[] };
+          setSettingsAudit(Array.isArray(settingsAuditJson.events) ? settingsAuditJson.events : []);
+        } else {
+          setSettingsAudit([]);
+        }
+        if (turnitinRes.ok) {
+          const turnitinJson = (await turnitinRes.json()) as TurnitinConfigPayload;
+          setTurnitinCfg(turnitinJson);
+          setTurnitinApiKeyDraft("");
+          setTurnitinClearApiKey(false);
+        } else {
+          setTurnitinCfg(null);
+        }
+      } else {
+        setAppUsers([]);
+        setSettingsAudit([]);
+        setTurnitinCfg(null);
+        setTurnitinApiKeyDraft("");
+        setTurnitinClearApiKey(false);
+      }
+
+      if (showAi || showGrading || showApp) {
+        const defaultsRes = await fetch("/api/admin/settings/defaults", { method: "GET", cache: "no-store" });
+        if (defaultsRes.ok) {
+          const defaultsJson = (await defaultsRes.json()) as SettingsDefaultsPayload;
+          setDefaults(defaultsJson?.defaults || null);
+        } else {
+          setDefaults(null);
+        }
       } else {
         setDefaults(null);
       }
-
-      const devRes = await fetch("/api/dev/build-info", { method: "GET", cache: "no-store" });
-      if (devRes.ok) {
-        const devJson = (await devRes.json()) as { localAi?: LocalAiSnapshot };
-        setLocalAi(devJson?.localAi || null);
-      } else {
-        setLocalAi(null);
-      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load OpenAI usage.");
+      setError(e instanceof Error ? e.message : "Failed to load settings.");
       setData(null);
       setLocalAi(null);
       setDefaults(null);
+      setTurnitinCfg(null);
+      setTurnitinApiKeyDraft("");
+      setTurnitinClearApiKey(false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showAi, showApp, showGrading]);
 
   useEffect(() => {
     load();
@@ -478,7 +556,15 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const automationEnabled = !!appCfg?.automationPolicy?.enabled;
   const automationControlDisabled = !canWriteSensitive || !automationEnabled;
   const busyAny =
-    savingModel || gradingSaving || appSaving || faviconBusy || batchSaving || smokeAiBusy || smokeGradingBusy || smokeTurnitinBusy;
+    savingModel ||
+    gradingSaving ||
+    appSaving ||
+    faviconBusy ||
+    batchSaving ||
+    smokeAiBusy ||
+    smokeGradingBusy ||
+    smokeTurnitinBusy ||
+    turnitinSaving;
 
   const confirmLeaveIfDirty = useCallback(() => {
     if (!anyDirty) return true;
@@ -677,7 +763,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
   const runTurnitinSmoke = useCallback(async () => {
     setSmokeTurnitinBusy(true);
-    setModelMessage("");
+    setTurnitinMsg("");
     try {
       const res = await fetch("/api/admin/turnitin/smoke", {
         method: "GET",
@@ -694,7 +780,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         baseUrl: json.baseUrl,
         checkedAt: json.checkedAt || new Date().toISOString(),
       });
-      setModelMessage(json.connected ? "Turnitin smoke test passed." : `Turnitin smoke test failed: ${json.message || "Unknown issue"}`);
+      setTurnitinMsg(
+        json.connected ? "Turnitin smoke test passed." : `Turnitin smoke test failed: ${json.message || "Unknown issue"}`
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : "Turnitin smoke test failed.";
       setSmokeTurnitinResult({
@@ -704,7 +792,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         message,
         checkedAt: new Date().toISOString(),
       });
-      setModelMessage(message);
+      setTurnitinMsg(message);
     } finally {
       setSmokeTurnitinBusy(false);
     }
@@ -743,6 +831,41 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
     await runTurnitinSmoke();
     await runGradingSmoke();
   }, [runAiSmoke, runGradingSmoke, runTurnitinSmoke]);
+
+  const saveTurnitinConfig = useCallback(async () => {
+    if (!canWriteSensitive || !turnitinCfg) return;
+    setTurnitinSaving(true);
+    setTurnitinMsg("");
+    try {
+      const res = await fetch("/api/admin/turnitin/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: !!turnitinCfg.enabled,
+          qaOnly: !!turnitinCfg.qaOnly,
+          autoSendOnExtract: !!turnitinCfg.autoSendOnExtract,
+          baseUrl: turnitinCfg.baseUrl,
+          ownerUserId: turnitinCfg.ownerUserId,
+          viewerUserId: turnitinCfg.viewerUserId,
+          locale: turnitinCfg.locale,
+          integrationName: turnitinCfg.integrationName,
+          integrationVersion: turnitinCfg.integrationVersion,
+          apiKey: turnitinApiKeyDraft,
+          clearApiKey: turnitinClearApiKey,
+        }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; config?: TurnitinConfigPayload };
+      if (!res.ok || !json?.ok || !json?.config) throw new Error(json?.error || "Failed to save Turnitin config.");
+      setTurnitinCfg(json.config);
+      setTurnitinApiKeyDraft("");
+      setTurnitinClearApiKey(false);
+      setTurnitinMsg("Turnitin settings saved.");
+    } catch (e) {
+      setTurnitinMsg(e instanceof Error ? e.message : "Failed to save Turnitin config.");
+    } finally {
+      setTurnitinSaving(false);
+    }
+  }, [canWriteSensitive, turnitinCfg, turnitinApiKeyDraft, turnitinClearApiKey]);
 
   const copyAuditEvent = useCallback(async (evt: SettingsAuditEvent) => {
     try {
@@ -836,26 +959,36 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           </div>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-            <span className="text-zinc-500">AI connection</span>
-            <span className="text-zinc-900">{aiConnectionLabel}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-            <span className="text-zinc-500">Token usage</span>
-            <span className="text-zinc-900">{effectiveUsageTotal}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-            <span className="text-zinc-500">Grading profile</span>
-            <span className="text-zinc-900">{gradingProfileLabel}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-            <span className="text-zinc-500">Active assessor</span>
-            <span className="text-zinc-900">{activeAuditLabel}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
-            <span className="text-zinc-500">Active users</span>
-            <span className="text-zinc-900">{activeUsersCount}</span>
-          </span>
+          {showAi ? (
+            <>
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+                <span className="text-zinc-500">AI connection</span>
+                <span className="text-zinc-900">{aiConnectionLabel}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+                <span className="text-zinc-500">Token usage</span>
+                <span className="text-zinc-900">{effectiveUsageTotal}</span>
+              </span>
+            </>
+          ) : null}
+          {showGrading ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+              <span className="text-zinc-500">Grading profile</span>
+              <span className="text-zinc-900">{gradingProfileLabel}</span>
+            </span>
+          ) : null}
+          {showApp ? (
+            <>
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+                <span className="text-zinc-500">Active assessor</span>
+                <span className="text-zinc-900">{activeAuditLabel}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-semibold text-zinc-700">
+                <span className="text-zinc-500">Active users</span>
+                <span className="text-zinc-900">{activeUsersCount}</span>
+              </span>
+            </>
+          ) : null}
         </div>
       </section>
 
@@ -911,12 +1044,16 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
               Role: {activeAuditRole}
             </span>
-            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
-              AI: {sectionStatusForAi}
-            </span>
-            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
-              Schema: {gradingSchemaStatus}
-            </span>
+            {showAi ? (
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+                AI: {sectionStatusForAi}
+              </span>
+            ) : null}
+            {showGrading ? (
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+                Schema: {gradingSchemaStatus}
+              </span>
+            ) : null}
             {isAll ? (
               <button
                 onClick={saveAll}
@@ -1048,13 +1185,6 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               {smokeAiBusy ? "Testing..." : "Test config"}
             </button>
             <button
-              onClick={runTurnitinSmoke}
-              disabled={smokeTurnitinBusy}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 text-xs font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
-            >
-              {smokeTurnitinBusy ? "Testing..." : "Test Turnitin"}
-            </button>
-            <button
               onClick={revertAiDraft}
               disabled={!canWriteSensitive || !dirtyAi}
               className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
@@ -1121,56 +1251,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             </div>
           </div>
         ) : null}
-        {smokeTurnitinResult ? (
-          <div
-            className={
-              "mt-2 rounded-lg border px-3 py-2 text-xs " +
-              (smokeTurnitinResult.connected
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                : "border-rose-200 bg-rose-50 text-rose-900")
-            }
-          >
-            <div className="font-semibold">{smokeTurnitinResult.connected ? "Turnitin smoke check passed" : "Turnitin smoke check failed"}</div>
-            <div className="mt-1">{smokeTurnitinResult.message}</div>
-            <div className="mt-1 text-[11px] opacity-80">
-              status {smokeTurnitinResult.status || 0} · key {smokeTurnitinResult.keySource || "none"} · base{" "}
-              {smokeTurnitinResult.baseUrl || "n/a"} · checked{" "}
-              {smokeTurnitinResult.checkedAt ? new Date(smokeTurnitinResult.checkedAt).toLocaleString() : "now"}
-            </div>
-          </div>
-        ) : null}
         {modelMessage ? <p className="mt-1 text-xs text-zinc-600">{modelMessage}</p> : null}
-      </section>
-
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">OpenAI key change checklist</h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Use this TODO list whenever you add, replace, or rotate OpenAI keys.
-        </p>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">TODO</div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
-              <li>Set `OPENAI_ADMIN_KEY` (preferred for usage/cost visibility).</li>
-              <li>Set `OPENAI_API_KEY` as fallback standard key.</li>
-              <li>Restart the app/service after changing key env vars.</li>
-              <li>Run `Test config` in this page and confirm status is connected.</li>
-              <li>Check `OpenAI key` card shows configured and expected key type.</li>
-            </ul>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Where to change keys</div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
-              <li>Local development: update `.env.local` in the project root.</li>
-              <li>Server/production: update environment secrets in your deployment platform.</li>
-              <li>Do not paste secrets into settings forms, docs, or source files.</li>
-            </ul>
-            <div className="mt-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600">
-              Key resolution priority: <code>OPENAI_ADMIN_KEY</code> {"->"} <code>OPENAI_ADMIN_API_KEY</code> {"->"}{" "}
-              <code>OPENAI_ADMIN</code> {"->"} <code>OPENAI_API_KEY</code>.
-            </div>
-          </div>
-        </div>
       </section>
 
       {data?.hints?.needsAdminKeyForOrgMetrics ? (
@@ -1622,9 +1703,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       <section id="app-settings" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-20">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-900">App identity & audit actor</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">App operations & audit ownership</h2>
             <p className="mt-1 text-sm text-zinc-600">
-              Choose who appears as actor in upload/link/grading audit records when no explicit actor is provided.
+              Controls who is recorded as the audit actor for system actions, plus automation safety rules and branding.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1646,27 +1727,30 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
-          <select
-            value={appCfg?.activeAuditUserId || ""}
-            onChange={(e) =>
-              setAppCfg((v) =>
-                v
-                  ? { ...v, activeAuditUserId: e.target.value || null }
-                  : v
-              )
-            }
-            disabled={!canWriteSensitive}
-            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
-          >
-            <option value="">system (no active user)</option>
-            {appUsers
-              .filter((u) => u.isActive)
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.fullName} {u.role ? `(${u.role})` : ""}
-                </option>
-              ))}
-          </select>
+          <label className="text-sm text-zinc-700">
+            Audit actor for system actions
+            <select
+              value={appCfg?.activeAuditUserId || ""}
+              onChange={(e) =>
+                setAppCfg((v) =>
+                  v
+                    ? { ...v, activeAuditUserId: e.target.value || null }
+                    : v
+                )
+              }
+              disabled={!canWriteSensitive}
+              className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+            >
+              <option value="">System (no active user)</option>
+              {appUsers
+                .filter((u) => u.isActive)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName} {u.role ? `(${u.role})` : ""}
+                  </option>
+                ))}
+            </select>
+          </label>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               onClick={saveAppConfig}
@@ -1686,9 +1770,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </div>
 
         <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <div className="text-sm font-semibold text-zinc-900">Automation policy (safe mode)</div>
+          <div className="text-sm font-semibold text-zinc-900">Automation guardrails</div>
           <p className="mt-1 text-xs text-zinc-600">
-            Controls automated grading runs. Manual single-submission grading remains available.
+            These rules control automated grading behavior. Manual grading remains available even when automation is disabled.
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
@@ -1713,10 +1797,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                 disabled={!canWriteSensitive}
                 className="h-4 w-4 rounded border-zinc-300"
               />
-              Enable automation pipeline
+              Enable automation queue
             </label>
             <label className="text-sm text-zinc-700">
-              Provider mode
+              Model provider mode
               <select
                 value={appCfg?.automationPolicy?.providerMode || "hybrid"}
                 onChange={(e) =>
@@ -1764,7 +1848,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                 disabled={automationControlDisabled}
                 className="h-4 w-4 rounded border-zinc-300"
               />
-              Allow batch grading automations
+              Allow automated batch grading jobs
             </label>
             <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
               <input
@@ -1788,7 +1872,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                 disabled={automationControlDisabled}
                 className="h-4 w-4 rounded border-zinc-300"
               />
-              Require reason on batch runs
+              Require an operation reason on batch runs
             </label>
           </div>
           {!automationEnabled ? (
@@ -1797,13 +1881,194 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             </div>
           ) : null}
           <p className="mt-2 text-xs text-zinc-500">
-            Source: {appCfg?.automationPolicySource || "default"}.
+            Policy source: {appCfg?.automationPolicySource || "default"}.
           </p>
         </div>
 
         <p className="mt-2 text-xs text-zinc-500">
+          Audit actor is used when actions run without an explicit logged-in operator.
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
           Need to add or edit users? Use the <span className="font-medium text-zinc-700">Manage users</span> button.
         </p>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Turnitin (QA)</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              Configure Turnitin credentials and behavior for QA submission checks.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={runTurnitinSmoke}
+              disabled={smokeTurnitinBusy}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 text-xs font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
+            >
+              {smokeTurnitinBusy ? "Testing..." : "Test Turnitin"}
+            </button>
+            <button
+              onClick={saveTurnitinConfig}
+              disabled={!canWriteSensitive || !turnitinCfg || turnitinSaving}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              {turnitinSaving ? "Saving..." : "Save Turnitin"}
+            </button>
+          </div>
+        </div>
+
+        {turnitinCfg ? (
+          <>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={!!turnitinCfg.enabled}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, enabled: e.target.checked } : v))}
+                  disabled={!canWriteSensitive}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                Enable Turnitin integration
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={!!turnitinCfg.qaOnly}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, qaOnly: e.target.checked } : v))}
+                  disabled={!canWriteSensitive}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                Restrict to QA environments
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={!!turnitinCfg.autoSendOnExtract}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, autoSendOnExtract: e.target.checked } : v))}
+                  disabled={!canWriteSensitive}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                Auto-send after extraction
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="text-xs font-semibold text-zinc-700">
+                Base URL
+                <input
+                  value={turnitinCfg.baseUrl}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, baseUrl: e.target.value } : v))}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder="https://unicourse201.turnitin.com"
+                />
+              </label>
+              <label className="text-xs font-semibold text-zinc-700">
+                Owner user id (EULA account)
+                <input
+                  value={turnitinCfg.ownerUserId}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, ownerUserId: e.target.value } : v))}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder="rodrigo@unicourse.org"
+                />
+              </label>
+              <label className="text-xs font-semibold text-zinc-700">
+                Viewer user id
+                <input
+                  value={turnitinCfg.viewerUserId}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, viewerUserId: e.target.value } : v))}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder="rodrigo@unicourse.org"
+                />
+              </label>
+              <label className="text-xs font-semibold text-zinc-700">
+                Locale
+                <input
+                  value={turnitinCfg.locale}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, locale: e.target.value } : v))}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder="en-US"
+                />
+              </label>
+              <label className="text-xs font-semibold text-zinc-700">
+                Integration name
+                <input
+                  value={turnitinCfg.integrationName}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, integrationName: e.target.value } : v))}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder="assessor-ai"
+                />
+              </label>
+              <label className="text-xs font-semibold text-zinc-700">
+                Integration version
+                <input
+                  value={turnitinCfg.integrationVersion}
+                  onChange={(e) => setTurnitinCfg((v) => (v ? { ...v, integrationVersion: e.target.value } : v))}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder="1.0.0"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="text-xs font-semibold text-zinc-700">
+                API key (leave blank to keep current key)
+                <input
+                  type="password"
+                  value={turnitinApiKeyDraft}
+                  onChange={(e) => setTurnitinApiKeyDraft(e.target.value)}
+                  disabled={!canWriteSensitive}
+                  className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
+                  placeholder={turnitinCfg.hasApiKey ? `Stored: ${turnitinCfg.apiKeyPreview}` : "Enter Turnitin API key"}
+                />
+              </label>
+              <label className="inline-flex items-center gap-2 self-end text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={turnitinClearApiKey}
+                  onChange={(e) => setTurnitinClearApiKey(e.target.checked)}
+                  disabled={!canWriteSensitive}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                Clear stored API key on save
+              </label>
+            </div>
+
+            <p className="mt-2 text-xs text-zinc-500">
+              Key source: <span className="font-semibold text-zinc-700">{turnitinCfg.apiKeySource || "missing"}</span>{" "}
+              · updated {turnitinCfg.updatedAt ? new Date(turnitinCfg.updatedAt).toLocaleString() : "—"}
+            </p>
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-600">Turnitin settings are unavailable.</p>
+        )}
+
+        {smokeTurnitinResult ? (
+          <div
+            className={
+              "mt-3 rounded-lg border px-3 py-2 text-xs " +
+              (smokeTurnitinResult.connected
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-rose-200 bg-rose-50 text-rose-900")
+            }
+          >
+            <div className="font-semibold">{smokeTurnitinResult.connected ? "Turnitin smoke check passed" : "Turnitin smoke check failed"}</div>
+            <div className="mt-1">{smokeTurnitinResult.message}</div>
+            <div className="mt-1 text-[11px] opacity-80">
+              status {smokeTurnitinResult.status || 0} · key {smokeTurnitinResult.keySource || "none"} · base{" "}
+              {smokeTurnitinResult.baseUrl || "n/a"} · checked{" "}
+              {smokeTurnitinResult.checkedAt ? new Date(smokeTurnitinResult.checkedAt).toLocaleString() : "now"}
+            </div>
+          </div>
+        ) : null}
+        {turnitinMsg ? <p className="mt-2 text-xs text-zinc-600">{turnitinMsg}</p> : null}
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -1841,7 +2106,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       </>
       ) : null}
 
-      {anyDirty ? (
+      {isAll && anyDirty ? (
         <section className="sticky bottom-2 z-20 rounded-2xl border border-amber-300 bg-amber-50/95 p-3 shadow-sm backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm text-amber-900">
@@ -1882,6 +2147,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </section>
       ) : null}
 
+      {showApp ? (
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">Settings audit trail</h2>
         <p className="mt-1 text-sm text-zinc-600">Recent changes to AI model, grading, app identity, and branding settings.</p>
@@ -1935,10 +2201,11 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           <p className="mt-2 text-sm text-zinc-600">No settings changes logged yet.</p>
         )}
       </section>
+      ) : null}
     </div>
   );
 }
 
 export default function AdminSettingsPageRoute() {
-  return <AdminSettingsPage scope="all" />;
+  return <AdminSettingsPage scope="ai" />;
 }

@@ -1,6 +1,7 @@
+import { redirect } from "next/navigation";
+
 export { AdminSettingsPage } from "./SettingsPageClient";
-import SettingsPageWrapper from "./settings-page-wrapper";
 
 export default function SettingsPage() {
-  return <SettingsPageWrapper />;
+  redirect("/admin/settings/ai");
 }

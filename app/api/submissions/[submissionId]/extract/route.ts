@@ -6,6 +6,7 @@ import { apiError, makeRequestId } from "@/lib/api/errors";
 import { ocrPdfWithOpenAi } from "@/lib/ocr/openaiPdfOcr";
 import { extractCoverMetadataFromPages, isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
+import { maybeAutoSendTurnitinForSubmission } from "@/lib/turnitin/service";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 const MIN_MEANINGFUL_PAGE_CHARS = 120;
@@ -398,6 +399,13 @@ export async function POST(
       await triggerAutoGradeIfAutoReady(submissionId, request.url);
     } catch (e) {
       console.warn("AUTO_GRADE_FAILED", e);
+    }
+
+    // Best-effort Turnitin auto-send (QA-only gate is enforced by turnitin service settings).
+    try {
+      await maybeAutoSendTurnitinForSubmission(submissionId);
+    } catch (e) {
+      console.warn("AUTO_TURNITIN_SEND_FAILED", e);
     }
 
     return NextResponse.json({

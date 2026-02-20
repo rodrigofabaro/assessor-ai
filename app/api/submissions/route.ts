@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { deriveAutomationState } from "@/lib/submissions/automation";
 import { computeExtractionQuality } from "@/lib/submissions/extractionQuality";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
+import { readTurnitinSubmissionStateMap } from "@/lib/turnitin/state";
 
 type SubmissionsView = "workspace" | "qa";
 type TimeframeParam = "today" | "week" | "all";
@@ -305,11 +306,13 @@ export async function GET(req: Request) {
       }),
     ]);
 
+    const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
     const submissions = rows.map((s: any) => {
       const latest = s.assessments?.[0] || null;
       const latestJson = includeQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
       const feedbackText = includeFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
       const qaFlags = includeQa ? computeQaFlags(latestJson) : null;
+      const turnitin = turnitinStateBySubmissionId[s.id] || null;
       return {
         id: s.id,
         filename: s.filename,
@@ -323,6 +326,7 @@ export async function GET(req: Request) {
         gradedAt: latest?.createdAt || null,
         assessmentActor: includeQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
         qaFlags,
+        turnitin,
       };
     });
 
