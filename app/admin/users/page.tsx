@@ -19,7 +19,7 @@ type AppConfig = {
 
 function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
+    <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.04)]">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 text-2xl font-semibold text-slate-900">{value}</div>
       <p className="mt-1 text-xs text-slate-600">{hint}</p>
@@ -27,10 +27,27 @@ function MetricCard({ label, value, hint }: { label: string; value: string | num
   );
 }
 
+function formatCreatedAt(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function roleTone(role: string) {
+  const key = String(role || "").toUpperCase();
+  if (key === "ADMIN") return "border-amber-200 bg-amber-50 text-amber-900";
+  if (key === "IV") return "border-indigo-200 bg-indigo-50 text-indigo-900";
+  if (key === "TUTOR") return "border-sky-200 bg-sky-50 text-sky-900";
+  return "border-slate-200 bg-slate-50 text-slate-800";
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [activeAuditUserId, setActiveAuditUserId] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
@@ -71,56 +88,71 @@ export default function AdminUsersPage() {
 
   async function createUser() {
     if (!fullName.trim()) return;
+    setSubmitting(true);
     setErr("");
     setMsg("");
-    const res = await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName: fullName.trim(), email: email.trim() || null, role: role.trim() || "ADMIN" }),
-    });
-    const json = await res.json();
-    if (!res.ok || !json?.ok) {
-      setErr(json?.error || "Failed to create user.");
-      return;
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: fullName.trim(), email: email.trim() || null, role: role.trim() || "ADMIN" }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to create user.");
+        return;
+      }
+      setMsg("User created.");
+      setFullName("");
+      setEmail("");
+      await load();
+    } finally {
+      setSubmitting(false);
     }
-    setMsg("User created.");
-    setFullName("");
-    setEmail("");
-    await load();
   }
 
   async function setActiveAuditUser(userId: string) {
+    setPendingUserId(userId);
     setErr("");
     setMsg("");
-    const res = await fetch("/api/admin/app-config", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activeAuditUserId: userId || null }),
-    });
-    const json = await res.json();
-    if (!res.ok || !json?.ok) {
-      setErr(json?.error || "Failed to set active audit user.");
-      return;
+    try {
+      const res = await fetch("/api/admin/app-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeAuditUserId: userId || null }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to set active audit user.");
+        return;
+      }
+      setActiveAuditUserId(userId);
+      setMsg("Active audit user updated.");
+    } finally {
+      setPendingUserId(null);
     }
-    setActiveAuditUserId(userId);
-    setMsg("Active audit user updated.");
   }
 
   async function toggleActive(u: AppUser) {
+    setPendingUserId(u.id);
     setErr("");
     setMsg("");
-    const res = await fetch(`/api/admin/users/${u.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !u.isActive }),
-    });
-    const json = await res.json();
-    if (!res.ok || !json?.ok) {
-      setErr(json?.error || "Failed to update user.");
-      return;
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !u.isActive }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to update user.");
+        return;
+      }
+      setMsg("User updated.");
+      await load();
+    } finally {
+      setPendingUserId(null);
     }
-    setMsg("User updated.");
-    await load();
   }
 
   return (
@@ -143,14 +175,14 @@ export default function AdminUsersPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <TinyIcon name="refresh" className="h-3.5 w-3.5" />
               {loading ? "Refreshing..." : "Refresh"}
             </button>
-            <Link href="/admin/settings/app" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+            <Link href="/admin/settings/app" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
               <TinyIcon name="settings" className="h-3.5 w-3.5" />
-              Back to settings
+              Open app settings
             </Link>
             <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
               <TinyIcon name="status" className="mr-1 h-3 w-3" />
@@ -188,9 +220,9 @@ export default function AdminUsersPage() {
         <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-sm font-semibold text-slate-900">Create user</h2>
           <div className="mt-3 grid gap-3">
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 px-3 text-sm text-slate-900" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" className="h-10 rounded-xl border border-slate-300 px-3 text-sm text-slate-900" />
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 rounded-xl border border-slate-300 px-3 text-sm text-slate-900">
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100">
               <option value="ADMIN">ADMIN</option>
               <option value="TUTOR">TUTOR</option>
               <option value="IV">IV</option>
@@ -199,10 +231,10 @@ export default function AdminUsersPage() {
           <button
             type="button"
             onClick={createUser}
-            disabled={!fullName.trim()}
-            className="mt-3 inline-flex h-10 items-center rounded-xl border border-slate-800 bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+            disabled={!fullName.trim() || submitting}
+            className="mt-3 inline-flex h-10 items-center rounded-xl border border-slate-800 bg-slate-800 px-4 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
           >
-            Create user
+            {submitting ? "Creating..." : "Create user"}
           </button>
         </article>
       </section>
@@ -220,23 +252,46 @@ export default function AdminUsersPage() {
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Email</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Role</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Status</th>
+                <th className="border-b border-slate-200 px-2 py-2 font-semibold">Created</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
+              {!users.length && !loading ? (
+                <tr>
+                  <td colSpan={6} className="px-2 py-6 text-center text-sm text-slate-500">
+                    No users found.
+                  </td>
+                </tr>
+              ) : null}
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-slate-100">
                   <td className="px-2 py-2 font-medium text-slate-900">{u.fullName}</td>
                   <td className="px-2 py-2 text-slate-700">{u.email || "—"}</td>
-                  <td className="px-2 py-2 text-slate-700">{u.role}</td>
-                  <td className="px-2 py-2 text-slate-700">{u.isActive ? "Active" : "Disabled"}</td>
+                  <td className="px-2 py-2 text-slate-700">
+                    <span className={"inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " + roleTone(u.role)}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-slate-700">
+                    <span
+                      className={
+                        "inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                        (u.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-slate-100 text-slate-700")
+                      }
+                    >
+                      {u.isActive ? "Active" : "Disabled"}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-slate-600">{formatCreatedAt(u.createdAt)}</td>
                   <td className="px-2 py-2">
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => setActiveAuditUser(u.id)}
+                        disabled={pendingUserId === u.id || !u.isActive}
                         className={
-                          "rounded-lg border px-2 py-1 text-xs font-semibold " +
+                          "rounded-lg border px-2 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 " +
                           (activeAuditUserId === u.id
                             ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                             : "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200")
@@ -247,9 +302,10 @@ export default function AdminUsersPage() {
                       <button
                         type="button"
                         onClick={() => toggleActive(u)}
-                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+                        disabled={pendingUserId === u.id}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {u.isActive ? "Disable" : "Enable"}
+                        {pendingUserId === u.id ? "Saving..." : u.isActive ? "Disable" : "Enable"}
                       </button>
                     </div>
                   </td>
