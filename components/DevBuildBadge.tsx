@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type BuildInfo = {
@@ -68,6 +68,10 @@ export default function DevBuildBadge() {
   const [position, setPosition] = useState<"right" | "left">("right");
   const [clickThrough, setClickThrough] = useState(false);
   const [copyMsg, setCopyMsg] = useState("");
+  const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const [screenshotStatus, setScreenshotStatus] = useState("");
+  const [uploadedShots, setUploadedShots] = useState<Array<{ name: string; path: string }>>([]);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
 
   const MIN_KEY = "assessor.devBadge.minimized";
   const EXP_KEY = "assessor.devBadge.expanded";
@@ -216,6 +220,49 @@ export default function DevBuildBadge() {
     }
   }
 
+  async function uploadScreenshotFile(file: File) {
+    if (!file) return;
+    setScreenshotBusy(true);
+    setScreenshotStatus("");
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      if (typeof window !== "undefined") {
+        const page = String(window.location.pathname || "").trim();
+        if (page) fd.set("documentId", page);
+      }
+      const res = await fetch("/api/dev/screenshot", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setScreenshotStatus(data?.message || data?.error || "Failed to upload screenshot.");
+        return;
+      }
+      const savedName = String(data?.savedName || file.name);
+      const savedPath = String(data?.savedPath || "");
+      setUploadedShots((prev) => [{ name: savedName, path: savedPath }, ...prev].slice(0, 5));
+      setScreenshotStatus(`Saved: ${savedName}`);
+    } catch (e: any) {
+      setScreenshotStatus(e?.message || "Failed to upload screenshot.");
+    } finally {
+      setScreenshotBusy(false);
+    }
+  }
+
+  async function handleScreenshotInput(e: any) {
+    const file = e?.target?.files?.[0];
+    if (file) await uploadScreenshotFile(file);
+    if (e?.target) e.target.value = "";
+  }
+
+  async function handlePasteScreenshot(e: any) {
+    const items = Array.from((e?.clipboardData?.items || []) as DataTransferItem[]);
+    const imageItem = items.find((it) => String(it?.type || "").startsWith("image/"));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) await uploadScreenshotFile(file);
+  }
+
   if (minimized) {
     return (
       <button
@@ -267,6 +314,22 @@ export default function DevBuildBadge() {
       )}
 
       <div className="mt-1 flex flex-wrap items-center justify-end gap-1 pointer-events-auto">
+        <input
+          ref={screenshotInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleScreenshotInput}
+        />
+        <button
+          type="button"
+          onClick={() => screenshotInputRef.current?.click()}
+          disabled={screenshotBusy}
+          className="inline-flex h-6 items-center rounded-md border border-zinc-700 px-2 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60 disabled:cursor-not-allowed disabled:opacity-60"
+          title="Upload screenshot"
+        >
+          {screenshotBusy ? "Uploading..." : "Shot"}
+        </button>
         <button
           type="button"
           onClick={() => setPosition((v) => (v === "right" ? "left" : "right"))}
@@ -305,6 +368,41 @@ export default function DevBuildBadge() {
           Minimize
         </button>
       </div>
+
+      <div
+        onPaste={handlePasteScreenshot}
+        tabIndex={0}
+        className="mt-1 rounded-md border border-dashed border-zinc-700 bg-zinc-900/55 px-2 py-1 text-[10px] text-zinc-300 outline-none focus:border-sky-400"
+        title="Click then paste screenshot (Ctrl+V)"
+      >
+        Paste screenshot here (Ctrl+V).
+      </div>
+      {screenshotStatus ? <div className="mt-1 text-[10px] text-sky-300">{screenshotStatus}</div> : null}
+      {uploadedShots.length ? (
+        <div className="mt-1 max-h-20 overflow-auto rounded-md border border-zinc-700 bg-zinc-900/55 px-2 py-1 text-[10px]">
+          {uploadedShots.map((shot, idx) => (
+            <div key={`${shot.path}-${idx}`} className="mb-1 flex items-center gap-1.5 last:mb-0">
+              <div className="min-w-0 flex-1 truncate text-zinc-300">
+                {shot.name}
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(shot.path);
+                    setScreenshotStatus(`Copied path: ${shot.name}`);
+                  } catch {
+                    setScreenshotStatus("Failed to copy screenshot path.");
+                  }
+                }}
+                className="inline-flex h-5 items-center rounded border border-zinc-700 px-1.5 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+              >
+                Copy
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {expanded && data ? (
         <div className="mt-2 grid gap-1.5">
