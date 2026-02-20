@@ -162,6 +162,8 @@ model Submission {
 
   @@index([studentId])
   @@index([assignmentId])
+  @@index([uploadedAt, id])
+  @@index([status, uploadedAt])
 }
 
 
@@ -187,6 +189,7 @@ model SubmissionExtractionRun {
   pages ExtractedPage[]
 
   @@index([submissionId])
+  @@index([submissionId, startedAt])
 }
 
 model ExtractedPage {
@@ -223,6 +226,9 @@ model Assessment {
   // Relations
   submissionId String
   submission   Submission @relation(fields: [submissionId], references: [id])
+
+  @@index([submissionId, createdAt])
+  @@index([createdAt])
 }
 
 model ReferenceDocument {

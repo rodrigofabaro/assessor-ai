@@ -90,7 +90,7 @@ export default function AdminQaPage() {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/submissions", { cache: "no-store" });
+      const res = await fetch("/api/submissions?view=qa&qa=1&includeFeedback=0", { cache: "no-store" });
       const json = (await res.json()) as SubmissionResearchRow[] & { error?: string };
       if (!res.ok) throw new Error((json as any)?.error || `Submissions fetch failed (${res.status})`);
       setRows(Array.isArray(json) ? json : []);

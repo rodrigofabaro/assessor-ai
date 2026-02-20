@@ -53,7 +53,7 @@ export function useSubmissionsList() {
     setErr("");
     setMsg("");
     try {
-      const list = await jsonFetch<SubmissionRow[]>("/api/submissions", { cache: "no-store" });
+      const list = await jsonFetch<SubmissionRow[]>("/api/submissions?view=workspace&qa=1&includeFeedback=1", { cache: "no-store" });
       setItems(Array.isArray(list) ? list : []);
     } catch (e: any) {
       setErr(e?.message || String(e));
