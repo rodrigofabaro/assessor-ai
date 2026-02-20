@@ -178,6 +178,16 @@ type SmokeResponse = {
   grading?: SmokeGradingResult;
 };
 
+type TurnitinSmokeResult = {
+  configured: boolean;
+  connected: boolean;
+  status: number;
+  message: string;
+  keySource?: string;
+  baseUrl?: string;
+  checkedAt: string;
+};
+
 type LocalAiSnapshot = {
   enabled: boolean;
   baseUrl: string;
@@ -297,8 +307,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const [batchMsg, setBatchMsg] = useState("");
   const [smokeAiBusy, setSmokeAiBusy] = useState(false);
   const [smokeGradingBusy, setSmokeGradingBusy] = useState(false);
+  const [smokeTurnitinBusy, setSmokeTurnitinBusy] = useState(false);
   const [smokeAiResult, setSmokeAiResult] = useState<SmokeAiResult | null>(null);
   const [smokeGradingResult, setSmokeGradingResult] = useState<SmokeGradingResult | null>(null);
+  const [smokeTurnitinResult, setSmokeTurnitinResult] = useState<TurnitinSmokeResult | null>(null);
   const [smokeCheckedAt, setSmokeCheckedAt] = useState("");
   const [copiedAuditEventId, setCopiedAuditEventId] = useState<string | null>(null);
 
@@ -465,7 +477,8 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   }, [baseAutomationPolicyJson]);
   const automationEnabled = !!appCfg?.automationPolicy?.enabled;
   const automationControlDisabled = !canWriteSensitive || !automationEnabled;
-  const busyAny = savingModel || gradingSaving || appSaving || faviconBusy || batchSaving || smokeAiBusy || smokeGradingBusy;
+  const busyAny =
+    savingModel || gradingSaving || appSaving || faviconBusy || batchSaving || smokeAiBusy || smokeGradingBusy || smokeTurnitinBusy;
 
   const confirmLeaveIfDirty = useCallback(() => {
     if (!anyDirty) return true;
@@ -662,6 +675,41 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
     }
   }, [model]);
 
+  const runTurnitinSmoke = useCallback(async () => {
+    setSmokeTurnitinBusy(true);
+    setModelMessage("");
+    try {
+      const res = await fetch("/api/admin/turnitin/smoke", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const json = (await res.json()) as TurnitinSmokeResult & { error?: string };
+      if (!res.ok) throw new Error(json.error || json.message || "Turnitin smoke test failed.");
+      setSmokeTurnitinResult({
+        configured: !!json.configured,
+        connected: !!json.connected,
+        status: Number(json.status || 0),
+        message: String(json.message || ""),
+        keySource: json.keySource,
+        baseUrl: json.baseUrl,
+        checkedAt: json.checkedAt || new Date().toISOString(),
+      });
+      setModelMessage(json.connected ? "Turnitin smoke test passed." : `Turnitin smoke test failed: ${json.message || "Unknown issue"}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Turnitin smoke test failed.";
+      setSmokeTurnitinResult({
+        configured: false,
+        connected: false,
+        status: 0,
+        message,
+        checkedAt: new Date().toISOString(),
+      });
+      setModelMessage(message);
+    } finally {
+      setSmokeTurnitinBusy(false);
+    }
+  }, []);
+
   const runGradingSmoke = useCallback(async () => {
     setSmokeGradingBusy(true);
     setGradingMsg("");
@@ -692,8 +740,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
 
   const runAllSmoke = useCallback(async () => {
     await runAiSmoke();
+    await runTurnitinSmoke();
     await runGradingSmoke();
-  }, [runAiSmoke, runGradingSmoke]);
+  }, [runAiSmoke, runGradingSmoke, runTurnitinSmoke]);
 
   const copyAuditEvent = useCallback(async (evt: SettingsAuditEvent) => {
     try {
@@ -999,6 +1048,13 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               {smokeAiBusy ? "Testing..." : "Test config"}
             </button>
             <button
+              onClick={runTurnitinSmoke}
+              disabled={smokeTurnitinBusy}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 text-xs font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
+            >
+              {smokeTurnitinBusy ? "Testing..." : "Test Turnitin"}
+            </button>
+            <button
               onClick={revertAiDraft}
               disabled={!canWriteSensitive || !dirtyAi}
               className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
@@ -1062,6 +1118,24 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
             <div className="mt-1 text-[11px] opacity-80">
               status {smokeAiResult.status || 0} · key {smokeAiResult.keyType || "none"} · checked{" "}
               {smokeCheckedAt ? new Date(smokeCheckedAt).toLocaleString() : "now"}
+            </div>
+          </div>
+        ) : null}
+        {smokeTurnitinResult ? (
+          <div
+            className={
+              "mt-2 rounded-lg border px-3 py-2 text-xs " +
+              (smokeTurnitinResult.connected
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-rose-200 bg-rose-50 text-rose-900")
+            }
+          >
+            <div className="font-semibold">{smokeTurnitinResult.connected ? "Turnitin smoke check passed" : "Turnitin smoke check failed"}</div>
+            <div className="mt-1">{smokeTurnitinResult.message}</div>
+            <div className="mt-1 text-[11px] opacity-80">
+              status {smokeTurnitinResult.status || 0} · key {smokeTurnitinResult.keySource || "none"} · base{" "}
+              {smokeTurnitinResult.baseUrl || "n/a"} · checked{" "}
+              {smokeTurnitinResult.checkedAt ? new Date(smokeTurnitinResult.checkedAt).toLocaleString() : "now"}
             </div>
           </div>
         ) : null}
