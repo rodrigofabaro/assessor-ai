@@ -5,6 +5,7 @@ export type TurnitinConfig = {
   enabled: boolean;
   qaOnly: boolean;
   autoSendOnExtract: boolean;
+  autoDetectAiWritingOnGrade: boolean;
   baseUrl: string;
   apiKey: string;
   ownerUserId: string;
@@ -39,6 +40,7 @@ export function defaultTurnitinConfig(): TurnitinConfig {
     enabled: false,
     qaOnly: true,
     autoSendOnExtract: false,
+    autoDetectAiWritingOnGrade: false,
     baseUrl: normalizeBaseUrl(process.env.TURNITIN_API_BASE_URL || process.env.TURNITIN_BASE_URL),
     apiKey: "",
     ownerUserId: "",
@@ -57,6 +59,10 @@ function normalize(input: Partial<TurnitinConfig>): TurnitinConfig {
     qaOnly: typeof input.qaOnly === "boolean" ? input.qaOnly : base.qaOnly,
     autoSendOnExtract:
       typeof input.autoSendOnExtract === "boolean" ? input.autoSendOnExtract : base.autoSendOnExtract,
+    autoDetectAiWritingOnGrade:
+      typeof input.autoDetectAiWritingOnGrade === "boolean"
+        ? input.autoDetectAiWritingOnGrade
+        : base.autoDetectAiWritingOnGrade,
     baseUrl: normalizeBaseUrl(input.baseUrl ?? base.baseUrl),
     apiKey: String(input.apiKey || "").trim(),
     ownerUserId: String(input.ownerUserId || "").trim(),

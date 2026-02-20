@@ -23,6 +23,7 @@ import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { computeGradingConfidence } from "@/lib/grading/confidenceScoring";
 import { chooseGradingInputStrategy } from "@/lib/grading/inputStrategy";
 import { extractFile } from "@/lib/extraction";
+import { maybeAutoDetectAiWritingForSubmission } from "@/lib/turnitin/service";
 
 export const runtime = "nodejs";
 
@@ -2263,6 +2264,17 @@ export async function POST(
       where: { id: submission.id },
       data: { status: "DONE" },
     });
+
+    // Best-effort Turnitin AI-writing sync when enabled in settings.
+    try {
+      const syncTurnitin = maybeAutoDetectAiWritingForSubmission(submission.id);
+      await Promise.race([
+        syncTurnitin,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+      ]);
+    } catch {
+      // Keep grading completion successful even if Turnitin sync fails.
+    }
 
     appendOpsEvent({
       type: "GRADE_COMPLETED",

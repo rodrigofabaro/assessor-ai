@@ -17,6 +17,7 @@ function buildPublicConfig() {
     enabled: runtime.enabled,
     qaOnly: runtime.qaOnly,
     autoSendOnExtract: runtime.autoSendOnExtract,
+    autoDetectAiWritingOnGrade: runtime.autoDetectAiWritingOnGrade,
     baseUrl: runtime.baseUrl,
     ownerUserId: runtime.ownerUserId,
     viewerUserId: runtime.viewerUserId,
@@ -51,6 +52,10 @@ export async function PUT(req: Request) {
     enabled: typeof body.enabled === "boolean" ? body.enabled : undefined,
     qaOnly: typeof body.qaOnly === "boolean" ? body.qaOnly : undefined,
     autoSendOnExtract: typeof body.autoSendOnExtract === "boolean" ? body.autoSendOnExtract : undefined,
+    autoDetectAiWritingOnGrade:
+      typeof body.autoDetectAiWritingOnGrade === "boolean"
+        ? body.autoDetectAiWritingOnGrade
+        : undefined,
     baseUrl: typeof body.baseUrl === "string" ? body.baseUrl : undefined,
     apiKey: typeof body.apiKey === "string" ? body.apiKey : undefined,
     clearApiKey: body.clearApiKey === true,
@@ -73,6 +78,8 @@ export async function PUT(req: Request) {
       qaOnlyTo: next.qaOnly,
       autoSendOnExtractFrom: prev.autoSendOnExtract,
       autoSendOnExtractTo: next.autoSendOnExtract,
+      autoDetectAiWritingOnGradeFrom: prev.autoDetectAiWritingOnGrade,
+      autoDetectAiWritingOnGradeTo: next.autoDetectAiWritingOnGrade,
       baseUrlFrom: prev.baseUrl,
       baseUrlTo: next.baseUrl,
       ownerUserIdFrom: prev.ownerUserId || null,

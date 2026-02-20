@@ -306,6 +306,18 @@ export function SubmissionsTable({
                                           QA REVIEW
                                         </span>
                                       ) : null}
+                                      {Number.isFinite(Number(s.turnitin?.aiWritingPercentage)) ? (
+                                        <span
+                                          className="inline-flex rounded-md border border-fuchsia-200 bg-fuchsia-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-fuchsia-800"
+                                          title="Turnitin AI-writing indicator"
+                                        >
+                                          AI {Number(s.turnitin?.aiWritingPercentage)}%
+                                        </span>
+                                      ) : String(s.turnitin?.turnitinSubmissionId || "").trim() ? (
+                                        <span className="inline-flex rounded-md border border-fuchsia-100 bg-fuchsia-50/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-fuchsia-700">
+                                          AI pending
+                                        </span>
+                                      ) : null}
                                     </div>
                                     {s.automationReason ? <div className="mt-1 text-xs text-zinc-500">{s.automationReason}</div> : null}
                                     {s.qaFlags?.shouldReview ? (

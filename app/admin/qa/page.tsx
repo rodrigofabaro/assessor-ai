@@ -43,6 +43,7 @@ type SubmissionResearchRow = {
   turnitin?: {
     turnitinSubmissionId?: string | null;
     status?: string | null;
+    aiWritingPercentage?: number | null;
     overallMatchPercentage?: number | null;
     internetMatchPercentage?: number | null;
     publicationMatchPercentage?: number | null;
@@ -594,6 +595,9 @@ export default function AdminQaPage() {
                           )}
                           {Number.isFinite(Number(r.turnitin?.overallMatchPercentage))
                             ? ` · ${Number(r.turnitin?.overallMatchPercentage)}%`
+                            : ""}
+                          {Number.isFinite(Number(r.turnitin?.aiWritingPercentage))
+                            ? ` · AI ${Number(r.turnitin?.aiWritingPercentage)}%`
                             : ""}
                         </div>
                         {r.turnitin?.viewerUrl ? (

@@ -67,6 +67,20 @@ export type SubmissionRow = {
       rerunDriftDetected: boolean;
     };
   } | null;
+  turnitin?: {
+    turnitinSubmissionId?: string | null;
+    status?: string | null;
+    aiWritingPercentage?: number | null;
+    overallMatchPercentage?: number | null;
+    internetMatchPercentage?: number | null;
+    publicationMatchPercentage?: number | null;
+    submittedWorksMatchPercentage?: number | null;
+    reportRequestedAt?: string | null;
+    reportGeneratedAt?: string | null;
+    viewerUrl?: string | null;
+    lastError?: string | null;
+    updatedAt?: string | null;
+  } | null;
 };
 
 export type TriageResponse = {
