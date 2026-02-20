@@ -22,6 +22,7 @@ const ADMIN_ITEMS: AdminItem[] = [
   { label: "QA", href: "/admin/qa", accent: "indigo" },
   { label: "Specs", href: "/admin/specs", accent: "cyan" },
   { label: "Students", href: "/admin/students", accent: "violet" },
+  { label: "Users", href: "/admin/users", accent: "fuchsia" },
 ];
 const ADMIN_SETTINGS_ITEM: AdminItem = {
   label: "Settings",
@@ -129,7 +130,7 @@ export default function TopNav() {
           </Link>
 
           {isAdminRoute ? (
-            <nav aria-label="Admin sections" className="hidden max-w-[56vw] items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex xl:max-w-none xl:overflow-visible">
+            <nav aria-label="Admin sections" className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
               {ADMIN_ITEMS.map((it) => {
                 const active = isAdminItemActive(pathname, it.href);
                 return (
