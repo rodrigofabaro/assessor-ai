@@ -96,6 +96,10 @@ function computeQaFlags(latestJson: Record<string, unknown>) {
   const confidenceSignals = (latestJson?.confidenceSignals || {}) as Record<string, unknown>;
   const evidenceDensitySummary = (latestJson?.evidenceDensitySummary || {}) as Record<string, unknown>;
   const rerunIntegrity = (latestJson?.rerunIntegrity || {}) as Record<string, unknown>;
+  const submissionCompliance =
+    ((latestJson?.submissionCompliance as Record<string, unknown> | null) ||
+      ((latestJson?.response as Record<string, unknown> | null)?.submissionCompliance as Record<string, unknown> | null)) ||
+    null;
   const decisionDiff = (rerunIntegrity?.decisionDiff || {}) as Record<string, unknown>;
   const assessorOverrides = Array.isArray((latestJson as any)?.assessorCriterionOverrides)
     ? (latestJson as any).assessorCriterionOverrides
@@ -141,6 +145,9 @@ function computeQaFlags(latestJson: Record<string, unknown>) {
     );
   }
   if (assessorOverrides.length > 0) reasons.push(`Assessor overrides applied (${assessorOverrides.length} criteria)`);
+  if (String(submissionCompliance?.status || "").trim().toUpperCase() === "RETURN_REQUIRED") {
+    reasons.push("Submission compliance return required");
+  }
 
   return {
     shouldReview: reasons.length > 0,
@@ -155,6 +162,7 @@ function computeQaFlags(latestJson: Record<string, unknown>) {
       decisionStricterCount: Number.isFinite(decisionStricterCount) ? decisionStricterCount : 0,
       decisionLenientCount: Number.isFinite(decisionLenientCount) ? decisionLenientCount : 0,
       assessorOverrideCount: assessorOverrides.length,
+      complianceStatus: String(submissionCompliance?.status || "").trim().toUpperCase() || null,
     },
     overrideSummary: {
       count: assessorOverrides.length,

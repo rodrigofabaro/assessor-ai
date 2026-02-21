@@ -58,6 +58,20 @@ type SubmissionAssessmentEvidence = {
   dataRowLikeCount?: number;
 };
 
+type SubmissionComplianceCheck = {
+  policyCode: string;
+  status: "PASS" | "RETURN_REQUIRED";
+  affectsAcademicGrade: boolean;
+  checks: {
+    hasZbibLink: boolean;
+    hasLinkToThisVersion: boolean;
+    harvardLikeReferenceCount: number;
+    referencesSectionDetected: boolean;
+  };
+  issues: string[];
+  recommendedAction: string | null;
+};
+
 function normalizeText(value: unknown) {
   return String(value || "")
     .replace(/\r\n/g, "\n")
@@ -506,6 +520,88 @@ function rationaleIndicatesEvidenceGap(rationale: unknown) {
   return negativeCount > 0 && negativeCount >= positiveCount + 1;
 }
 
+function evaluateU4002A2D2SoftwareConfirmationEvidence(row: any) {
+  const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+  const rationale = normalizeText(`${String(row?.rationale || row?.comment || "")}`);
+  const comparisonSignal = /\b(match(?:es|ed)?|verif(?:y|ies|ied)|confirm(?:s|ed)?|agrees?|consistent|equals?|same as|software gives|cursor|marker|readout|annotat(?:e|ed|ion)|label(?:led)? point)\b/i;
+  const valueSignal = /\d|(?:\bt\s*=)|\b(amplitude|phase|component|result|value|current|voltage)\b/i;
+  const analyticalSignal = /\b(analytic(?:al)?|calculat(?:ed|ion)|computed?|derived?|solve[sd]?|equation)\b/i;
+
+  const uniqueEvidencePages = new Set<number>();
+  const taskMentions = new Set<string>();
+  let qualifiedEvidenceCount = 0;
+  for (const ev of evidence) {
+    const page = Number(ev?.page);
+    if (Number.isInteger(page) && page > 0) uniqueEvidencePages.add(page);
+    const text = normalizeText(`${String(ev?.quote || "")} ${String(ev?.visualDescription || "")}`);
+    if (!text) continue;
+    for (const m of text.matchAll(/\b(?:task|problem)\s*([1-9]\d?)\b/gi)) {
+      if (m?.[1]) taskMentions.add(String(m[1]));
+    }
+    if (comparisonSignal.test(text) && valueSignal.test(text)) {
+      qualifiedEvidenceCount += 1;
+    }
+  }
+  for (const m of rationale.matchAll(/\b(?:task|problem)\s*([1-9]\d?)\b/gi)) {
+    if (m?.[1]) taskMentions.add(String(m[1]));
+  }
+
+  const evidenceScopeCount = Math.max(taskMentions.size, uniqueEvidencePages.size, qualifiedEvidenceCount);
+  const hasAnalyticalComparisonLanguage = analyticalSignal.test(rationale) && comparisonSignal.test(rationale);
+  const ok =
+    evidenceScopeCount >= 3 &&
+    qualifiedEvidenceCount >= 3 &&
+    hasAnalyticalComparisonLanguage;
+
+  return {
+    ok,
+    evidenceScopeCount,
+    qualifiedEvidenceCount,
+    hasAnalyticalComparisonLanguage,
+  };
+}
+
+function assessSubmissionCompliancePolicy(input: {
+  unitCode: string;
+  assignmentCode: string;
+  textCorpus: string;
+}): SubmissionComplianceCheck | null {
+  const unitCode = String(input.unitCode || "").trim();
+  const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  if (!(unitCode === "4002" && assignmentCode === "A2")) return null;
+
+  const textCorpus = normalizeText(input.textCorpus || "");
+  const hasZbibLink = /\bzbib(?:\.org)?\b/i.test(textCorpus);
+  const hasLinkToThisVersion = /\blink to this version\b/i.test(textCorpus);
+  const referencesSectionDetected = /(?:^|\n)\s*references?\b/i.test(textCorpus);
+  const harvardLikeReferenceCount =
+    textCorpus.match(/\b[A-Z][A-Za-z'`-]+,\s*[A-Z](?:\.[A-Z])*\.?\s*\((?:19|20)\d{2}[a-z]?\)/g)?.length || 0;
+
+  const issues: string[] = [];
+  if (!hasZbibLink) issues.push("Missing zbib reference link.");
+  if (!hasLinkToThisVersion) issues.push("Missing 'link to this version' reference evidence.");
+  if (harvardLikeReferenceCount < 2) issues.push("References are not clearly Harvard formatted.");
+  if (!referencesSectionDetected) issues.push("References section was not detected.");
+
+  const status = issues.length > 0 ? ("RETURN_REQUIRED" as const) : ("PASS" as const);
+  return {
+    policyCode: "U4002_A2_REFERENCING",
+    status,
+    affectsAcademicGrade: false,
+    checks: {
+      hasZbibLink,
+      hasLinkToThisVersion,
+      harvardLikeReferenceCount,
+      referencesSectionDetected,
+    },
+    issues,
+    recommendedAction:
+      status === "RETURN_REQUIRED"
+        ? "Return for submission compliance update: include zbib Harvard references and provide a link to this version."
+        : null,
+  };
+}
+
 function extractCriterionRowsFromAssessmentResult(resultJson: any) {
   const r = resultJson && typeof resultJson === "object" ? resultJson : {};
   const fromResponse = Array.isArray(r?.response?.criterionChecks) ? r.response.criterionChecks : null;
@@ -640,6 +736,30 @@ function enforceBriefCriterionDecisionGuards(input: {
           rows[idx] = row;
           notes.push(
             "Decision guard applied: U4004 A1 M2 requires explicit alternative milestone monitoring method evidence plus justification."
+          );
+        }
+      }
+    }
+  }
+
+  // Brief-specific guard: U4002 A2 D2 requires explicit software confirmation against
+  // analytical values for at least three problems (not screenshots alone).
+  if (unitCode === "4002" && assignmentCode === "A2") {
+    const idx = rows.findIndex((row: any) => String(row?.code || "").trim().toUpperCase() === "D2");
+    if (idx >= 0) {
+      const row = { ...(rows[idx] || {}) };
+      const rowDecision = String(row?.decision || "").trim().toUpperCase();
+      if (rowDecision === "ACHIEVED") {
+        const d2Check = evaluateU4002A2D2SoftwareConfirmationEvidence(row);
+        if (!d2Check.ok) {
+          row.decision = "NOT_ACHIEVED";
+          row.confidence = Math.min(Number(row?.confidence || 0.55), 0.45);
+          row.rationale = sanitizeStudentFeedbackLine(
+            "D2 not achieved: screenshots are present, but analytical answers are not clearly confirmed against software outputs for at least three problems (add markers/labels/cursor values plus explicit comparisons)."
+          );
+          rows[idx] = row;
+          notes.push(
+            `Decision guard applied: U4002 A2 D2 requires explicit software-to-analytical confirmation across at least 3 problems (qualified evidence ${d2Check.qualifiedEvidenceCount}, scope ${d2Check.evidenceScopeCount}).`
           );
         }
       }
@@ -992,6 +1112,44 @@ function buildHigherGradeGapBullets(input: {
     const reasons = missingReasonLine(missingDistinction);
     if (reasons) out.push(`Distinction gap to address: ${reasons}`);
   }
+  return out;
+}
+
+function buildCriterionSpecificFeedbackBullets(input: {
+  unitCode: string;
+  assignmentCode: string;
+  criterionChecks: Array<{ code?: string; decision?: string }>;
+  submissionCompliance: SubmissionComplianceCheck | null;
+}) {
+  const out: string[] = [];
+  const unitCode = String(input.unitCode || "").trim();
+  const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  const rows = Array.isArray(input.criterionChecks) ? input.criterionChecks : [];
+  const decisionByCode = new Map<string, string>();
+  for (const row of rows) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code || decisionByCode.has(code)) continue;
+    decisionByCode.set(code, String(row?.decision || "").trim().toUpperCase());
+  }
+
+  if (unitCode === "4002" && assignmentCode === "A2") {
+    if (decisionByCode.get("D2") && decisionByCode.get("D2") !== "ACHIEVED") {
+      out.push(
+        "Screenshots are present, but they do not confirm the analytical answers. Add markers/labels/cursor values and a short comparison sentence for at least three tasks."
+      );
+    }
+    if (decisionByCode.has("P7")) {
+      out.push(
+        "Task 1(b): state magnitudes explicitly (absolute values), then optionally include signed components to show direction."
+      );
+    }
+    if (input.submissionCompliance?.status === "RETURN_REQUIRED") {
+      out.push(
+        "Submission compliance: add zbib Harvard references with a 'link to this version' entry before final handoff."
+      );
+    }
+  }
+
   return out;
 }
 
@@ -1576,6 +1734,11 @@ export async function POST(
     .filter(Boolean)
     .join("\n\n");
   const modalityEvidenceText = [String(submission.extractedText || ""), sampledPageText].filter(Boolean).join("\n\n");
+  const submissionCompliance = assessSubmissionCompliancePolicy({
+    unitCode: String(brief.unit?.unitCode || ""),
+    assignmentCode: String(brief.assignmentCode || ""),
+    textCorpus: modalityEvidenceText,
+  });
   const modalityEvidenceSource =
     gradingInputMode === "RAW_PDF_IMAGES"
       ? "RAW_PDF_IMAGES_PLUS_EXTRACTED_HINTS"
@@ -1988,9 +2151,15 @@ export async function POST(
       bandCapPolicy,
       criterionChecks: decision.criterionChecks,
     });
+    const criterionSpecificFeedbackBullets = buildCriterionSpecificFeedbackBullets({
+      unitCode: String(brief.unit?.unitCode || ""),
+      assignmentCode: String(brief.assignmentCode || ""),
+      criterionChecks: decision.criterionChecks,
+      submissionCompliance,
+    });
     const feedbackBullets = Array.from(
       new Set(
-        [...baseFeedbackBullets, ...higherGradeGapBullets]
+        [...baseFeedbackBullets, ...higherGradeGapBullets, ...criterionSpecificFeedbackBullets]
           .map((line) => sanitizeStudentFeedbackLine(line))
           .filter(Boolean)
       )
@@ -2037,6 +2206,11 @@ export async function POST(
     if (gradePolicy.wasCapped) {
       systemNotes.push("Grade capped due to resubmission policy.");
     }
+    if (submissionCompliance?.status === "RETURN_REQUIRED") {
+      systemNotes.push(
+        `Submission compliance action required (${submissionCompliance.policyCode}): ${submissionCompliance.issues.join(" ")}`
+      );
+    }
     if (useRubric) {
       if (rubricSupport.meta.criteriaHintsCount > 0) {
         systemNotes.push(
@@ -2061,6 +2235,7 @@ export async function POST(
       feedbackSummary,
       feedbackBullets,
       gradePolicy,
+      submissionCompliance,
     };
     const completedAtIso = new Date().toISOString();
     const structuredGradingV2 = buildStructuredGradingV2(responseWithPolicy, {
@@ -2188,6 +2363,7 @@ export async function POST(
             inputStrategy: inputStrategySnapshot,
             evidenceDensitySummary,
             referenceContextSnapshot,
+            submissionCompliance,
             rubricGuidance: rubricSupport.meta,
             gradingDefaultsSnapshot,
             extractionGate,
@@ -2304,6 +2480,7 @@ export async function POST(
             wasCapped: gradePolicy.wasCapped,
             capReason: gradePolicy.capReason,
           },
+          submissionCompliance,
           evidenceDensityByCriterion,
           evidenceDensitySummary,
           rerunIntegrity,
