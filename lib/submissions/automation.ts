@@ -10,6 +10,7 @@ export type AutomationExceptionCode =
   | "EXTRACTION_LOW_QUALITY_REVIEW"
   | "GRADING_IN_PROGRESS"
   | "READY_FOR_GRADING"
+  | "ASSESSMENT_OUTPUTS_INCOMPLETE"
   | "COMPLETED_EXPORT_READY"
   | "MANUAL_REVIEW_REQUIRED";
 
@@ -124,12 +125,20 @@ export function deriveAutomationState(s: SubmissionForAutomation): {
       };
     }
   }
-  if ((status === "DONE" && assessments > 0) || isReadyToUploadLike(s)) {
+  if (isReadyToUploadLike(s)) {
     return {
       state: "COMPLETED",
       reason: "Assessment complete with export-ready outputs.",
       exceptionCode: "COMPLETED_EXPORT_READY",
       recommendedAction: "Ready for export/handoff.",
+    };
+  }
+  if (status === "DONE" && assessments > 0) {
+    return {
+      state: "NEEDS_HUMAN",
+      reason: "Assessment exists, but export outputs are incomplete.",
+      exceptionCode: "ASSESSMENT_OUTPUTS_INCOMPLETE",
+      recommendedAction: "Open submission, regenerate feedback/marked PDF, and verify handoff readiness.",
     };
   }
   if (status === "EXTRACTED" && assessments === 0) {

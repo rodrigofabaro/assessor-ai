@@ -462,6 +462,19 @@ export async function GET(req: Request) {
     });
     const latestJson = includeWorkspaceQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
     const qaFlags = includeWorkspaceQa ? computeQaFlags(latestJson) : null;
+    const requiresQaReview = Boolean(qaFlags?.shouldReview);
+    const automationState =
+      automation.state === "COMPLETED" && requiresQaReview ? "NEEDS_HUMAN" : automation.state;
+    const automationReason =
+      automation.state === "COMPLETED" && requiresQaReview
+        ? "Assessment outputs exist, but QA review is still required before final completion."
+        : automation.reason;
+    const automationExceptionCode =
+      automation.state === "COMPLETED" && requiresQaReview ? "MANUAL_REVIEW_REQUIRED" : automation.exceptionCode;
+    const automationRecommendedAction =
+      automation.state === "COMPLETED" && requiresQaReview
+        ? "Review QA flags, confirm/adjust feedback, then finalize as complete."
+        : automation.recommendedAction;
 
     return {
       id: s.id,
@@ -482,10 +495,10 @@ export async function GET(req: Request) {
       assessmentActor: includeWorkspaceQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
       extractionMode: String((latestRun?.sourceMeta as any)?.extractionMode || "").toUpperCase() || null,
       coverReady: Boolean((latestRun?.sourceMeta as any)?.coverReady),
-      automationState: automation.state,
-      automationReason: automation.reason,
-      automationExceptionCode: automation.exceptionCode,
-      automationRecommendedAction: automation.recommendedAction,
+      automationState,
+      automationReason,
+      automationExceptionCode,
+      automationRecommendedAction,
       extractionQuality,
       qaFlags,
       turnitin: turnitinStateBySubmissionId[s.id] || null,
