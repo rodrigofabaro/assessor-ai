@@ -72,6 +72,13 @@ type SubmissionComplianceCheck = {
   recommendedAction: string | null;
 };
 
+type CriteriaScopePolicy = {
+  policyCode: string;
+  allowedCriteriaCodes: string[];
+  loLabel: string;
+  ignoreManualExclusions: boolean;
+};
+
 function normalizeText(value: unknown) {
   return String(value || "")
     .replace(/\r\n/g, "\n")
@@ -360,6 +367,20 @@ function pickExcludedBriefCriteriaCodes(briefDocumentSourceMeta: any): string[] 
   return Array.from(out).sort();
 }
 
+function resolveCriteriaScopePolicy(unitCode: string, assignmentCode: string): CriteriaScopePolicy | null {
+  const unit = String(unitCode || "").trim();
+  const assignment = String(assignmentCode || "").trim().toUpperCase();
+  if (unit === "4002" && assignment === "A2") {
+    return {
+      policyCode: "U4002_A2_LO3_ONLY",
+      allowedCriteriaCodes: ["P6", "P7", "M3", "D2"],
+      loLabel: "LO3",
+      ignoreManualExclusions: true,
+    };
+  }
+  return null;
+}
+
 function compareCriteriaAlignment(mappedCodes: string[], briefCodes: string[]) {
   const mapped = Array.from(new Set((mappedCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
   const brief = Array.from(new Set((briefCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
@@ -379,6 +400,62 @@ function compareCriteriaAlignment(mappedCodes: string[], briefCodes: string[]) {
     mismatchCount: missingInMap.length + extraInMap.length,
     overlapRatio,
   };
+}
+
+function containsBlankContentClaim(value: unknown) {
+  const text = normalizeText(value).toLowerCase();
+  if (!text) return false;
+  return (
+    /\bsubmission appears blank\b/i.test(text) ||
+    /\bblank submission\b/i.test(text) ||
+    /\bno readable (?:content|text|writing)\b/i.test(text) ||
+    /\bno (?:usable|meaningful) content\b/i.test(text) ||
+    /\bunreadable\b/i.test(text) ||
+    /\bempty pages?\b/i.test(text) ||
+    /\bno content across all pages\b/i.test(text)
+  );
+}
+
+function inferReadableSubmissionEvidence(input: {
+  textCorpus: string;
+  sampledPagesCount: number;
+  extractedChars: number;
+  rawPdfPagesUsed: number;
+  submissionAssessmentEvidence: SubmissionAssessmentEvidence;
+}) {
+  const text = normalizeText(input.textCorpus || "");
+  const mathematicalSignals =
+    /\b(task|problem)\s*[1-9]\d?\b/i.test(text) ||
+    /\b(sin|cos|tan|phasor|vector|determinant|amplitude|frequency|component|waveform|equation)\b/i.test(text) ||
+    (/\d/.test(text) && /[=+\-*/]/.test(text));
+  const equationSignals =
+    Boolean(input.submissionAssessmentEvidence?.hasEqMarker) ||
+    Number(input.submissionAssessmentEvidence?.equationLikeLineCount || 0) >= 2;
+  const substantialText = text.length >= 500 || Number(input.extractedChars || 0) >= 1200;
+  const hasMultiPageContext = Number(input.sampledPagesCount || 0) >= 2 || Number(input.rawPdfPagesUsed || 0) >= 2;
+  return Boolean(mathematicalSignals || equationSignals || (substantialText && hasMultiPageContext));
+}
+
+function inferHandwritingLikely(input: {
+  submissionFilename: string;
+  textCorpus: string;
+  isPdfSubmission: boolean;
+  extractionMode: string;
+  gradingInputMode: string;
+  extractionConfidence: number;
+  extractedChars: number;
+  submissionAssessmentEvidence: SubmissionAssessmentEvidence;
+}) {
+  const filenameSignal = /\b(handwrit|scan|photo|camera|img)\b/i.test(String(input.submissionFilename || ""));
+  const textSignal = /\b(handwritten|scanned|scan)\b/i.test(String(input.textCorpus || ""));
+  const imageMode = input.gradingInputMode === "RAW_PDF_IMAGES" || input.extractionMode === "COVER_ONLY";
+  const lowOcrForMathPdf =
+    input.isPdfSubmission &&
+    Number(input.extractionConfidence || 0) < 0.82 &&
+    Number(input.extractedChars || 0) < 2600 &&
+    (Boolean(input.submissionAssessmentEvidence?.hasEqMarker) ||
+      Number(input.submissionAssessmentEvidence?.equationLikeLineCount || 0) >= 2);
+  return Boolean(filenameSignal || textSignal || imageMode || lowOcrForMathPdf);
 }
 
 function extractCoverAssignmentSignals(sourceMeta: any) {
@@ -558,6 +635,28 @@ function evaluateU4002A2D2SoftwareConfirmationEvidence(row: any) {
     evidenceScopeCount,
     qualifiedEvidenceCount,
     hasAnalyticalComparisonLanguage,
+  };
+}
+
+function evaluateU4002A2M3GraphicalEvidence(row: any) {
+  const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+  const rationale = normalizeText(`${String(row?.rationale || row?.comment || "")}`);
+  const graphSignal = /\b(graph|plot|waveform|figure|chart|diagram|geogebra|software output|screenshot)\b/i;
+  const comparisonSignal = /\b(show|illustrat(?:e|ed|es|ing)|display|label|axis|amplitude|phase)\b/i;
+  let graphEvidenceCount = 0;
+  for (const ev of evidence) {
+    const text = normalizeText(`${String(ev?.quote || "")} ${String(ev?.visualDescription || "")}`);
+    if (!text) continue;
+    if (graphSignal.test(text) && comparisonSignal.test(text)) {
+      graphEvidenceCount += 1;
+    }
+  }
+  const hasGraphicalRationale = graphSignal.test(rationale);
+  const ok = graphEvidenceCount >= 1 && hasGraphicalRationale;
+  return {
+    ok,
+    graphEvidenceCount,
+    hasGraphicalRationale,
   };
 }
 
@@ -743,8 +842,29 @@ function enforceBriefCriterionDecisionGuards(input: {
   }
 
   // Brief-specific guard: U4002 A2 D2 requires explicit software confirmation against
-  // analytical values for at least three problems (not screenshots alone).
+  // analytical values for at least three problems (not screenshots alone),
+  // and M3 must include graphical illustration evidence.
   if (unitCode === "4002" && assignmentCode === "A2") {
+    const m3Idx = rows.findIndex((row: any) => String(row?.code || "").trim().toUpperCase() === "M3");
+    if (m3Idx >= 0) {
+      const row = { ...(rows[m3Idx] || {}) };
+      const rowDecision = String(row?.decision || "").trim().toUpperCase();
+      if (rowDecision === "ACHIEVED") {
+        const m3Check = evaluateU4002A2M3GraphicalEvidence(row);
+        if (!m3Check.ok) {
+          row.decision = "NOT_ACHIEVED";
+          row.confidence = Math.min(Number(row?.confidence || 0.55), 0.45);
+          row.rationale = sanitizeStudentFeedbackLine(
+            "M3 not achieved: graphical illustration evidence is missing or not explicit. Add the required graph/plot and explain how it supports the combined-angle result."
+          );
+          rows[m3Idx] = row;
+          notes.push(
+            `Decision guard applied: U4002 A2 M3 requires explicit graphical evidence (qualified graph evidence ${m3Check.graphEvidenceCount}).`
+          );
+        }
+      }
+    }
+
     const idx = rows.findIndex((row: any) => String(row?.code || "").trim().toUpperCase() === "D2");
     if (idx >= 0) {
       const row = { ...(rows[idx] || {}) };
@@ -1120,6 +1240,8 @@ function buildCriterionSpecificFeedbackBullets(input: {
   assignmentCode: string;
   criterionChecks: Array<{ code?: string; decision?: string }>;
   submissionCompliance: SubmissionComplianceCheck | null;
+  handwritingLikely: boolean;
+  readableEvidenceLikely: boolean;
 }) {
   const out: string[] = [];
   const unitCode = String(input.unitCode || "").trim();
@@ -1133,9 +1255,24 @@ function buildCriterionSpecificFeedbackBullets(input: {
   }
 
   if (unitCode === "4002" && assignmentCode === "A2") {
-    if (decisionByCode.get("D2") && decisionByCode.get("D2") !== "ACHIEVED") {
+    const p6Achieved = decisionByCode.get("P6") === "ACHIEVED";
+    const p7Achieved = decisionByCode.get("P7") === "ACHIEVED";
+    const m3Achieved = decisionByCode.get("M3") === "ACHIEVED";
+    const d2Achieved = decisionByCode.get("D2") === "ACHIEVED";
+    if (p6Achieved || p7Achieved) {
+      out.push("Nice clear working across Tasks 1 to 3. Your method is generally easy to follow.");
+    }
+    if (decisionByCode.has("M3") && !m3Achieved) {
       out.push(
-        "Screenshots are present, but they do not confirm the analytical answers. Add markers/labels/cursor values and a short comparison sentence for at least three tasks."
+        "To reach MERIT, add the required graph for Task 4(b) and explain how the graph supports your combined-wave result."
+      );
+    }
+    if (decisionByCode.has("D2") && !d2Achieved) {
+      out.push(
+        "To reach DISTINCTION, include software outputs for Task 4(a), 4(b), and 4(c), then state how each output confirms your calculated values."
+      );
+      out.push(
+        "Where screenshots are used, add labels/markers/cursor values and a short comparison sentence so the confirmation is explicit."
       );
     }
     if (decisionByCode.has("P7")) {
@@ -1148,9 +1285,72 @@ function buildCriterionSpecificFeedbackBullets(input: {
         "Submission compliance: add zbib Harvard references with a 'link to this version' entry before final handoff."
       );
     }
+    if (input.handwritingLikely) {
+      out.push(
+        "Presentation suggestion: keep headings/explanations word-processed, and insert neat scans/photos of handwritten mathematics."
+      );
+    }
+  }
+
+  if (input.readableEvidenceLikely) {
+    out.push("Evidence appears present in the submission pages; keep page references clear so each criterion can be tracked quickly.");
   }
 
   return out;
+}
+
+function buildFriendlyFeedbackSummary(input: {
+  unitCode: string;
+  assignmentCode: string;
+  feedbackSummary: string;
+  criterionChecks: Array<{ code?: string; decision?: string }>;
+  readableEvidenceLikely: boolean;
+}) {
+  const unitCode = String(input.unitCode || "").trim();
+  const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  const original = sanitizeStudentFeedbackLine(input.feedbackSummary) || "Feedback provided below.";
+  const rows = Array.isArray(input.criterionChecks) ? input.criterionChecks : [];
+  const decisionByCode = new Map<string, string>();
+  for (const row of rows) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code || decisionByCode.has(code)) continue;
+    decisionByCode.set(code, String(row?.decision || "").trim().toUpperCase());
+  }
+
+  let summary = original;
+  if (input.readableEvidenceLikely && containsBlankContentClaim(summary)) {
+    summary = "Your submission contains readable worked content, and the assessment below is based on the evidenced sections.";
+  }
+
+  if (unitCode === "4002" && assignmentCode === "A2") {
+    const p6Achieved = decisionByCode.get("P6") === "ACHIEVED";
+    const p7Achieved = decisionByCode.get("P7") === "ACHIEVED";
+    const m3Achieved = decisionByCode.get("M3") === "ACHIEVED";
+    const d2Achieved = decisionByCode.get("D2") === "ACHIEVED";
+    if (p6Achieved && p7Achieved && !m3Achieved && !d2Achieved) {
+      return "Good start. Tasks 1 to 3 evidence the core Pass outcomes. To progress, complete the graphical and software-confirmation requirements in Task 4.";
+    }
+    if (p6Achieved && p7Achieved) {
+      return "Good progress. Your pass-level mathematical method is evidenced. The next step is to strengthen Task 4 evidence for higher-band criteria.";
+    }
+  }
+  return summary;
+}
+
+function buildAssignmentSpecificPromptRules(input: { unitCode: string; assignmentCode: string }) {
+  const unitCode = String(input.unitCode || "").trim();
+  const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  if (unitCode === "4002" && assignmentCode === "A2") {
+    return [
+      "Assignment policy override:",
+      "- This submission is U4002 Assignment 2 and must be graded against LO3 criteria only: P6, P7, M3, D2.",
+      "- Do not reference or infer unrelated criteria (for example P1-P5).",
+      "- Handwritten mathematics is valid evidence when legible.",
+      "- Do not claim the submission is blank/unreadable unless page samples and provided images both lack readable mathematical work.",
+      "- If Task 1(b) asks for magnitudes, expect magnitudes as positive values with direction expressed separately if needed.",
+    ];
+  }
+  return [] as string[];
 }
 
 function countWords(value: unknown) {
@@ -1529,6 +1729,7 @@ export async function POST(
   const tone = String(body.tone || cfg.tone || "professional");
   const strictness = String(body.strictness || cfg.strictness || "balanced");
   const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
+  const criteriaScopePolicy = resolveCriteriaScopePolicy(String(brief.unit?.unitCode || ""), String(brief.assignmentCode || ""));
 
   const excludedCriteriaCodes = pickExcludedBriefCriteriaCodes(brief.briefDocument?.sourceMeta);
   const excludedCriteriaSet = new Set(excludedCriteriaCodes);
@@ -1539,22 +1740,56 @@ export async function POST(
     lo: m.assessmentCriterion.learningOutcome?.loCode || "",
     description: m.assessmentCriterion.description,
   }));
+  const unitFallbackCriteria = brief.unit.learningOutcomes.flatMap((lo) =>
+    lo.criteria.map((c) => ({
+      criterionId: c.id,
+      code: c.acCode,
+      band: c.gradeBand,
+      lo: lo.loCode,
+      description: c.description,
+    }))
+  );
 
-  const criteriaBeforeExclusions =
-    criteriaFromMap.length > 0
-      ? criteriaFromMap
-      : brief.unit.learningOutcomes.flatMap((lo) =>
-          lo.criteria.map((c) => ({
-            criterionId: c.id,
-            code: c.acCode,
-            band: c.gradeBand,
-            lo: lo.loCode,
-            description: c.description,
-          }))
-        );
-  const criteria = criteriaBeforeExclusions.filter(
+  const criteriaBeforeExclusions = criteriaFromMap.length > 0 ? criteriaFromMap : unitFallbackCriteria;
+  let criteria = criteriaBeforeExclusions.filter(
     (c) => !excludedCriteriaSet.has(String(c.code || "").trim().toUpperCase())
   );
+
+  if (criteriaScopePolicy) {
+    const pool = new Map<string, (typeof criteriaBeforeExclusions)[number]>();
+    for (const row of [...criteriaFromMap, ...unitFallbackCriteria]) {
+      const code = String(row?.code || "").trim().toUpperCase();
+      if (!code || pool.has(code)) continue;
+      pool.set(code, row);
+    }
+    const scopedCriteria = criteriaScopePolicy.allowedCriteriaCodes
+      .map((code) => pool.get(code))
+      .filter(Boolean) as typeof criteriaBeforeExclusions;
+    const missingCodes = criteriaScopePolicy.allowedCriteriaCodes.filter((code) => !pool.has(code));
+    if (missingCodes.length > 0) {
+      return apiError({
+        status: 422,
+        code: "GRADE_REQUIRED_CRITERIA_MISSING",
+        userMessage: `Required criteria for ${brief.unit.unitCode} ${brief.assignmentCode} (${criteriaScopePolicy.loLabel}) are missing from mapping/spec: ${missingCodes.join(", ")}.`,
+        route: "/api/submissions/[submissionId]/grade",
+        requestId,
+        details: {
+          submissionId,
+          briefId: brief.id,
+          policyCode: criteriaScopePolicy.policyCode,
+          missingCodes,
+          mappedCriteriaCodes: criteriaFromMap.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean),
+        },
+      });
+    }
+    criteria = criteriaScopePolicy.ignoreManualExclusions
+      ? scopedCriteria
+      : scopedCriteria.filter((c) => !excludedCriteriaSet.has(String(c.code || "").trim().toUpperCase()));
+  }
+  const scopeExcludedIgnoredCodes = criteriaScopePolicy?.ignoreManualExclusions
+    ? criteriaScopePolicy.allowedCriteriaCodes.filter((code) => excludedCriteriaSet.has(code))
+    : [];
+
   if (!criteria.length) {
     return apiError({
       status: 422,
@@ -1566,9 +1801,13 @@ export async function POST(
     });
   }
   const criteriaCodes = Array.from(new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean)));
-  const briefCriteriaCodes = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson).filter(
+  let briefCriteriaCodes = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson).filter(
     (code) => !excludedCriteriaSet.has(String(code || "").trim().toUpperCase())
   );
+  if (criteriaScopePolicy) {
+    const allowed = new Set(criteriaScopePolicy.allowedCriteriaCodes);
+    briefCriteriaCodes = briefCriteriaCodes.filter((code) => allowed.has(code));
+  }
   const criteriaAlignment = compareCriteriaAlignment(criteriaCodes, briefCriteriaCodes);
   const minAlignmentRatio = Math.max(0.3, Math.min(0.95, Number(process.env.GRADE_MAPPING_ALIGNMENT_MIN_RATIO || 0.65)));
   const mismatchThreshold = Math.max(1, Math.min(8, Number(process.env.GRADE_MAPPING_MISMATCH_MAX || 2)));
@@ -1754,6 +1993,23 @@ export async function POST(
       : String(submission.extractedText || "").slice(0, Math.max(1500, Math.min(8000, Math.floor(inputCharLimit / 2)))) ||
         "(Extraction hints unavailable. Use attached PDF pages as primary source.)";
   const submissionAssessmentEvidence = detectSubmissionAssessmentEvidence(modalityEvidenceText);
+  const readableEvidenceLikely = inferReadableSubmissionEvidence({
+    textCorpus: modalityEvidenceText,
+    sampledPagesCount: sampledPages.length,
+    extractedChars: Number(extractionGate.metrics?.extractedChars || 0),
+    rawPdfPagesUsed,
+    submissionAssessmentEvidence,
+  });
+  const handwritingLikely = inferHandwritingLikely({
+    submissionFilename: String(submission.filename || ""),
+    textCorpus: modalityEvidenceText,
+    isPdfSubmission,
+    extractionMode,
+    gradingInputMode,
+    extractionConfidence: extractionConfidenceScore,
+    extractedChars: Number(extractionGate.metrics?.extractedChars || 0),
+    submissionAssessmentEvidence,
+  });
   const modalityCompliance = evaluateModalityCompliance(assessmentRequirements, submissionAssessmentEvidence);
   const readinessChecklist = {
     extractionCompleteness: gradingInputMode === "RAW_PDF_IMAGES" ? true : extractionGate.ok,
@@ -1825,6 +2081,10 @@ export async function POST(
       String(process.env.GRADE_RESUBMISSION_CAP_ENABLED || "false").toLowerCase()
     ),
   };
+  const assignmentSpecificPromptRules = buildAssignmentSpecificPromptRules({
+    unitCode: String(brief.unit?.unitCode || ""),
+    assignmentCode: String(brief.assignmentCode || ""),
+  });
 
   const prompt = [
     "You are an engineering assignment assessor.",
@@ -1841,6 +2101,7 @@ export async function POST(
     "- Do not mark a criterion as ACHIEVED if your rationale indicates missing/insufficient/unclear evidence.",
     "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
     "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
+    ...assignmentSpecificPromptRules,
     "",
     "Input routing strategy:",
     `- Mode: ${gradingInputMode}`,
@@ -2142,8 +2403,17 @@ export async function POST(
     });
     const finalConfidence = confidenceResult.finalConfidence;
     const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
-    const feedbackSummary = sanitizeStudentFeedbackLine(feedbackSummaryRaw) || "Feedback provided below.";
-    const baseFeedbackBullets = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
+    const feedbackSummary = buildFriendlyFeedbackSummary({
+      unitCode: String(brief.unit?.unitCode || ""),
+      assignmentCode: String(brief.assignmentCode || ""),
+      feedbackSummary: feedbackSummaryRaw,
+      criterionChecks: decision.criterionChecks,
+      readableEvidenceLikely,
+    });
+    const baseFeedbackBulletsRaw = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
+    const baseFeedbackBullets = readableEvidenceLikely
+      ? baseFeedbackBulletsRaw.filter((line) => !containsBlankContentClaim(line))
+      : baseFeedbackBulletsRaw;
     const higherGradeGapBullets = buildHigherGradeGapBullets({
       finalGrade: overallGrade,
       rawGrade: rawOverallGrade,
@@ -2156,6 +2426,8 @@ export async function POST(
       assignmentCode: String(brief.assignmentCode || ""),
       criterionChecks: decision.criterionChecks,
       submissionCompliance,
+      handwritingLikely,
+      readableEvidenceLikely,
     });
     const feedbackBullets = Array.from(
       new Set(
@@ -2165,8 +2437,21 @@ export async function POST(
       )
     ).slice(0, Math.max(1, cfg.maxFeedbackBullets));
     const systemNotes: string[] = [];
+    if (criteriaScopePolicy) {
+      systemNotes.push(
+        `Criteria scope policy applied (${criteriaScopePolicy.policyCode}): grading constrained to ${criteriaScopePolicy.allowedCriteriaCodes.join(", ")}.`
+      );
+      if (scopeExcludedIgnoredCodes.length > 0) {
+        systemNotes.push(
+          `Ignored manual exclusions for required scoped criteria: ${scopeExcludedIgnoredCodes.join(", ")}.`
+        );
+      }
+    }
     if (decisionGuard.notes.length) {
       systemNotes.push(...decisionGuard.notes);
+    }
+    if (readableEvidenceLikely && containsBlankContentClaim(decision.feedbackSummary)) {
+      systemNotes.push("Adjusted student-facing summary because readable page evidence conflicted with a blank-content claim.");
     }
     if (schemaValidationRetryCount > 0) {
       systemNotes.push(
@@ -2364,6 +2649,10 @@ export async function POST(
             evidenceDensitySummary,
             referenceContextSnapshot,
             submissionCompliance,
+            presentationSignals: {
+              readableEvidenceLikely,
+              handwritingLikely,
+            },
             rubricGuidance: rubricSupport.meta,
             gradingDefaultsSnapshot,
             extractionGate,
@@ -2430,7 +2719,12 @@ export async function POST(
           promptHash,
           promptChars: prompt.length,
           criteriaSnapshot: {
-            source: criteriaFromMap.length > 0 ? "assignmentBriefMap" : "unitFallback",
+            source: criteriaScopePolicy
+              ? `assignmentScopePolicy:${criteriaScopePolicy.policyCode}`
+              : criteriaFromMap.length > 0
+                ? "assignmentBriefMap"
+                : "unitFallback",
+            scopePolicyCode: criteriaScopePolicy?.policyCode || null,
             excludedCriteriaCodes,
             mappedCriteriaCodes: criteriaAlignment.mapped,
             briefExtractedCriteriaCodes: criteriaAlignment.brief,
@@ -2461,6 +2755,10 @@ export async function POST(
           },
           modalityEvidenceSource,
           inputStrategy: inputStrategySnapshot,
+          presentationSignals: {
+            readableEvidenceLikely,
+            handwritingLikely,
+          },
           assessmentRequirements,
           submissionAssessmentEvidence,
           modalityCompliance,
@@ -2541,6 +2839,7 @@ export async function POST(
         briefId: brief.id,
         assignmentCode: brief.assignmentCode,
         criteriaSnapshot: {
+          scopePolicyCode: criteriaScopePolicy?.policyCode || null,
           excludedCriteriaCodes,
           mappedCriteriaCodes: criteriaAlignment.mapped,
           briefExtractedCriteriaCodes: criteriaAlignment.brief,
