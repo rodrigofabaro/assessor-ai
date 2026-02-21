@@ -8,6 +8,9 @@ const SYSTEM_FEEDBACK_PATTERNS: RegExp[] = [
   /\bfallback\b/i,
   /\bconfidence capped\b/i,
   /\bmodel output\b/i,
+  /\bguard adjusted\b/i,
+  /\bdecision guard applied\b/i,
+  /\brationale indicates evidence gaps\b/i,
 ];
 
 function stripPlaceholderText(value: string): string {
@@ -25,7 +28,10 @@ function stripPlaceholderText(value: string): string {
 export function sanitizeStudentFeedbackLine(value: unknown): string {
   return stripPlaceholderText(String(value || ""))
     .replace(/\s+/g, " ")
-    .replace(/\b(automated review|schema validation|manual review|required schema|fallback)\b/gi, "")
+    .replace(
+      /\b(automated review|schema validation|manual review|required schema|fallback|guard adjusted|decision guard applied|rationale indicates evidence gaps)\b/gi,
+      ""
+    )
     .replace(/\s{2,}/g, " ")
     .trim();
 }

@@ -1081,7 +1081,6 @@ export default function SubmissionDetailPage() {
     extractionComplete &&
     !gradingBusy;
   const canCommitPreview =
-    !!gradingPreview &&
     !!submission?.student &&
     !!submission?.assignment &&
     extractionComplete &&
@@ -1094,7 +1093,13 @@ export default function SubmissionDetailPage() {
           ? "Run extraction before grading."
           : "";
   const commitDisabledReason = !gradingPreview
-    ? "Run preview first."
+    ? !submission?.student
+      ? "Link student to save grade to audit."
+      : !submission?.assignment
+        ? "Link assignment/brief first."
+        : !extractionComplete
+          ? "Run extraction before grading."
+          : "Preview recommended first. You can still save directly to audit."
     : !submission?.student
       ? "Link student to save grade to audit."
       : "Save preview as an audited grade";
@@ -1113,6 +1118,11 @@ export default function SubmissionDetailPage() {
     if (!extractionComplete) return void runExtraction();
     scrollToPanel(workflowPanelRef.current);
   };
+  const quickActionHint = canCommitPreview
+    ? "Preview and save are available."
+    : canPreviewGrading
+      ? "Preview is available. Link student to save grade to audit."
+      : gradingDisabledReason || checklist.nextBlockingAction || "Complete the next blocker to continue.";
   const jumpToNextBlocker = () => {
     const item = checklist.items.find((i) => !i.ok);
     if (!item) return;
@@ -1632,9 +1642,6 @@ export default function SubmissionDetailPage() {
             {nav.label}
           </button>
         ))}
-        <button type="button" onClick={() => setShortcutsOpen(true)} className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
-          Shortcuts (?)
-        </button>
       </section>
 
       <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm">
@@ -1896,45 +1903,26 @@ export default function SubmissionDetailPage() {
             open
           >
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="flex h-[28px] items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Quick actions</span>
                 </span>
-                <span className="truncate rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] normal-case text-zinc-700">
-                  Shortcuts
-                </span>
+                <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] normal-case text-zinc-700">Action center</span>
               </div>
             </summary>
             <div className="border-t border-zinc-200 p-2">
-            <div className="text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview (no save), <span className="font-semibold">?</span> help</div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={runExtraction}
-                disabled={busy}
-                className={cx(
-                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
-                  busy ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-sky-700 text-white hover:bg-sky-800"
-                )}
-              >
-                Run extraction
-              </button>
-              <button
-                type="button"
-                onClick={() => setGradingConfigOpen(true)}
-                className="h-7 rounded-md bg-sky-700 px-2.5 text-[11px] font-semibold text-white hover:bg-sky-800"
-              >
-                Grading config
-              </button>
+            <div className="text-[11px] text-zinc-600">{quickActionHint}</div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => void runGrading({ dryRun: true })}
                 disabled={!canPreviewGrading}
                 className={cx(
-                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
+                  "h-8 rounded-md px-3 text-[12px] font-semibold",
                   canPreviewGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
+                title={gradingDisabledReason || "Run grading preview (no save)"}
               >
                 Preview grade (no save)
               </button>
@@ -1943,41 +1931,85 @@ export default function SubmissionDetailPage() {
                 onClick={() => void runGrading({ dryRun: false })}
                 disabled={!canCommitPreview}
                 className={cx(
-                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
+                  "h-8 rounded-md px-3 text-[12px] font-semibold",
                   canCommitPreview ? "bg-emerald-700 text-white hover:bg-emerald-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
                 title={commitDisabledReason}
               >
                 Save grade to audit
               </button>
-              <button
-                type="button"
-                onClick={() => void regenerateMarkedFromCurrentRun()}
-                disabled={!selectedAssessment?.id || feedbackEditorBusy}
-                className={cx(
-                  "h-7 rounded-md px-2.5 text-[11px] font-semibold",
-                  !selectedAssessment?.id || feedbackEditorBusy
-                    ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
-                    : "bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
-                )}
-                title={!selectedAssessment?.id ? "No assessment run selected yet." : "Regenerate marked PDF for selected run"}
-              >
-                Regenerate marked
-              </button>
             </div>
-            <div className="mt-1 text-[11px] text-zinc-500">
-              Preview does not create an assessment record. Use{" "}
-              <span className="font-semibold text-zinc-700">Save grade to audit</span> to persist grade and feedback.
-            </div>
-            <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
-              <input
-                type="checkbox"
-                className="h-3 w-3 rounded border-zinc-300"
-                checked={runGradeWhenReady}
-                onChange={(e) => setRunGradeWhenReady(e.target.checked)}
-              />
-              Auto-run preview when ready (no save)
-            </label>
+            <details className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5">
+              <summary className="cursor-pointer text-[11px] font-semibold text-zinc-700">More tools</summary>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={runExtraction}
+                  disabled={busy}
+                  className={cx(
+                    "h-7 rounded-md border px-2.5 text-[11px] font-semibold",
+                    busy
+                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
+                  )}
+                >
+                  {extractionRunning ? "Extracting…" : "Re-run extraction"}
+                </button>
+                <button
+                  type="button"
+                  onClick={jumpToNextBlocker}
+                  disabled={checklist.readyToUpload}
+                  className={cx(
+                    "h-7 rounded-md border px-2.5 text-[11px] font-semibold",
+                    checklist.readyToUpload
+                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
+                  )}
+                >
+                  Fix next blocker
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGradingConfigOpen(true)}
+                  className="h-7 rounded-md border border-zinc-200 bg-white px-2.5 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50"
+                >
+                  Grading config
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void regenerateMarkedFromCurrentRun()}
+                  disabled={!selectedAssessment?.id || feedbackEditorBusy}
+                  className={cx(
+                    "h-7 rounded-md border px-2.5 text-[11px] font-semibold",
+                    !selectedAssessment?.id || feedbackEditorBusy
+                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
+                  )}
+                  title={!selectedAssessment?.id ? "No assessment run selected yet." : "Regenerate marked PDF for selected run"}
+                >
+                  Regenerate marked PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShortcutsOpen(true)}
+                  className="h-7 rounded-md border border-zinc-200 bg-white px-2.5 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50"
+                >
+                  Shortcuts (?)
+                </button>
+              </div>
+              <div className="mt-2 text-[11px] text-zinc-500">
+                Preview does not create an assessment record. Save to audit persists grade and feedback.
+              </div>
+              <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 rounded border-zinc-300"
+                  checked={runGradeWhenReady}
+                  onChange={(e) => setRunGradeWhenReady(e.target.checked)}
+                />
+                Auto-run preview when ready (no save)
+              </label>
+            </details>
             {gradingPreview ? (
               <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 p-2 text-[11px] text-emerald-900">
                 <div className="font-semibold">

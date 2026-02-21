@@ -18,12 +18,50 @@ export type MarkedPdfPayload = {
 };
 
 function sanitizeRenderableText(value: unknown) {
-  return String(value || "")
+  const text = String(value || "")
     .replace(/\btype\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\benter\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\badd\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\binsert\s+text\b/gi, "")
     .replace(/\bclick\s+to\s+add\s+text\b/gi, "")
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/−/g, "-")
+    .replace(/×/g, "x")
+    .replace(/÷/g, "/")
+    .replace(/±/g, "+/-")
+    .replace(/≤/g, "<=")
+    .replace(/≥/g, ">=");
+  const symbolMap: Record<string, string> = {
+    π: "pi",
+    Π: "PI",
+    θ: "theta",
+    Θ: "Theta",
+    φ: "phi",
+    Φ: "Phi",
+    ω: "omega",
+    Ω: "Omega",
+    μ: "mu",
+    λ: "lambda",
+    σ: "sigma",
+    Σ: "Sigma",
+    Δ: "Delta",
+    δ: "delta",
+    α: "alpha",
+    β: "beta",
+    γ: "gamma",
+    "°": " deg",
+    "≈": " approx ",
+    "∠": " angle ",
+    "∥": " || ",
+    "⊥": " perpendicular ",
+    "→": " -> ",
+    "←": " <- ",
+  };
+  return text
+    .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, (ch) => symbolMap[ch] || " ")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+([,.;:!?])/g, "$1")
     .trim();
@@ -225,9 +263,9 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     const lines = (Array.isArray(note?.lines) ? note.lines : [])
       .map((l) => sanitizeRenderableText(l))
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, 10);
     if (!lines.length) continue;
-    const noteW = Math.min(340, pw - margin * 2);
+    const noteW = Math.min(360, pw - margin * 2);
     const noteFontSize = 8.6;
     const noteLineH = 10;
     const wrapped = lines.map((line) => wrapText(`- ${line}`, noteW - 16, font, noteFontSize));

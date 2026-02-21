@@ -25,6 +25,7 @@ import { computeGradingConfidence } from "@/lib/grading/confidenceScoring";
 import { chooseGradingInputStrategy } from "@/lib/grading/inputStrategy";
 import { extractFile } from "@/lib/extraction";
 import { maybeAutoDetectAiWritingForSubmission } from "@/lib/turnitin/service";
+import { pickTonePhrase, resolveToneProfileFromLegacy, type ToneProfile } from "@/lib/notes/toneDatabase";
 
 export const runtime = "nodejs";
 
@@ -473,6 +474,64 @@ function normalizeGradeBand(value: unknown): "REFER" | "PASS" | "PASS_ON_RESUBMI
   return "REFER";
 }
 
+function gradeRank(grade: unknown) {
+  const g = normalizeGradeBand(grade);
+  if (g === "DISTINCTION") return 4;
+  if (g === "MERIT") return 3;
+  if (g === "PASS") return 2;
+  if (g === "PASS_ON_RESUBMISSION") return 1;
+  return 0;
+}
+
+function deriveU4002A2GradeFromCriterionChecks(
+  criterionChecks: Array<{ code?: string; decision?: string }>
+): "REFER" | "PASS" | "MERIT" | "DISTINCTION" {
+  const rows = Array.isArray(criterionChecks) ? criterionChecks : [];
+  const decisionByCode = new Map<string, string>();
+  for (const row of rows) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code) continue;
+    decisionByCode.set(code, String(row?.decision || "").trim().toUpperCase());
+  }
+  const p6 = decisionByCode.get("P6") === "ACHIEVED";
+  const p7 = decisionByCode.get("P7") === "ACHIEVED";
+  const m3 = decisionByCode.get("M3") === "ACHIEVED";
+  const d2 = decisionByCode.get("D2") === "ACHIEVED";
+  if (!p6 || !p7) return "REFER";
+  if (m3 && d2) return "DISTINCTION";
+  if (m3) return "MERIT";
+  return "PASS";
+}
+
+function applyAssignmentGradeConsistency(input: {
+  unitCode: string;
+  assignmentCode: string;
+  grade: "REFER" | "PASS" | "PASS_ON_RESUBMISSION" | "MERIT" | "DISTINCTION";
+  criterionChecks: Array<{ code?: string; decision?: string }>;
+}) {
+  const unitCode = String(input.unitCode || "").trim();
+  const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  if (!(unitCode === "4002" && assignmentCode === "A2")) {
+    return {
+      grade: input.grade,
+      adjusted: false,
+      expectedGrade: null as null | "REFER" | "PASS" | "MERIT" | "DISTINCTION",
+      note: null as string | null,
+    };
+  }
+
+  const expectedGrade = deriveU4002A2GradeFromCriterionChecks(input.criterionChecks);
+  const adjusted = gradeRank(input.grade) < gradeRank(expectedGrade);
+  return {
+    grade: adjusted ? (expectedGrade as "REFER" | "PASS" | "PASS_ON_RESUBMISSION" | "MERIT" | "DISTINCTION") : input.grade,
+    adjusted,
+    expectedGrade,
+    note: adjusted
+      ? `Grade consistency rule applied (U4002 A2 LO3): raised raw grade from ${input.grade} to ${expectedGrade} to match criterion outcomes.`
+      : null,
+  };
+}
+
 function applyResubmissionCap(
   rawGradeInput: unknown,
   resubmissionRequired: boolean,
@@ -600,13 +659,18 @@ function rationaleIndicatesEvidenceGap(rationale: unknown) {
 function evaluateU4002A2D2SoftwareConfirmationEvidence(row: any) {
   const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
   const rationale = normalizeText(`${String(row?.rationale || row?.comment || "")}`);
-  const comparisonSignal = /\b(match(?:es|ed)?|verif(?:y|ies|ied)|confirm(?:s|ed)?|agrees?|consistent|equals?|same as|software gives|cursor|marker|readout|annotat(?:e|ed|ion)|label(?:led)? point)\b/i;
-  const valueSignal = /\d|(?:\bt\s*=)|\b(amplitude|phase|component|result|value|current|voltage)\b/i;
+  const comparisonSignal =
+    /\b(match(?:es|ed)?|verif(?:y|ies|ied)|confirm(?:s|ed)?|agrees?|consistent|equals?|same as|software gives|overlap(?:s|ped)?|align(?:s|ed)?|correspond(?:s|ed)?)\b/i;
+  const markerSignal = /\b(cursor|marker|readout|annotat(?:e|ed|ion)|label(?:led)? point)\b/i;
+  const valueSignal = /\d|(?:\bt\s*=)|\b(amplitude|phase|component|result|value|current|voltage|vector|endpoint)\b/i;
   const analyticalSignal = /\b(analytic(?:al)?|calculat(?:ed|ion)|computed?|derived?|solve[sd]?|equation)\b/i;
+  const softwareSignal =
+    /\b(graph software|geogebra|desmos|matlab|excel|graphing calculator|software output|simulation|plot)\b/i;
 
   const uniqueEvidencePages = new Set<number>();
   const taskMentions = new Set<string>();
   let qualifiedEvidenceCount = 0;
+  let softwareEvidenceCount = 0;
   for (const ev of evidence) {
     const page = Number(ev?.page);
     if (Number.isInteger(page) && page > 0) uniqueEvidencePages.add(page);
@@ -615,7 +679,8 @@ function evaluateU4002A2D2SoftwareConfirmationEvidence(row: any) {
     for (const m of text.matchAll(/\b(?:task|problem)\s*([1-9]\d?)\b/gi)) {
       if (m?.[1]) taskMentions.add(String(m[1]));
     }
-    if (comparisonSignal.test(text) && valueSignal.test(text)) {
+    if (softwareSignal.test(text)) softwareEvidenceCount += 1;
+    if ((comparisonSignal.test(text) || markerSignal.test(text)) && valueSignal.test(text)) {
       qualifiedEvidenceCount += 1;
     }
   }
@@ -624,39 +689,52 @@ function evaluateU4002A2D2SoftwareConfirmationEvidence(row: any) {
   }
 
   const evidenceScopeCount = Math.max(taskMentions.size, uniqueEvidencePages.size, qualifiedEvidenceCount);
-  const hasAnalyticalComparisonLanguage = analyticalSignal.test(rationale) && comparisonSignal.test(rationale);
+  const hasAnalyticalComparisonLanguage =
+    (analyticalSignal.test(rationale) && comparisonSignal.test(rationale)) ||
+    (comparisonSignal.test(rationale) && valueSignal.test(rationale));
+  const hasSoftwareContext = softwareSignal.test(rationale) || softwareEvidenceCount > 0;
+  const hasExplicitConfirmation = qualifiedEvidenceCount >= 2 || (qualifiedEvidenceCount >= 1 && hasAnalyticalComparisonLanguage);
   const ok =
+    hasSoftwareContext &&
     evidenceScopeCount >= 3 &&
-    qualifiedEvidenceCount >= 3 &&
-    hasAnalyticalComparisonLanguage;
+    hasExplicitConfirmation;
 
   return {
     ok,
     evidenceScopeCount,
     qualifiedEvidenceCount,
+    softwareEvidenceCount,
     hasAnalyticalComparisonLanguage,
+    hasSoftwareContext,
   };
 }
 
 function evaluateU4002A2M3GraphicalEvidence(row: any) {
   const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
   const rationale = normalizeText(`${String(row?.rationale || row?.comment || "")}`);
-  const graphSignal = /\b(graph|plot|waveform|figure|chart|diagram|geogebra|software output|screenshot)\b/i;
-  const comparisonSignal = /\b(show|illustrat(?:e|ed|es|ing)|display|label|axis|amplitude|phase)\b/i;
+  const graphSignal = /\b(graph|plot|waveform|figure|chart|diagram|geogebra|software output|screenshot|overlay)\b/i;
+  const comparisonSignal = /\b(show|illustrat(?:e|ed|es|ing)|display|label|axis|amplitude|phase|equivalen|overlap)\b/i;
+  const combineSignal =
+    /\b(compound angle|combined wave|single wave|coefficient matching|identity|sin\(|cos\(|amplitude[- ]phase)\b/i;
   let graphEvidenceCount = 0;
+  let combineEvidenceCount = 0;
   for (const ev of evidence) {
     const text = normalizeText(`${String(ev?.quote || "")} ${String(ev?.visualDescription || "")}`);
     if (!text) continue;
     if (graphSignal.test(text) && comparisonSignal.test(text)) {
       graphEvidenceCount += 1;
     }
+    if (combineSignal.test(text)) combineEvidenceCount += 1;
   }
-  const hasGraphicalRationale = graphSignal.test(rationale);
-  const ok = graphEvidenceCount >= 1 && hasGraphicalRationale;
+  const corpus = `${rationale} ${evidence.map((ev: any) => `${String(ev?.quote || "")} ${String(ev?.visualDescription || "")}`).join(" ")}`;
+  const hasGraphicalRationale = graphSignal.test(rationale) || /\b(illustrat(?:e|ed|es|ing)|overlap|equivalent)\b/i.test(rationale);
+  const hasCombineMethodEvidence = combineSignal.test(corpus) || combineEvidenceCount > 0;
+  const ok = graphEvidenceCount >= 1 && hasCombineMethodEvidence;
   return {
     ok,
     graphEvidenceCount,
     hasGraphicalRationale,
+    hasCombineMethodEvidence,
   };
 }
 
@@ -774,8 +852,11 @@ function enforceCrossBriefCriterionDecisionGuards(input: { rows: any[] }) {
     if (!rationaleIndicatesEvidenceGap(rationale)) continue;
     row.decision = "NOT_ACHIEVED";
     row.confidence = Math.min(Number(row?.confidence || 0.55), 0.45);
+    const hint = reasonSnippet(rationale, 140);
     row.rationale = sanitizeStudentFeedbackLine(
-      `Guard adjusted: rationale indicates evidence gaps for this requirement. ${reasonSnippet(rationale, 160)}`
+      hint
+        ? `This requirement is not yet achieved because evidence is incomplete or unclear: ${hint}`
+        : "This requirement is not yet achieved because evidence is incomplete or unclear."
     );
     rows[i] = row;
     const code = String(row?.code || "").trim().toUpperCase();
@@ -799,12 +880,15 @@ function enforceBriefCriterionDecisionGuards(input: {
   const unitCode = String(input.unitCode || "").trim();
   const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
 
-  const crossBriefGuard = enforceCrossBriefCriterionDecisionGuards({ rows });
-  rows = crossBriefGuard.rows;
-  if (crossBriefGuard.adjustedCount > 0) {
-    notes.push(
-      `Decision guard applied: ${crossBriefGuard.adjustedCount} criterion decision(s) were downgraded because rationale language indicated evidence gaps (${crossBriefGuard.adjustedCodes.join(", ")}).`
-    );
+  const skipCrossBriefGuardForAssignment = unitCode === "4002" && assignmentCode === "A2";
+  if (!skipCrossBriefGuardForAssignment) {
+    const crossBriefGuard = enforceCrossBriefCriterionDecisionGuards({ rows });
+    rows = crossBriefGuard.rows;
+    if (crossBriefGuard.adjustedCount > 0) {
+      notes.push(
+        `Decision guard applied: ${crossBriefGuard.adjustedCount} criterion decision(s) were downgraded because rationale language indicated evidence gaps (${crossBriefGuard.adjustedCodes.join(", ")}).`
+      );
+    }
   }
 
   // Brief-specific guard: U4004 A1 M2 must evidence an alternative milestone monitoring method
@@ -1238,41 +1322,82 @@ function buildHigherGradeGapBullets(input: {
 function buildCriterionSpecificFeedbackBullets(input: {
   unitCode: string;
   assignmentCode: string;
-  criterionChecks: Array<{ code?: string; decision?: string }>;
+  criterionChecks: Array<{ code?: string; decision?: string; evidence?: any[] }>;
   submissionCompliance: SubmissionComplianceCheck | null;
   handwritingLikely: boolean;
   readableEvidenceLikely: boolean;
+  noteToneProfile: ToneProfile;
 }) {
   const out: string[] = [];
   const unitCode = String(input.unitCode || "").trim();
   const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  const toneProfile = input.noteToneProfile;
   const rows = Array.isArray(input.criterionChecks) ? input.criterionChecks : [];
   const decisionByCode = new Map<string, string>();
+  const rowByCode = new Map<string, { code?: string; decision?: string; evidence?: any[] }>();
   for (const row of rows) {
     const code = String(row?.code || "").trim().toUpperCase();
     if (!code || decisionByCode.has(code)) continue;
     decisionByCode.set(code, String(row?.decision || "").trim().toUpperCase());
+    rowByCode.set(code, row);
   }
+
+  const evidenceTextForCode = (code: string) =>
+    (Array.isArray(rowByCode.get(code)?.evidence) ? rowByCode.get(code)?.evidence : [])
+      .map((ev: any) => `${String(ev?.quote || "")} ${String(ev?.visualDescription || "")}`.trim())
+      .filter(Boolean)
+      .join(" ");
 
   if (unitCode === "4002" && assignmentCode === "A2") {
     const p6Achieved = decisionByCode.get("P6") === "ACHIEVED";
     const p7Achieved = decisionByCode.get("P7") === "ACHIEVED";
     const m3Achieved = decisionByCode.get("M3") === "ACHIEVED";
     const d2Achieved = decisionByCode.get("D2") === "ACHIEVED";
+    const m3EvidenceText = evidenceTextForCode("M3");
+    const d2EvidenceText = evidenceTextForCode("D2");
+    const hasGraphEvidence = /\b(graph|plot|waveform|figure|chart|diagram|screenshot|overlay)\b/i.test(m3EvidenceText);
+    const hasSoftwareEvidence =
+      /\b(software|geogebra|desmos|graphing|matlab|excel|plot|screenshot|readout|cursor|marker)\b/i.test(
+        d2EvidenceText
+      );
     if (p6Achieved || p7Achieved) {
-      out.push("Nice clear working across Tasks 1 to 3. Your method is generally easy to follow.");
+      out.push(
+        pickTonePhrase(
+          toneProfile.phrases.praise,
+          `${unitCode}|${assignmentCode}|praise`,
+          "Nice clear working across Tasks 1 to 3. Your method is generally easy to follow."
+        )
+      );
+    }
+    if (m3Achieved && hasGraphEvidence) {
+      out.push("Good use of graphical evidence to support your compound-angle/single-wave method.");
+    }
+    if (d2Achieved && hasSoftwareEvidence) {
+      out.push(
+        "Good use of software evidence to confirm analytical results. Keep labels/markers visible so the match is quick to verify."
+      );
     }
     if (decisionByCode.has("M3") && !m3Achieved) {
+      const leadIn = pickTonePhrase(
+        toneProfile.phrases.nextGradeLeadIns,
+        `${unitCode}|${assignmentCode}|m3-gap`,
+        "To reach MERIT,"
+      );
       out.push(
-        "To reach MERIT, add the required graph for Task 4(b) and explain how the graph supports your combined-wave result."
+        `${leadIn} add the required graph for Task 4(b) and explain how the graph supports your combined-wave result.`
       );
     }
     if (decisionByCode.has("D2") && !d2Achieved) {
-      out.push(
-        "To reach DISTINCTION, include software outputs for Task 4(a), 4(b), and 4(c), then state how each output confirms your calculated values."
+      const leadIn = pickTonePhrase(
+        toneProfile.phrases.nextGradeLeadIns,
+        `${unitCode}|${assignmentCode}|d2-gap`,
+        "To reach DISTINCTION,"
       );
       out.push(
-        "Where screenshots are used, add labels/markers/cursor values and a short comparison sentence so the confirmation is explicit."
+        `${leadIn} include software outputs for at least three problems, then state clearly how each output confirms your calculated values.`
+      );
+      out.push(
+        "Where screenshots are used, add labels/markers/cursor values and one short comparison sentence so the confirmation is explicit."
       );
     }
     if (decisionByCode.has("P7")) {
@@ -1282,18 +1407,31 @@ function buildCriterionSpecificFeedbackBullets(input: {
     }
     if (input.submissionCompliance?.status === "RETURN_REQUIRED") {
       out.push(
-        "Submission compliance: add zbib Harvard references with a 'link to this version' entry before final handoff."
+        pickTonePhrase(
+          toneProfile.phrases.complianceAdvice,
+          `${unitCode}|${assignmentCode}|compliance`,
+          "Submission compliance: add zbib Harvard references with a 'link to this version' entry before final handoff."
+        )
       );
     }
     if (input.handwritingLikely) {
       out.push(
-        "Presentation suggestion: keep headings/explanations word-processed, and insert neat scans/photos of handwritten mathematics."
+        pickTonePhrase(
+          toneProfile.phrases.handwritingAdvice,
+          `${unitCode}|${assignmentCode}|handwriting`,
+          "Presentation suggestion: keep headings/explanations word-processed, and insert neat scans/photos of handwritten mathematics."
+        )
       );
     }
   }
 
   if (input.readableEvidenceLikely) {
-    out.push("Evidence appears present in the submission pages; keep page references clear so each criterion can be tracked quickly.");
+    const leadIn = pickTonePhrase(
+      toneProfile.phrases.evidenceLeadIns,
+      `${unitCode}|${assignmentCode}|evidence`,
+      "Evidence observed:"
+    );
+    out.push(`${leadIn} keep page references clear so each criterion can be tracked quickly.`);
   }
 
   return out;
@@ -1302,12 +1440,24 @@ function buildCriterionSpecificFeedbackBullets(input: {
 function buildFriendlyFeedbackSummary(input: {
   unitCode: string;
   assignmentCode: string;
+  overallGrade: string;
   feedbackSummary: string;
   criterionChecks: Array<{ code?: string; decision?: string }>;
   readableEvidenceLikely: boolean;
+  noteToneProfile: ToneProfile;
 }) {
   const unitCode = String(input.unitCode || "").trim();
   const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
+  const gradeBand = normalizeGradeBand(input.overallGrade);
+  const toneProfile = input.noteToneProfile;
+  const opener = pickTonePhrase(
+    toneProfile.phrases.openers,
+    `${unitCode}|${assignmentCode}|${gradeBand}|opener`
+  );
+  const gradeHeadline = pickTonePhrase(
+    toneProfile.gradeLines[gradeBand].headline,
+    `${unitCode}|${assignmentCode}|${gradeBand}|headline`
+  );
   const original = sanitizeStudentFeedbackLine(input.feedbackSummary) || "Feedback provided below.";
   const rows = Array.isArray(input.criterionChecks) ? input.criterionChecks : [];
   const decisionByCode = new Map<string, string>();
@@ -1327,14 +1477,42 @@ function buildFriendlyFeedbackSummary(input: {
     const p7Achieved = decisionByCode.get("P7") === "ACHIEVED";
     const m3Achieved = decisionByCode.get("M3") === "ACHIEVED";
     const d2Achieved = decisionByCode.get("D2") === "ACHIEVED";
-    if (p6Achieved && p7Achieved && !m3Achieved && !d2Achieved) {
-      return "Good start. Tasks 1 to 3 evidence the core Pass outcomes. To progress, complete the graphical and software-confirmation requirements in Task 4.";
+    if (!p6Achieved || !p7Achieved) {
+      return [
+        opener,
+        gradeHeadline,
+        "Pass-level evidence is incomplete. Strengthen the core sinusoidal and vector tasks with clear page-linked working.",
+      ]
+        .filter(Boolean)
+        .join(" ");
     }
-    if (p6Achieved && p7Achieved) {
-      return "Good progress. Your pass-level mathematical method is evidenced. The next step is to strengthen Task 4 evidence for higher-band criteria.";
+    if (m3Achieved && d2Achieved) {
+      return [
+        opener,
+        gradeHeadline,
+        "Strong evidence across pass, merit, and distinction requirements. Your graphical and software-confirmation evidence supports the analytical results.",
+      ]
+        .filter(Boolean)
+        .join(" ");
     }
+    if (m3Achieved && !d2Achieved) {
+      return [
+        opener,
+        gradeHeadline,
+        "Pass and Merit outcomes are evidenced. Distinction is currently blocked because D2 needs explicit software-to-calculation confirmation across at least three distinct problems.",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    }
+    return [
+      opener,
+      gradeHeadline,
+      "Good start. Pass outcomes are evidenced in Tasks 1 to 3. To progress, strengthen Task 4 graphical/software confirmation evidence for higher bands.",
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
-  return summary;
+  return [opener, gradeHeadline, summary].filter(Boolean).join(" ");
 }
 
 function buildAssignmentSpecificPromptRules(input: { unitCode: string; assignmentCode: string }) {
@@ -1348,6 +1526,9 @@ function buildAssignmentSpecificPromptRules(input: { unitCode: string; assignmen
       "- Handwritten mathematics is valid evidence when legible.",
       "- Do not claim the submission is blank/unreadable unless page samples and provided images both lack readable mathematical work.",
       "- If Task 1(b) asks for magnitudes, expect magnitudes as positive values with direction expressed separately if needed.",
+      "- Keep task mapping correct: Task 2(a) is RL phasor resultant voltage, and Task 2(b) is vector cross product.",
+      "- D2 pragmatic rule: award only when software outputs are linked explicitly to analytical results for at least 3 distinct problems.",
+      "- Screenshots alone are insufficient for D2 unless they include labels/markers/readouts or an explicit written comparison.",
     ];
   }
   return [] as string[];
@@ -1727,6 +1908,7 @@ export async function POST(
   const activeModel = readOpenAiModel().model || cfg.model;
   const fallbackModel = String(process.env.OPENAI_GRADE_FALLBACK_MODEL || process.env.OPENAI_MODEL_FALLBACK || "gpt-4o-mini").trim();
   const tone = String(body.tone || cfg.tone || "professional");
+  const noteToneProfile = resolveToneProfileFromLegacy(tone);
   const strictness = String(body.strictness || cfg.strictness || "balanced");
   const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
   const criteriaScopePolicy = resolveCriteriaScopePolicy(String(brief.unit?.unitCode || ""), String(brief.assignmentCode || ""));
@@ -2071,6 +2253,7 @@ export async function POST(
   };
   const gradingDefaultsSnapshot = {
     tone,
+    noteToneKey: noteToneProfile.key,
     strictness,
     useRubricIfAvailable: useRubric,
     model: activeModel,
@@ -2364,8 +2547,14 @@ export async function POST(
       decision.criterionChecks as any,
       criteria as any
     );
+    const assignmentGradeConsistency = applyAssignmentGradeConsistency({
+      unitCode: String(brief.unit?.unitCode || ""),
+      assignmentCode: String(brief.assignmentCode || ""),
+      grade: bandCapPolicy.finalGrade,
+      criterionChecks: decision.criterionChecks as any,
+    });
     const gradePolicy = applyResubmissionCap(
-      bandCapPolicy.finalGrade,
+      assignmentGradeConsistency.grade,
       Boolean(decision.resubmissionRequired),
       gradingDefaultsSnapshot.resubmissionCapRuleActive
     );
@@ -2406,9 +2595,11 @@ export async function POST(
     const feedbackSummary = buildFriendlyFeedbackSummary({
       unitCode: String(brief.unit?.unitCode || ""),
       assignmentCode: String(brief.assignmentCode || ""),
+      overallGrade,
       feedbackSummary: feedbackSummaryRaw,
       criterionChecks: decision.criterionChecks,
       readableEvidenceLikely,
+      noteToneProfile,
     });
     const baseFeedbackBulletsRaw = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
     const baseFeedbackBullets = readableEvidenceLikely
@@ -2428,6 +2619,7 @@ export async function POST(
       submissionCompliance,
       handwritingLikely,
       readableEvidenceLikely,
+      noteToneProfile,
     });
     const feedbackBullets = Array.from(
       new Set(
@@ -2487,6 +2679,9 @@ export async function POST(
     }
     if (bandCapPolicy.wasCapped) {
       systemNotes.push(`Grade adjusted by criteria-band completion policy (${String(bandCapPolicy.capReason || "unknown")}).`);
+    }
+    if (assignmentGradeConsistency.note) {
+      systemNotes.push(assignmentGradeConsistency.note);
     }
     if (gradePolicy.wasCapped) {
       systemNotes.push("Grade capped due to resubmission policy.");
@@ -2559,10 +2754,11 @@ export async function POST(
     const pageNotes = cfg.pageNotesEnabled
       ? buildPageNotesFromCriterionChecks(decision.criterionChecks, {
           maxPages: cfg.pageNotesMaxPages,
-          maxLinesPerPage: cfg.pageNotesMaxLinesPerPage,
+          maxLinesPerPage: Math.max(8, cfg.pageNotesMaxLinesPerPage),
           tone: cfg.pageNotesTone,
           includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
           totalPages: submissionPageCount,
+          handwritingLikely,
         })
       : [];
 

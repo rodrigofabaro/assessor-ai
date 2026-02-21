@@ -13,6 +13,13 @@ type CriterionCheckLike = {
   met?: boolean | null;
 };
 
+type PageCriterionEntry = {
+  code: string;
+  decision: "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
+  rationale: string;
+  context: string;
+};
+
 export type MarkedPageNote = {
   page: number;
   lines: string[];
@@ -24,6 +31,9 @@ function normalizeText(v: unknown) {
 
 function sanitizeStudentNoteText(v: string) {
   return normalizeText(v)
+    .replace(/\bguard adjusted\b[^.?!]*[.?!]?/gi, "")
+    .replace(/\bdecision guard applied\b[^.?!]*[.?!]?/gi, "")
+    .replace(/\brationale indicates evidence gaps\b[^.?!]*[.?!]?/gi, "")
     .replace(/\btype\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\benter\s+(?:your\s+)?text\s+here\b/gi, "")
     .replace(/\badd\s+(?:your\s+)?text\s+here\b/gi, "")
@@ -36,24 +46,16 @@ function sanitizeStudentNoteText(v: string) {
     .trim();
 }
 
-function decisionLabel(row: CriterionCheckLike) {
-  const d = normalizeText(row.decision || "").toUpperCase();
-  if (d) return d;
-  if (row.met === true) return "ACHIEVED";
-  if (row.met === false) return "NOT_ACHIEVED";
-  return "UNCLEAR";
-}
-
-function compactLine(v: string, maxLen = 130) {
+function compactLine(v: string, maxLen = 170) {
   const s = sanitizeStudentNoteText(v);
+  if (!s) return "";
   if (s.length <= maxLen) return s;
-  const clippedRaw = s.slice(0, Math.max(20, maxLen));
+  const clippedRaw = s.slice(0, Math.max(24, maxLen));
   const sentenceStop = Math.max(clippedRaw.lastIndexOf(". "), clippedRaw.lastIndexOf("! "), clippedRaw.lastIndexOf("? "));
   if (sentenceStop > Math.floor(maxLen * 0.55)) {
     return clippedRaw.slice(0, sentenceStop + 1).trim();
   }
-  const clipped = clippedRaw.replace(/\s+\S*$/, "").replace(/[,(;:\s-]+$/, "").trim();
-  return clipped || s.slice(0, Math.max(20, maxLen)).trim();
+  return clippedRaw.replace(/\s+\S*$/, "").replace(/[,(;:\s-]+$/, "").trim();
 }
 
 function toSentence(v: string) {
@@ -61,6 +63,27 @@ function toSentence(v: string) {
   if (!s) return "";
   if (/[.!?]$/.test(s)) return s;
   return `${s}.`;
+}
+
+function normalizeDecisionLabel(value: unknown, metFallback: unknown): "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR" {
+  const up = String(value || "").trim().toUpperCase();
+  if (up === "ACHIEVED" || up === "NOT_ACHIEVED" || up === "UNCLEAR") return up;
+  if (typeof metFallback === "boolean") return metFallback ? "ACHIEVED" : "NOT_ACHIEVED";
+  return "UNCLEAR";
+}
+
+function normalizeCode(value: unknown) {
+  const code = String(value || "").trim().toUpperCase();
+  if (/^[PMD]\d{1,2}$/.test(code)) return code;
+  return "CRITERION";
+}
+
+function evidenceContext(row: CriterionCheckLike) {
+  const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+  const source = evidence
+    .map((e) => `${String(e?.quote || "")} ${String(e?.visualDescription || "")}`)
+    .join(" ");
+  return sanitizeStudentNoteText(source);
 }
 
 function summarizeReason(v: string) {
@@ -71,110 +94,176 @@ function summarizeReason(v: string) {
     .replace(/\bthe\s+(submission|report|work)\b/gi, "your work");
   if (!src) return "";
   const firstSentence = src.split(/[.!?]/)[0] || src;
-  return compactLine(firstSentence, 110);
+  return compactLine(firstSentence, 130);
 }
 
-function summarizeEvidence(v: string) {
-  const src = sanitizeStudentNoteText(v)
-    .replace(/^["']+/, "")
-    .replace(/["']+$/, "")
-    .replace(/\s*\.\s*$/, "");
-  if (!src) return "";
-  return compactLine(src, 70);
+function decisionPriority(decision: string) {
+  if (decision === "NOT_ACHIEVED") return 0;
+  if (decision === "UNCLEAR") return 1;
+  return 2;
 }
 
-function cleanEvidenceLead(v: string) {
-  const src = sanitizeStudentNoteText(v);
-  return src.replace(/^current\s+text\s*[:\-]\s*/i, "").trim();
-}
+function strengthLine(entry: PageCriterionEntry) {
+  const code = entry.code;
+  const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
 
-function hashSeed(v: string) {
-  let seed = 0;
-  for (let i = 0; i < v.length; i += 1) seed = (seed + v.charCodeAt(i) * (i + 1)) % 10007;
-  return seed;
-}
-
-function pickVariant(options: string[], seedSource: string) {
-  if (!options.length) return "";
-  const idx = hashSeed(seedSource) % options.length;
-  return options[idx];
-}
-
-function lowerFirst(v: string) {
-  const s = sanitizeStudentNoteText(v);
-  if (!s) return "";
-  return s.charAt(0).toLowerCase() + s.slice(1);
-}
-
-function inferActionFromRationale(rationale: string, decision: string) {
-  const src = sanitizeStudentNoteText(rationale);
-  const lower = src.toLowerCase();
-  if (!src) {
-    return decision === "ACHIEVED"
-      ? "add one sentence that explains the impact of this evidence"
-      : "add explicit evidence and explain how it meets the requirement";
+  if (code === "P6") {
+    if (/\bphasor|rl|triangle\b/i.test(corpus)) return "Strength: Correct phasor triangle method is shown.";
+    if (/\bsin|cos|current|time|wave\b/i.test(corpus)) return "Strength: Your sinusoidal rearrangement steps are clear.";
+    return "Strength: Your pass-level sinusoidal method is clear.";
   }
-  if (/\b(alternative|milestone|gantt|critical path|monitor)\b/i.test(lower)) {
-    return "compare at least one alternative milestone-tracking method and justify your chosen approach";
+  if (code === "P7") {
+    if (/\bdeterminant|cross product\b/i.test(corpus)) return "Strength: Good determinant setup for vector method.";
+    if (/\bcomponent|horizontal|vertical|cos|sin\b/i.test(corpus))
+      return "Strength: Correct method is shown for resolving vector components.";
+    return "Strength: Your vector method is presented clearly.";
   }
-  if (/\b(lacks depth|critical(ly)? evaluat|critical(ly)? analys|not critically)\b/i.test(lower)) {
-    return "deepen evaluation: what worked, what did not, and what you would change next";
+  if (code === "M3") {
+    if (/\bgraph|plot|waveform|overlay|figure\b/i.test(corpus))
+      return "Strength: You show the combine-wave method with graphical evidence.";
+    return "Strength: Your compound-angle/single-wave method is clear.";
   }
-  if (/\b(recommendation|further development|improvement)\b/i.test(lower) && /\b(not|insufficient|unclear|limited)\b/i.test(lower)) {
-    return "add specific, measurable recommendations and expected impact";
+  if (code === "D2") {
+    if (/\bsoftware|geogebra|desmos|graph|plot|screenshot\b/i.test(corpus))
+      return "Strength: You included software output alongside your calculations.";
+    return "Strength: You attempted software-based confirmation.";
   }
-  if (/\b(not|insufficient|unclear|limited|missing|does not|cannot)\b/i.test(lower)) {
-    return `address this gap: ${lowerFirst(src)}`;
-  }
-  return decision === "ACHIEVED"
-    ? `extend this by ${lowerFirst(src)}`
-    : `add clearer evidence: ${lowerFirst(src)}`;
+  return entry.decision === "ACHIEVED"
+    ? "Strength: You presented clear evidence for this requirement."
+    : "Strength: You have a valid starting point for this requirement.";
 }
 
-function toPageAnchoredLine(
-  row: CriterionCheckLike,
-  evidence: EvidenceLike,
-  tone: string,
-  includeCode: boolean
-) {
-  const code = normalizeText(row?.code || "Criterion");
-  const decision = decisionLabel(row);
-  const rationale = summarizeReason(normalizeText(row?.rationale || row?.comment || ""));
-  const quote = sanitizeStudentNoteText(String(evidence?.quote || ""));
-  const visual = sanitizeStudentNoteText(String(evidence?.visualDescription || ""));
-  const context = summarizeEvidence(cleanEvidenceLead(quote || visual));
-  const seedSource = `${code}|${decision}|${context}|${rationale}`;
-  const achievedLead = pickVariant(
-    ["Strong evidence here", "Good progress on this page", "This section is working well"],
-    seedSource
-  );
-  const weakLead = pickVariant(
-    ["Improve this section next", "Target this page for improvement", "This page needs a stronger link to the requirement"],
-    seedSource
-  );
-  const unclearLead = pickVariant(
-    ["Clarify this section", "Make this point clearer", "This page needs clearer explanation"],
-    seedSource
-  );
-  const lead =
-    decision === "ACHIEVED"
-      ? achievedLead
-      : decision === "UNCLEAR"
-        ? unclearLead
-        : weakLead;
-  const evidenceLine = context ? toSentence(`Evidence: ${context}`) : "";
-  const action = inferActionFromRationale(rationale, decision);
-  const actionPrefix =
-    decision === "ACHIEVED"
-      ? tone === "supportive"
-        ? "To push higher"
-        : "To strengthen further"
-      : "Next step";
-  const actionLine = toSentence(`${actionPrefix}: ${action}`);
-  const fallback = toSentence("Add a direct evidence statement that clearly matches the requirement");
-  const merged = [toSentence(lead), evidenceLine, actionLine].filter(Boolean).join(" ") || fallback;
-  const line = compactLine(merged, 165);
-  return includeCode ? compactLine(`${code}: ${line}`, 170) : line;
+function gapLine(entry: PageCriterionEntry) {
+  const code = entry.code;
+  const rationale = summarizeReason(entry.rationale);
+  const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+
+  if (code === "D2" && entry.decision !== "ACHIEVED") {
+    return "Gap: Software output is shown, but explicit software-to-calculation confirmation is missing across at least three distinct problems.";
+  }
+  if (code === "P7" && /\bmagnitude|component|horizontal|vertical\b/i.test(corpus)) {
+    return "Gap: The question asks for magnitudes; present magnitudes as positive values and note direction separately.";
+  }
+  if (code === "M3" && entry.decision !== "ACHIEVED") {
+    return "Gap: The graph is present, but the link between the graph and your analytical combined-wave result is not explicit enough.";
+  }
+  if (entry.decision === "ACHIEVED") {
+    return "Gap: Add one concise verification line so moderation can trace evidence to your final statement immediately.";
+  }
+  if (rationale) {
+    return `Gap: ${rationale}`;
+  }
+  return "Gap: The required evidence link is still incomplete.";
+}
+
+function actionLines(entry: PageCriterionEntry): string[] {
+  const code = entry.code;
+  if (code === "D2") {
+    return [
+      "Add a one-line confirmation linking software output to your analytical value.",
+      "Add label/cursor/marker values on each graph used as evidence.",
+      "Show this confirmation across at least three distinct problems.",
+    ];
+  }
+  if (code === "M3") {
+    return [
+      "Overlay or compare plots so equivalence is visible.",
+      "Label axes/markers and key points used in your explanation.",
+      "Add one sentence explaining how the graph supports your analytical form.",
+    ];
+  }
+  if (code === "P7") {
+    return [
+      "State magnitudes explicitly using absolute values.",
+      "Show direction separately and label final components clearly.",
+      "State units and consistent rounding in your final line.",
+    ];
+  }
+  if (code === "P6") {
+    return [
+      "Show your branch/selection logic clearly before the final answer.",
+      "Add one quick substitution check against the original expression.",
+      "State units and consistent rounding in your final line.",
+    ];
+  }
+  return [
+    "Add one clear sentence that links evidence to the criterion requirement.",
+    "Label your final result so the required method is easy to verify.",
+  ];
+}
+
+function bandImpactLine(entry: PageCriterionEntry) {
+  if (entry.code === "D2" && entry.decision !== "ACHIEVED") {
+    return "This is why D2 is not fully evidenced yet.";
+  }
+  return `This supports: ${entry.code}.`;
+}
+
+function buildStructuredNoteLines(input: {
+  entry: PageCriterionEntry;
+  includeCode: boolean;
+  handwritingLikely: boolean;
+}) {
+  const { entry, includeCode, handwritingLikely } = input;
+  const lines: string[] = [];
+  if (includeCode && entry.code !== "CRITERION") {
+    lines.push(compactLine(`Criterion: ${entry.code}`, 80));
+  }
+  lines.push(compactLine(toSentence(strengthLine(entry)), 185));
+  lines.push(compactLine(toSentence(gapLine(entry)), 195));
+  const actions = actionLines(entry).slice(0, 3);
+  for (const action of actions) {
+    lines.push(compactLine(`- ${toSentence(action)}`, 185));
+  }
+  if (handwritingLikely) {
+    lines.push(
+      compactLine(
+        "Presentation tip: Type the write-up in a word-processed document and insert clear scans/photos of handwritten maths.",
+        195
+      )
+    );
+  }
+  lines.push(compactLine(toSentence(bandImpactLine(entry)), 165));
+  return lines.filter(Boolean);
+}
+
+function collectPageEntries(rows: CriterionCheckLike[], minPage: number) {
+  const byPage = new Map<number, Map<string, PageCriterionEntry>>();
+  for (const row of rows) {
+    const evidenceRows = Array.isArray(row?.evidence) ? row.evidence : [];
+    const code = normalizeCode(row?.code);
+    const decision = normalizeDecisionLabel(row?.decision, row?.met);
+    const rationale = sanitizeStudentNoteText(String(row?.rationale || row?.comment || ""));
+    const context = evidenceContext(row);
+    for (const ev of evidenceRows) {
+      const page = Number(ev?.page || 0);
+      if (!Number.isInteger(page) || page < minPage) continue;
+      if (!byPage.has(page)) byPage.set(page, new Map<string, PageCriterionEntry>());
+      const pageMap = byPage.get(page)!;
+      const existing = pageMap.get(code);
+      if (!existing) {
+        pageMap.set(code, { code, decision, rationale, context });
+        continue;
+      }
+      // Keep the strictest decision for this page/code and enrich rationale/context.
+      if (decisionPriority(decision) < decisionPriority(existing.decision)) {
+        existing.decision = decision;
+      }
+      if (!existing.rationale && rationale) existing.rationale = rationale;
+      if (!existing.context && context) existing.context = context;
+      pageMap.set(code, existing);
+    }
+  }
+  return byPage;
+}
+
+function selectPrimaryEntry(entries: PageCriterionEntry[]) {
+  const sorted = [...entries].sort((a, b) => {
+    const diff = decisionPriority(a.decision) - decisionPriority(b.decision);
+    if (diff !== 0) return diff;
+    return a.code.localeCompare(b.code);
+  });
+  return sorted[0] || null;
 }
 
 export function extractCriterionChecksFromResultJson(resultJson: any): CriterionCheckLike[] {
@@ -194,6 +283,7 @@ export function buildPageNotesFromCriterionChecks(
     includeCriterionCode?: boolean;
     minPage?: number;
     totalPages?: number;
+    handwritingLikely?: boolean;
   }
 ): MarkedPageNote[] {
   const configuredMaxPages = Math.max(1, Math.min(20, Number(options?.maxPages || 6)));
@@ -207,39 +297,19 @@ export function buildPageNotesFromCriterionChecks(
           ? Math.max(configuredMaxPages, 7)
           : configuredMaxPages;
   const maxPages = Math.max(1, Math.min(20, adaptiveMaxPages));
-  const maxLinesPerPage = Math.max(1, Math.min(8, Number(options?.maxLinesPerPage || 3)));
   const minPage = Math.max(1, Math.min(20, Number(options?.minPage || 1)));
-  const tone = String(options?.tone || "professional").toLowerCase();
   const includeCode = options?.includeCriterionCode !== false;
-  const normalizedRows = Array.isArray(rows) ? rows : [];
-  const hasEvidence = (row: CriterionCheckLike) =>
-    (Array.isArray(row?.evidence) ? row.evidence : []).some((e) => Number(e?.page || 0) > 0);
-  const sourceRows = normalizedRows.filter(hasEvidence);
-  const byPage = new Map<number, Array<{ line: string; priority: number }>>();
-  const decisionPriority = (decision: string) =>
-    decision === "NOT_ACHIEVED" ? 0 : decision === "UNCLEAR" ? 1 : 2;
-
-  for (const row of sourceRows) {
-    const evidenceRows = Array.isArray(row?.evidence) ? row.evidence : [];
-    const rowDecision = decisionLabel(row);
-    for (const ev of evidenceRows) {
-      const p = Number(ev?.page || 0);
-      if (!Number.isInteger(p) || p < minPage) continue;
-      const line = toPageAnchoredLine(row, ev, tone, includeCode);
-      if (!line) continue;
-      if (!byPage.has(p)) byPage.set(p, []);
-      const lines = byPage.get(p)!;
-      if (!lines.some((item) => item.line === line)) {
-        lines.push({ line, priority: decisionPriority(rowDecision) });
-      }
-    }
-  }
-
+  const handwritingLikely = Boolean(options?.handwritingLikely);
+  const rowsNormalized = Array.isArray(rows) ? rows : [];
+  const sourceRows = rowsNormalized.filter((row) =>
+    (Array.isArray(row?.evidence) ? row.evidence : []).some((e) => Number(e?.page || 0) > 0)
+  );
+  const byPage = collectPageEntries(sourceRows, minPage);
   const allPages = Array.from(byPage.keys()).sort((a, b) => a - b);
   if (!allPages.length) return [];
 
   const criticalPages = allPages.filter((page) =>
-    (byPage.get(page) || []).some((item) => item.priority < 2)
+    Array.from(byPage.get(page)?.values() || []).some((entry) => entry.decision !== "ACHIEVED")
   );
   const selected = new Set<number>();
   for (const page of criticalPages) {
@@ -261,17 +331,20 @@ export function buildPageNotesFromCriterionChecks(
     }
   }
 
+  const maxLinesPerPage = Math.max(6, Math.min(12, Number(options?.maxLinesPerPage || 8)));
+
   return Array.from(selected.values())
     .sort((a, b) => a - b)
     .map((page) => {
-      const items = byPage.get(page) || [];
-      const critical = items.filter((i) => i.priority < 2).sort((a, b) => a.priority - b.priority);
-      const noteItems = critical.length
-        ? critical.slice(0, maxLinesPerPage)
-        : items.sort((a, b) => a.priority - b.priority).slice(0, Math.min(2, maxLinesPerPage));
-      const lines = noteItems
-        .map((i) => sanitizeStudentNoteText(i.line))
-        .filter(Boolean);
+      const entries = Array.from(byPage.get(page)?.values() || []);
+      const primary = selectPrimaryEntry(entries);
+      if (!primary) return { page, lines: [] };
+      const lines = buildStructuredNoteLines({
+        entry: primary,
+        includeCode,
+        handwritingLikely,
+      }).slice(0, maxLinesPerPage);
       return { page, lines };
-    });
+    })
+    .filter((note) => note.lines.length > 0);
 }
