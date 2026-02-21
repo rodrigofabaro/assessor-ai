@@ -3,6 +3,7 @@ export type AutomationExceptionCode =
   | "SUBMISSION_FAILED"
   | "EXTRACT_NEEDS_OCR"
   | "MISSING_ASSIGNMENT_LINK"
+  | "MISSING_BRIEF_LINK"
   | "MISSING_STUDENT_LINK"
   | "EXTRACTION_IN_PROGRESS"
   | "EXTRACTION_LOW_QUALITY_BLOCKED"
@@ -16,6 +17,7 @@ type SubmissionForAutomation = {
   status?: string | null;
   studentId?: string | null;
   assignmentId?: string | null;
+  assignmentBriefId?: string | null;
   extractedText?: string | null;
   _count?: {
     assessments?: number;
@@ -69,6 +71,14 @@ export function deriveAutomationState(s: SubmissionForAutomation): {
       reason: "No assignment linked. Resolve assignment before grading.",
       exceptionCode: "MISSING_ASSIGNMENT_LINK",
       recommendedAction: "Link the correct assignment/brief before grading.",
+    };
+  }
+  if (s.assignmentBriefId === null) {
+    return {
+      state: "NEEDS_HUMAN",
+      reason: "No assignment brief linked. Resolve brief mapping before grading.",
+      exceptionCode: "MISSING_BRIEF_LINK",
+      recommendedAction: "Link the correct assignment brief before grading.",
     };
   }
   if (!s.studentId) {

@@ -4,6 +4,7 @@
  */
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { buildResponsesTemperatureParam } from "@/lib/openai/responsesParams";
 import { defaultEquationFallbackPolicy, pickEquationFallbackCandidates } from "@/lib/extraction/brief/aiFallback";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { localVisionJson, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
@@ -499,7 +500,7 @@ async function openAiEquationFromPageImage(input: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
         model,
-        temperature: 0,
+        ...buildResponsesTemperatureParam(model, 0),
         max_output_tokens: 220,
         input: [
           {
@@ -610,7 +611,7 @@ async function graphDataFromPageImage(input: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
-          temperature: 0,
+          ...buildResponsesTemperatureParam(model, 0),
           max_output_tokens: 380,
           input: [
             {

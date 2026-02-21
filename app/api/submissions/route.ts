@@ -386,6 +386,7 @@ export async function GET(req: Request) {
             title: true,
             unitCode: true,
             assignmentRef: true,
+            assignmentBriefId: true,
           },
         },
         assessments: {
@@ -461,6 +462,7 @@ export async function GET(req: Request) {
       status: s.status,
       studentId: s.studentId,
       assignmentId: s.assignmentId,
+      assignmentBriefId: s.assignment?.assignmentBriefId ?? null,
       student: s.student,
       assignment: s.assignment,
       _count: s._count,

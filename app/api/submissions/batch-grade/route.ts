@@ -140,6 +140,7 @@ export async function POST(req: Request) {
       select: {
         id: true,
         status: true,
+        studentId: true,
         extractionRuns: {
           orderBy: { startedAt: "desc" },
           take: 1,
@@ -154,6 +155,7 @@ export async function POST(req: Request) {
       },
     });
     const statusById = new Map(submissions.map((s) => [s.id, String(s.status || "").toUpperCase()]));
+    const studentLinkedById = new Map(submissions.map((s) => [s.id, Boolean(s.studentId)]));
     const extractionGateById = new Map(
       submissions.map((s) => [
         s.id,
@@ -193,6 +195,7 @@ export async function POST(req: Request) {
       if (!status) return false;
       if (retryFailedOnly) return status === "FAILED";
       if (!forceRetry && status === "DONE") return false;
+      if (!dryRun && !studentLinkedById.get(id)) return false;
       const gate = extractionGateById.get(id);
       if (!gate?.ok) return false;
       return true;
@@ -207,6 +210,7 @@ export async function POST(req: Request) {
         if (!status) return { submissionId: id, reason: "missing" };
         if (retryFailedOnly && status !== "FAILED") return { submissionId: id, reason: "not-failed" };
         if (!forceRetry && status === "DONE") return { submissionId: id, reason: "already-done" };
+        if (!dryRun && !studentLinkedById.get(id)) return { submissionId: id, reason: "student-not-linked" };
         if (gate && !gate.ok) {
           return {
             submissionId: id,

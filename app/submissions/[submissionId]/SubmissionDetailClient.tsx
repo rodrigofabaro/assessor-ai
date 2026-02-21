@@ -573,7 +573,7 @@ export default function SubmissionDetailPage() {
       { key: "student", label: "Student linked", ok: studentLinked, hint: "Link or create student profile." },
       { key: "assignment", label: "Assignment linked", ok: assignmentLinked, hint: "Confirm brief/spec binding." },
       { key: "extraction", label: "Extraction complete", ok: extractionComplete, hint: "Run extraction and review warnings." },
-      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Run preview, then commit grade." },
+      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Preview grade, then save grade to audit." },
       { key: "feedback", label: "Feedback generated", ok: feedbackGenerated, hint: "Ensure feedback text is present." },
       { key: "marked", label: "Marked PDF", ok: markedPdfGenerated, hint: "Generate marked PDF from grading run." },
     ];
@@ -815,10 +815,10 @@ export default function SubmissionDetailPage() {
       if (dryRun) {
         setGradingPreview((res?.preview || null) as GradePreview | null);
         setMsg(
-          `Preview ready: ${String(res?.preview?.overallGrade || "unknown")} · confidence ${Number(res?.preview?.confidence || 0).toFixed(2)}`
+          `Preview only (not saved): ${String(res?.preview?.overallGrade || "unknown")} · confidence ${Number(res?.preview?.confidence || 0).toFixed(2)}`
         );
-        notifyToast("success", "Grading preview generated.");
-        setLastActionNote(`Preview generated at ${new Date().toLocaleString()}`);
+        notifyToast("success", "Preview generated. Not saved to audit.");
+        setLastActionNote(`Preview generated at ${new Date().toLocaleString()} (not committed)`);
       } else {
         setGradingPreview(null);
         // Always switch editor/view back to latest run after commit.
@@ -828,7 +828,7 @@ export default function SubmissionDetailPage() {
         notifyToast("success", "Grading complete.");
         setPdfView("marked");
         openAndScroll("outputs");
-        setLastActionNote(`Grading committed at ${new Date().toLocaleString()}`);
+        setLastActionNote(`Grading committed to audit at ${new Date().toLocaleString()}`);
       }
     } catch (e: any) {
       const message = e?.message || "Grading failed.";
@@ -1074,27 +1074,34 @@ export default function SubmissionDetailPage() {
     } as const;
     window.setTimeout(() => focusMap[field].current?.focus(), 180);
   };
-  const canRunGrading =
-    !!submission?.student &&
-    !!submission?.assignment &&
-    (latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR") &&
-    !gradingBusy;
-  const canCommitPreview = !!gradingPreview && canRunGrading && !gradingBusy;
   const extractionComplete = latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR";
   const extractionRunning = busy || submission?.status === "EXTRACTING";
+  const canPreviewGrading =
+    !!submission?.assignment &&
+    extractionComplete &&
+    !gradingBusy;
+  const canCommitPreview =
+    !!gradingPreview &&
+    !!submission?.student &&
+    !!submission?.assignment &&
+    extractionComplete &&
+    !gradingBusy;
   const gradingDisabledReason = gradingBusy
     ? "Grading is already running."
-    : !submission?.student
-      ? "Link a student first."
-      : !submission?.assignment
+    : !submission?.assignment
         ? "Link assignment/brief first."
-        : !(latestRun?.status === "DONE" || latestRun?.status === "NEEDS_OCR")
+        : !extractionComplete
           ? "Run extraction before grading."
           : "";
+  const commitDisabledReason = !gradingPreview
+    ? "Run preview first."
+    : !submission?.student
+      ? "Link student to save grade to audit."
+      : "Save preview as an audited grade";
   const primaryActionLabel = gradingBusy
     ? "Grading…"
-    : canRunGrading
-      ? "Run preview"
+    : canPreviewGrading
+      ? "Preview grade (no save)"
       : !extractionComplete
         ? extractionRunning
           ? "Extracting…"
@@ -1102,7 +1109,7 @@ export default function SubmissionDetailPage() {
         : "Review blockers";
   const primaryActionDisabled = gradingBusy || extractionRunning;
   const runPrimaryAction = () => {
-    if (canRunGrading) return void runGrading({ dryRun: true });
+    if (canPreviewGrading) return void runGrading({ dryRun: true });
     if (!extractionComplete) return void runExtraction();
     scrollToPanel(workflowPanelRef.current);
   };
@@ -1113,7 +1120,7 @@ export default function SubmissionDetailPage() {
     if (item.key === "assignment") return openAndScroll("assignment");
     if (item.key === "extraction") return void runExtraction();
     if (item.key === "grade") {
-      if (canRunGrading) return void runGrading({ dryRun: true });
+      if (canPreviewGrading) return void runGrading({ dryRun: true });
       return scrollToPanel(gradingPanelRef.current);
     }
     if (item.key === "feedback" || item.key === "marked") return openAndScroll("outputs");
@@ -1392,11 +1399,11 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => {
     if (!runGradeWhenReady) return;
-    if (!canRunGrading) return;
+    if (!canPreviewGrading) return;
     void runGrading({ dryRun: true });
     setRunGradeWhenReady(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runGradeWhenReady, canRunGrading]);
+  }, [runGradeWhenReady, canPreviewGrading]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1412,7 +1419,7 @@ export default function SubmissionDetailPage() {
         void runExtraction();
       } else if (k === "g") {
         e.preventDefault();
-        if (canRunGrading) void runGrading({ dryRun: true });
+        if (canPreviewGrading) void runGrading({ dryRun: true });
       } else if (k === "s") {
         e.preventDefault();
         toggleStudentPanel();
@@ -1421,46 +1428,67 @@ export default function SubmissionDetailPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canRunGrading]);
+  }, [canPreviewGrading]);
 
   return (
     <main className="py-2">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="text-xs font-semibold text-zinc-500">Submission Review Workspace</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {submission?.student?.fullName || triageInfo?.studentName || "Unlinked student"} · {submission?.filename || "Submission"}
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm text-zinc-600">
-            Unit {submission?.assignment?.unitCode || triageInfo?.unitCode || "—"} · Assignment {submission?.assignment?.assignmentRef || triageInfo?.assignmentRef || "—"} · Status {submission?.status || "—"}.
-            Review evidence, complete metadata, and finalize grade-ready outputs.
-          </p>
+      <div className="mb-3 flex flex-col gap-2 rounded-xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white px-3 py-2 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="inline-flex items-center rounded-full border border-slate-300 bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-900">
+              Workflow Operations
+            </div>
+            <h1 className="mt-1 truncate text-xl font-semibold tracking-tight text-zinc-900">
+              Submission Review Workspace
+            </h1>
+            <p className="mt-1 text-[11px] text-zinc-600">
+              {submission?.student?.fullName || triageInfo?.studentName || "Unlinked student"} · {submission?.filename || "Submission"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-start gap-2">
+            <div className="flex flex-col items-start">
+              <Link
+                href="/submissions"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-[11px] font-semibold hover:bg-zinc-50"
+              >
+                ← Back
+              </Link>
+              <span className="mt-1 text-xs opacity-0">placeholder</span>
+            </div>
+            <div ref={gradingPanelRef} className="flex flex-col items-start">
+              <button
+                type="button"
+                onClick={runPrimaryAction}
+                disabled={primaryActionDisabled}
+                className={cx(
+                  "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[11px] font-semibold shadow-sm",
+                  !primaryActionDisabled
+                    ? "bg-sky-700 text-white hover:bg-sky-800"
+                    : "cursor-not-allowed bg-zinc-300 text-zinc-700"
+                )}
+              >
+                {primaryActionLabel}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-start gap-2">
-          <div className="flex flex-col items-start">
-            <Link
-              href="/submissions"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
-            >
-              ← Back
-            </Link>
-            <span className="mt-1 text-xs opacity-0">placeholder</span>
+        <div className="flex flex-wrap gap-1 text-[11px]">
+          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
+            Unit <span className="font-semibold text-zinc-900">{submission?.assignment?.unitCode || triageInfo?.unitCode || "—"}</span>
           </div>
-          <div ref={gradingPanelRef} className="flex flex-col items-start">
-            <button
-              type="button"
-              onClick={runPrimaryAction}
-              disabled={primaryActionDisabled}
-              className={cx(
-                "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm",
-                !primaryActionDisabled
-                  ? "bg-sky-700 text-white hover:bg-sky-800"
-                  : "cursor-not-allowed bg-zinc-300 text-zinc-700"
-              )}
-            >
-              {primaryActionLabel}
-            </button>
+          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
+            Assignment <span className="font-semibold text-zinc-900">{submission?.assignment?.assignmentRef || triageInfo?.assignmentRef || "—"}</span>
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-sky-900">
+            Status <span className="font-semibold">{submission?.status || "—"}</span>
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
+            Uploaded <span className="font-semibold text-zinc-900">{safeDate(submission?.uploadedAt)}</span>
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
+            Extraction <span className="font-semibold text-zinc-900">{latestRun?.status || "—"}</span>
           </div>
         </div>
       </div>
@@ -1485,8 +1513,11 @@ export default function SubmissionDetailPage() {
               Fix next blocker
             </button>
           ) : null}
-          {!canRunGrading && gradingDisabledReason ? (
+          {!canPreviewGrading && gradingDisabledReason ? (
             <span className="text-xs font-semibold text-amber-800">Grading blocked: {gradingDisabledReason}</span>
+          ) : null}
+          {canPreviewGrading && !submission?.student ? (
+            <span className="text-xs font-semibold text-amber-800">Preview available. Link student to save grade to audit.</span>
           ) : null}
           <span className="ml-auto inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
             Assessor source: {activeAuditActorName}
@@ -1580,7 +1611,7 @@ export default function SubmissionDetailPage() {
             <div className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
               <div><span className="font-semibold text-zinc-900">?</span> Toggle this shortcuts panel</div>
               <div><span className="font-semibold text-zinc-900">E</span> Run extraction</div>
-              <div><span className="font-semibold text-zinc-900">G</span> Run grading preview (when ready)</div>
+              <div><span className="font-semibold text-zinc-900">G</span> Run grading preview (no save)</div>
               <div><span className="font-semibold text-zinc-900">S</span> Toggle student panel</div>
             </div>
           </div>
@@ -1656,8 +1687,8 @@ export default function SubmissionDetailPage() {
               label: "Grade",
               value: latestAssessment?.overallGrade || "Pending",
               actionable: true,
-              actionLabel: canRunGrading ? "Run preview" : "Open checklist",
-              onAction: canRunGrading ? () => void runGrading({ dryRun: true }) : () => scrollToPanel(workflowPanelRef.current),
+              actionLabel: canPreviewGrading ? "Preview grade" : "Open checklist",
+              onAction: canPreviewGrading ? () => void runGrading({ dryRun: true }) : () => scrollToPanel(workflowPanelRef.current),
             },
             { key: "gradedBy", label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—"), actionable: false },
             { key: "uploaded", label: "Uploaded", value: safeDate(submission?.uploadedAt), actionable: false },
@@ -1876,7 +1907,7 @@ export default function SubmissionDetailPage() {
               </div>
             </summary>
             <div className="border-t border-zinc-200 p-2">
-            <div className="text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview, <span className="font-semibold">?</span> help</div>
+            <div className="text-[10px] text-zinc-500">Shortcuts: <span className="font-semibold">E</span> extract, <span className="font-semibold">G</span> preview (no save), <span className="font-semibold">?</span> help</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
@@ -1899,13 +1930,13 @@ export default function SubmissionDetailPage() {
               <button
                 type="button"
                 onClick={() => void runGrading({ dryRun: true })}
-                disabled={!canRunGrading}
+                disabled={!canPreviewGrading}
                 className={cx(
                   "h-7 rounded-md px-2.5 text-[11px] font-semibold",
-                  canRunGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                  canPreviewGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
               >
-                Run preview
+                Preview grade (no save)
               </button>
               <button
                 type="button"
@@ -1915,9 +1946,9 @@ export default function SubmissionDetailPage() {
                   "h-7 rounded-md px-2.5 text-[11px] font-semibold",
                   canCommitPreview ? "bg-emerald-700 text-white hover:bg-emerald-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
-                title={!gradingPreview ? "Run preview first." : "Commit previewed grade"}
+                title={commitDisabledReason}
               >
-                Commit grade
+                Save grade to audit
               </button>
               <button
                 type="button"
@@ -1934,6 +1965,10 @@ export default function SubmissionDetailPage() {
                 Regenerate marked
               </button>
             </div>
+            <div className="mt-1 text-[11px] text-zinc-500">
+              Preview does not create an assessment record. Use{" "}
+              <span className="font-semibold text-zinc-700">Save grade to audit</span> to persist grade and feedback.
+            </div>
             <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
               <input
                 type="checkbox"
@@ -1941,7 +1976,7 @@ export default function SubmissionDetailPage() {
                 checked={runGradeWhenReady}
                 onChange={(e) => setRunGradeWhenReady(e.target.checked)}
               />
-              Run preview when ready
+              Auto-run preview when ready (no save)
             </label>
             {gradingPreview ? (
               <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 p-2 text-[11px] text-emerald-900">

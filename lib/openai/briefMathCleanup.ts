@@ -1,4 +1,5 @@
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { buildResponsesTemperatureParam } from "@/lib/openai/responsesParams";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { localJsonText, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
@@ -176,7 +177,7 @@ async function cleanupTaskWithOpenAi(task: BriefTask, equations: Array<{ id: str
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
         model,
-        temperature: 0,
+        ...buildResponsesTemperatureParam(model, 0),
         max_output_tokens: Number(process.env.OPENAI_CLEANUP_MAX_OUTPUT_TOKENS || 900),
         input: [
           {

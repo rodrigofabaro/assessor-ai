@@ -1,6 +1,7 @@
 import { localJsonText, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { buildResponsesTemperatureParam } from "@/lib/openai/responsesParams";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 
 type BriefPart = { key: string; text: string };
@@ -143,7 +144,7 @@ async function recoverWithOpenAi(prompt: string): Promise<{ tasks: BriefTask[]; 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        temperature: 0,
+        ...buildResponsesTemperatureParam(model, 0),
         max_output_tokens: Number(process.env.OPENAI_BRIEF_STRUCTURE_MAX_OUTPUT_TOKENS || 2200),
         input: [{ role: "user", content: [{ type: "input_text", text: prompt }] }],
       }),

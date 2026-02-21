@@ -62,6 +62,7 @@ export async function triggerAutoGradeIfAutoReady(submissionId: string, requestU
     status: submission.status,
     studentId: submission.studentId,
     assignmentId: submission.assignmentId,
+    assignmentBriefId: submission.assignment?.assignmentBriefId ?? null,
     extractedText: null,
     _count: submission._count,
     extractionQuality,

@@ -18,6 +18,7 @@ import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/l
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
+import { buildResponsesTemperatureParam } from "@/lib/openai/responsesParams";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { computeGradingConfidence } from "@/lib/grading/confidenceScoring";
@@ -290,6 +291,13 @@ function toUkDate(iso?: string | Date | null) {
   const d = iso ? new Date(iso) : new Date();
   if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-GB");
   return d.toLocaleDateString("en-GB");
+}
+
+function isModelVerificationBlocked(message: string, model: string) {
+  const m = String(message || "").toLowerCase();
+  const normalizedModel = String(model || "").trim().toLowerCase();
+  if (!normalizedModel.startsWith("gpt-5")) return false;
+  return m.includes("organization must be verified") || m.includes("verify organization");
 }
 
 function normalizeAssignmentRef(value: unknown): string | null {
@@ -1236,6 +1244,16 @@ export async function POST(
       details: { submissionId },
     });
   }
+  if (!dryRun && !submission.studentId) {
+    return apiError({
+      status: 422,
+      code: "GRADE_STUDENT_LINK_REQUIRED",
+      userMessage: "Link a student before saving grade to audit. Preview can run without a linked student.",
+      route: "/api/submissions/[submissionId]/grade",
+      requestId,
+      details: { submissionId },
+    });
+  }
   const extractionGate = evaluateExtractionReadiness({
     submissionStatus: submission.status,
     extractedText: submission.extractedText,
@@ -1349,6 +1367,7 @@ export async function POST(
   const feedbackTemplateResolution = resolveFeedbackTemplate(cfg, activeAuditUserId);
   const feedbackTemplate = feedbackTemplateResolution.template;
   const activeModel = readOpenAiModel().model || cfg.model;
+  const fallbackModel = String(process.env.OPENAI_GRADE_FALLBACK_MODEL || process.env.OPENAI_MODEL_FALLBACK || "gpt-4o-mini").trim();
   const tone = String(body.tone || cfg.tone || "professional");
   const strictness = String(body.strictness || cfg.strictness || "balanced");
   const useRubric = typeof body.useRubricIfAvailable === "boolean" ? body.useRubricIfAvailable : cfg.useRubricIfAvailable;
@@ -1744,16 +1763,11 @@ export async function POST(
   }
 
   try {
-    const response = await fetchOpenAiJson(
-      "/v1/responses",
-      apiKey,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-        model: activeModel,
+    const buildRequestBody = (modelName: string) =>
+      JSON.stringify({
+        model: modelName,
         input: modelInput as any,
-        temperature: 0.2,
+        ...buildResponsesTemperatureParam(modelName, 0.2),
         max_output_tokens: maxOutputTokens,
         text: {
           format: {
@@ -1801,51 +1815,102 @@ export async function POST(
             },
           },
         },
-      }),
-      },
-      {
-        timeoutMs: Number(process.env.OPENAI_GRADE_TIMEOUT_MS || 90000),
-        retries: Number(process.env.OPENAI_GRADE_RETRIES || 3),
+      });
+
+    const fetchGradingResponse = (modelName: string) =>
+      fetchOpenAiJson(
+        "/v1/responses",
+        apiKey,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: buildRequestBody(modelName),
+        },
+        {
+          timeoutMs: Number(process.env.OPENAI_GRADE_TIMEOUT_MS || 90000),
+          retries: Number(process.env.OPENAI_GRADE_RETRIES || 3),
+        }
+      );
+
+    let usedModel = activeModel;
+    let response = await fetchGradingResponse(usedModel);
+    if (
+      !response.ok &&
+      isModelVerificationBlocked(response.message, usedModel) &&
+      fallbackModel &&
+      fallbackModel !== usedModel
+    ) {
+      const fallbackResponse = await fetchGradingResponse(fallbackModel);
+      if (fallbackResponse.ok) {
+        response = fallbackResponse;
+        usedModel = fallbackModel;
+        gradingDefaultsSnapshot.model = usedModel;
+      } else {
+        throw new Error(`${response.message} | Fallback ${fallbackModel} failed: ${fallbackResponse.message}`);
       }
-    );
+    }
 
     if (!response.ok) throw new Error(response.message);
-    const json = response.json;
-
-    const usage = json?.usage || null;
+    let json = response.json;
+    let usage = json?.usage || null;
     if (usage) {
       recordOpenAiUsage({
-        model: activeModel,
+        model: usedModel,
         op: "submission_grade",
         usage,
       });
     }
 
-    const parsed = extractStructuredModelJson(json) || {};
-    const validated = validateGradeDecision(parsed, criteriaCodes);
-    let decision =
-      "errors" in validated
-        ? {
-            overallGradeWord: "REFER" as const,
-            overallGrade: "REFER" as const,
-            resubmissionRequired: true,
-            feedbackSummary:
-              "Your work could not be graded reliably from the available evidence.",
-            feedbackBullets: [
-              "Please review the assignment requirements and ensure each criterion is evidenced clearly.",
-              "Resubmit with explicit evidence across the required tasks and outcomes.",
-              "Your assessor can provide additional guidance on the areas to strengthen.",
-            ],
-            criterionChecks: criteriaCodes.map((code) => ({
-              code,
-              decision: "UNCLEAR" as const,
-              rationale: "Insufficient reliable evidence captured for a confident criterion decision.",
-              confidence: 0.25,
-              evidence: [{ page: 1, visualDescription: "Evidence could not be validated for this criterion." }],
-            })),
-            confidence: 0.25,
-          }
-        : validated.data;
+    let parsed = extractStructuredModelJson(json) || {};
+    let validated = validateGradeDecision(parsed, criteriaCodes);
+    const schemaRetryLimit = safeEnvInt("OPENAI_GRADE_SCHEMA_RETRIES", 1, 0, 3);
+    let schemaValidationRetryCount = 0;
+
+    while (!validated.ok && schemaValidationRetryCount < schemaRetryLimit) {
+      schemaValidationRetryCount += 1;
+      const retryResponse = await fetchGradingResponse(usedModel);
+      if (!retryResponse.ok) break;
+      json = retryResponse.json;
+      const retryUsage = json?.usage || null;
+      if (retryUsage) {
+        usage = retryUsage;
+        recordOpenAiUsage({
+          model: usedModel,
+          op: "submission_grade_schema_retry",
+          usage: retryUsage,
+        });
+      }
+      parsed = extractStructuredModelJson(json) || {};
+      validated = validateGradeDecision(parsed, criteriaCodes);
+    }
+
+    let schemaFallbackUsed = false;
+    let decision;
+    if (!validated.ok) {
+      schemaFallbackUsed = true;
+      decision = {
+        overallGradeWord: "REFER" as const,
+        overallGrade: "REFER" as const,
+        resubmissionRequired: true,
+        feedbackSummary:
+          "Your work could not be graded reliably from the available evidence.",
+        feedbackBullets: [
+          "Please review the assignment requirements and ensure each criterion is evidenced clearly.",
+          "Resubmit with explicit evidence across the required tasks and outcomes.",
+          "Your assessor can provide additional guidance on the areas to strengthen.",
+        ],
+        criterionChecks: criteriaCodes.map((code) => ({
+          code,
+          decision: "UNCLEAR" as const,
+          rationale: "Insufficient reliable evidence captured for a confident criterion decision.",
+          confidence: 0.25,
+          evidence: [{ page: 1, visualDescription: "Evidence could not be validated for this criterion." }],
+        })),
+        confidence: 0.25,
+      };
+    } else {
+      decision = validated.data;
+    }
     const decisionGuard = enforceBriefCriterionDecisionGuards({
       unitCode: String(brief.unit?.unitCode || ""),
       assignmentCode: String(brief.assignmentCode || ""),
@@ -1934,6 +1999,13 @@ export async function POST(
     if (decisionGuard.notes.length) {
       systemNotes.push(...decisionGuard.notes);
     }
+    if (schemaValidationRetryCount > 0) {
+      systemNotes.push(
+        schemaFallbackUsed
+          ? `Model output schema validation failed after ${schemaValidationRetryCount} retry attempt(s); fallback decision was used.`
+          : `Model output schema validation retry succeeded after ${schemaValidationRetryCount} attempt(s).`
+      );
+    }
     if (modalityCompliance.missingCount > 0 && gradingInputMode !== "RAW_PDF_IMAGES") {
       const modalityCapApplied = confidenceResult.capsApplied.some((c) => c.name === "modality_missing_cap");
       systemNotes.push(
@@ -1977,6 +2049,9 @@ export async function POST(
         systemNotes.push(...rubricSupport.meta.warnings.slice(0, 2).map((w: string) => `Rubric warning: ${w}`));
       }
     }
+    if (usedModel !== activeModel) {
+      systemNotes.push(`Model fallback applied: requested ${activeModel}, used ${usedModel}.`);
+    }
     const responseWithPolicy = {
       ...decision,
       overallGradeWord: overallGrade,
@@ -1991,7 +2066,7 @@ export async function POST(
     const structuredGradingV2 = buildStructuredGradingV2(responseWithPolicy, {
       contractVersion: "v2-structured-evidence",
       promptHash,
-      model: activeModel,
+      model: usedModel,
       gradedBy: actor,
       startedAtIso: gradingStartedAt.toISOString(),
       completedAtIso,
@@ -2168,7 +2243,7 @@ export async function POST(
             completedAt: completedAtIso,
           },
           gradedBy: actor,
-          model: activeModel,
+          model: usedModel,
           gradingContractVersion: "v2-structured-evidence",
           gradeRunSchemaVersion: "2.1",
           tone,

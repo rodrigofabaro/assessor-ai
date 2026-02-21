@@ -88,8 +88,21 @@ function runGradingSmoke(input?: Partial<GradingConfig>) {
 }
 
 async function runAiSmoke(model?: string) {
-  const { apiKey, keyType } = resolveOpenAiApiKey("preferAdmin");
-  if (!apiKey) {
+  const keyCandidates = [
+    resolveOpenAiApiKey("preferStandard"),
+    resolveOpenAiApiKey("preferAdmin"),
+  ].filter((k) => Boolean(k.apiKey));
+
+  // De-duplicate when both preferences resolve to the same key.
+  const tried = new Set<string>();
+  const candidates = keyCandidates.filter((k) => {
+    const key = String(k.apiKey || "");
+    if (!key || tried.has(key)) return false;
+    tried.add(key);
+    return true;
+  });
+
+  if (!candidates.length) {
     return {
       ok: false,
       status: 0,
@@ -99,42 +112,52 @@ async function runAiSmoke(model?: string) {
     };
   }
 
-  const res = await fetch("https://api.openai.com/v1/models", {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-    cache: "no-store",
-  });
+  let lastFailure: { status: number; keyType: string; message: string } | null = null;
+  for (const candidate of candidates) {
+    const res = await fetch("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${candidate.apiKey}`,
+      },
+      cache: "no-store",
+    });
+    const raw = await res.text();
 
-  const raw = await res.text();
-  if (!res.ok) {
+    if (!res.ok) {
+      lastFailure = {
+        status: res.status,
+        keyType: candidate.keyType,
+        message: parseOpenAiMessage(raw),
+      };
+      continue;
+    }
+
+    let modelAvailable = true;
+    if (model) {
+      try {
+        const parsed = JSON.parse(raw) as { data?: Array<{ id?: string }> };
+        const ids = Array.isArray(parsed?.data) ? parsed.data.map((m) => String(m?.id || "")) : [];
+        modelAvailable = ids.includes(model);
+      } catch {
+        modelAvailable = true;
+      }
+    }
+
     return {
-      ok: false,
+      ok: true,
       status: res.status,
-      keyType,
-      message: parseOpenAiMessage(raw),
-      modelAvailable: false,
+      keyType: candidate.keyType,
+      message: model && !modelAvailable ? `Connected, but model '${model}' was not returned by /v1/models.` : "Connected to OpenAI models endpoint.",
+      modelAvailable,
     };
   }
 
-  let modelAvailable = true;
-  if (model) {
-    try {
-      const parsed = JSON.parse(raw) as { data?: Array<{ id?: string }> };
-      const ids = Array.isArray(parsed?.data) ? parsed.data.map((m) => String(m?.id || "")) : [];
-      modelAvailable = ids.includes(model);
-    } catch {
-      modelAvailable = true;
-    }
-  }
-
   return {
-    ok: true,
-    status: res.status,
-    keyType,
-    message: model && !modelAvailable ? `Connected, but model '${model}' was not returned by /v1/models.` : "Connected to OpenAI models endpoint.",
-    modelAvailable,
+    ok: false,
+    status: lastFailure?.status || 0,
+    keyType: lastFailure?.keyType || "none",
+    message: lastFailure?.message || "OpenAI smoke check failed.",
+    modelAvailable: false,
   };
 }
 
