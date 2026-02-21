@@ -199,15 +199,20 @@ export default function AdminQaPage() {
   async function sendPageToTurnitin() {
     if (!filtered.length) return;
     const pending = filtered
-      .filter((r) => !String(r.turnitin?.turnitinSubmissionId || "").trim())
+      .filter((r) => {
+        const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
+        if (!hasSubmissionId) return true;
+        const status = String(r.turnitin?.status || "").trim().toUpperCase();
+        return status === "FAILED";
+      })
       .map((r) => r.id);
     if (!pending.length) {
-      setTurnitinMsg("All visible rows already have a Turnitin submission id.");
+      setTurnitinMsg("All visible rows are already queued in Turnitin.");
       return;
     }
 
     setTurnitinBatchBusy(true);
-    setTurnitinMsg(`Sending ${pending.length} row(s) to Turnitin...`);
+    setTurnitinMsg(`Queueing ${pending.length} row(s) to Turnitin...`);
     try {
       for (const sid of pending) {
         await runTurnitinAction(sid, "send");
@@ -613,12 +618,23 @@ export default function AdminQaPage() {
                         {r.turnitin?.lastError ? (
                           <div className="text-[11px] text-rose-700">{String(r.turnitin.lastError)}</div>
                         ) : null}
+                        {(() => {
+                          const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
+                          const status = String(r.turnitin?.status || "").trim().toUpperCase();
+                          const isFailed = status === "FAILED";
+                          const action: "send" | "refresh" = !hasSubmissionId || isFailed ? "send" : "refresh";
+                          const label = !hasSubmissionId
+                            ? "Send to Turnitin"
+                            : isFailed
+                              ? "Re-send to Turnitin"
+                              : "Refresh %";
+                          return (
                         <button
                           type="button"
                           onClick={() =>
                             void runTurnitinAction(
                               r.id,
-                              String(r.turnitin?.turnitinSubmissionId || "").trim() ? "refresh" : "send"
+                              action
                             )
                           }
                           disabled={Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
@@ -626,10 +642,10 @@ export default function AdminQaPage() {
                         >
                           {turnitinBusyById[r.id]
                             ? "Working..."
-                            : String(r.turnitin?.turnitinSubmissionId || "").trim()
-                              ? "Refresh %"
-                              : "Send to Turnitin"}
+                            : label}
                         </button>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>

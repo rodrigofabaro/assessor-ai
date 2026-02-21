@@ -20,6 +20,21 @@ function parseErrorMessage(raw: string): string {
   return text.replace(/\s+/g, " ").slice(0, 300);
 }
 
+function buildConfigWarnings(cfg: ReturnType<typeof resolveTurnitinRuntimeConfig>) {
+  const warnings: string[] = [];
+  const ownerUserId = String(cfg.ownerUserId || "").trim();
+  const viewerUserId = String(cfg.viewerUserId || "").trim();
+  if (cfg.enabled && !ownerUserId && !viewerUserId) {
+    warnings.push("Turnitin owner or viewer user id is missing. Submission actions will fail.");
+  } else if (cfg.enabled && !ownerUserId) {
+    warnings.push("Turnitin owner user id is missing. Send/re-send actions can fail.");
+  }
+  if (cfg.enabled && !viewerUserId) {
+    warnings.push("Turnitin viewer user id is missing. Report link generation is disabled.");
+  }
+  return warnings;
+}
+
 export async function GET() {
   const readCtx = await getSettingsReadContext();
   if (!readCtx.canRead) {
@@ -27,6 +42,7 @@ export async function GET() {
   }
 
   const cfg = resolveTurnitinRuntimeConfig();
+  const warnings = buildConfigWarnings(cfg);
   if (!cfg.apiKey) {
     return NextResponse.json(
       {
@@ -35,6 +51,7 @@ export async function GET() {
         status: 0,
         message: "Turnitin API key is missing. Set it in Admin Settings or environment.",
         enabled: cfg.enabled,
+        warnings,
         checkedAt: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "no-store" } }
@@ -54,6 +71,7 @@ export async function GET() {
         qaOnly: cfg.qaOnly,
         keySource: cfg.apiKeySource,
         baseUrl: cfg.baseUrl,
+        warnings,
         features,
         checkedAt: new Date().toISOString(),
       },
@@ -75,6 +93,7 @@ export async function GET() {
         qaOnly: cfg.qaOnly,
         keySource: cfg.apiKeySource,
         baseUrl: cfg.baseUrl,
+        warnings,
         checkedAt: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "no-store" } }

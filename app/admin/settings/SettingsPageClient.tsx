@@ -183,6 +183,7 @@ type TurnitinSmokeResult = {
   connected: boolean;
   status: number;
   message: string;
+  warnings?: string[];
   keySource?: string;
   baseUrl?: string;
   checkedAt: string;
@@ -777,6 +778,9 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         connected: !!json.connected,
         status: Number(json.status || 0),
         message: String(json.message || ""),
+        warnings: Array.isArray((json as any)?.warnings)
+          ? (json as any).warnings.map((w: unknown) => String(w || "").trim()).filter(Boolean)
+          : [],
         keySource: json.keySource,
         baseUrl: json.baseUrl,
         checkedAt: json.checkedAt || new Date().toISOString(),
@@ -791,6 +795,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         connected: false,
         status: 0,
         message,
+        warnings: [],
         checkedAt: new Date().toISOString(),
       });
       setTurnitinMsg(message);
@@ -2074,6 +2079,13 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
           >
             <div className="font-semibold">{smokeTurnitinResult.connected ? "Turnitin smoke check passed" : "Turnitin smoke check failed"}</div>
             <div className="mt-1">{smokeTurnitinResult.message}</div>
+            {Array.isArray(smokeTurnitinResult.warnings) && smokeTurnitinResult.warnings.length > 0 ? (
+              <div className="mt-1 space-y-1 text-[11px] opacity-90">
+                {smokeTurnitinResult.warnings.slice(0, 3).map((warning, idx) => (
+                  <div key={`turnitin-smoke-warning-${idx}`}>Warning: {warning}</div>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-1 text-[11px] opacity-80">
               status {smokeTurnitinResult.status || 0} · key {smokeTurnitinResult.keySource || "none"} · base{" "}
               {smokeTurnitinResult.baseUrl || "n/a"} · checked{" "}

@@ -65,11 +65,87 @@ function toErrorMessage(error: unknown): string {
   if (error instanceof TurnitinApiError) {
     const core = error.message || "Turnitin API error";
     const statusPart = error.status ? `status ${error.status}` : "";
+    const codePart = error.code ? `code ${error.code}` : "";
     const refPart = error.reference ? `ref ${error.reference}` : "";
-    return [core, statusPart, refPart].filter(Boolean).join(" · ");
+    return [core, statusPart, codePart, refPart].filter(Boolean).join(" · ");
   }
   if (error instanceof TurnitinServiceError) return error.message;
   return String((error as Error)?.message || error || "Unknown Turnitin error");
+}
+
+function isInvalidSimilarityMetadataError(error: unknown) {
+  if (!(error instanceof TurnitinApiError)) return false;
+  if (Number(error.status || 0) !== 422) return false;
+  const text = `${error.message || ""} ${error.debugMessage || ""}`.toLowerCase();
+  return text.includes("does not contain required information");
+}
+
+function hasInvalidSimilarityMetadataMessage(message: unknown) {
+  const text = String(message || "").trim().toLowerCase();
+  if (!text) return false;
+  return text.includes("does not contain required information");
+}
+
+function shouldCreateFreshTurnitinSubmission(existing: TurnitinSubmissionState | null) {
+  if (!existing?.turnitinSubmissionId) return true;
+  const status = String(existing.status || "").trim().toUpperCase();
+  if (status !== "FAILED") return false;
+  return hasInvalidSimilarityMetadataMessage(existing.lastError);
+}
+
+function isRetryableSimilarityBindingError(error: unknown) {
+  if (!(error instanceof TurnitinApiError)) return false;
+  if (Number(error.status || 0) !== 400) return false;
+  const payloadText =
+    typeof error.payload === "string" ? error.payload : JSON.stringify(error.payload || "");
+  const text = `${error.message || ""} ${error.debugMessage || ""} ${payloadText}`.toLowerCase();
+  return (
+    text.includes("fatal binding exception") ||
+    text.includes("generation_settings") ||
+    text.includes("search_repositories")
+  );
+}
+
+function isSimilarityDeferredConflict(error: unknown) {
+  if (!(error instanceof TurnitinApiError)) return false;
+  if (Number(error.status || 0) !== 409) return false;
+  const payloadText =
+    typeof error.payload === "string" ? error.payload : JSON.stringify(error.payload || "");
+  const text = `${error.message || ""} ${error.debugMessage || ""} ${payloadText}`.toLowerCase();
+  return text.includes("submission has not been completed yet");
+}
+
+async function requestSimilarityWithFallback(
+  cfg: ResolvedTurnitinConfig,
+  turnitinSubmissionId: string
+) {
+  const attempts: Array<string[] | null> = [
+    ["INTERNET", "PUBLICATION", "CROSSREF", "CROSSREF_POSTED_CONTENT", "SUBMITTED_WORK"],
+    ["INTERNET", "PUBLICATION", "SUBMITTED_WORK"],
+    ["INTERNET", "PUBLICATION"],
+    null,
+  ];
+
+  let lastError: unknown = null;
+  for (const repositories of attempts) {
+    try {
+      await requestTurnitinSimilarity({
+        cfg,
+        turnitinSubmissionId,
+        searchRepositories: repositories,
+      });
+      return { requested: true as const, deferred: false as const };
+    } catch (error) {
+      if (isSimilarityDeferredConflict(error)) {
+        return { requested: false as const, deferred: true as const };
+      }
+      lastError = error;
+      if (!isRetryableSimilarityBindingError(error)) {
+        throw error;
+      }
+    }
+  }
+  throw lastError || new Error("Turnitin similarity request failed.");
 }
 
 async function loadSubmissionForTurnitin(submissionId: string) {
@@ -116,6 +192,14 @@ function sanitizeAiPercent(value: unknown) {
   if (!Number.isFinite(n)) return null;
   const normalized = n > 0 && n <= 1 ? n * 100 : n;
   return Math.max(0, Math.min(100, Math.round(normalized)));
+}
+
+function normalizeSimilarityTimestamp(value: unknown) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  if (/^0{4}-0?1-0?1t00:00:00/i.test(text)) return null;
+  if (/^0001-01-01t00:00:00/i.test(text)) return null;
+  return text;
 }
 
 function findAiPercentCandidate(payload: unknown, depth = 0): number | null {
@@ -191,7 +275,11 @@ export async function sendSubmissionToTurnitin(submissionId: string) {
   }
 
   const submission = await loadSubmissionForTurnitin(submissionId);
-  await maybeEnsureOwnerEula(cfg, ownerUserId);
+  try {
+    await maybeEnsureOwnerEula(cfg, ownerUserId);
+  } catch (error) {
+    throw new TurnitinServiceError(`EULA accept failed: ${toErrorMessage(error)}`, 400);
+  }
 
   let turnitinSubmissionId = "";
   try {
@@ -208,29 +296,43 @@ export async function sendSubmissionToTurnitin(submissionId: string) {
     withStateUpdate(submissionId, {
       status: "CREATED",
       turnitinSubmissionId,
+      aiWritingPercentage: null,
+      overallMatchPercentage: null,
+      internetMatchPercentage: null,
+      publicationMatchPercentage: null,
+      submittedWorksMatchPercentage: null,
+      reportRequestedAt: null,
+      reportGeneratedAt: null,
+      viewerUrl: null,
       lastError: null,
     });
 
-    await uploadTurnitinOriginal({
-      cfg,
-      turnitinSubmissionId,
-      storagePath: submission.storagePath,
-      filename: submission.filename,
-    });
+    try {
+      await uploadTurnitinOriginal({
+        cfg,
+        turnitinSubmissionId,
+        storagePath: submission.storagePath,
+        filename: submission.filename,
+      });
+    } catch (error) {
+      throw new TurnitinServiceError(`Original upload failed: ${toErrorMessage(error)}`, 400);
+    }
     withStateUpdate(submissionId, {
       status: "UPLOADING",
       turnitinSubmissionId,
       lastError: null,
     });
 
-    await requestTurnitinSimilarity({
-      cfg,
-      turnitinSubmissionId,
-    });
+    let similarityRequested: { requested: boolean; deferred: boolean };
+    try {
+      similarityRequested = await requestSimilarityWithFallback(cfg, turnitinSubmissionId);
+    } catch (error) {
+      throw new TurnitinServiceError(`Similarity request failed: ${toErrorMessage(error)}`, 400);
+    }
     return withStateUpdate(submissionId, {
       status: "PROCESSING",
       turnitinSubmissionId,
-      reportRequestedAt: new Date().toISOString(),
+      reportRequestedAt: similarityRequested.requested ? new Date().toISOString() : null,
       lastError: null,
     });
   } catch (error) {
@@ -253,6 +355,21 @@ export async function refreshTurnitinSubmission(submissionId: string) {
   }
 
   try {
+    if (!String(existing?.reportRequestedAt || "").trim()) {
+      const similarityRequested = await requestSimilarityWithFallback(cfg, turnitinSubmissionId);
+      if (similarityRequested.deferred) {
+        return withStateUpdate(submissionId, {
+          status: "PROCESSING",
+          lastError: null,
+        });
+      }
+      withStateUpdate(submissionId, {
+        status: "PROCESSING",
+        reportRequestedAt: new Date().toISOString(),
+        lastError: null,
+      });
+    }
+
     const similarity = await getTurnitinSimilarity({ cfg, turnitinSubmissionId });
     const status = normalizedStatus(similarity?.status);
     const next: Partial<TurnitinSubmissionState> = {
@@ -263,8 +380,8 @@ export async function refreshTurnitinSubmission(submissionId: string) {
       internetMatchPercentage: sanitizeScore(similarity?.internet_match_percentage),
       publicationMatchPercentage: sanitizeScore(similarity?.publication_match_percentage),
       submittedWorksMatchPercentage: sanitizeScore(similarity?.submitted_works_match_percentage),
-      reportRequestedAt: String(similarity?.time_requested || existing?.reportRequestedAt || "").trim() || null,
-      reportGeneratedAt: String(similarity?.time_generated || "").trim() || null,
+      reportRequestedAt: normalizeSimilarityTimestamp(similarity?.time_requested) || existing?.reportRequestedAt || null,
+      reportGeneratedAt: normalizeSimilarityTimestamp(similarity?.time_generated),
       lastError: null,
     };
 
@@ -284,6 +401,16 @@ export async function refreshTurnitinSubmission(submissionId: string) {
     }
     return withStateUpdate(submissionId, next);
   } catch (error) {
+    if (isInvalidSimilarityMetadataError(error)) {
+      // Turnitin can reject refresh for stale/invalid IDs; re-create the submission instead.
+      return sendSubmissionToTurnitin(submissionId);
+    }
+    if (isSimilarityDeferredConflict(error)) {
+      return withStateUpdate(submissionId, {
+        status: "PROCESSING",
+        lastError: null,
+      });
+    }
     return withStateUpdate(submissionId, {
       status: "FAILED",
       lastError: toErrorMessage(error),
@@ -324,7 +451,7 @@ export async function refreshTurnitinViewerUrl(submissionId: string) {
 
 export async function syncTurnitinSubmission(submissionId: string) {
   const existing = getTurnitinSubmissionState(submissionId);
-  if (!existing?.turnitinSubmissionId) {
+  if (shouldCreateFreshTurnitinSubmission(existing)) {
     return sendSubmissionToTurnitin(submissionId);
   }
   return refreshTurnitinSubmission(submissionId);
@@ -335,7 +462,7 @@ export async function maybeAutoSendTurnitinForSubmission(submissionId: string) {
   if (!cfg.enabled || !cfg.autoSendOnExtract) return null;
   if (cfg.qaOnly && !isQaLikeStage()) return null;
   const existing = getTurnitinSubmissionState(submissionId);
-  if (existing?.turnitinSubmissionId) return existing;
+  if (existing?.turnitinSubmissionId && !shouldCreateFreshTurnitinSubmission(existing)) return existing;
   return sendSubmissionToTurnitin(submissionId);
 }
 

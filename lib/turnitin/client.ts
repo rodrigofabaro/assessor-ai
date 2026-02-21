@@ -1,5 +1,4 @@
 import fs from "node:fs/promises";
-import path from "node:path";
 import type { ResolvedTurnitinConfig } from "@/lib/turnitin/config";
 
 export class TurnitinApiError extends Error {
@@ -55,6 +54,7 @@ type TurnitinRequestOptions = {
   body?: unknown;
   rawBody?: Buffer;
   contentType?: string;
+  headers?: Record<string, string | undefined>;
 };
 
 async function turnitinRequest<T = any>(
@@ -69,6 +69,12 @@ async function turnitinRequest<T = any>(
     "X-Turnitin-Integration-Name": cfg.integrationName || "assessor-ai",
     "X-Turnitin-Integration-Version": cfg.integrationVersion || "1.0.0",
   };
+  for (const [key, value] of Object.entries(opts?.headers || {})) {
+    const normalizedKey = String(key || "").trim();
+    const normalizedValue = String(value || "").trim();
+    if (!normalizedKey || !normalizedValue) continue;
+    headers[normalizedKey] = normalizedValue;
+  }
 
   let body: string | Buffer | undefined;
   if (opts?.rawBody) {
@@ -155,17 +161,6 @@ export async function createTurnitinSubmission(input: {
   });
 }
 
-function mimeFromFilename(filename: string) {
-  const ext = path.extname(String(filename || "").toLowerCase()).replace(".", "");
-  if (ext === "pdf") return "application/pdf";
-  if (ext === "doc") return "application/msword";
-  if (ext === "docx")
-    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (ext === "txt") return "text/plain";
-  if (ext === "rtf") return "application/rtf";
-  return "application/octet-stream";
-}
-
 export async function uploadTurnitinOriginal(input: {
   cfg: ResolvedTurnitinConfig;
   turnitinSubmissionId: string;
@@ -175,31 +170,48 @@ export async function uploadTurnitinOriginal(input: {
   const file = await fs.readFile(input.storagePath);
   const name = String(input.filename || "submission.pdf").trim() || "submission.pdf";
   const queryName = encodeURIComponent(name);
+  const contentDisposition = `attachment; filename=${queryName}`;
   return turnitinRequest(input.cfg, `/submissions/${input.turnitinSubmissionId}/original?filename=${queryName}`, {
     method: "PUT",
     rawBody: file,
-    contentType: mimeFromFilename(name),
+    contentType: "binary/octet-stream",
+    headers: {
+      "Content-Disposition": contentDisposition,
+    },
   });
 }
 
 export async function requestTurnitinSimilarity(input: {
   cfg: ResolvedTurnitinConfig;
   turnitinSubmissionId: string;
+  searchRepositories?: string[] | null;
 }) {
-  return turnitinRequest(input.cfg, `/submissions/${input.turnitinSubmissionId}/similarity`, {
-    method: "PUT",
-    body: {
-      generation_settings: {
-        search_repositories: [
-          "INTERNET",
-          "PUBLICATION",
-          "CROSSREF",
-          "CROSSREF_POSTED_CONTENT",
-          "SUBMITTED_WORK",
-        ],
-      },
-    },
-  });
+  const defaultRepositories = [
+    "INTERNET",
+    "PUBLICATION",
+    "CROSSREF",
+    "CROSSREF_POSTED_CONTENT",
+    "SUBMITTED_WORK",
+  ];
+  const repositories = Array.isArray(input.searchRepositories)
+    ? input.searchRepositories.map((v) => String(v || "").trim()).filter(Boolean)
+    : input.searchRepositories === null
+      ? null
+      : defaultRepositories;
+
+  const requestOptions =
+    repositories === null
+      ? { method: "PUT" as const }
+      : {
+          method: "PUT" as const,
+          body: {
+            generation_settings: {
+              search_repositories: repositories,
+            },
+          },
+        };
+
+  return turnitinRequest(input.cfg, `/submissions/${input.turnitinSubmissionId}/similarity`, requestOptions);
 }
 
 export async function getTurnitinSimilarity(input: {
