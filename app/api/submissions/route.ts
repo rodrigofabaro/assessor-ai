@@ -87,9 +87,8 @@ function gradeRank(raw: string) {
 
 function isReadyToUploadLike(row: { grade?: string | null; overallGrade?: string | null; feedback?: string | null; markedPdfPath?: string | null }) {
   const grade = String(row.grade ?? row.overallGrade ?? "").trim();
-  const hasFeedback = Boolean(String(row.feedback || "").trim());
   const hasMarkedPdf = Boolean(String(row.markedPdfPath || "").trim());
-  return Boolean(grade && hasFeedback && hasMarkedPdf);
+  return Boolean(grade && hasMarkedPdf);
 }
 
 function computeQaFlags(latestJson: Record<string, unknown>) {
@@ -462,19 +461,10 @@ export async function GET(req: Request) {
     });
     const latestJson = includeWorkspaceQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
     const qaFlags = includeWorkspaceQa ? computeQaFlags(latestJson) : null;
-    const requiresQaReview = Boolean(qaFlags?.shouldReview);
-    const automationState =
-      automation.state === "COMPLETED" && requiresQaReview ? "NEEDS_HUMAN" : automation.state;
-    const automationReason =
-      automation.state === "COMPLETED" && requiresQaReview
-        ? "Assessment outputs exist, but QA review is still required before final completion."
-        : automation.reason;
-    const automationExceptionCode =
-      automation.state === "COMPLETED" && requiresQaReview ? "MANUAL_REVIEW_REQUIRED" : automation.exceptionCode;
-    const automationRecommendedAction =
-      automation.state === "COMPLETED" && requiresQaReview
-        ? "Review QA flags, confirm/adjust feedback, then finalize as complete."
-        : automation.recommendedAction;
+    const automationState = automation.state;
+    const automationReason = automation.reason;
+    const automationExceptionCode = automation.exceptionCode;
+    const automationRecommendedAction = automation.recommendedAction;
 
     return {
       id: s.id,

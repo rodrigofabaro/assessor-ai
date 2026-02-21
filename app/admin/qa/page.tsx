@@ -164,7 +164,11 @@ export default function AdminQaPage() {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  async function runTurnitinAction(submissionId: string, action: "send" | "refresh" | "sync" = "sync") {
+  async function runTurnitinAction(
+    submissionId: string,
+    action: "send" | "refresh" | "sync" | "viewer" = "sync",
+    options?: { reload?: boolean }
+  ) {
     const sid = String(submissionId || "").trim();
     if (!sid) return;
     setTurnitinMsg("");
@@ -184,7 +188,9 @@ export default function AdminQaPage() {
             : ""
         }`
       );
-      await load();
+      if (options?.reload !== false) {
+        await load();
+      }
     } catch (e: any) {
       setTurnitinMsg(e?.message || "Turnitin action failed.");
     } finally {
@@ -215,7 +221,7 @@ export default function AdminQaPage() {
     setTurnitinMsg(`Queueing ${pending.length} row(s) to Turnitin...`);
     try {
       for (const sid of pending) {
-        await runTurnitinAction(sid, "send");
+        await runTurnitinAction(sid, "send", { reload: false });
       }
       await load();
       setTurnitinMsg(`Queued ${pending.length} row(s) to Turnitin.`);
@@ -610,11 +616,34 @@ export default function AdminQaPage() {
                             href={String(r.turnitin.viewerUrl)}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex text-[11px] font-semibold text-sky-700 hover:underline"
+                            className="inline-flex h-7 items-center rounded-full border border-sky-300 bg-sky-50 px-2.5 text-[11px] font-semibold text-sky-900 hover:bg-sky-100"
                           >
                             Open report
                           </a>
-                        ) : null}
+                        ) : (
+                          (() => {
+                            const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
+                            const turnitinStatus = String(r.turnitin?.status || "").trim().toUpperCase();
+                            const canRequestViewer = hasSubmissionId && turnitinStatus === "COMPLETE";
+                            return (
+                          <button
+                            type="button"
+                            onClick={() => void runTurnitinAction(r.id, "viewer")}
+                            disabled={!canRequestViewer || Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
+                            className="inline-flex h-7 items-center rounded-full border border-sky-300 bg-sky-50 px-2.5 text-[11px] font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+                            title={
+                              !hasSubmissionId
+                                ? "Send to Turnitin first to create a report"
+                                : turnitinStatus !== "COMPLETE"
+                                  ? "Report link becomes available after Turnitin status is COMPLETE"
+                                  : "Fetch viewer URL from Turnitin"
+                            }
+                          >
+                            {turnitinBusyById[r.id] ? "Working..." : "Get report link"}
+                          </button>
+                            );
+                          })()
+                        )}
                         {r.turnitin?.lastError ? (
                           <div className="text-[11px] text-rose-700">{String(r.turnitin.lastError)}</div>
                         ) : null}

@@ -36,9 +36,10 @@ type SubmissionForAutomation = {
 
 function isReadyToUploadLike(s: SubmissionForAutomation): boolean {
   const grade = String(s.grade ?? s.overallGrade ?? "").trim();
-  const hasFeedback = Boolean(String(s.feedback ?? "").trim());
   const hasMarkedPdf = Boolean(String(s.markedPdfPath ?? "").trim());
-  return Boolean(grade && hasFeedback && hasMarkedPdf);
+  // Feedback can be embedded in result JSON/marked PDF even when plain feedback text is omitted
+  // from lightweight list queries, so completion should rely on grade + marked artifact.
+  return Boolean(grade && hasMarkedPdf);
 }
 
 export function deriveAutomationState(s: SubmissionForAutomation): {

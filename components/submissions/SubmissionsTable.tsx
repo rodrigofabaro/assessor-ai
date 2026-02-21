@@ -269,10 +269,18 @@ export function SubmissionsTable({
                             {showColWorkflow ? (
                               <td className="border-b border-zinc-100 px-4 py-3 align-top">
                                 {lane.key === "COMPLETED" ? (
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <StatusPill>{s.status}</StatusPill>
-                                    <ActionPill tone="ok">Completed</ActionPill>
-                                  </div>
+                                  <>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <StatusPill>{s.status}</StatusPill>
+                                      <ActionPill tone="ok">Completed</ActionPill>
+                                      {s.qaFlags?.shouldReview ? <ActionPill tone="warn">QA review</ActionPill> : null}
+                                    </div>
+                                    {s.qaFlags?.shouldReview ? (
+                                      <div className="mt-1 text-xs text-amber-700">
+                                        QA: {s.qaFlags.reasons.join(" · ")}
+                                      </div>
+                                    ) : null}
+                                  </>
                                 ) : (
                                   <>
                                     <div className="flex flex-wrap items-center gap-2">

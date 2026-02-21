@@ -166,6 +166,10 @@ function chooseOwner(cfg: ResolvedTurnitinConfig) {
   return String(cfg.ownerUserId || cfg.viewerUserId || "").trim();
 }
 
+function chooseViewer(cfg: ResolvedTurnitinConfig) {
+  return String(cfg.viewerUserId || cfg.ownerUserId || "").trim();
+}
+
 async function maybeEnsureOwnerEula(cfg: ResolvedTurnitinConfig, ownerUserId: string) {
   try {
     await acceptTurnitinEula({
@@ -385,12 +389,13 @@ export async function refreshTurnitinSubmission(submissionId: string) {
       lastError: null,
     };
 
-    if (status === "COMPLETE" && cfg.viewerUserId) {
+    const viewerUserId = chooseViewer(cfg);
+    if (status === "COMPLETE" && viewerUserId) {
       try {
         const viewer = await createTurnitinViewerUrl({
           cfg,
           turnitinSubmissionId,
-          viewerUserId: cfg.viewerUserId,
+          viewerUserId,
           locale: cfg.locale,
         });
         const viewerUrl = String(viewer?.viewer_url || "").trim();
@@ -421,8 +426,9 @@ export async function refreshTurnitinSubmission(submissionId: string) {
 export async function refreshTurnitinViewerUrl(submissionId: string) {
   const cfg = resolveTurnitinRuntimeConfig();
   ensureTurnitinAvailable(cfg);
-  if (!cfg.viewerUserId) {
-    throw new TurnitinServiceError("Turnitin viewer user id is required in settings.", 400);
+  const viewerUserId = chooseViewer(cfg);
+  if (!viewerUserId) {
+    throw new TurnitinServiceError("Turnitin viewer/owner user id is required in settings.", 400);
   }
   const existing = getTurnitinSubmissionState(submissionId);
   const turnitinSubmissionId = String(existing?.turnitinSubmissionId || "").trim();
@@ -433,7 +439,7 @@ export async function refreshTurnitinViewerUrl(submissionId: string) {
     const viewer = await createTurnitinViewerUrl({
       cfg,
       turnitinSubmissionId,
-      viewerUserId: cfg.viewerUserId,
+      viewerUserId,
       locale: cfg.locale,
     });
     const viewerUrl = String(viewer?.viewer_url || "").trim();

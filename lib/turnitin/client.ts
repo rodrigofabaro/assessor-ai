@@ -49,6 +49,12 @@ function parseJsonMaybe(raw: string) {
   }
 }
 
+function resolveTimeoutMs() {
+  const raw = Number(process.env.TURNITIN_HTTP_TIMEOUT_MS || 60000);
+  if (!Number.isFinite(raw)) return 60000;
+  return Math.max(5000, Math.min(180000, Math.floor(raw)));
+}
+
 type TurnitinRequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -87,12 +93,31 @@ async function turnitinRequest<T = any>(
     headers["Content-Length"] = String(Buffer.byteLength(body));
   }
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body as BodyInit | null | undefined,
-    cache: "no-store",
-  });
+  const timeoutMs = resolveTimeoutMs();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body as BodyInit | null | undefined,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new TurnitinApiError({
+        message: `Turnitin request timed out after ${timeoutMs}ms`,
+        status: 504,
+        code: "TIMEOUT",
+      });
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const raw = await res.text();
   const parsed = parseJsonMaybe(raw);
