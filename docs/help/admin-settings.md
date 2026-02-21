@@ -1,6 +1,6 @@
 # `/admin/settings` Help
 
-Last updated: 2026-02-20
+Last updated: 2026-02-21
 
 ## Purpose
 
@@ -46,6 +46,10 @@ Use the App section card `Turnitin (QA)`:
 
 2. Run `Test Turnitin`.
 3. Save Turnitin config.
+
+Notes:
+- `Open report` links are short-lived tokens and are generated fresh from QA row action.
+- AI-writing percentage can remain `0%` when the tenant/product does not expose AI-writing detection metadata.
 
 ## Save strategy
 

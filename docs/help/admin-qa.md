@@ -1,6 +1,6 @@
 # Admin QA (`/admin/qa`)
 
-Last updated: 2026-02-20
+Last updated: 2026-02-21
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It combines:
 - outcome analytics
 - QA risk flags
 - assessor override insights
-- Turnitin send/refresh/report operations
+- Turnitin send/status/report operations
 
 ## Core workflow
 
@@ -27,8 +27,9 @@ In the dataset table, each row has a Turnitin column.
 
 You can:
 - `Send to Turnitin` for unsent rows
-- `Refresh %` for already-sent rows
-- open `Open report` when viewer URL exists
+- `Check status` while Turnitin is still processing
+- `Re-send to Turnitin` when row status is `FAILED`
+- open `Open report` when row status is `COMPLETE`
 - see similarity + AI-writing percentages when available
 
 Page-level action:

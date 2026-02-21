@@ -236,11 +236,12 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
       {
         id: "turnitin-checks",
         title: "Run Turnitin checks in QA (optional by policy)",
-        what: "Queue/refresh Turnitin state for targeted rows and confirm report availability.",
+        what: "Queue and track Turnitin state for targeted rows, then open report when complete.",
         how: [
           "From `/admin/qa`, use row action `Send to Turnitin` for unsent rows.",
-          "Use `Refresh %` for sent rows to update similarity and AI-writing percentages.",
-          "Open `Open report` when viewer URL is available and record findings in QA notes.",
+          "Use `Check status` while Turnitin status is `CREATED`, `UPLOADING`, or `PROCESSING`.",
+          "Use `Re-send to Turnitin` when a row is in `FAILED` state.",
+          "Use `Open report` when Turnitin status is `COMPLETE` and record findings in QA notes.",
         ],
         why: "Plagiarism and AI-writing indicators should be reviewed in the same moderation loop as grading risk signals.",
         checks: [
@@ -707,11 +708,12 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
       {
         id: "turnitin-pass",
         title: "Execute Turnitin pass for selected rows",
-        what: "Send or refresh Turnitin state and include similarity/AI-writing indicators in QA decisioning.",
+        what: "Send and monitor Turnitin state, then include similarity/AI-writing indicators in QA decisioning.",
         how: [
           "Use `Send to Turnitin` for unsent rows.",
-          "Use `Refresh %` to update rows already sent.",
-          "Open report URL for deep evidence review when needed.",
+          "Use `Check status` for rows that are still processing.",
+          "Use `Re-send to Turnitin` for failed rows.",
+          "Open report URL for deep evidence review once status is `COMPLETE`.",
         ],
         why: "Turnitin data adds an external integrity signal to moderation outcomes.",
       },
@@ -725,7 +727,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
       {
         issue: "Turnitin row stays pending",
         cause: "Report generation not complete yet or credentials/config mismatch.",
-        fix: "Retry `Refresh %`, then verify Turnitin settings smoke check and row error details.",
+        fix: "Use `Check status`, then verify Turnitin settings smoke check and row error details. If state is `FAILED`, use `Re-send to Turnitin`.",
       },
     ],
   },
@@ -1604,9 +1606,9 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
     },
     {
       kind: "Button",
-      label: "Send to Turnitin / Refresh %",
+      label: "Turnitin row actions",
       location: "Admin QA dataset Turnitin column",
-      meaning: "Queues submission to Turnitin or refreshes stored percentages.",
+      meaning: "Status-aware controls: `Send to Turnitin`, `Check status`, `Re-send to Turnitin`, and `Open report` when complete.",
       useWhen: "Running plagiarism and AI-writing checks for sampled rows.",
       impact: "Adds integrity indicators to QA moderation workflow.",
     },

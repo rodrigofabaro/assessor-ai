@@ -8,6 +8,23 @@ import type { PaginatedResponse } from "@/lib/submissions/types";
 const GRADE_BANDS = ["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION"] as const;
 type GradeBand = (typeof GRADE_BANDS)[number];
 
+const CONTROL_CLASS =
+  "h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
+const CONTROL_COMPACT_CLASS =
+  "h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900 shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
+const BUTTON_BASE_CLASS =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60";
+const BUTTON_PRIMARY_TALL_CLASS =
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-sky-700 bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60";
+const BUTTON_NEUTRAL_CLASS = `${BUTTON_BASE_CLASS} border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50`;
+const BUTTON_TEAL_CLASS = `${BUTTON_BASE_CLASS} border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100`;
+const BUTTON_ROW_BASE_CLASS =
+  "inline-flex h-7 items-center rounded-lg border px-2.5 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60";
+const BUTTON_ROW_SKY_CLASS = `${BUTTON_ROW_BASE_CLASS} border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100`;
+const BUTTON_ROW_TEAL_CLASS = `${BUTTON_ROW_BASE_CLASS} border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100`;
+const BUTTON_PAGE_CLASS =
+  "inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 text-xs font-semibold text-zinc-800 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400";
+
 type SubmissionResearchRow = {
   id: string;
   filename: string;
@@ -75,6 +92,15 @@ function fmtDate(iso?: string | null) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
+}
+
+function asPercent(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(100, Math.round(n)));
 }
 
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
@@ -170,7 +196,7 @@ export default function AdminQaPage() {
     options?: { reload?: boolean }
   ) {
     const sid = String(submissionId || "").trim();
-    if (!sid) return;
+    if (!sid) return { ok: false as const, error: "Missing submission id.", state: null as any };
     setTurnitinMsg("");
     setTurnitinBusyById((prev) => ({ ...prev, [sid]: true }));
     try {
@@ -191,8 +217,11 @@ export default function AdminQaPage() {
       if (options?.reload !== false) {
         await load();
       }
+      return { ok: true as const, state: json?.state || null, error: "" };
     } catch (e: any) {
-      setTurnitinMsg(e?.message || "Turnitin action failed.");
+      const message = e?.message || "Turnitin action failed.";
+      setTurnitinMsg(message);
+      return { ok: false as const, state: null as any, error: message };
     } finally {
       setTurnitinBusyById((prev) => {
         const next = { ...prev };
@@ -200,6 +229,31 @@ export default function AdminQaPage() {
         return next;
       });
     }
+  }
+
+  async function openTurnitinReport(row: SubmissionResearchRow) {
+    const sid = String(row?.id || "").trim();
+    const hasSubmissionId = !!String(row?.turnitin?.turnitinSubmissionId || "").trim();
+    const turnitinStatus = String(row?.turnitin?.status || "").trim().toUpperCase();
+    if (!sid || !hasSubmissionId) {
+      setTurnitinMsg("Send to Turnitin first to create a report.");
+      return;
+    }
+    if (turnitinStatus !== "COMPLETE") {
+      setTurnitinMsg("Turnitin report is not ready yet. Status must be COMPLETE.");
+      return;
+    }
+    const result = await runTurnitinAction(sid, "viewer", { reload: false });
+    if (!result.ok) return;
+    const viewerUrl = String(result.state?.viewerUrl || "").trim();
+    if (!viewerUrl) {
+      setTurnitinMsg("Viewer URL was not returned. Try again in a few seconds.");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.open(viewerUrl, "_blank", "noopener,noreferrer");
+    }
+    await load();
   }
 
   async function sendPageToTurnitin() {
@@ -404,13 +458,13 @@ export default function AdminQaPage() {
         </div>
 
         <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-7">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search student, course, unit, AB, filename..." className="h-10 rounded-xl border border-zinc-300 px-3 text-sm" />
-          <select value={course} onChange={(e) => setCourse(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{optionList.courses.map((v) => <option key={v} value={v}>Course: {v}</option>)}</select>
-          <select value={unit} onChange={(e) => setUnit(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{optionList.units.map((v) => <option key={v} value={v}>Unit: {v}</option>)}</select>
-          <select value={assignment} onChange={(e) => setAssignment(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{optionList.assignments.map((v) => <option key={v} value={v}>AB: {v}</option>)}</select>
-          <select value={grade} onChange={(e) => setGrade(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{["ALL", ...GRADE_BANDS, "UNGRADED"].map((v) => <option key={v} value={v}>Grade: {v}</option>)}</select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm">{optionList.statuses.map((v) => <option key={v} value={v}>Status: {v}</option>)}</select>
-          <button type="button" onClick={load} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white hover:bg-sky-800"><TinyIcon name="refresh" className="h-3.5 w-3.5" />Refresh</button>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search student, course, unit, AB, filename..." className={CONTROL_CLASS} />
+          <select value={course} onChange={(e) => setCourse(e.target.value)} className={CONTROL_CLASS}>{optionList.courses.map((v) => <option key={v} value={v}>Course: {v}</option>)}</select>
+          <select value={unit} onChange={(e) => setUnit(e.target.value)} className={CONTROL_CLASS}>{optionList.units.map((v) => <option key={v} value={v}>Unit: {v}</option>)}</select>
+          <select value={assignment} onChange={(e) => setAssignment(e.target.value)} className={CONTROL_CLASS}>{optionList.assignments.map((v) => <option key={v} value={v}>AB: {v}</option>)}</select>
+          <select value={grade} onChange={(e) => setGrade(e.target.value)} className={CONTROL_CLASS}>{["ALL", ...GRADE_BANDS, "UNGRADED"].map((v) => <option key={v} value={v}>Grade: {v}</option>)}</select>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={CONTROL_CLASS}>{optionList.statuses.map((v) => <option key={v} value={v}>Status: {v}</option>)}</select>
+          <button type="button" onClick={load} className={BUTTON_PRIMARY_TALL_CLASS}><TinyIcon name="refresh" className="h-3.5 w-3.5" />Refresh</button>
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
@@ -434,7 +488,7 @@ export default function AdminQaPage() {
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Math.max(20, Math.min(200, Number(e.target.value) || 60)))}
-                className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs"
+                className={CONTROL_COMPACT_CLASS}
               >
                 {[40, 60, 100, 150].map((n) => (
                   <option key={n} value={n}>
@@ -447,7 +501,7 @@ export default function AdminQaPage() {
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={busy || page <= 1}
-              className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 font-semibold text-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+              className={BUTTON_PAGE_CLASS}
             >
               Prev
             </button>
@@ -455,7 +509,7 @@ export default function AdminQaPage() {
               type="button"
               onClick={() => setPage((p) => Math.min(Math.max(1, totalPages), p + 1))}
               disabled={busy || page >= totalPages}
-              className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 font-semibold text-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+              className={BUTTON_PAGE_CLASS}
             >
               Next
             </button>
@@ -471,7 +525,7 @@ export default function AdminQaPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={exportFiltered} className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
+          <button type="button" onClick={exportFiltered} className={BUTTON_NEUTRAL_CLASS}>
             <TinyIcon name="submissions" className="h-3 w-3" />
             Export filtered report
           </button>
@@ -479,12 +533,12 @@ export default function AdminQaPage() {
             type="button"
             onClick={sendPageToTurnitin}
             disabled={busy || turnitinBatchBusy}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
+            className={BUTTON_TEAL_CLASS}
           >
             <TinyIcon name="refresh" className="h-3 w-3" />
             {turnitinBatchBusy ? "Sending..." : "Send page to Turnitin"}
           </button>
-          <Link href="/admin/audit" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50">
+          <Link href="/admin/audit" className={BUTTON_NEUTRAL_CLASS}>
             <TinyIcon name="audit" className="h-3 w-3" />
             Open audit log
           </Link>
@@ -599,82 +653,99 @@ export default function AdminQaPage() {
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
                       <div className="space-y-1">
                         <div className="text-[11px]">
-                          {r.turnitin?.status ? (
-                            <span className="font-semibold text-zinc-800">{String(r.turnitin.status)}</span>
-                          ) : (
-                            <span className="text-zinc-500">Not sent</span>
-                          )}
-                          {Number.isFinite(Number(r.turnitin?.overallMatchPercentage))
-                            ? ` · ${Number(r.turnitin?.overallMatchPercentage)}%`
-                            : ""}
-                          {Number.isFinite(Number(r.turnitin?.aiWritingPercentage))
-                            ? ` · AI ${Number(r.turnitin?.aiWritingPercentage)}%`
-                            : ""}
+                          <span className="font-semibold text-zinc-800">
+                            Report: {r.turnitin?.status ? String(r.turnitin.status) : "Not sent"}
+                          </span>
                         </div>
-                        {r.turnitin?.viewerUrl ? (
-                          <a
-                            href={String(r.turnitin.viewerUrl)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex h-7 items-center rounded-full border border-sky-300 bg-sky-50 px-2.5 text-[11px] font-semibold text-sky-900 hover:bg-sky-100"
-                          >
-                            Open report
-                          </a>
-                        ) : (
-                          (() => {
+                        <div className="text-[11px] text-zinc-600">
+                          <span className="font-semibold text-zinc-800">
+                            {(() => {
+                              const pct = asPercent(r.turnitin?.overallMatchPercentage);
+                              return pct === null ? "—" : `${pct}%`;
+                            })()}
+                          </span>{" "}
+                          Similarity
+                        </div>
+                        <div className="text-[11px] text-zinc-600">
+                          <span className="font-semibold text-zinc-800">
+                            {(() => {
+                              const pct = asPercent(r.turnitin?.aiWritingPercentage);
+                              return pct === null ? "—" : `${pct}%`;
+                            })()}
+                          </span>{" "}
+                          AI writing
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {(() => {
                             const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
                             const turnitinStatus = String(r.turnitin?.status || "").trim().toUpperCase();
-                            const canRequestViewer = hasSubmissionId && turnitinStatus === "COMPLETE";
+                            const canOpen = hasSubmissionId && turnitinStatus === "COMPLETE";
                             return (
-                          <button
-                            type="button"
-                            onClick={() => void runTurnitinAction(r.id, "viewer")}
-                            disabled={!canRequestViewer || Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
-                            className="inline-flex h-7 items-center rounded-full border border-sky-300 bg-sky-50 px-2.5 text-[11px] font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
-                            title={
-                              !hasSubmissionId
-                                ? "Send to Turnitin first to create a report"
-                                : turnitinStatus !== "COMPLETE"
-                                  ? "Report link becomes available after Turnitin status is COMPLETE"
-                                  : "Fetch viewer URL from Turnitin"
-                            }
-                          >
-                            {turnitinBusyById[r.id] ? "Working..." : "Get report link"}
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => void openTurnitinReport(r)}
+                                disabled={!canOpen || Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
+                                className={BUTTON_ROW_SKY_CLASS}
+                                title={
+                                  !hasSubmissionId
+                                    ? "Send to Turnitin first to create a report"
+                                    : turnitinStatus !== "COMPLETE"
+                                      ? "Report is not ready yet (Turnitin status must be COMPLETE)"
+                                      : "Open Turnitin report (fresh token)"
+                                }
+                              >
+                                {turnitinBusyById[r.id] ? "Opening..." : "Open report"}
+                              </button>
                             );
-                          })()
-                        )}
+                          })()}
+                          {(() => {
+                            const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
+                            const status = String(r.turnitin?.status || "").trim().toUpperCase();
+                            if (!hasSubmissionId) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => void runTurnitinAction(r.id, "send")}
+                                  disabled={Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
+                                  className={BUTTON_ROW_TEAL_CLASS}
+                                >
+                                  {turnitinBusyById[r.id] ? "Working..." : "Send to Turnitin"}
+                                </button>
+                              );
+                            }
+
+                            if (status === "FAILED") {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => void runTurnitinAction(r.id, "send")}
+                                  disabled={Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
+                                  className={BUTTON_ROW_TEAL_CLASS}
+                                >
+                                  {turnitinBusyById[r.id] ? "Working..." : "Re-send to Turnitin"}
+                                </button>
+                              );
+                            }
+
+                            if (status === "PROCESSING" || status === "CREATED" || status === "UPLOADING") {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => void runTurnitinAction(r.id, "refresh")}
+                                  disabled={Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
+                                  className={BUTTON_ROW_TEAL_CLASS}
+                                >
+                                  {turnitinBusyById[r.id] ? "Working..." : "Check status"}
+                                </button>
+                              );
+                            }
+
+                            return null;
+                          })()}
+                        </div>
                         {r.turnitin?.lastError ? (
                           <div className="text-[11px] text-rose-700">{String(r.turnitin.lastError)}</div>
                         ) : null}
-                        {(() => {
-                          const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
-                          const status = String(r.turnitin?.status || "").trim().toUpperCase();
-                          const isFailed = status === "FAILED";
-                          const action: "send" | "refresh" = !hasSubmissionId || isFailed ? "send" : "refresh";
-                          const label = !hasSubmissionId
-                            ? "Send to Turnitin"
-                            : isFailed
-                              ? "Re-send to Turnitin"
-                              : "Refresh %";
-                          return (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void runTurnitinAction(
-                              r.id,
-                              action
-                            )
-                          }
-                          disabled={Boolean(turnitinBusyById[r.id]) || busy || turnitinBatchBusy}
-                          className="inline-flex h-7 items-center rounded-md border border-teal-300 bg-teal-50 px-2 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-60"
-                        >
-                          {turnitinBusyById[r.id]
-                            ? "Working..."
-                            : label}
-                        </button>
-                          );
-                        })()}
                       </div>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>
