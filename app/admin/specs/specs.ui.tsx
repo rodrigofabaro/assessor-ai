@@ -143,12 +143,19 @@ export function SpecList({
             const busy = rowBusy[d.id];
             const updated = (d.sourceMeta as any)?.updatedAt || d.uploadedAt;
             return (
-              <button
+              <div
                 key={d.id}
-                type="button"
                 onClick={() => onSelect(d.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(d.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 className={
-                  "rounded-xl border p-3 text-left transition " +
+                  "rounded-xl border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-zinc-200 " +
                   (active
                     ? "border-zinc-300 bg-zinc-50 text-zinc-900 ring-1 ring-zinc-200"
                     : "border-zinc-200 bg-white hover:bg-zinc-50")
@@ -215,7 +222,7 @@ export function SpecList({
                     {busy === "lock" ? "Locking..." : isLocked ? "Locked" : "Lock"}
                   </button>
                 </div>
-              </button>
+              </div>
             );
           })
         )}
