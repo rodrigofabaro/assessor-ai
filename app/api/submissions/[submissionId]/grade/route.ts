@@ -463,7 +463,7 @@ function extractCoverAssignmentSignals(sourceMeta: any) {
   const cover = sourceMeta?.coverMetadata || {};
   const unitCodeRaw = String(cover?.unitCode?.value || "").trim();
   const assignmentRaw = String(cover?.assignmentCode?.value || "").trim();
-  const unitCode = unitCodeRaw.match(/\b(4\d{3})\b/)?.[1] || null;
+  const unitCode = unitCodeRaw.match(/\b(\d{1,4})\b/)?.[1] || null;
   const assignmentRef = normalizeAssignmentRef(assignmentRaw);
   return { unitCode, assignmentRef };
 }

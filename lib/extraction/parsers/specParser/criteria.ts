@@ -18,6 +18,10 @@ const MAJOR_SECTION_RE = /^\s*(Essential Content|Recommended Resources|Journals|
 const FOOTER_NOISE_RE =
   /^\s*(?:Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite|Issue\s+\d+|©\s*Pearson|Pearson Education|Education Limited|Page\s*\d+|\d{1,4})\b/i;
 
+// OCR/flattening can produce tokens like "P10Investigate", "Pl0", "Ml", etc.
+// Accept a compact token and normalize common OCR confusions (I/l -> 1, O -> 0).
+const AC_TOKEN_RE = /\b([PMDpmd])\s*([0-9IlO]{1,2})(?=\b|[A-Za-z])/g;
+
 function sliceCriteriaRegion(lines: string[]): string[] {
   const start = lines.findIndex((l) => SECTION_START_RE.test(l));
   const base = start >= 0 ? lines.slice(start) : lines;
@@ -98,6 +102,61 @@ function gradeBandFor(code: string): GradeBand {
   return "DISTINCTION";
 }
 
+function normalizeCriterionDigits(rawDigits: string): string {
+  return String(rawDigits || "")
+    .replace(/[Il]/g, "1")
+    .replace(/O/g, "0");
+}
+
+function buildCriterionCode(band: unknown, digits: unknown): string | null {
+  const b = String(band || "").toUpperCase();
+  if (!/[PMD]/.test(b)) return null;
+  const d = normalizeCriterionDigits(String(digits || ""));
+  if (!/^\d{1,2}$/.test(d)) return null;
+  return `${b}${d}`;
+}
+
+function expandFlattenedCriteriaLine(raw: string): string[] {
+  const line = String(raw || "");
+  if (!line.trim()) return [line];
+
+  const hits = Array.from(line.matchAll(AC_TOKEN_RE));
+  if (!hits.length) return [line];
+
+  const hasLoHeading = /\bLO\d{1,2}\b/i.test(line);
+  const firstIdx = hits[0]?.index ?? -1;
+  const shouldSplit = hits.length >= 2 || (hasLoHeading && firstIdx > 0);
+  if (!shouldSplit) return [line];
+
+  const out: string[] = [];
+  let cursor = 0;
+  for (const hit of hits) {
+    const idx = hit.index ?? -1;
+    if (idx < 0) continue;
+    if (idx > cursor) {
+      const prefix = line.slice(cursor, idx).trim();
+      if (prefix) out.push(prefix);
+    }
+    cursor = idx;
+  }
+  if (cursor < line.length) {
+    const tail = line.slice(cursor);
+    const tailHits = Array.from(tail.matchAll(AC_TOKEN_RE));
+    if (!tailHits.length) {
+      out.push(tail.trim());
+    } else {
+      for (let i = 0; i < tailHits.length; i += 1) {
+        const h = tailHits[i];
+        const start = h.index ?? 0;
+        const end = i + 1 < tailHits.length ? (tailHits[i + 1].index ?? tail.length) : tail.length;
+        const chunk = tail.slice(start, end).trim();
+        if (chunk) out.push(chunk);
+      }
+    }
+  }
+  return out.length ? out : [line];
+}
+
 export function parseCriteriaByLO(text: string, loCodes: string[]) {
   const wanted = new Set((loCodes || []).map((x) => String(x).toUpperCase()));
   const lines = sliceCriteriaRegion(toLines(text));
@@ -136,59 +195,62 @@ export function parseCriteriaByLO(text: string, loCodes: string[]) {
     descParts = [];
   };
 
-  for (const raw of lines) {
-    const fixed = String(raw || "").trim().replace(/\b(LO\d{1,2})(?=[A-Za-z])/g, "$1 ");
-    const l = stripPdfJunk(fixed);
-    if (!l) continue;
+  for (const lineRaw of lines) {
+    const expanded = expandFlattenedCriteriaLine(String(lineRaw || ""));
+    for (const raw of expanded) {
+      const fixed = String(raw || "").trim().replace(/\b(LO\d{1,2})(?=[A-Za-z])/g, "$1 ");
+      const l = stripPdfJunk(fixed);
+      if (!l) continue;
 
-    if (isFooterNoise(l)) continue;
+      if (isFooterNoise(l)) continue;
 
-    if (currentCode && isHardStopHeading(l)) {
-      flush();
-      break;
-    }
+      if (currentCode && isHardStopHeading(l)) {
+        flush();
+        break;
+      }
 
-    const loHeading = l.match(LO_HEADING_RE);
-    if (loHeading) {
-      const lo = loHeading[1].toUpperCase();
-      if (wanted.has(lo)) {
+      const loHeading = l.match(LO_HEADING_RE);
+      if (loHeading) {
+        const lo = loHeading[1].toUpperCase();
+        if (wanted.has(lo)) {
+          flush();
+          currentLO = lo;
+        }
+      }
+
+      const acHit = l.match(/^([PMDpmd])\s*([0-9IlO]{1,2})(?=\b|[A-Za-z])\s*(.*)$/);
+      if (acHit) {
+        const code = buildCriterionCode(acHit[1], acHit[2]);
+        const rest = (acHit[3] || "").trim();
+
+        if (!code || !currentLO || !wanted.has(currentLO)) continue;
+
+        flush();
+        currentCode = code;
+        if (rest) descParts.push(rest);
+        continue;
+      }
+
+      const loAndAcHit = l.match(/\b([Ll][Oo]\d{1,2})\b\s+([PMDpmd])\s*([0-9IlO]{1,2})(?=\b|[A-Za-z])\s*(.*)$/);
+      if (loAndAcHit) {
+        const lo = loAndAcHit[1].toUpperCase();
+        const code = buildCriterionCode(loAndAcHit[2], loAndAcHit[3]);
+        const rest = (loAndAcHit[4] || "").trim();
+
+        if (!code || !wanted.has(lo)) continue;
+
         flush();
         currentLO = lo;
+        currentCode = code;
+        if (rest) descParts.push(rest);
+        continue;
       }
-    }
 
-    const acHit = l.match(/^([PMD])\s*(\d{1,2})\b\s*(.*)$/i);
-    if (acHit) {
-      const code = `${acHit[1].toUpperCase()}${acHit[2]}`;
-      const rest = (acHit[3] || "").trim();
-
-      if (!currentLO || !wanted.has(currentLO)) continue;
-
-      flush();
-      currentCode = code;
-      if (rest) descParts.push(rest);
-      continue;
-    }
-
-    const loAndAcHit = l.match(/\b(LO\d{1,2})\b\s+([PMD])\s*(\d{1,2})\b\s*(.*)$/i);
-    if (loAndAcHit) {
-      const lo = loAndAcHit[1].toUpperCase();
-      const code = `${loAndAcHit[2].toUpperCase()}${loAndAcHit[3]}`;
-      const rest = (loAndAcHit[4] || "").trim();
-
-      if (!wanted.has(lo)) continue;
-
-      flush();
-      currentLO = lo;
-      currentCode = code;
-      if (rest) descParts.push(rest);
-      continue;
-    }
-
-    if (currentCode) {
-      if (/^\s*(?:©\s*Pearson|Pearson Education|Education Limited)\b/i.test(l)) continue;
-      if (/^\s*(?:page\s*)?\d{1,4}\s*$/i.test(l)) continue;
-      descParts.push(l);
+      if (currentCode) {
+        if (/^\s*(?:©\s*Pearson|Pearson Education|Education Limited)\b/i.test(l)) continue;
+        if (/^\s*(?:page\s*)?\d{1,4}\s*$/i.test(l)) continue;
+        descParts.push(l);
+      }
     }
   }
 

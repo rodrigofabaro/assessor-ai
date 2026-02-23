@@ -130,7 +130,7 @@ function extractSignalsFromText(textRaw: string) {
     joined.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() ||
     null;
 
-  const unitCode = joined.match(/\b(4\d{3})\b/)?.[1] || null;
+  const unitCode = joined.match(/\b(\d{1,4})\b/)?.[1] || null;
 
   const aMatch = joined.match(/\b(?:Assignment|A)\s*([1-9]\d?)\b/i);
   const assignmentRef = aMatch ? `A${aMatch[1]}` : null;
@@ -181,8 +181,8 @@ function extractSignalsFromFilename(filename: string) {
   const tokens = nameOnly.split(" ").filter(Boolean);
 
   const unitCode =
-    nameOnly.match(/\bU(?:nit)?\s*(4\d{3})\b/i)?.[1] ||
-    nameOnly.match(/\b(4\d{3})\b/)?.[1] ||
+    nameOnly.match(/\bU(?:nit)?\s*(\d{1,4})\b/i)?.[1] ||
+    nameOnly.match(/\b(\d{1,4})\b/)?.[1] ||
     null;
 
   const aMatch = nameOnly.match(/\b(?:Assignment|A)\s*([1-9]\d?)\b/i);
@@ -217,7 +217,7 @@ function extractSignalsFromCoverMetadata(sourceMeta: any) {
   const assignmentRaw = String(cover?.assignmentCode?.value || "").trim();
   const studentNameRaw = String(cover?.studentName?.value || "").trim();
 
-  const unitCode = unitCodeRaw.match(/\b(4\d{3})\b/)?.[1] || null;
+  const unitCode = unitCodeRaw.match(/\b(\d{1,4})\b/)?.[1] || null;
   const assignmentMatch = assignmentRaw.match(/\bA\s*([1-9]\d?)\b/i) || assignmentRaw.match(/\b([1-9]\d?)\b/);
   const assignmentRef = assignmentMatch ? `A${assignmentMatch[1]}` : null;
   const studentName = studentNameRaw ? norm(studentNameRaw) : null;

@@ -32,7 +32,28 @@ export function useSpecsAdmin() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const extracted = (vm.selectedDoc?.extractedJson || null) as any;
-  const learningOutcomes = Array.isArray(extracted?.learningOutcomes) ? extracted.learningOutcomes : [];
+  const learningOutcomes = useMemo(() => {
+    const los = Array.isArray(extracted?.learningOutcomes) ? extracted.learningOutcomes : [];
+    return los.map((lo: any) => {
+      const criteria = Array.isArray(lo?.criteria) ? lo.criteria : [];
+      return {
+        ...lo,
+        loCode: String(lo?.loCode || lo?.code || "").trim(),
+        criteria: criteria
+          .map((c: any) => {
+            const acCode = String(c?.acCode || c?.code || "").trim().toUpperCase();
+            if (!acCode) return null;
+            return {
+              ...c,
+              acCode,
+              gradeBand: c?.gradeBand || null,
+              description: String(c?.description || "").trim(),
+            };
+          })
+          .filter(Boolean),
+      };
+    });
+  }, [extracted]);
 
   const counts = useMemo(
     () => ({ total: vm.documents.length, shown: vm.filteredDocuments.length }),

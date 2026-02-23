@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pill } from "../../components/ui";
 import { tone } from "./briefStyles";
 
@@ -22,6 +22,14 @@ function displayGeneralComments(value: string | null | undefined): string {
 export function IvTab({ vm }: { vm: any }) {
   const [evidenceYear, setEvidenceYear] = useState<string>(vm.ivDefaultAcademicYear || "");
   const [evidenceOutcome, setEvidenceOutcome] = useState<"APPROVED" | "CHANGES_REQUIRED" | "REJECTED">("APPROVED");
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const acceptHint = "PDF, DOCX, or DOC";
+  const uploadIvFile = (file: File | null | undefined) => {
+    if (!file) return;
+    vm.addIvEvidence?.(file, { academicYear: evidenceYear, outcome: evidenceOutcome });
+  };
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -71,24 +79,54 @@ export function IvTab({ vm }: { vm: any }) {
           <div className="flex items-end">
             <input
               id="iv-evidence-upload"
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 e.target.value = "";
-                if (!file) return;
-                vm.addIvEvidence?.(file, { academicYear: evidenceYear, outcome: evidenceOutcome });
+                uploadIvFile(file);
               }}
             />
-            <label
-              htmlFor="iv-evidence-upload"
-              className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl border border-sky-300 bg-white px-3 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!dragActive) setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                setDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+                const file = e.dataTransfer?.files?.[0];
+                uploadIvFile(file);
+              }}
+              className={
+                "inline-flex w-full cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold transition " +
+                (dragActive
+                  ? "border-sky-400 bg-sky-100 text-sky-950"
+                  : "border-sky-300 bg-white text-sky-900 hover:bg-sky-100")
+              }
             >
-              Upload completed IV file
-            </label>
+              {dragActive ? `Drop IV file here (${acceptHint})` : "Upload completed IV file"}
+            </button>
           </div>
         </div>
+        <div className="mt-2 text-xs text-sky-900/70">Drag and drop {acceptHint}, or click to choose a file.</div>
       </div>
 
       <div className="mt-4 space-y-3">

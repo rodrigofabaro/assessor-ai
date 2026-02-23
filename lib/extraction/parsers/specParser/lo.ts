@@ -24,13 +24,17 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     /^\s*Distinction\b/i,
   ];
 
+  const CRITERION_LINE_RX = /^\s*[PMDpmd]\s*[0-9IlO]{1,2}\b/;
+
   // Standalone footer lines we can safely ignore
   const FOOTER_LINE_RX = [
     /©\s*pearson/i,
+    /\bpearson\s*btec\b/i,
     /\bpearson\s*education\b/i,
     /\beducation\s*limited\b/i,
+    /\bhigher\s*nationals?\b/i,
     /\bengineering\s*suite\b/i,
-    /\blearning\s*outcomes?\s*&?\s*assessment\s*criteria\b/i,
+    /\blearning\s*outcomes?\s*(?:&|and)?\s*assessment\s*criteria\b/i,
     /\bissue\s*\d+\b/i,
     /^\s*\d{1,4}\s*$/i,
     /^\s*page\s*\d{1,4}\s*$/i,
@@ -38,7 +42,11 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
 
   // Markers that frequently appear mid-line when a footer gets flattened into content
   const FOOTER_TAIL_MARKERS = [
+    /\bpearson\s*btec\b/i,
     /\bengineering\s*suite\b/i,
+    /\bhigher\s*nationals?\b/i,
+    /\blearning\s*outcomes?\s*(?:&|and)?\s*assessment\s*criteria\b/i,
+    /\bpass\s+merit\s+distinction\b/i,
     /\bissue\s*\d+\b/i,
     /©/i,
     /\bpearson\b/i,
@@ -46,6 +54,10 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
 
   function isHardStop(line: string) {
     return HARD_STOPS.some((rx) => rx.test(line));
+  }
+
+  function isCriterionLine(line: string) {
+    return CRITERION_LINE_RX.test(String(line || "").trim());
   }
 
   function normalizeLoCode(raw: string) {
@@ -80,13 +92,47 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     return t;
   }
 
+  function cleanLoDescriptionFinal(s: string) {
+    let t = normalizeWhitespace(stripFooterTail(s || ""));
+    t = t
+      .replace(/\bLearning\s*Outcomes?\s*(?:&|and)?\s*Assessment\s*Criteria\b\s*$/i, "")
+      .replace(/\bPass\s+Merit\s+Distinction\b\s*$/i, "")
+      .trim();
+    return t;
+  }
+
+  function loDescriptionScore(s: string) {
+    const t = normalizeWhitespace(s || "");
+    if (!t) return -9999;
+    let score = 0;
+    const len = t.length;
+    if (len >= 25 && len <= 220) score += 40;
+    else if (len <= 320) score += 15;
+    else score -= Math.min(120, Math.floor((len - 320) / 10));
+    if (/:/.test(t)) score -= 25; // essential-content style subheadings often include colons
+    if (/\bPearson\b|\bIssue\b|©|\bLearning\s*Outcomes?\b/i.test(t)) score -= 80;
+    if (/\b(P|M|D)\s*\d{1,2}\b/.test(t)) score -= 60;
+    const sentenceish = (t.match(/[.!?]/g) || []).length;
+    if (sentenceish > 1) score -= 10 * (sentenceish - 1);
+    score -= Math.max(0, Math.floor((len - 180) / 20));
+    return score;
+  }
+
   let current: Omit<LearningOutcome, "criteria"> | null = null;
 
   function flush() {
     if (!current) return;
-    current.description = normalizeWhitespace(current.description || "");
+    current.description = cleanLoDescriptionFinal(current.description || "");
     if (current.description) {
-      if (!out.some((x) => x.loCode === current!.loCode)) out.push(current);
+      const idx = out.findIndex((x) => x.loCode === current!.loCode);
+      if (idx < 0) {
+        out.push(current);
+      } else {
+        const existing = out[idx];
+        if (loDescriptionScore(current.description) > loDescriptionScore(existing.description || "")) {
+          out[idx] = current;
+        }
+      }
     }
     current = null;
   }
@@ -99,6 +145,12 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     if (!fixed) continue;
 
     if (current && isHardStop(fixed)) {
+      flush();
+      continue;
+    }
+
+    if (current && isCriterionLine(fixed)) {
+      // In the assessment-criteria section, LO title ends before the first P/M/D row.
       flush();
       continue;
     }

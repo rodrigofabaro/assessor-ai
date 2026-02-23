@@ -90,25 +90,95 @@ function sanitizePartText(text: string) {
   return cleanBlankRuns(next);
 }
 
+function stripStandaloneFalseEquationTokenLines(
+  text: string,
+  removableEqIds: Set<string>
+) {
+  if (!removableEqIds.size) return cleanBlankRuns(normalizeText(text));
+  const lines = normalizeText(text).split("\n");
+  const kept: string[] = [];
+  for (const line of lines) {
+    const trimmed = String(line || "").trim();
+    const m = trimmed.match(/^\[\[EQ:([^\]]+)\]\]$/);
+    if (m && removableEqIds.has(String(m[1] || ""))) continue;
+    kept.push(line);
+  }
+  return cleanBlankRuns(kept.join("\n"));
+}
+
+function collectReferencedEquationIdsFromBriefLike(value: any) {
+  const ids = new Set<string>();
+  const scan = (src: unknown) => {
+    const text = String(src || "");
+    const re = /\[\[EQ:([^\]]+)\]\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      if (m[1]) ids.add(String(m[1]));
+    }
+  };
+  const scenarios = Array.isArray(value?.scenarios) ? value.scenarios : [];
+  for (const s of scenarios) scan(s?.text);
+  const tasks = Array.isArray(value?.tasks) ? value.tasks : [];
+  for (const t of tasks) {
+    scan(t?.text);
+    scan(t?.prompt);
+    scan(t?.scenarioText);
+    if (Array.isArray(t?.parts)) for (const p of t.parts) scan(p?.text);
+  }
+  return ids;
+}
+
 export function sanitizeBriefDraftArtifacts(draft: any) {
   if (!draft || typeof draft !== "object" || Array.isArray(draft)) return draft;
   if (String(draft?.kind || "").toUpperCase() !== "BRIEF") return draft;
 
   const tasks = Array.isArray(draft.tasks) ? draft.tasks : [];
+  const scenarios = Array.isArray(draft.scenarios) ? draft.scenarios : [];
+  const equations = Array.isArray(draft.equations) ? draft.equations : [];
+
+  const removableEqIds = new Set<string>();
+  for (const eq of equations) {
+    const id = String(eq?.id || "");
+    if (!id) continue;
+    const latex = String(eq?.latex || "").trim();
+    const confidence = Number(eq?.confidence);
+    const needsReview = eq?.needsReview === true;
+    if (!latex && needsReview && Number.isFinite(confidence) && confidence <= 0.25) {
+      removableEqIds.add(id);
+    }
+  }
+
   const nextTasks = tasks.map((task: any) => {
     if (!task || typeof task !== "object") return task;
     const nextTask = { ...task };
-    if (typeof nextTask.text === "string") nextTask.text = sanitizePartText(nextTask.text);
-    if (typeof nextTask.prompt === "string") nextTask.prompt = sanitizePartText(nextTask.prompt);
+    if (typeof nextTask.text === "string") {
+      nextTask.text = stripStandaloneFalseEquationTokenLines(sanitizePartText(nextTask.text), removableEqIds);
+    }
+    if (typeof nextTask.prompt === "string") {
+      nextTask.prompt = stripStandaloneFalseEquationTokenLines(sanitizePartText(nextTask.prompt), removableEqIds);
+    }
+    if (typeof nextTask.scenarioText === "string") {
+      nextTask.scenarioText = stripStandaloneFalseEquationTokenLines(nextTask.scenarioText, removableEqIds);
+    }
     if (Array.isArray(nextTask.parts)) {
       nextTask.parts = nextTask.parts.map((part: any) => {
         if (!part || typeof part !== "object") return part;
         if (typeof part.text !== "string") return part;
-        return { ...part, text: sanitizePartText(part.text) };
+        return { ...part, text: stripStandaloneFalseEquationTokenLines(sanitizePartText(part.text), removableEqIds) };
       });
     }
     return nextTask;
   });
 
-  return { ...draft, tasks: nextTasks };
+  const nextScenarios = scenarios.map((s: any) => {
+    if (!s || typeof s !== "object") return s;
+    if (typeof s.text !== "string") return s;
+    return { ...s, text: stripStandaloneFalseEquationTokenLines(s.text, removableEqIds) };
+  });
+
+  const draftLike = { ...draft, tasks: nextTasks, scenarios: nextScenarios };
+  const referencedIds = collectReferencedEquationIdsFromBriefLike(draftLike);
+  const nextEquations = equations.filter((eq: any) => referencedIds.has(String(eq?.id || "")));
+
+  return { ...draftLike, equations: nextEquations };
 }

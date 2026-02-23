@@ -34,17 +34,18 @@ function codeNumber(acCode: string) {
 }
 
 function sortCriteriaPearson(a: any, b: any) {
-  const ac = String(a?.acCode || "");
-  const bc = String(b?.acCode || "");
+  const ac = String(a?.acCode || a?.code || "");
+  const bc = String(b?.acCode || b?.code || "");
   return bandRankFromCode(ac) - bandRankFromCode(bc) || codeNumber(ac) - codeNumber(bc) || ac.localeCompare(bc);
 }
 
 function groupCriteria(criteria: any[]) {
   const sorted = [...(criteria || [])].sort(sortCriteriaPearson);
-  const pass = sorted.filter((c) => String(c?.acCode || "").toUpperCase().startsWith("P"));
-  const merit = sorted.filter((c) => String(c?.acCode || "").toUpperCase().startsWith("M"));
-  const dist = sorted.filter((c) => String(c?.acCode || "").toUpperCase().startsWith("D"));
-  const other = sorted.filter((c) => !/^[PMD]/i.test(String(c?.acCode || "")));
+  const codeOf = (c: any) => String(c?.acCode || c?.code || "");
+  const pass = sorted.filter((c) => codeOf(c).toUpperCase().startsWith("P"));
+  const merit = sorted.filter((c) => codeOf(c).toUpperCase().startsWith("M"));
+  const dist = sorted.filter((c) => codeOf(c).toUpperCase().startsWith("D"));
+  const other = sorted.filter((c) => !/^[PMD]/i.test(codeOf(c)));
   return { pass, merit, dist, other };
 }
 
@@ -93,9 +94,9 @@ function CriteriaColumn({
       <div className="p-3 grid gap-2">
         {items.length ? (
           items.map((c) => (
-            <div key={c.id || c.acCode} className="rounded-xl border border-zinc-200 bg-white/80 p-3 shadow-sm">
+            <div key={c.id || c.acCode || c.code} className="rounded-xl border border-zinc-200 bg-white/80 p-3 shadow-sm">
               <div className="flex items-start justify-between gap-2">
-                <div className="text-sm font-semibold text-zinc-900">{c.acCode}</div>
+                <div className="text-sm font-semibold text-zinc-900">{c.acCode || c.code}</div>
                 {c.gradeBand ? (
                   <span
                     className={
@@ -154,8 +155,8 @@ export function LoCriteriaGrid({ learningOutcomes }: { learningOutcomes: any[] }
                   <div className="text-xs font-semibold uppercase tracking-wide text-amber-900">Other criteria detected</div>
                   <div className="mt-2 grid gap-2">
                     {other.map((c: any) => (
-                      <div key={c.id || c.acCode} className="rounded-xl border border-amber-200 bg-white p-3">
-                        <div className="text-sm font-semibold text-amber-900">{c.acCode || "—"}</div>
+                      <div key={c.id || c.acCode || c.code} className="rounded-xl border border-amber-200 bg-white p-3">
+                        <div className="text-sm font-semibold text-amber-900">{c.acCode || c.code || "—"}</div>
                         <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
                           {stripEquationTokens(c.description)}
                         </div>

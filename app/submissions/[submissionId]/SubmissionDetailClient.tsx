@@ -174,6 +174,21 @@ function safeDate(s?: string | null) {
   return d.toLocaleString();
 }
 
+function normalizeUnitCodeForMatch(value?: string | null) {
+  const raw = String(value || "").trim();
+  const m = raw.match(/\b(\d{1,4})\b/);
+  return m?.[1] || "";
+}
+
+function normalizeAssignmentRefForMatch(value?: string | null) {
+  const raw = String(value || "").trim().toUpperCase();
+  if (!raw) return "";
+  const a = raw.match(/\bA\s*([1-9]\d?)\b/i);
+  if (a) return `A${a[1]}`;
+  const n = raw.match(/\b([1-9]\d?)\b/);
+  return n ? `A${n[1]}` : raw.replace(/\s+/g, "");
+}
+
 function normalizeRequirementSection(section?: string) {
   const s = String(section || "").trim();
   if (!s || s.toLowerCase() === "task") return "Task";
@@ -754,6 +769,41 @@ export default function SubmissionDetailPage() {
   useEffect(() => {
     setSelectedAssignmentId(String(submission?.assignment?.id || ""));
   }, [submission?.assignment?.id]);
+
+  useEffect(() => {
+    if (submission?.assignment?.id) return;
+    if (!assignmentOptions.length) return;
+
+    // Keep explicit user selection if it's still a valid option.
+    if (selectedAssignmentId && assignmentOptions.some((opt) => opt.id === selectedAssignmentId)) return;
+
+    const unitCandidate =
+      normalizeUnitCodeForMatch(coverUnitCode) ||
+      normalizeUnitCodeForMatch(triageInfo?.unitCode) ||
+      normalizeUnitCodeForMatch(coverMeta?.unitCode?.value);
+    const assignmentCandidate =
+      normalizeAssignmentRefForMatch(coverAssignmentCode) ||
+      normalizeAssignmentRefForMatch(triageInfo?.assignmentRef) ||
+      normalizeAssignmentRefForMatch(coverMeta?.assignmentCode?.value);
+
+    if (!unitCandidate || !assignmentCandidate) return;
+
+    const match = assignmentOptions.find(
+      (opt) =>
+        normalizeUnitCodeForMatch(opt.unitCode) === unitCandidate &&
+        normalizeAssignmentRefForMatch(opt.assignmentRef) === assignmentCandidate
+    );
+    if (match) setSelectedAssignmentId(match.id);
+  }, [
+    submission?.assignment?.id,
+    assignmentOptions,
+    selectedAssignmentId,
+    coverUnitCode,
+    coverAssignmentCode,
+    triageInfo?.unitCode,
+    triageInfo?.assignmentRef,
+    coverMeta,
+  ]);
 
   useEffect(() => {
     if (!submissionId) return;

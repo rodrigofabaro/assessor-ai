@@ -49,18 +49,20 @@ export function parseIssueLabel(text: string): string {
 }
 
 /**
- * Resolve the 4-digit unit code.
+ * Resolve the unit code (supports Pearson "Unit 44" and legacy "Unit 4017").
  * Attempts: (1) from text patterns, (2) from fallback doc title/filename.
  */
 export function parseUnitCode(text: string, docTitleFallback: string): string {
   const t = text || "";
 
-  // Common: "Unit 4014" somewhere in header
-  const a = firstMatch(t, /\bUnit\s+(\d{4})\b/i);
+  // Common: "Unit 44" / "Unit 4014" somewhere in header (prefer earliest match in text)
+  const a = firstMatch(t, /\bUnit\s+(\d{1,4})\b/i);
   if (a) return String(a).replace(/\D/g, "").slice(0, 4);
 
-  // Sometimes the filename/title has the 4-digit code
+  // Sometimes the filename/title has "Unit 44" or just a 4-digit code
   const fb = docTitleFallback || "";
+  const b1 = firstMatch(fb, /\bUnit\s+(\d{1,4})\b/i);
+  if (b1) return String(b1).replace(/\D/g, "").slice(0, 4);
   const b = firstMatch(fb, /\b(\d{4})\b/);
   if (b) return String(b).replace(/\D/g, "").slice(0, 4);
 
@@ -73,7 +75,7 @@ export function parseUnitCode(text: string, docTitleFallback: string): string {
  */
 export function parsePearsonUnitCode(text: string): string {
   const t = text || "";
-  const code = firstMatch(t, /\bUnit\s+(\d{4})\b/i);
+  const code = firstMatch(t, /\bUnit\s+(\d{1,4})\b/i);
   return normalizeWhitespace(code || "");
 }
 
@@ -125,7 +127,7 @@ export function parseMetaNumber(text: string, label: string | RegExp): number | 
 }
 
 /**
- * Extract a reliable unit title line(s) near the "Unit XXXX" header.
+ * Extract a reliable unit title line(s) near the "Unit XX/XXXX" header.
  */
 export function parseUnitTitle(text: string, docTitleFallback: string): string {
   const t = text || "";
@@ -133,7 +135,7 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
 
   // Use the same unit code logic you already trust
   const code = parseUnitCode(t, docTitleFallback);
-  const codeRe = code ? new RegExp(`\\bUnit\\s+${code}\\b`, "i") : /\bUnit\s+\d{4}\b/i;
+  const codeRe = code ? new RegExp(`\\bUnit\\s+${code}\\b`, "i") : /\bUnit\s+\d{1,4}\b/i;
 
   // Stop markers: once we hit these, we’ve left the header/title area
   const stopRe =
@@ -176,6 +178,6 @@ export function parseUnitTitle(text: string, docTitleFallback: string): string {
   }
 
   // Fallback: classic single-line pattern
-  const m = firstMatch(t, /Unit\s+\d{4}\s*[-–—:]\s*([^\n]+)/i);
+  const m = firstMatch(t, /Unit\s+\d{1,4}\s*[-–—:]\s*([^\n]+)/i);
   return normalizeWhitespace(m || "");
 }

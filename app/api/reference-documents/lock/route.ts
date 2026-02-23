@@ -388,6 +388,40 @@ export async function POST(req: Request) {
         });
       }
 
+      // Ensure there is an Assignment row for submissions linking UI / triage.
+      // Some units use short codes like "44", so create/find by exact Unit + AssignmentRef.
+      const existingAssignment = await prisma.assignment.findFirst({
+        where: { unitCode: unit.unitCode, assignmentRef: assignmentCode },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      if (existingAssignment) {
+        await prisma.assignment.update({
+          where: { id: existingAssignment.id },
+          data: {
+            title,
+            isPlaceholder: false,
+            assignmentBriefId: briefRec.id,
+            bindingStatus: "BOUND",
+            bindingLockedAt: now,
+            bindingLockedBy: lockedBy || null,
+          },
+        });
+      } else {
+        await prisma.assignment.create({
+          data: {
+            unitCode: unit.unitCode,
+            assignmentRef: assignmentCode,
+            title,
+            isPlaceholder: false,
+            assignmentBriefId: briefRec.id,
+            bindingStatus: "BOUND",
+            bindingLockedAt: now,
+            bindingLockedBy: lockedBy || null,
+          },
+        });
+      }
+
       const updatedDoc = await prisma.referenceDocument.update({
         where: { id: doc.id },
         data: {

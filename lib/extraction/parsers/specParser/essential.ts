@@ -49,12 +49,44 @@ function sliceEssentialRegion(lines: string[]): string[] {
 }
 
 function isJunkLine(l: string) {
-  return /^(Unit Descriptors|Issue\s+\d+|©\s*Pearson|Pearson Education|Page\s+\d+)/i.test(l);
+  return /^(Unit Descriptors|Issue\s+\d+|©\s*Pearson|Pearson Education|Pearson BTEC|Page\s+\d+)/i.test(l);
 }
 
 function isCriterionLine(l: string) {
   // P8, P 8, M5, D4 etc (criteria should NOT appear in essential content)
   return /^\s*[PMD]\s*\d{1,2}\b/i.test(l);
+}
+
+function stripFooterTail(l: string) {
+  let s = normalizeWhitespace(l);
+  if (!s) return "";
+  const markers = [
+    /\bPearson\s+BTEC\b/i,
+    /\bHigher\s+Nationals?\b/i,
+    /\bLearning\s+Outcomes?\s+(?:&|and)?\s*Assessment\s*Criteria\b/i,
+    /\bPass\s+Merit\s+Distinction\b/i,
+    /\bIssue\s+\d+\b/i,
+    /©\s*Pearson/i,
+    /\bPearson\s+Education\b/i,
+  ];
+  let cutAt = -1;
+  for (const rx of markers) {
+    const m = s.match(rx);
+    if (m && typeof m.index === "number") {
+      if (cutAt === -1 || m.index < cutAt) cutAt = m.index;
+    }
+  }
+  if (cutAt > 0) s = s.slice(0, cutAt).trim();
+  return s;
+}
+
+function cleanEssentialFinal(s: string) {
+  return normalizeWhitespace(
+    stripFooterTail(s || "")
+      .replace(/\bLearning\s*Outcomes?\s*(?:&|and)?\s*Assessment\s*Criteria\b\s*$/i, "")
+      .replace(/\bSpecification\s*[-–—:]?\s*$/i, "")
+      .replace(/\bPass\s+Merit\s+Distinction\b\s*$/i, "")
+  );
 }
 
 /**
@@ -74,7 +106,7 @@ export function extractEssentialContentByLO(fullText: string, loCodes: string[])
       parts = [];
       return;
     }
-    const txt = cleanTrailingPageNumber(normalizeWhitespace(parts.join(" ")));
+    const txt = cleanTrailingPageNumber(cleanEssentialFinal(parts.join(" ")));
     if (txt) {
       // cap to keep DB + UI tidy; adjust if you want more
       out[currentLO] = txt.slice(0, 2000);
@@ -102,7 +134,7 @@ export function extractEssentialContentByLO(fullText: string, loCodes: string[])
         currentLO = lo;
 
         // If there is trailing text on same line after LOx, treat it as content (often a subheading)
-        const trailing = normalizeWhitespace(l.replace(new RegExp(`^\\s*${lo}\\b[:\\-–]?\\s*`, "i"), ""));
+        const trailing = stripFooterTail(normalizeWhitespace(l.replace(new RegExp(`^\\s*${lo}\\b[:\\-–]?\\s*`, "i"), "")));
         if (trailing && !isCriterionLine(trailing)) parts.push(trailing);
         continue;
       }
@@ -112,11 +144,12 @@ export function extractEssentialContentByLO(fullText: string, loCodes: string[])
     if (!currentLO) continue;
 
     // Defensive stop if another major heading sneaks in
-    if (/^(Recommended Resources|Journals|Links|This unit links to|Learning Outcomes and Assessment Criteria)\b/i.test(l)) {
+    if (/^(Recommended Resources|Journals|Links|This unit links to|Learning Outcomes (?:and|&) Assessment Criteria)\b/i.test(l)) {
       break;
     }
 
-    parts.push(l);
+    const clean = stripFooterTail(l);
+    if (clean) parts.push(clean);
   }
 
   flush();
