@@ -127,7 +127,7 @@ export const TONES: Record<NoteToneKey, ToneProfile> = {
     description: "Clear, concise, evidence-focused. Minimal warmth.",
     style: { maxSentences: 4, useContractions: false, emoji: "none", bulletStyle: "dash" },
     phrases: {
-      openers: ["Feedback summary linked to the assessment criteria:", "Assessment summary (criteria-referenced):"],
+      openers: ["Assessment summary:", "Criteria-referenced summary:"],
       praise: ["Work demonstrates correct methodology where shown.", "There is clear evidence in parts of the submission."],
       evidenceLeadIns: ["Evidence observed:"],
       gapLeadIns: ["Gaps preventing a higher band:"],
@@ -326,4 +326,3 @@ export function resolveToneProfileFromLegacy(gradingTone: unknown): ToneProfile 
   const mapped = LEGACY_GRADING_TONE_TO_NOTE_TONE[key] || DEFAULT_NOTE_TONE_KEY;
   return resolveToneProfile(mapped);
 }
-

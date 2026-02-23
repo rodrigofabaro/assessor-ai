@@ -417,6 +417,254 @@ function containsBlankContentClaim(value: unknown) {
   );
 }
 
+const FEEDBACK_DEDUP_STOPWORDS = new Set([
+  "the",
+  "and",
+  "with",
+  "this",
+  "that",
+  "your",
+  "their",
+  "there",
+  "for",
+  "from",
+  "into",
+  "over",
+  "under",
+  "across",
+  "about",
+  "have",
+  "has",
+  "had",
+  "was",
+  "were",
+  "are",
+  "is",
+  "been",
+  "being",
+  "also",
+  "very",
+  "more",
+  "most",
+  "some",
+  "good",
+  "clear",
+  "well",
+  "submission",
+  "work",
+  "student",
+  "criteria",
+  "criterion",
+  "assessment",
+  "evidence",
+  "page",
+  "pages",
+  "grade",
+  "final",
+  "outcome",
+  "reach",
+  "address",
+  "including",
+  "especially",
+  "required",
+]);
+
+function stripFeedbackLeadRepetition(value: unknown) {
+  let text = sanitizeStudentFeedbackLine(String(value || "").trim());
+  if (!text) return "";
+  text = text
+    .replace(/^\s*(?:feedback summary[^:]*|assessment summary \(criteria-referenced\)):\s*/i, "")
+    .replace(
+      /^\s*(?:outcome|decision|final grade)\s*:\s*(?:refer|pass(?:_on_resubmission)?|merit|distinction)\.?\s*/i,
+      ""
+    )
+    .replace(/^\s*(?:refer|pass(?:_on_resubmission)?|merit|distinction)\.?\s*/i, "")
+    .replace(/^\s*[-•]\s*/g, "")
+    .trim();
+  return text;
+}
+
+function feedbackThemeTokens(value: unknown) {
+  const text = stripFeedbackLeadRepetition(value)
+    .toLowerCase()
+    .replace(/\b[pmd]\d{1,2}\b/g, " ")
+    .replace(/\b(?:to\s+reach|gap\s+to\s+address|priority\s+improvements?)\b/gi, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return [] as string[];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const token of text.split(" ")) {
+    if (!token) continue;
+    if (token.length <= 2) continue;
+    if (/^\d+$/.test(token)) continue;
+    if (FEEDBACK_DEDUP_STOPWORDS.has(token)) continue;
+    if (seen.has(token)) continue;
+    seen.add(token);
+    out.push(token);
+    if (out.length >= 24) break;
+  }
+  return out;
+}
+
+function feedbackTokenOverlapScore(a: string[], b: string[]) {
+  if (!a.length || !b.length) return 0;
+  const bSet = new Set(b);
+  let hit = 0;
+  for (const token of a) {
+    if (bSet.has(token)) hit += 1;
+  }
+  return hit / Math.max(1, Math.min(a.length, b.length));
+}
+
+function dedupeFeedbackBullets(input: { bullets: string[]; summary: string; max: number }) {
+  const out: string[] = [];
+  const seenExact = new Set<string>();
+  const keptTokenSets: string[][] = [];
+  const summaryTokens = feedbackThemeTokens(input.summary);
+  const summaryCompact = stripFeedbackLeadRepetition(input.summary).toLowerCase();
+
+  for (const raw of Array.isArray(input.bullets) ? input.bullets : []) {
+    const line = sanitizeStudentFeedbackLine(raw);
+    if (!line) continue;
+    if (/^final grade\s*:/i.test(line)) continue;
+
+    const exactKey = line.toLowerCase();
+    if (seenExact.has(exactKey)) continue;
+
+    const lineCompact = stripFeedbackLeadRepetition(line).toLowerCase();
+    const lineTokens = feedbackThemeTokens(line);
+    const hasPageRef = /\bpages?\s*\d+(?:\s*[-–]\s*\d+)?\b/i.test(line) || /\bp\.\s*\d+\b/i.test(line);
+
+    if (
+      lineTokens.length >= 6 &&
+      summaryTokens.length >= 6 &&
+      (feedbackTokenOverlapScore(lineTokens, summaryTokens) >= 0.8 ||
+        (lineCompact.length >= 40 && summaryCompact.includes(lineCompact)))
+    ) {
+      if (hasPageRef) {
+        // Keep evidence-trace bullets even if the theme overlaps with the summary.
+      } else {
+        continue;
+      }
+    }
+
+    let duplicateTheme = false;
+    if (lineTokens.length >= 5 && !hasPageRef) {
+      for (const kept of keptTokenSets) {
+        if (feedbackTokenOverlapScore(lineTokens, kept) >= 0.85) {
+          duplicateTheme = true;
+          break;
+        }
+      }
+    }
+    if (duplicateTheme) continue;
+
+    seenExact.add(exactKey);
+    out.push(line);
+    if (lineTokens.length) keptTokenSets.push(lineTokens);
+    if (out.length >= Math.max(1, input.max)) break;
+  }
+
+  return out;
+}
+
+function splitFeedbackSentences(value: string) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function stripLeadingStudentAddress(summary: string, firstName?: string | null) {
+  let s = String(summary || "").trim();
+  const name = String(firstName || "").trim();
+  if (!s) return "";
+  s = s.replace(/^\s*hello\s+[A-Za-z][A-Za-z' -]{0,40},?\s*/i, "");
+  if (name) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    s = s.replace(new RegExp(`^\\s*${escaped}\\s*,\\s*`, "i"), "");
+  }
+  return s.trim();
+}
+
+function humanizeSummarySentence(sentence: string) {
+  let s = sanitizeStudentFeedbackLine(sentence).replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  s = s
+    .replace(/^The submission provides\b/i, "Your submission provides")
+    .replace(/^The submission demonstrates\b/i, "Your submission demonstrates")
+    .replace(/^The submission shows\b/i, "Your submission shows")
+    .replace(/^The submission examines\b/i, "Your submission examines")
+    .replace(/^The submission explores\b/i, "Your submission explores")
+    .replace(/^The submission includes\b/i, "Your submission includes")
+    .replace(/^The submission presents\b/i, "Your submission presents")
+    .replace(/^The analysis extends to assessing\b/i, "You also analyse")
+    .replace(/^The analysis extends to\b/i, "You also extend your analysis to")
+    .replace(/^The analysis\b/i, "Your analysis")
+    .replace(/^It also examines\b/i, "You also examine")
+    .replace(/^It also explores\b/i, "You also explore")
+    .replace(/^It also includes\b/i, "You also include")
+    .replace(/^It also demonstrates\b/i, "You also demonstrate")
+    .replace(/^It also assesses\b/i, "You also assess")
+    .replace(/^The submission is well[- ]referenced\b/i, "Your work is well referenced")
+    .replace(/\bthe submission is well[- ]referenced\b/i, "your work is well referenced")
+    .replace(/\bThe submission\b/g, "Your submission")
+    .replace(/\bthe submission\b/g, "your submission")
+    .replace(/\bfulfilling the Pass criteria\b/i, "meeting the Pass criteria")
+    .replace(/\bsuitable for Merit\b/i, "at Merit level")
+    .replace(/\s+,/g, ",")
+    .trim();
+  return s;
+}
+
+function warmenFriendlyFeedbackSummary(input: { summary: string; overallGrade: string }) {
+  const gradeBand = normalizeGradeBand(input.overallGrade);
+  const cleaned = stripFeedbackLeadRepetition(input.summary);
+  if (!cleaned) return "Feedback provided below.";
+
+  const sentences = splitFeedbackSentences(cleaned).map(humanizeSummarySentence).filter(Boolean);
+  let merged = sentences.join(" ").replace(/\s+/g, " ").trim();
+  if (!merged) merged = cleaned;
+
+  const hasWarmLead = /\b(?:you have done well|you have shown|you demonstrate|you show|strong work|good understanding)\b/i.test(
+    merged
+  );
+  const hasDirectSecondPerson = /\b(?:you|your)\b/i.test(merged);
+
+  if (!hasDirectSecondPerson) {
+    merged = `You ${merged.charAt(0).toLowerCase()}${merged.slice(1)}`;
+  }
+
+  if (!hasWarmLead) {
+    if (gradeBand === "DISTINCTION") merged = `You have produced a strong piece of work here. ${merged}`;
+    else if (gradeBand === "MERIT") merged = `You have done well here and shown a good understanding overall. ${merged}`;
+    else if (gradeBand === "PASS" || gradeBand === "PASS_ON_RESUBMISSION")
+      merged = `You have made a solid start here. ${merged}`;
+    else merged = `You have made a start here. ${merged}`;
+  }
+
+  return sanitizeStudentFeedbackLine(merged.replace(/\s+/g, " ").trim()) || "Feedback provided below.";
+}
+
+function formatNextBandRequirementLine(targetBand: "PASS" | "MERIT" | "DISTINCTION", missingCodes: string[]) {
+  const codes = Array.isArray(missingCodes) ? missingCodes.map((c) => String(c || "").trim().toUpperCase()).filter(Boolean) : [];
+  if (!codes.length) return "";
+  if (codes.length === 1) {
+    return `To reach ${targetBand}, achieve ${codes[0]}.`;
+  }
+  if (targetBand === "DISTINCTION") {
+    return `To reach DISTINCTION, all Distinction criteria must be achieved, including: ${formatCriterionCodes(codes)}.`;
+  }
+  if (targetBand === "MERIT") {
+    return `To reach MERIT, all Merit criteria must be achieved, including: ${formatCriterionCodes(codes)}.`;
+  }
+  return `To achieve PASS, secure all Pass criteria, especially: ${formatCriterionCodes(codes)}.`;
+}
+
 function inferReadableSubmissionEvidence(input: {
   textCorpus: string;
   sampledPagesCount: number;
@@ -615,6 +863,33 @@ function applyBandCompletionCap(
   };
 }
 
+function gradeBandRank(value: unknown) {
+  const band = normalizeGradeBand(value);
+  if (band === "REFER") return 0;
+  if (band === "PASS_ON_RESUBMISSION") return 1;
+  if (band === "PASS") return 2;
+  if (band === "MERIT") return 3;
+  if (band === "DISTINCTION") return 4;
+  return 0;
+}
+
+function maxGradeBand(a: unknown, b: unknown) {
+  const aBand = normalizeGradeBand(a);
+  const bBand = normalizeGradeBand(b);
+  return gradeBandRank(bBand) > gradeBandRank(aBand) ? bBand : aBand;
+}
+
+function deriveGradeFromCriteriaCompletion(
+  criterionChecks: Array<{ code?: string; decision?: string }>,
+  criteria: Array<{ code?: string; band?: string }>
+) {
+  const cap = applyBandCompletionCap("DISTINCTION", criterionChecks, criteria);
+  if (cap.missing.pass.length > 0) return "REFER" as const;
+  if (cap.missing.merit.length > 0) return "PASS" as const;
+  if (cap.missing.distinction.length > 0) return "MERIT" as const;
+  return "DISTINCTION" as const;
+}
+
 function normalizeDecisionLabel(value: unknown): "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR" {
   const up = String(value || "").trim().toUpperCase();
   if (up === "ACHIEVED" || up === "NOT_ACHIEVED" || up === "UNCLEAR") return up;
@@ -785,6 +1060,71 @@ function extractCriterionRowsFromAssessmentResult(resultJson: any) {
   const fromStructured = Array.isArray(r?.structuredGradingV2?.criterionChecks) ? r.structuredGradingV2.criterionChecks : null;
   const rows = fromResponse || fromStructured || [];
   return Array.isArray(rows) ? rows : [];
+}
+
+function extractAssessorOverridesFromAssessmentResult(resultJson: any) {
+  const rows = Array.isArray(resultJson?.assessorCriterionOverrides) ? resultJson.assessorCriterionOverrides : [];
+  return rows
+    .map((row: any) => ({
+      code: String(row?.code || "").trim().toUpperCase(),
+      modelDecision: normalizeDecisionLabel(row?.modelDecision),
+      finalDecision: normalizeDecisionLabel(row?.finalDecision),
+      reasonCode: String(row?.reasonCode || "").trim().toUpperCase(),
+      note: normalizeText(row?.note),
+      updatedAt: String(row?.updatedAt || "").trim() || new Date().toISOString(),
+      updatedBy: String(row?.updatedBy || "").trim() || "Assessor",
+    }))
+    .filter(
+      (row: any) =>
+        /^[PMD]\d{1,2}$/.test(row.code) &&
+        row.finalDecision !== "UNCLEAR" &&
+        /^[A-Z_]+$/.test(row.reasonCode)
+    );
+}
+
+function applyCarriedAssessorOverridesToCriterionChecks(
+  criterionChecks: any[],
+  overrides: Array<{
+    code: string;
+    modelDecision: "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
+    finalDecision: "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
+    reasonCode: string;
+    note: string;
+    updatedAt: string;
+    updatedBy: string;
+  }>
+) {
+  const overrideMap = new Map(overrides.map((row) => [row.code, row]));
+  const appliedCodes: string[] = [];
+  const rows = (Array.isArray(criterionChecks) ? criterionChecks : []).map((raw) => {
+    const row = { ...(raw || {}) };
+    const code = String(row?.code || "").trim().toUpperCase();
+    const applied = overrideMap.get(code);
+    if (!applied) return row;
+    row.decision = applied.finalDecision;
+    row.assessorOverride = {
+      applied: true,
+      modelDecision: applied.modelDecision,
+      finalDecision: applied.finalDecision,
+      reasonCode: applied.reasonCode,
+      note: applied.note || null,
+      updatedAt: applied.updatedAt,
+      updatedBy: applied.updatedBy,
+      carriedForward: true,
+    };
+    appliedCodes.push(code);
+    return row;
+  });
+  const overrideRows = Array.from(new Set(appliedCodes))
+    .map((code) => overrideMap.get(code))
+    .filter(Boolean)
+    .sort((a: any, b: any) => String(a.code).localeCompare(String(b.code)));
+  return {
+    rows,
+    overrideRows,
+    appliedCount: overrideRows.length,
+    appliedCodes: overrideRows.map((row: any) => row.code),
+  };
 }
 
 function compareCriterionDecisionDiff(
@@ -1292,7 +1632,8 @@ function buildHigherGradeGapBullets(input: {
 
   if (finalGrade === "REFER") {
     if (missingPass.length) {
-      out.push(`To achieve PASS, secure all Pass criteria, especially: ${formatCriterionCodes(missingPass)}.`);
+      const line = formatNextBandRequirementLine("PASS", missingPass);
+      if (line) out.push(line);
       const reasons = missingReasonLine(missingPass);
       if (reasons) out.push(`Priority improvements: ${reasons}`);
     }
@@ -1301,18 +1642,21 @@ function buildHigherGradeGapBullets(input: {
 
   if (finalGrade === "PASS" || finalGrade === "PASS_ON_RESUBMISSION") {
     if (missingMerit.length) {
-      out.push(`To reach MERIT, all Merit criteria must be achieved, including: ${formatCriterionCodes(missingMerit)}.`);
+      const line = formatNextBandRequirementLine("MERIT", missingMerit);
+      if (line) out.push(line);
       const reasons = missingReasonLine(missingMerit);
       if (reasons) out.push(`Merit gap to address: ${reasons}`);
     } else if (rawGrade === "DISTINCTION" && missingDistinction.length) {
       // Edge-case: model overcalled distinction but policy reduced grade.
-      out.push(`To reach DISTINCTION, secure all Distinction criteria, including: ${formatCriterionCodes(missingDistinction)}.`);
+      const line = formatNextBandRequirementLine("DISTINCTION", missingDistinction);
+      if (line) out.push(line);
     }
     return out;
   }
 
   if (finalGrade === "MERIT" && missingDistinction.length) {
-    out.push(`To reach DISTINCTION, all Distinction criteria must be achieved, especially: ${formatCriterionCodes(missingDistinction)}.`);
+    const line = formatNextBandRequirementLine("DISTINCTION", missingDistinction);
+    if (line) out.push(line);
     const reasons = missingReasonLine(missingDistinction);
     if (reasons) out.push(`Distinction gap to address: ${reasons}`);
   }
@@ -1448,17 +1792,10 @@ function buildFriendlyFeedbackSummary(input: {
 }) {
   const unitCode = String(input.unitCode || "").trim();
   const assignmentCode = String(input.assignmentCode || "").trim().toUpperCase();
-  const gradeBand = normalizeGradeBand(input.overallGrade);
-  const toneProfile = input.noteToneProfile;
-  const opener = pickTonePhrase(
-    toneProfile.phrases.openers,
-    `${unitCode}|${assignmentCode}|${gradeBand}|opener`
-  );
-  const gradeHeadline = pickTonePhrase(
-    toneProfile.gradeLines[gradeBand].headline,
-    `${unitCode}|${assignmentCode}|${gradeBand}|headline`
-  );
-  const original = sanitizeStudentFeedbackLine(input.feedbackSummary) || "Feedback provided below.";
+  const original = warmenFriendlyFeedbackSummary({
+    summary: input.feedbackSummary,
+    overallGrade: input.overallGrade,
+  });
   const rows = Array.isArray(input.criterionChecks) ? input.criterionChecks : [];
   const decisionByCode = new Map<string, string>();
   for (const row of rows) {
@@ -1478,41 +1815,17 @@ function buildFriendlyFeedbackSummary(input: {
     const m3Achieved = decisionByCode.get("M3") === "ACHIEVED";
     const d2Achieved = decisionByCode.get("D2") === "ACHIEVED";
     if (!p6Achieved || !p7Achieved) {
-      return [
-        opener,
-        gradeHeadline,
-        "Pass-level evidence is incomplete. Strengthen the core sinusoidal and vector tasks with clear page-linked working.",
-      ]
-        .filter(Boolean)
-        .join(" ");
+      return "Pass-level evidence is incomplete. Strengthen the core sinusoidal and vector tasks with clear page-linked working.";
     }
     if (m3Achieved && d2Achieved) {
-      return [
-        opener,
-        gradeHeadline,
-        "Strong evidence across pass, merit, and distinction requirements. Your graphical and software-confirmation evidence supports the analytical results.",
-      ]
-        .filter(Boolean)
-        .join(" ");
+      return "Strong evidence across pass, merit, and distinction requirements. Your graphical and software-confirmation evidence supports the analytical results.";
     }
     if (m3Achieved && !d2Achieved) {
-      return [
-        opener,
-        gradeHeadline,
-        "Pass and Merit outcomes are evidenced. Distinction is currently blocked because D2 needs explicit software-to-calculation confirmation across at least three distinct problems.",
-      ]
-        .filter(Boolean)
-        .join(" ");
+      return "Pass and Merit outcomes are evidenced. Distinction is currently blocked because D2 needs explicit software-to-calculation confirmation across at least three distinct problems.";
     }
-    return [
-      opener,
-      gradeHeadline,
-      "Good start. Pass outcomes are evidenced in Tasks 1 to 3. To progress, strengthen Task 4 graphical/software confirmation evidence for higher bands.",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    return "Good start. Pass outcomes are evidenced in Tasks 1 to 3. To progress, strengthen Task 4 graphical/software confirmation evidence for higher bands.";
   }
-  return [opener, gradeHeadline, summary].filter(Boolean).join(" ");
+  return summary;
 }
 
 function buildAssignmentSpecificPromptRules(input: { unitCode: string; assignmentCode: string }) {
@@ -2284,6 +2597,12 @@ export async function POST(
     "- Do not mark a criterion as ACHIEVED if your rationale indicates missing/insufficient/unclear evidence.",
     "- If the brief requires tables/charts/images/equations, explicitly evaluate whether the submission includes them with usable evidence and reference that in evidence/comments.",
     "- Missing required charts/images/equations/tables must reduce criterion attainment and overall grade confidence.",
+    "- Write student-facing feedback in warm, human, professional UK English. Prefer direct second-person phrasing ('you' / 'your').",
+    "- Keep feedbackSummary concise (2-4 sentences) and do not repeat the grade label if already stated elsewhere.",
+    "- Do not repeat the same strength/gap in both feedbackSummary and feedbackBullets using near-identical wording.",
+    "- feedbackBullets should be distinct points (no duplicates or rephrasings of the same point).",
+    "- Include page references in feedbackBullets where possible (e.g. 'pages 2-4') so evidence is easy to verify.",
+    "- State the key higher-band gap once, clearly, instead of repeating it multiple times.",
     ...assignmentSpecificPromptRules,
     "",
     "Input routing strategy:",
@@ -2524,6 +2843,51 @@ export async function POST(
       decision,
     });
     decision = decisionGuard.decision;
+    const recentAssessments = await prisma.assessment.findMany({
+      where: { submissionId: submission.id },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: {
+        id: true,
+        createdAt: true,
+        overallGrade: true,
+        resultJson: true,
+      },
+    });
+    const previousAssessment = recentAssessments[0] || null;
+    const overrideSourceAssessment =
+      recentAssessments.find((row) => extractAssessorOverridesFromAssessmentResult((row?.resultJson as any) || {}).length > 0) ||
+      null;
+    let carriedOverrideRows: any[] = [];
+    let carriedOverrideSummary: {
+      appliedCount: number;
+      reasonCodes: string[];
+      changedCodes: string[];
+      lastUpdatedAt: string | null;
+      carriedFromAssessmentId: string | null;
+      carriedFromCreatedAt: string | null;
+    } | null = null;
+    if (overrideSourceAssessment) {
+      const sourceOverrides = extractAssessorOverridesFromAssessmentResult((overrideSourceAssessment.resultJson as any) || {});
+      const carried = applyCarriedAssessorOverridesToCriterionChecks(decision.criterionChecks as any[], sourceOverrides as any);
+      if (carried.appliedCount > 0) {
+        decision = {
+          ...decision,
+          criterionChecks: carried.rows as any,
+        };
+        carriedOverrideRows = carried.overrideRows as any[];
+        carriedOverrideSummary = {
+          appliedCount: carried.appliedCount,
+          reasonCodes: Array.from(new Set(carried.overrideRows.map((r: any) => String(r.reasonCode || ""))))
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b)),
+          changedCodes: carried.appliedCodes,
+          lastUpdatedAt: String(carried.overrideRows[carried.overrideRows.length - 1]?.updatedAt || "") || null,
+          carriedFromAssessmentId: overrideSourceAssessment.id,
+          carriedFromCreatedAt: overrideSourceAssessment.createdAt?.toISOString?.() || null,
+        };
+      }
+    }
     const achievedWithoutEvidence = decision.criterionChecks.find(
       (row) => row.decision === "ACHIEVED" && (!Array.isArray(row.evidence) || row.evidence.length === 0)
     );
@@ -2542,8 +2906,16 @@ export async function POST(
       });
     }
 
+    const criteriaCompletionGrade = deriveGradeFromCriteriaCompletion(
+      decision.criterionChecks as any,
+      criteria as any
+    );
+    const rawGradeForBandCap =
+      carriedOverrideRows.length > 0
+        ? maxGradeBand(decision.overallGradeWord, criteriaCompletionGrade)
+        : decision.overallGradeWord;
     const bandCapPolicy = applyBandCompletionCap(
-      decision.overallGradeWord,
+      rawGradeForBandCap,
       decision.criterionChecks as any,
       criteria as any
     );
@@ -2591,7 +2963,11 @@ export async function POST(
       bandCapWasCapped: bandCapPolicy.wasCapped,
     });
     const finalConfidence = confidenceResult.finalConfidence;
-    const feedbackSummaryRaw = personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
+    const templateLooksLikeItGreetsStudent =
+      /\{studentFirstName\}|\{studentFullName\}|(?:^|\n)\s*hello\b/i.test(String(feedbackTemplate || ""));
+    const feedbackSummaryRaw = templateLooksLikeItGreetsStudent
+      ? stripLeadingStudentAddress(String(decision.feedbackSummary || ""), studentFirstName)
+      : personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
     const feedbackSummary = buildFriendlyFeedbackSummary({
       unitCode: String(brief.unit?.unitCode || ""),
       assignmentCode: String(brief.assignmentCode || ""),
@@ -2621,14 +2997,19 @@ export async function POST(
       readableEvidenceLikely,
       noteToneProfile,
     });
-    const feedbackBullets = Array.from(
-      new Set(
-        [...baseFeedbackBullets, ...higherGradeGapBullets, ...criterionSpecificFeedbackBullets]
-          .map((line) => sanitizeStudentFeedbackLine(line))
-          .filter(Boolean)
-      )
-    ).slice(0, Math.max(1, cfg.maxFeedbackBullets));
+    const feedbackBullets = dedupeFeedbackBullets({
+      bullets: [...baseFeedbackBullets, ...higherGradeGapBullets, ...criterionSpecificFeedbackBullets]
+        .map((line) => sanitizeStudentFeedbackLine(line))
+        .filter(Boolean),
+      summary: feedbackSummary,
+      max: Math.max(1, cfg.maxFeedbackBullets),
+    });
     const systemNotes: string[] = [];
+    if (carriedOverrideSummary && carriedOverrideSummary.appliedCount > 0) {
+      systemNotes.push(
+        `Carried forward ${carriedOverrideSummary.appliedCount} assessor override(s) from prior assessment ${carriedOverrideSummary.carriedFromAssessmentId} (${carriedOverrideSummary.changedCodes.join(", ")}).`
+      );
+    }
     if (criteriaScopePolicy) {
       systemNotes.push(
         `Criteria scope policy applied (${criteriaScopePolicy.policyCode}): grading constrained to ${criteriaScopePolicy.allowedCriteriaCodes.join(", ")}.`
@@ -2762,16 +3143,6 @@ export async function POST(
         })
       : [];
 
-    const previousAssessment = await prisma.assessment.findFirst({
-      where: { submissionId: submission.id },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        createdAt: true,
-        overallGrade: true,
-        resultJson: true,
-      },
-    });
     const previousSnapshot = (previousAssessment?.resultJson as any)?.referenceContextSnapshot || null;
     const previousCriterionChecks = extractCriterionRowsFromAssessmentResult((previousAssessment?.resultJson as any) || {});
     const decisionDiff = compareCriterionDecisionDiff(previousCriterionChecks, decision.criterionChecks as any[]);
@@ -2994,6 +3365,8 @@ export async function POST(
             signals: confidenceResult.signals,
             wasCapped: confidenceResult.wasCapped,
           },
+          assessorCriterionOverrides: carriedOverrideRows,
+          assessorOverrideSummary: carriedOverrideSummary,
           structuredGradingV2,
           response: responseWithPolicy,
           usage,
