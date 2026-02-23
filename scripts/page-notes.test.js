@@ -53,6 +53,7 @@ function assert(condition, message) {
 
 function run() {
   const { buildPageNotesFromCriterionChecks } = loadTsModule("lib/grading/pageNotes.ts");
+  const { criterionAllowedInResolvedSection } = loadTsModule("lib/grading/pageNoteSectionMaps.ts");
   const rows = [
     {
       code: "P6",
@@ -82,18 +83,11 @@ function run() {
     handwritingLikely: true,
   });
   assert(supportive.length === 2, "maxPages should limit output");
-  const note = supportive[0]?.lines || [];
-  assert(note.length >= 6, "note should include strength, gap, actions and band-impact lines");
-  assert(note.some((line) => /^Strength:/i.test(line)), "note should include Strength line");
-  assert(note.some((line) => /^Gap:/i.test(line)), "note should include Gap line");
-  assert(note.filter((line) => /^-\s/.test(line)).length >= 2, "note should include at least two action bullets");
+  const note = supportive[0] || { lines: [], items: [] };
+  assert((note.lines || []).length >= 2, "note should include useful lines");
   assert(
-    note.some((line) => /This supports:\s*[PMD]\d{1,2}\.?/i.test(line) || /D2 is not fully evidenced yet/i.test(line)),
-    "note should include band-impact line"
-  );
-  assert(
-    note.some((line) => /word-processed document/i.test(line)),
-    "handwriting hint should appear when handwritingLikely is true"
+    (note.lines || []).some((line) => /(strength|improvement|link|presentation|supports|helps evidence)/i.test(line)),
+    "note should include human note content"
   );
 
   const strictNoCode = buildPageNotesFromCriterionChecks(rows, {
@@ -105,9 +99,79 @@ function run() {
   const firstBlock = strictNoCode[0]?.lines || [];
   assert(!firstBlock.some((line) => /^Criterion:/i.test(line)), "should remove criterion header when flag disabled");
   assert(
-    strictNoCode.some((p) => p.lines.some((l) => /Strength:|Gap:/i.test(l))),
-    "structured lines should be present in strict tone"
+    strictNoCode.some((p) => p.lines.some((l) => /(Strength:|Improvement:|This supports:)/i.test(l))),
+    "structured note lines should be present in strict tone"
   );
+
+  const unit4Rows = [
+    {
+      code: "D1",
+      decision: "NOT_ACHIEVED",
+      rationale: "Financial planning is described but the evidence link to the criterion is not explicit.",
+      evidence: [{ page: 7, quote: "Financial planning budget and cash flow section" }],
+    },
+    {
+      code: "M2",
+      decision: "ACHIEVED",
+      rationale: "Risk register and mitigation tracking are shown.",
+      evidence: [{ page: 9, quote: "Risk register with probability and impact matrix" }],
+    },
+  ];
+  const unit4Notes = buildPageNotesFromCriterionChecks(unit4Rows, {
+    tone: "supportive",
+    maxPages: 10,
+    maxLinesPerPage: 10,
+    includeCriterionCode: true,
+    context: {
+      unitCode: "4004",
+      assignmentCode: "A1",
+      assignmentTitle: "Managing a Professional Engineering Project",
+      criteriaSet: ["D1", "M2"],
+    },
+  });
+  const banned = /\b(solar|pv|wind|hydro|lcoe|renewable|converter|smart grid|simulink)\b/i;
+  for (const noteBlock of unit4Notes) {
+    const joined = (Array.isArray(noteBlock.items) ? noteBlock.items.map((i) => i.text) : noteBlock.lines).join(" ");
+    assert(!banned.test(joined), "Unit 4 note should not contain energy-unit template leakage");
+    assert(
+      criterionAllowedInResolvedSection({
+        code: noteBlock.criterionCode,
+        sectionId: noteBlock.sectionId,
+        context: { unitCode: "4004", assignmentCode: "A1" },
+      }),
+      "note should not be attached to a disallowed section for its criterion"
+    );
+  }
+  const itemCounts = unit4Notes.map((n) => (Array.isArray(n.items) ? n.items.length : n.lines.length));
+  assert(new Set(itemCounts).size >= 2, "note item count should vary (not forced to one fixed structure)");
+  assert(itemCounts.some((c) => c <= 3), "some notes should be short (2-3 items)");
+
+  // Cross-submission guard (not only Unit 4): generic D1 wording may mention renewable systems,
+  // but for non-energy contexts it should be replaced with a safe note.
+  const nonEnergyNotes = buildPageNotesFromCriterionChecks(
+    [
+      {
+        code: "D1",
+        decision: "NOT_ACHIEVED",
+        rationale: "Critical evaluation is limited and the evidence link is weak.",
+        evidence: [{ page: 5, quote: "Financial planning and milestone review section" }],
+      },
+    ],
+    {
+      tone: "supportive",
+      maxPages: 5,
+      maxLinesPerPage: 10,
+      includeCriterionCode: true,
+      context: {
+        unitCode: "5000",
+        assignmentCode: "A1",
+        assignmentTitle: "Project Planning Report",
+        criteriaSet: ["D1"],
+      },
+    }
+  );
+  const nonEnergyJoined = nonEnergyNotes.flatMap((n) => (Array.isArray(n.items) ? n.items.map((i) => i.text) : n.lines)).join(" ");
+  assert(!/\brenewable\b/i.test(nonEnergyJoined), "global note guard should block out-of-context renewable wording");
 
   console.log("page notes tests passed.");
 }

@@ -177,7 +177,15 @@ export default function AdminBriefsPage() {
           />
         ) : null}
 
-        {vm.tab === "extract" ? <BriefExtractWorkbench rx={rx} onResetFilters={onResetFilters} /> : null}
+        {vm.tab === "extract" ? (
+          <BriefExtractWorkbench
+            rx={rx}
+            onResetFilters={onResetFilters}
+            onLockSuccess={async () => {
+              await vm.refresh();
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

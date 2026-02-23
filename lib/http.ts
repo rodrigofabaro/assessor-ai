@@ -12,7 +12,9 @@ function safeSnippet(text: string, limit = 1200) {
   return `${trimmed.slice(0, limit)}…`;
 }
 
-export async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> {
+type JsonFetchInit = RequestInit & { suppressErrorToast?: boolean };
+
+export async function jsonFetch<T>(url: string, opts?: JsonFetchInit): Promise<T> {
   const res = await fetch(url, opts);
   const rawText = await res.text().catch(() => "");
   const contentType = res.headers.get("content-type") || "";
@@ -45,7 +47,7 @@ export async function jsonFetch<T>(url: string, opts?: RequestInit): Promise<T> 
       const detail = safeSnippet(rawText);
       message = `[${res.status}] ${url}${detail ? ` — ${detail}` : ""}`;
     }
-    if (isMutation(opts?.method)) {
+    if (isMutation(opts?.method) && !opts?.suppressErrorToast) {
       notifyToast("error", message);
     }
     throw new Error(message);

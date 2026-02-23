@@ -2021,13 +2021,22 @@ export function extractBrief(
   };
   const rebuildTaskTextFromParts = (task: any) => {
     if (!Array.isArray(task.parts) || !task.parts.length) return;
+    const originalText = String(task?.text || "");
+    const firstPartIdx = originalText.search(
+      /(?:^|\n)\s*(?:PART\s+\d+\b|[a-z]\)\s+|\d+\s*[\.\)]\s+)/i
+    );
+    const preamble =
+      firstPartIdx > 0
+        ? originalText.slice(0, firstPartIdx).trim()
+        : "";
     const rebuilt = task.parts
       .map((p: any, idx: number) => `PART ${idx + 1}\n${String(p?.text || "").trim()}`)
       .join("\n")
       .trim();
     if (rebuilt) {
-      task.text = rebuilt;
-      task.prompt = rebuilt;
+      const merged = [preamble, rebuilt].filter(Boolean).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      task.text = merged;
+      task.prompt = merged;
     }
   };
   const collectTaskEqIds = (task: any) => {

@@ -3140,6 +3140,12 @@ export async function POST(
           includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
           totalPages: submissionPageCount,
           handwritingLikely,
+          context: {
+            unitCode: String(brief.unit?.unitCode || ""),
+            assignmentCode: String(brief.assignmentCode || ""),
+            assignmentTitle: String(brief.title || ""),
+            criteriaSet: criteriaCodes,
+          },
         })
       : [];
 

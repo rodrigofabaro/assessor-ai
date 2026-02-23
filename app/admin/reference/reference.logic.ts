@@ -460,11 +460,17 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     // Brief: preselect mapping (best-effort)
     if (selectedDoc.type === "BRIEF" && draft?.kind === "BRIEF") {
-      setAssignmentCodeInput((draft.assignmentCode || "").toString());
+      if (switchedDoc) {
+        setAssignmentCodeInput((draft.assignmentCode || "").toString());
+      }
 
-      const unitGuess: string | undefined = draft.unitCodeGuess;
-      const unit = unitGuess ? units.find((u) => u.unitCode === unitGuess) : null;
-      setBriefUnitId(unit?.id || "");
+      const headerUnitMatch = String(draft?.header?.unitNumberAndTitle || "").match(/\bUnit\s*(\d{1,4})\b/i);
+      const unitGuess: string | undefined = String(draft.unitCodeGuess || headerUnitMatch?.[1] || "").trim() || undefined;
+      const unit = unitGuess ? units.find((u) => String(u.unitCode || "") === unitGuess) : null;
+      const selectedUnitStillExists = !!briefUnitId && units.some((u) => u.id === briefUnitId);
+      if (switchedDoc || !selectedUnitStillExists) {
+        setBriefUnitId(unit?.id || "");
+      }
 
       const codes: string[] = (draft.detectedCriterionCodes || []).map((x: string) => x.toUpperCase());
 
@@ -475,7 +481,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       }
       setMapSelected(sel);
     }
-  }, [selectedDoc, units, allCriteria, rawJsonDirty, rawJsonDocId]);
+  }, [selectedDoc, units, allCriteria, rawJsonDirty, rawJsonDocId, briefUnitId]);
 
   function updateRawJson(next: string) {
     setRawJson(next);
@@ -707,6 +713,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setBusy("Extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
+        suppressErrorToast: true,
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: false }),
@@ -721,6 +728,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         );
         if (ok) {
           const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
+            suppressErrorToast: true,
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: true }),
@@ -734,7 +742,19 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       await refreshAll({ keepSelection: true });
       notifyToast("success", "Extraction complete.");
     } catch (e: any) {
-      setError(e?.message || "Extract failed");
+      const message = String(e?.message || "Extract failed");
+      const isLockedExtract =
+        message.includes("/api/reference-documents/extract") &&
+        (message.includes("REFERENCE_LOCKED") || message.startsWith("[423]"));
+      if (isLockedExtract) {
+        await refreshAll({ keepSelection: true });
+        const friendly = "This document is already locked. Refreshed the page data.";
+        setError(friendly);
+        notifyToast("warn", friendly);
+        return;
+      }
+      setError(message);
+      notifyToast("error", message);
     } finally {
       setBusy(null);
     }
@@ -764,6 +784,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setBusy(taskNumbers.length ? `Re-extracting tasks ${taskNumbers.join(", ")}...` : "Re-extracting...");
     try {
       const res = await jsonFetch<any>("/api/reference-documents/extract", {
+        suppressErrorToast: true,
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -784,6 +805,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         );
         if (ok) {
           const cleanupRes = await jsonFetch<any>("/api/reference-documents/extract", {
+            suppressErrorToast: true,
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -813,7 +835,19 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
           : "Re-extraction complete."
       );
     } catch (e: any) {
-      setError(e?.message || "Re-extract failed");
+      const message = String(e?.message || "Re-extract failed");
+      const isLockedExtract =
+        message.includes("/api/reference-documents/extract") &&
+        (message.includes("REFERENCE_LOCKED") || message.startsWith("[423]"));
+      if (isLockedExtract) {
+        await refreshAll({ keepSelection: true });
+        const friendly = "This document is locked. Use force re-extract, or refresh if the status just changed.";
+        setError(friendly);
+        notifyToast("warn", friendly);
+        return;
+      }
+      setError(message);
+      notifyToast("error", message);
     } finally {
       setBusy(null);
     }

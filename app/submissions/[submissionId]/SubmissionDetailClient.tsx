@@ -375,8 +375,31 @@ export default function SubmissionDetailPage() {
   }, [selectedAssessment]);
   const pageFeedbackMap = useMemo(() => {
     const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
-    return buildPageNotesFromCriterionChecks(rows, { maxPages: 20, maxLinesPerPage: 8 });
-  }, [structuredGrading]);
+    return buildPageNotesFromCriterionChecks(rows, {
+      maxPages: 20,
+      maxLinesPerPage: 8,
+      context: {
+        unitCode: submission?.assignment?.unitCode || (selectedAssessment as any)?.resultJson?.referenceContextSnapshot?.unit?.unitCode || "",
+        assignmentCode:
+          submission?.assignment?.assignmentRef ||
+          (selectedAssessment as any)?.resultJson?.referenceContextSnapshot?.assignmentBrief?.assignmentCode ||
+          "",
+        assignmentTitle:
+          submission?.assignment?.title || (selectedAssessment as any)?.resultJson?.referenceContextSnapshot?.assignmentBrief?.title || "",
+        criteriaSet: rows.map((r: any) => String(r?.code || "").trim().toUpperCase()).filter(Boolean),
+      },
+    });
+  }, [structuredGrading, submission, selectedAssessment]);
+  const pageFeedbackBySection = useMemo(() => {
+    const groups = new Map<string, { key: string; label: string; notes: typeof pageFeedbackMap }>();
+    for (const note of pageFeedbackMap) {
+      const label = String(note.sectionLabel || "General");
+      const key = String(note.sectionId || "general");
+      if (!groups.has(key)) groups.set(key, { key, label, notes: [] as any });
+      groups.get(key)!.notes.push(note);
+    }
+    return Array.from(groups.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [pageFeedbackMap]);
   const notePages = useMemo(() => pageFeedbackMap.map((p) => p.page).filter((n) => Number.isInteger(n) && n > 0), [pageFeedbackMap]);
   const selectedAssessmentDiff = useMemo(() => {
     const idx = gradingHistory.findIndex((a) => a.id === selectedAssessment?.id);
@@ -3132,14 +3155,28 @@ export default function SubmissionDetailPage() {
                     Page Feedback Map ({pageFeedbackMap.length} pages)
                   </summary>
                   <div className="mt-3 space-y-2">
-                    {pageFeedbackMap.map((p) => (
-                      <div key={`pf-${p.page}`} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
-                        <div className="text-[11px] font-semibold text-zinc-800">Page {p.page}</div>
-                        <ul className="mt-1 list-disc pl-4 text-xs text-zinc-700">
-                          {p.lines.map((line, i) => (
-                            <li key={`pfl-${p.page}-${i}`}>{line}</li>
+                    {pageFeedbackBySection.map((group) => (
+                      <div key={`pf-group-${group.key}`} className="rounded-lg border border-zinc-200 bg-white p-2">
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-600">{group.label}</div>
+                        <div className="space-y-2">
+                          {group.notes.map((p) => (
+                            <div key={`pf-${group.key}-${p.page}-${p.criterionCode || "x"}`} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-zinc-800">
+                                <span>Page {p.page}</span>
+                                {p.criterionCode ? (
+                                  <span className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] text-zinc-700">
+                                    {p.criterionCode}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <ul className="mt-1 list-disc pl-4 text-xs text-zinc-700">
+                                {(Array.isArray(p.items) && p.items.length ? p.items.map((it) => it.text) : p.lines).map((line, i) => (
+                                  <li key={`pfl-${group.key}-${p.page}-${i}`}>{line}</li>
+                                ))}
+                              </ul>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     ))}
                   </div>

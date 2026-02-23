@@ -101,6 +101,33 @@ function applyBandCompletionCap(
   };
 }
 
+function gradeBandRank(value: unknown) {
+  const band = normalizeGradeBand(value);
+  if (band === "REFER") return 0;
+  if (band === "PASS_ON_RESUBMISSION") return 1;
+  if (band === "PASS") return 2;
+  if (band === "MERIT") return 3;
+  if (band === "DISTINCTION") return 4;
+  return 0;
+}
+
+function maxGradeBand(a: unknown, b: unknown) {
+  const aBand = normalizeGradeBand(a);
+  const bBand = normalizeGradeBand(b);
+  return gradeBandRank(bBand) > gradeBandRank(aBand) ? bBand : aBand;
+}
+
+function deriveGradeFromCriteriaCompletion(
+  criterionChecks: Array<{ code?: string; decision?: string }>,
+  criteria: Array<{ code?: string; band?: string }>
+) {
+  const cap = applyBandCompletionCap("DISTINCTION", criterionChecks, criteria);
+  if (cap.missing.pass.length > 0) return "REFER" as const;
+  if (cap.missing.merit.length > 0) return "PASS" as const;
+  if (cap.missing.distinction.length > 0) return "MERIT" as const;
+  return "DISTINCTION" as const;
+}
+
 function applyResubmissionCap(
   rawGradeInput: unknown,
   resubmissionRequired: boolean,
@@ -264,17 +291,25 @@ export async function PATCH(
       return next;
     });
 
+    const overrideRows = Array.from(overrideMap.values()).sort((a, b) => a.code.localeCompare(b.code));
     const rawGradeFromResult =
       resultJson?.gradePolicy?.rawOverallGrade ||
       resultJson?.response?.rawOverallGradeWord ||
       resultJson?.response?.overallGradeWord ||
       assessment.overallGrade ||
       "REFER";
+    const criteriaCompletionGrade = criteriaWithBand.length
+      ? deriveGradeFromCriteriaCompletion(effectiveCriterionChecks as any, criteriaWithBand as any)
+      : normalizeGradeBand(rawGradeFromResult);
+    const rawGradeForBandCap =
+      overrideRows.length > 0
+        ? maxGradeBand(rawGradeFromResult, criteriaCompletionGrade)
+        : rawGradeFromResult;
     const bandCap = criteriaWithBand.length
-      ? applyBandCompletionCap(rawGradeFromResult, effectiveCriterionChecks as any, criteriaWithBand as any)
+      ? applyBandCompletionCap(rawGradeForBandCap, effectiveCriterionChecks as any, criteriaWithBand as any)
       : {
-          rawGrade: normalizeGradeBand(rawGradeFromResult),
-          finalGrade: normalizeGradeBand(rawGradeFromResult),
+          rawGrade: normalizeGradeBand(rawGradeForBandCap),
+          finalGrade: normalizeGradeBand(rawGradeForBandCap),
           wasCapped: false,
           capReason: null,
           missing: { pass: [], merit: [], distinction: [] },
@@ -290,7 +325,6 @@ export async function PATCH(
         : ["1", "true", "yes", "on"].includes(String(process.env.GRADE_RESUBMISSION_CAP_ENABLED || "false").toLowerCase());
     const gradePolicy = applyResubmissionCap(bandCap.finalGrade, resubmissionRequired, resubCapEnabled);
     const finalOverallGrade = gradePolicy.finalGrade;
-    const overrideRows = Array.from(overrideMap.values()).sort((a, b) => a.code.localeCompare(b.code));
     const overrideSummary = {
       appliedCount: overrideRows.length,
       reasonCodes: Array.from(new Set(overrideRows.map((r) => r.reasonCode))).sort((a, b) => a.localeCompare(b)),
@@ -349,6 +383,12 @@ export async function PATCH(
           tone: gradingCfg.pageNotesTone,
           includeCriterionCode: gradingCfg.studentSafeMarkedPdf ? false : gradingCfg.pageNotesIncludeCriterionCode,
           totalPages: submissionPageCount,
+          context: {
+            unitCode: String(resultJson?.referenceContextSnapshot?.unit?.unitCode || ""),
+            assignmentCode: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.assignmentCode || ""),
+            assignmentTitle: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.title || ""),
+            criteriaSet: criteriaWithBand.map((c: any) => String(c?.code || "").trim().toUpperCase()).filter(Boolean),
+          },
         })
       : [];
 

@@ -130,7 +130,10 @@ function extractSignalsFromText(textRaw: string) {
     joined.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() ||
     null;
 
-  const unitCode = joined.match(/\b(\d{1,4})\b/)?.[1] || null;
+  const unitCode =
+    joined.match(/\bunit\s*[:.\-]?\s*(\d{1,4})\b/i)?.[1] ||
+    joined.match(/\bU\s*(\d{1,4})\b/i)?.[1] ||
+    null;
 
   const aMatch = joined.match(/\b(?:Assignment|A)\s*([1-9]\d?)\b/i);
   const assignmentRef = aMatch ? `A${aMatch[1]}` : null;
@@ -213,16 +216,22 @@ function extractSignalsFromFilename(filename: string) {
 
 function extractSignalsFromCoverMetadata(sourceMeta: any) {
   const cover = sourceMeta?.coverMetadata || {};
-  const unitCodeRaw = String(cover?.unitCode?.value || "").trim();
-  const assignmentRaw = String(cover?.assignmentCode?.value || "").trim();
-  const studentNameRaw = String(cover?.studentName?.value || "").trim();
+  const unitField = cover?.unitCode || {};
+  const assignmentField = cover?.assignmentCode || {};
+  const studentNameField = cover?.studentName || {};
+  const unitCodeRaw = String(unitField?.value || "").trim();
+  const assignmentRaw = String(assignmentField?.value || "").trim();
+  const studentNameRaw = String(studentNameField?.value || "").trim();
 
   const unitCode = unitCodeRaw.match(/\b(\d{1,4})\b/)?.[1] || null;
   const assignmentMatch = assignmentRaw.match(/\bA\s*([1-9]\d?)\b/i) || assignmentRaw.match(/\b([1-9]\d?)\b/);
   const assignmentRef = assignmentMatch ? `A${assignmentMatch[1]}` : null;
   const studentName = studentNameRaw ? norm(studentNameRaw) : null;
+  const unitCodeManual = /\bmanual override\b/i.test(String(unitField?.snippet || ""));
+  const assignmentRefManual = /\bmanual override\b/i.test(String(assignmentField?.snippet || ""));
+  const studentNameManual = /\bmanual override\b/i.test(String(studentNameField?.snippet || ""));
 
-  return { unitCode, assignmentRef, studentName };
+  return { unitCode, assignmentRef, studentName, unitCodeManual, assignmentRefManual, studentNameManual };
 }
 
 /**
@@ -268,8 +277,16 @@ export async function POST(
   const hasCoverSignals = !!(fromCover.unitCode || fromCover.assignmentRef || fromCover.studentName);
 
   // Resolution hierarchy
-  const unitCode = fromText.unitCode || fromCover.unitCode || fromFile.unitCode;
-  const assignmentRef = fromText.assignmentRef || fromCover.assignmentRef || fromFile.assignmentRef;
+  const unitCode =
+    (fromCover.unitCodeManual ? fromCover.unitCode : null) ||
+    fromText.unitCode ||
+    fromCover.unitCode ||
+    fromFile.unitCode;
+  const assignmentRef =
+    (fromCover.assignmentRefManual ? fromCover.assignmentRef : null) ||
+    fromText.assignmentRef ||
+    fromCover.assignmentRef ||
+    fromFile.assignmentRef;
 
   const email = fromText.email;
 
@@ -350,15 +367,60 @@ export async function POST(
   // Resolve / create Assignment in a transaction with submission update.
   // Guard: never overwrite an assignment that is already linked on upload/manual flow.
   let resolvedAssignmentId: string | null = existing.assignmentId || null;
+  const manualCoverAssignmentOverride = Boolean(fromCover.unitCodeManual || fromCover.assignmentRefManual);
 
   const result = await prisma.$transaction(async (tx) => {
     if (existing.assignmentId) {
-      if (
-        unitCode &&
-        assignmentRef &&
-        (existing.assignment?.unitCode !== unitCode ||
-          existing.assignment?.assignmentRef !== assignmentRef)
-      ) {
+      const mismatch =
+        !!unitCode &&
+        !!assignmentRef &&
+        (existing.assignment?.unitCode !== unitCode || existing.assignment?.assignmentRef !== assignmentRef);
+
+      if (mismatch && existing.assignment?.isPlaceholder && manualCoverAssignmentOverride) {
+        const found = await tx.assignment.findFirst({
+          where: { unitCode, assignmentRef },
+          select: { id: true, isPlaceholder: true },
+        });
+
+        if (found) {
+          resolvedAssignmentId = found.id;
+          warnings.push(
+            `Updated assignment link from placeholder ${existing.assignment?.unitCode || "?"} ${existing.assignment?.assignmentRef || "?"} to ${unitCode} ${assignmentRef} using manual cover metadata.`
+          );
+        } else {
+          const unitExists = await tx.unit.findFirst({
+            where: { unitCode },
+            select: { id: true },
+          });
+          if (!unitExists) {
+            warnings.push(
+              `Manual cover metadata indicates ${unitCode} ${assignmentRef}, but Unit ${unitCode} is not in the library yet; assignment link was not auto-created.`
+            );
+          } else {
+            const placeholder = await tx.assignment.create({
+              data: {
+                unitCode,
+                assignmentRef,
+                title: `Auto-Generated: ${unitCode} ${assignmentRef}`,
+                isPlaceholder: true,
+                triageConfidence: 0.75,
+                triageSignals: {
+                  from: "triage-manual-cover",
+                  unitCode,
+                  assignmentRef,
+                  email,
+                  studentName: studentNameDetected ? norm(studentNameDetected) : null,
+                  nameSource,
+                },
+                createdFromFilename: existing.filename,
+              },
+              select: { id: true },
+            });
+            resolvedAssignmentId = placeholder.id;
+            warnings.push(`Created assignment placeholder for ${unitCode} ${assignmentRef} from manual cover metadata.`);
+          }
+        }
+      } else if (mismatch) {
         warnings.push(
           `Detected ${unitCode} ${assignmentRef} from submission signals, but kept existing linked assignment ${existing.assignment?.unitCode || "?"} ${existing.assignment?.assignmentRef || "?"}.`
         );
@@ -372,6 +434,33 @@ export async function POST(
       if (found) {
         resolvedAssignmentId = found.id;
       } else {
+        const unitExists = await tx.unit.findFirst({
+          where: { unitCode },
+          select: { id: true },
+        });
+        if (!unitExists) {
+          warnings.push(
+            `Detected ${unitCode} ${assignmentRef}, but Unit ${unitCode} is not in the library yet; no placeholder assignment was created.`
+          );
+          resolvedAssignmentId = null;
+          return tx.submission.update({
+            where: { id: submissionId },
+            data: {
+              studentId: resolvedStudentId || undefined,
+              assignmentId: resolvedAssignmentId || undefined,
+              studentLinkedAt: resolvedStudentId ? new Date() : undefined,
+              studentLinkedBy: resolvedStudentId ? "triage-auto" : undefined,
+            },
+            include: {
+              student: true,
+              assignment: true,
+              extractionRuns: {
+                orderBy: { startedAt: "desc" },
+                include: { pages: { orderBy: { pageNumber: "asc" } } },
+              },
+            },
+          });
+        }
         const placeholder = await tx.assignment.create({
           data: {
             unitCode,

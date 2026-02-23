@@ -1,3 +1,11 @@
+import {
+  criterionAllowedInResolvedSection,
+  resolvePageNoteBannedKeywords,
+  resolvePageNoteSectionForCriterion,
+  type PageNoteGenerationContext,
+  type PageNoteItemKind,
+} from "@/lib/grading/pageNoteSectionMaps";
+
 type EvidenceLike = {
   page?: number | null;
   quote?: string | null;
@@ -18,12 +26,35 @@ type PageCriterionEntry = {
   decision: "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
   rationale: string;
   context: string;
+  page: number;
 };
 
 export type MarkedPageNote = {
   page: number;
   lines: string[];
+  items?: Array<{ kind: PageNoteItemKind; text: string }>;
+  criterionCode?: string;
+  sectionId?: string | null;
+  sectionLabel?: string | null;
 };
+
+type PageNoteItem = { kind: PageNoteItemKind; text: string };
+
+const GLOBAL_TEMPLATE_LEAK_TERMS = [
+  "solar",
+  "pv",
+  "wind",
+  "hydro",
+  "geothermal",
+  "renewable",
+  "lcoe",
+  "converter",
+  "power converter",
+  "smart grid",
+  "simulink",
+  "matlab",
+  "energy efficiency",
+];
 
 type PageNoteTone = "supportive" | "professional" | "strict";
 
@@ -248,7 +279,7 @@ function actionLines(entry: PageCriterionEntry): string[] {
   const code = entry.code;
   if (code === "D1") {
     return [
-      "Choose one system (for example wind or solar PV) and evaluate it using criteria such as efficiency, reliability, cost, output variability, and maintenance.",
+      "Choose one clear focus example and evaluate it using relevant performance criteria and trade-offs.",
       "Add one sentence that states your judgement clearly and explains why the evidence supports D1.",
       "A comparison table or labelled diagram could strengthen the evaluation and make your reasoning easier to follow.",
     ];
@@ -342,48 +373,170 @@ function softenSupportiveActionLine(value: string) {
   return s;
 }
 
-function buildStructuredNoteLines(input: {
+function shouldIncludeLinkItem(entry: PageCriterionEntry) {
+  const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+  if (!corpus) return true;
+  if (/\bbecause\b|\btherefore\b|\bthis (shows|demonstrates|supports|meets)\b/i.test(corpus)) return false;
+  if (/\bcriterion\b|\brequirement\b|\bmeets?\s+[pmd]\d{1,2}\b/i.test(corpus)) return false;
+  return true;
+}
+
+function formatItemTextForTone(kind: PageNoteItemKind, value: string, style: PageNoteStyleProfile) {
+  let text = String(value || "").trim();
+  if (!text) return "";
+  if (kind === "strength" && style.softenStrengthLine) text = softenSupportiveStrengthLine(text);
+  if (kind === "improvement" && style.softenGapLine) text = softenSupportiveGapLine(text);
+  if ((kind === "link" || kind === "presentation") && style.softenActionLines) text = softenSupportiveActionLine(text);
+  if (kind === "supports" && style.softenCriterionLink) {
+    text = text
+      .replace(/^This supports\s+/i, "This helps evidence ")
+      .replace(/^This is why\s+/i, "This is why ")
+      .replace(/\.$/, "");
+  }
+  return text;
+}
+
+function safeFallbackNoteItem(input: { kind: PageNoteItemKind; code: string }) {
+  const code = String(input.code || "CRITERION").toUpperCase();
+  if (input.kind === "strength") return "Strength: Your evidence is relevant to this requirement.";
+  if (input.kind === "improvement") {
+    return "Improvement: Clarify the evidence link and add one short verification line after your final result.";
+  }
+  if (input.kind === "link") return "Link: Add one sentence that explicitly connects your evidence to the criterion.";
+  if (input.kind === "presentation")
+    return "Presentation: Label the final result, table, or figure you are using so it is easy to verify.";
+  return `This supports: ${code}.`;
+}
+
+function applyTemplateGuardToNoteItems(
+  items: PageNoteItem[],
+  entry: PageCriterionEntry,
+  context?: PageNoteGenerationContext
+) {
+  const explicitBanned = resolvePageNoteBannedKeywords(context);
+  const sourceCorpus = sanitizeStudentNoteText(
+    `${entry.context} ${entry.rationale} ${String(context?.assignmentTitle || "")} ${String(context?.unitCode || "")} ${String(context?.assignmentCode || "")}`
+  ).toLowerCase();
+  const allBanned = Array.from(new Set([...explicitBanned, ...GLOBAL_TEMPLATE_LEAK_TERMS]));
+  if (!allBanned.length) return items;
+  const warned: string[] = [];
+
+  const next = items.map((item) => {
+    const text = String(item?.text || "");
+    if (!text) return item;
+    const textLower = text.toLowerCase();
+    const hit = allBanned.find((kw) => {
+      const k = String(kw || "").toLowerCase();
+      if (!k || !textLower.includes(k)) return false;
+      // Allow domain terms only when the student's own evidence/rationale/context uses them.
+      return !sourceCorpus.includes(k);
+    });
+    if (!hit) return item;
+    warned.push(`${item.kind}:${hit}`);
+    return {
+      ...item,
+      text: safeFallbackNoteItem({ kind: item.kind, code: entry.code }),
+    };
+  });
+
+  if (warned.length && process.env.NODE_ENV !== "production") {
+    console.warn(
+      `[pageNotes] template guard replaced contaminated note text for ${entry.code} on page ${entry.page}: ${warned.join(", ")}`
+    );
+  }
+  return next;
+}
+
+function buildStructuredNoteItems(input: {
   entry: PageCriterionEntry;
   includeCode: boolean;
   handwritingLikely: boolean;
   tone: PageNoteTone;
+  maxLinesPerPage: number;
+  context?: PageNoteGenerationContext;
 }) {
-  const { entry, includeCode, handwritingLikely, tone } = input;
+  const { entry, includeCode, handwritingLikely, tone, maxLinesPerPage, context } = input;
+  const style = resolvePageNoteStyle(tone);
+  const items: PageNoteItem[] = [];
+
+  const strength = strengthLine(entry);
+  const improvement = gapLine(entry);
+  const actions = actionLines(entry);
+  const visualLine = visualPresentationLine(entry) || visualDevelopmentSuggestionLine(entry);
+  const criterionLink = bandImpactLine(entry);
+
+  // Flexible structure: include only relevant items; do not force a fixed 5-line template.
+  if (entry.decision === "ACHIEVED") {
+    items.push({ kind: "strength", text: strength });
+    items.push({ kind: "improvement", text: improvement });
+  } else {
+    items.push({ kind: "improvement", text: improvement });
+    if (/good start here/i.test(strength) || entry.decision === "UNCLEAR") {
+      items.unshift({ kind: "strength", text: strength });
+    }
+  }
+
+  if (shouldIncludeLinkItem(entry)) {
+    const explicitLinkAction =
+      actions.find((line) => /^link:/i.test(String(line || ""))) ||
+      "Link: Add one sentence that explicitly connects your evidence to the criterion.";
+    items.push({ kind: "link", text: explicitLinkAction });
+  }
+
+  if (visualLine) {
+    items.push({ kind: "presentation", text: visualLine });
+  } else if (handwritingLikely) {
+    items.push({ kind: "presentation", text: style.handwritingTip });
+  } else if (entry.decision !== "ACHIEVED") {
+    const presentationAction =
+      actions.find((line) => /^presentation:/i.test(String(line || ""))) ||
+      "Presentation: Label the final result so the method used is easy to verify.";
+    items.push({ kind: "presentation", text: presentationAction });
+  }
+
+  const addSupports =
+    includeCode &&
+    entry.code !== "CRITERION" &&
+    (tone !== "supportive" || entry.decision !== "ACHIEVED" || shouldIncludeLinkItem(entry));
+  if (addSupports) {
+    items.push({ kind: "supports", text: criterionLink });
+  }
+
+  const guarded = applyTemplateGuardToNoteItems(items, entry, context);
+  const deduped: PageNoteItem[] = [];
+  const seen = new Set<string>();
+  for (const item of guarded) {
+    const key = `${item.kind}:${sanitizeStudentNoteText(item.text).toLowerCase()}`;
+    if (!item.text || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+    if (deduped.length >= Math.max(1, Math.min(8, maxLinesPerPage))) break;
+  }
+  if (!deduped.length) {
+    deduped.push({ kind: "improvement", text: safeFallbackNoteItem({ kind: "improvement", code: entry.code }) });
+  }
+
+  return deduped.map((item) => ({
+    ...item,
+    text: formatItemTextForTone(item.kind, item.text, style),
+  }));
+}
+
+function formatStructuredNoteLines(input: {
+  entry: PageCriterionEntry;
+  items: PageNoteItem[];
+  includeCode: boolean;
+  tone: PageNoteTone;
+}) {
+  const { entry, items, includeCode, tone } = input;
   const style = resolvePageNoteStyle(tone);
   const lines: string[] = [];
   if (includeCode && entry.code !== "CRITERION" && style.focusLabel) {
     lines.push(compactLine(`${style.focusLabel}: ${entry.code}`, 80));
   }
-  let strength = strengthLine(entry);
-  if (style.softenStrengthLine) {
-    strength = softenSupportiveStrengthLine(strength);
+  for (const item of items) {
+    lines.push(compactLine(toSentence(item.text), 195));
   }
-  lines.push(compactLine(toSentence(strength), 185));
-  let gap = gapLine(entry);
-  if (style.softenGapLine) {
-    gap = softenSupportiveGapLine(gap);
-  }
-  lines.push(compactLine(toSentence(gap), 195));
-  const actions = actionLines(entry).slice(0, style.maxActionLines);
-  for (const action of actions) {
-    const line = style.softenActionLines ? softenSupportiveActionLine(action) : action;
-    lines.push(compactLine(toSentence(line), 195));
-  }
-  const visualLine = visualPresentationLine(entry) || visualDevelopmentSuggestionLine(entry);
-  if (visualLine) {
-    lines.push(compactLine(toSentence(visualLine), 195));
-  }
-  if (handwritingLikely) {
-    lines.push(compactLine(style.handwritingTip, 195));
-  }
-  let criterionLink = bandImpactLine(entry);
-  if (style.softenCriterionLink) {
-    criterionLink = criterionLink
-      .replace(/^This supports\s+/i, "This helps evidence ")
-      .replace(/^This is why\s+/i, "This is why ")
-      .replace(/\.$/, "");
-  }
-  lines.push(compactLine(toSentence(criterionLink), 165));
   return lines.filter(Boolean);
 }
 
@@ -402,7 +555,7 @@ function collectPageEntries(rows: CriterionCheckLike[], minPage: number) {
       const pageMap = byPage.get(page)!;
       const existing = pageMap.get(code);
       if (!existing) {
-        pageMap.set(code, { code, decision, rationale, context });
+        pageMap.set(code, { code, decision, rationale, context, page });
         continue;
       }
       // Keep the strictest decision for this page/code and enrich rationale/context.
@@ -411,6 +564,7 @@ function collectPageEntries(rows: CriterionCheckLike[], minPage: number) {
       }
       if (!existing.rationale && rationale) existing.rationale = rationale;
       if (!existing.context && context) existing.context = context;
+      existing.page = page;
       pageMap.set(code, existing);
     }
   }
@@ -444,6 +598,7 @@ export function buildPageNotesFromCriterionChecks(
     minPage?: number;
     totalPages?: number;
     handwritingLikely?: boolean;
+    context?: PageNoteGenerationContext;
   }
 ): MarkedPageNote[] {
   const configuredMaxPages = Math.max(1, Math.min(20, Number(options?.maxPages || 6)));
@@ -461,6 +616,7 @@ export function buildPageNotesFromCriterionChecks(
   const includeCode = options?.includeCriterionCode !== false;
   const tone = (String(options?.tone || "supportive").toLowerCase() as PageNoteTone);
   const handwritingLikely = Boolean(options?.handwritingLikely);
+  const generationContext = options?.context || null;
   const rowsNormalized = Array.isArray(rows) ? rows : [];
   const sourceRows = rowsNormalized.filter((row) =>
     (Array.isArray(row?.evidence) ? row.evidence : []).some((e) => Number(e?.page || 0) > 0)
@@ -500,13 +656,39 @@ export function buildPageNotesFromCriterionChecks(
       const entries = Array.from(byPage.get(page)?.values() || []);
       const primary = selectPrimaryEntry(entries);
       if (!primary) return { page, lines: [] };
-      const lines = buildStructuredNoteLines({
+      const sectionMatch = resolvePageNoteSectionForCriterion({
+        code: primary.code,
+        evidenceText: primary.context,
+        rationaleText: primary.rationale,
+        context: generationContext,
+      });
+      const sectionId = sectionMatch?.id || null;
+      const sectionLabel = sectionMatch?.label || null;
+      if (!criterionAllowedInResolvedSection({ code: primary.code, sectionId, context: generationContext })) {
+        return { page, lines: [] };
+      }
+      const items = buildStructuredNoteItems({
         entry: primary,
         includeCode,
         handwritingLikely,
         tone: tone === "professional" || tone === "strict" ? tone : "supportive",
+        maxLinesPerPage,
+        context: generationContext || undefined,
+      });
+      const lines = formatStructuredNoteLines({
+        entry: primary,
+        items,
+        includeCode,
+        tone: tone === "professional" || tone === "strict" ? tone : "supportive",
       }).slice(0, maxLinesPerPage);
-      return { page, lines };
+      return {
+        page,
+        lines,
+        items,
+        criterionCode: primary.code,
+        sectionId,
+        sectionLabel,
+      };
     })
     .filter((note) => note.lines.length > 0);
 }
