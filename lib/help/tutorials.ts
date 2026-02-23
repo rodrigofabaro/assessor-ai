@@ -179,7 +179,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         what: "Use Admin Settings to set model, policy, and release labels before running volume.",
         how: [
           "Confirm active audit user.",
-          "Set tone, strictness, rubric usage, and page-note behavior.",
+          "Set tone, strictness, rubric usage, and page-note behavior (notes may vary in length by criterion/page).",
           "Confirm global contradiction guard and confidence policy defaults.",
         ],
         why: "Stable defaults reduce run-to-run drift and simplify QA interpretation.",
@@ -209,12 +209,13 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         what: "Upload files, link student/assignment as needed, and confirm extraction readiness.",
         how: [
           "Upload batch in controlled size.",
-          "Resolve unlinked student or assignment rows first.",
+          "Resolve unlinked student or assignment rows first (cover metadata corrections can be re-triaged).",
           "Run extraction and verify quality signals before grading preview.",
         ],
         why: "Good intake quality lowers manual regrade and failed-run volume.",
         checks: [
           "Submission has student and assignment linked.",
+          "Cover metadata unit/assignment matches the intended brief (including short unit codes such as 43/44).",
           "Extraction gate is acceptable for preview.",
         ],
       },
@@ -256,12 +257,14 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         how: [
           "Set final decision, reason code, and optional note per criterion.",
           "Apply override and verify recomputed final grade.",
+          "After regrade, confirm the latest run still shows the override badge (latest saved overrides are carried forward).",
           "If needed, reset criterion back to model decision.",
         ],
         why: "Structured overrides preserve fairness and create data for hardening rules.",
         checks: [
           "Override badge is visible on changed criteria.",
           "Result stores override metadata (reason + actor + timestamp).",
+          "Latest regrade keeps saved overrides unless intentionally reset.",
         ],
       },
       {
@@ -289,7 +292,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
       {
         issue: "Assessor override applied but impact unclear",
         cause: "Override reason/note missing or run context not refreshed.",
-        fix: "Re-open latest run, confirm override badge, and inspect updated grade policy block.",
+        fix: "Re-open latest run, confirm override badge, and inspect updated grade policy block. Regrades now carry forward the latest saved overrides.",
       },
       {
         issue: "Frequent overrides cluster on same criteria",
@@ -523,7 +526,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         what: "Student, assignment, and extraction context must be correct.",
         how: [
           "Check link cards and extraction status.",
-          "Resolve mismatches before feedback edits.",
+          "Resolve mismatches before feedback edits (manual cover metadata updates can relink the assignment on re-triage).",
         ],
         why: "Feedback on wrong context creates incorrect learner outcomes.",
       },
@@ -532,7 +535,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         title: "Review criterion decisions and evidence",
         what: "Inspect criterion outcomes with page-level evidence.",
         how: [
-          "Open Criterion Decisions and Page Feedback Map.",
+          "Open Criterion Decisions and Page Feedback Map (section-grouped when mapping is available).",
           "Check evidence density and missing evidence warnings.",
         ],
         why: "Criterion-level traceability is the grading contract.",
@@ -553,6 +556,11 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         issue: "Confidence seems inconsistent",
         cause: "Caps/penalties applied from readiness, evidence, or policy.",
         fix: "Open Confidence Decomposition and inspect caps/penalties.",
+      },
+      {
+        issue: "Page notes feel disconnected from the evidence section",
+        cause: "Section mapping is unavailable for that unit, so notes fall back to page-level grouping.",
+        fix: "Use criterion evidence pages first, then Page Feedback Map groups. Add an explicit unit section map when repeated misplacement appears.",
       },
     ],
     screenshots: [
@@ -1442,7 +1450,7 @@ const UI_CONTROLS_BY_SLUG: Record<string, HelpUiControl[]> = {
       kind: "Field",
       label: "Page note editor",
       location: "Marked PDF feedback section",
-      meaning: "Page-specific constructive note to the learner.",
+      meaning: "Page-specific constructive note to the learner, showing only relevant note items and section grouping where mapping exists.",
       useWhen: "Evidence on page needs coaching or correction guidance.",
       impact: "Improves actionable learner feedback quality.",
     },
