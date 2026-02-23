@@ -120,11 +120,17 @@ export default function DevBuildBadge() {
     let cancelled = false;
     let timerId: number | null = null;
     let failBackoffMs = 0;
+    let activeRequest: AbortController | null = null;
 
     const fetchBuildInfo = async () => {
       let nextHintMs = 15000;
       try {
-        const res = await fetch("/api/dev/build-info", { cache: "no-store" });
+        activeRequest?.abort();
+        activeRequest = new AbortController();
+        const res = await fetch("/api/dev/build-info", {
+          cache: "no-store",
+          signal: activeRequest.signal,
+        });
         if (!res.ok) throw new Error("build-info unavailable");
         const json = (await res.json()) as BuildInfo | BuildInfoError;
         if (!cancelled) {
@@ -136,17 +142,20 @@ export default function DevBuildBadge() {
             setData(json);
             setApiError(null);
             failBackoffMs = 0;
-            nextHintMs = Math.max(5000, Number(json.diagnostics?.pollHintMs || 15000));
+            const baseMinMs = minimized ? 60000 : expanded ? 5000 : 15000;
+            nextHintMs = Math.max(baseMinMs, Number(json.diagnostics?.pollHintMs || 15000));
           }
           setOffline(false);
         }
-      } catch {
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
         if (!cancelled) setOffline(true);
         failBackoffMs = Math.min(failBackoffMs ? failBackoffMs * 2 : 20000, 90000);
       } finally {
         if (cancelled) return;
         const hiddenHint = document.hidden ? 60000 : 0;
-        const nextMs = Math.max(failBackoffMs || nextHintMs, hiddenHint || 0, 5000);
+        const uiHint = minimized ? 60000 : expanded ? 5000 : 15000;
+        const nextMs = Math.max(failBackoffMs || nextHintMs, hiddenHint || 0, uiHint);
         if (timerId !== null) window.clearTimeout(timerId);
         timerId = window.setTimeout(fetchBuildInfo, nextMs);
       }
@@ -163,10 +172,11 @@ export default function DevBuildBadge() {
 
     return () => {
       cancelled = true;
+      activeRequest?.abort();
       if (timerId !== null) window.clearTimeout(timerId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, []);
+  }, [expanded, minimized]);
 
   const lastUpdated = data ? new Date(data.timestamp).toLocaleTimeString() : null;
   const activeWorkCount = data

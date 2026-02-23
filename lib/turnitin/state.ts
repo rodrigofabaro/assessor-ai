@@ -26,6 +26,8 @@ export type TurnitinSubmissionState = {
 };
 
 const FILE_PATH = path.join(process.cwd(), ".turnitin-submission-state.json");
+let cachedMap: Record<string, TurnitinSubmissionState> | null = null;
+let cachedMtimeMs: number | null = null;
 
 function toFiniteNumber(value: unknown): number | null {
   const n = Number(value);
@@ -58,6 +60,13 @@ function makeDefault(submissionId: string): TurnitinSubmissionState {
   };
 }
 
+function normalizeIsoOrNow(value: unknown) {
+  const raw = String(value || "").trim();
+  if (!raw) return new Date().toISOString();
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
 function normalizeOne(submissionId: string, value: Partial<TurnitinSubmissionState>): TurnitinSubmissionState {
   const base = makeDefault(submissionId);
   return {
@@ -75,20 +84,35 @@ function normalizeOne(submissionId: string, value: Partial<TurnitinSubmissionSta
     reportGeneratedAt: String(value.reportGeneratedAt || "").trim() || null,
     viewerUrl: String(value.viewerUrl || "").trim() || null,
     lastError: String(value.lastError || "").trim() || null,
-    updatedAt: new Date().toISOString(),
+    updatedAt: normalizeIsoOrNow(value.updatedAt),
   };
+}
+
+function parseTurnitinState(raw: string) {
+  const parsed = JSON.parse(raw) as Record<string, Partial<TurnitinSubmissionState>>;
+  if (!parsed || typeof parsed !== "object") return {};
+  const out: Record<string, TurnitinSubmissionState> = {};
+  for (const [submissionId, value] of Object.entries(parsed)) {
+    out[submissionId] = normalizeOne(submissionId, value || {});
+  }
+  return out;
 }
 
 export function readTurnitinSubmissionStateMap(): Record<string, TurnitinSubmissionState> {
   try {
-    if (!fs.existsSync(FILE_PATH)) return {};
-    const raw = fs.readFileSync(FILE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Record<string, Partial<TurnitinSubmissionState>>;
-    if (!parsed || typeof parsed !== "object") return {};
-    const out: Record<string, TurnitinSubmissionState> = {};
-    for (const [submissionId, value] of Object.entries(parsed)) {
-      out[submissionId] = normalizeOne(submissionId, value || {});
+    if (!fs.existsSync(FILE_PATH)) {
+      cachedMap = {};
+      cachedMtimeMs = null;
+      return {};
     }
+    const stat = fs.statSync(FILE_PATH);
+    if (cachedMap && cachedMtimeMs === stat.mtimeMs) {
+      return cachedMap;
+    }
+    const raw = fs.readFileSync(FILE_PATH, "utf8");
+    const out = parseTurnitinState(raw);
+    cachedMap = out;
+    cachedMtimeMs = stat.mtimeMs;
     return out;
   } catch {
     return {};
@@ -97,6 +121,12 @@ export function readTurnitinSubmissionStateMap(): Record<string, TurnitinSubmiss
 
 function writeTurnitinSubmissionStateMap(next: Record<string, TurnitinSubmissionState>) {
   fs.writeFileSync(FILE_PATH, JSON.stringify(next, null, 2), "utf8");
+  cachedMap = next;
+  try {
+    cachedMtimeMs = fs.statSync(FILE_PATH).mtimeMs;
+  } catch {
+    cachedMtimeMs = null;
+  }
 }
 
 export function getTurnitinSubmissionState(submissionId: string) {

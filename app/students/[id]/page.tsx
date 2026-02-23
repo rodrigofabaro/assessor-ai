@@ -74,23 +74,43 @@ export default async function StudentPage({
     );
   }
 
-  const totalSubmissions = await prisma.submission.count({ where: { studentId: id } });
+  const where: any = {
+    studentId: id,
+    ...(assignmentId ? { assignmentId } : {}),
+    ...(status ? { status } : {}),
+  };
 
-  const last = await prisma.submission.findFirst({
-    where: { studentId: id },
-    orderBy: [{ uploadedAt: "desc" }],
-    select: {
-      uploadedAt: true,
-      // grade lives in Assessment in your schema, so we read latest assessment:
-      assessments: { orderBy: [{ createdAt: "desc" }], take: 1, select: { overallGrade: true } },
-    },
-  });
-
-  const byStatusRows = await prisma.submission.groupBy({
-    by: ["status"],
-    where: { studentId: id },
-    _count: { _all: true },
-  });
+  const [totalSubmissions, last, byStatusRows, rows] = await Promise.all([
+    prisma.submission.count({ where: { studentId: id } }),
+    prisma.submission.findFirst({
+      where: { studentId: id },
+      orderBy: [{ uploadedAt: "desc" }],
+      select: {
+        uploadedAt: true,
+        // grade lives in Assessment in your schema, so we read latest assessment:
+        assessments: { orderBy: [{ createdAt: "desc" }], take: 1, select: { overallGrade: true } },
+      },
+    }),
+    prisma.submission.groupBy({
+      by: ["status"],
+      where: { studentId: id },
+      _count: { _all: true },
+    }),
+    prisma.submission.findMany({
+      where,
+      orderBy: [{ uploadedAt: "desc" }, { id: "desc" }],
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        uploadedAt: true,
+        assignmentId: true,
+        status: true,
+        assignment: { select: { title: true } },
+        assessments: { orderBy: [{ createdAt: "desc" }], take: 1, select: { overallGrade: true } },
+      },
+    }),
+  ]);
 
   const byStatus: Record<string, number> = {};
   for (const r of byStatusRows) byStatus[r.status] = r._count._all;
@@ -101,27 +121,6 @@ export default async function StudentPage({
     lastOverallGrade: (last as any)?.assessments?.[0]?.overallGrade ?? null,
     byStatus,
   };
-
-  const where: any = {
-    studentId: id,
-    ...(assignmentId ? { assignmentId } : {}),
-    ...(status ? { status } : {}),
-  };
-
-  const rows = await prisma.submission.findMany({
-    where,
-    orderBy: [{ uploadedAt: "desc" }, { id: "desc" }],
-    take: take + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      uploadedAt: true,
-      assignmentId: true,
-      status: true,
-      assignment: { select: { title: true } },
-      assessments: { orderBy: [{ createdAt: "desc" }], take: 1, select: { overallGrade: true } },
-    },
-  });
 
   const hasMore = rows.length > take;
   const sliced = hasMore ? rows.slice(0, take) : rows;

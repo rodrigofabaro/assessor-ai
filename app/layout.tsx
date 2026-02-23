@@ -1,5 +1,4 @@
 import "./globals.css";
-import "katex/dist/katex.min.css";
 import TopNav from "@/components/TopNav";
 import PageContainer, { LANE } from "@/components/PageContainer";
 import ToastHost from "@/components/ui/ToastHost";
