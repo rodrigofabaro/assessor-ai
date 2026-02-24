@@ -55,3 +55,7 @@ This document captures the grading/feedback rules the app should follow when Pea
 - `lib/grading/pageNotes.ts`
   - page-note relevance rules and template spill guards
 
+## Related Process Guide
+
+- When a recurring issue needs a tailored unit/assignment rule, follow:
+  - `docs/grading/assignment-specific-policy-playbook.md`
