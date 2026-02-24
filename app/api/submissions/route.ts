@@ -171,6 +171,114 @@ function computeQaFlags(latestJson: Record<string, unknown>) {
   };
 }
 
+function mapWorkspaceSubmission(
+  s: any,
+  opts: {
+    includeWorkspaceQa: boolean;
+    includeWorkspaceFeedback: boolean;
+    turnitinStateBySubmissionId?: Record<string, any> | null;
+  }
+) {
+  const latest = s.assessments?.[0] || null;
+  const feedbackText = opts.includeWorkspaceFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
+  const latestRun = s.extractionRuns?.[0] || null;
+  const extractionQuality = computeExtractionQuality({
+    submissionStatus: s.status,
+    extractedText: null,
+    latestRun: latestRun
+      ? {
+          status: latestRun.status,
+          overallConfidence: latestRun.overallConfidence,
+          pageCount: latestRun.pageCount,
+          warnings: latestRun.warnings,
+          sourceMeta: latestRun.sourceMeta,
+        }
+      : null,
+  });
+
+  const automation = deriveAutomationState({
+    status: s.status,
+    studentId: s.studentId,
+    assignmentId: s.assignmentId,
+    assignmentBriefId: s.assignment?.assignmentBriefId ?? null,
+    extractedText: null,
+    _count: s._count,
+    grade: latest?.overallGrade || null,
+    overallGrade: latest?.overallGrade || null,
+    feedback: feedbackText,
+    markedPdfPath: latest?.annotatedPdfPath || null,
+    extractionQuality,
+  });
+
+  const latestJson = opts.includeWorkspaceQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
+  const qaFlags = opts.includeWorkspaceQa ? computeQaFlags(latestJson) : null;
+
+  return {
+    id: s.id,
+    filename: s.filename,
+    uploadedAt: s.uploadedAt,
+    status: s.status,
+    studentId: s.studentId,
+    assignmentId: s.assignmentId,
+    assignmentBriefId: s.assignment?.assignmentBriefId ?? null,
+    student: s.student ?? null,
+    assignment: s.assignment ?? null,
+    _count: s._count,
+    grade: latest?.overallGrade || null,
+    overallGrade: latest?.overallGrade || null,
+    feedback: feedbackText,
+    markedPdfPath: latest?.annotatedPdfPath || null,
+    gradedAt: latest?.createdAt || null,
+    assessmentActor: opts.includeWorkspaceQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
+    extractionMode: String((latestRun?.sourceMeta as any)?.extractionMode || "").toUpperCase() || null,
+    coverReady: Boolean((latestRun?.sourceMeta as any)?.coverReady),
+    automationState: automation.state,
+    automationReason: automation.reason,
+    automationExceptionCode: automation.exceptionCode,
+    automationRecommendedAction: automation.recommendedAction,
+    extractionQuality,
+    qaFlags,
+    turnitin: opts.turnitinStateBySubmissionId?.[s.id] || null,
+  };
+}
+
+function applyWorkspacePostFilters(
+  rows: any[],
+  opts: {
+    readyOnly: boolean;
+    handoffOnly: boolean;
+    laneFilter: LaneFilterParam;
+    qaReviewOnly: boolean;
+    sortBy: SortByParam;
+    sortDir: SortDirParam;
+  }
+) {
+  let filteredSubmissions = rows;
+  if (opts.readyOnly || opts.handoffOnly) {
+    filteredSubmissions = filteredSubmissions.filter((row) => isReadyToUploadLike(row));
+  }
+  if (opts.laneFilter === "QA_REVIEW") {
+    filteredSubmissions = filteredSubmissions.filter((row) => Boolean(row.qaFlags?.shouldReview));
+  } else if (opts.laneFilter !== "ALL") {
+    filteredSubmissions = filteredSubmissions.filter((row) => String(row.automationState || "") === opts.laneFilter);
+  }
+  if (opts.qaReviewOnly) {
+    filteredSubmissions = filteredSubmissions.filter((row) => Boolean(row.qaFlags?.shouldReview));
+  }
+  if (opts.sortBy === "grade") {
+    const dir = opts.sortDir === "asc" ? 1 : -1;
+    filteredSubmissions = [...filteredSubmissions].sort((a: any, b: any) => {
+      const av = gradeRank(String(a.grade || a.overallGrade || ""));
+      const bv = gradeRank(String(b.grade || b.overallGrade || ""));
+      if (av !== bv) return (av - bv) * dir;
+      const at = new Date(a.uploadedAt || 0).getTime() || 0;
+      const bt = new Date(b.uploadedAt || 0).getTime() || 0;
+      return (at - bt) * -1;
+    });
+  }
+  return filteredSubmissions;
+}
+
 function buildWorkspaceWhere(opts: {
   q: string;
   statusFilter: string;
@@ -365,6 +473,172 @@ export async function GET(req: Request) {
   const includeWorkspaceQa = includeQa || laneFilter === "QA_REVIEW" || qaReviewOnly;
   const includeWorkspaceFeedback = includeFeedback || readyOnly || handoffOnly;
 
+  if (paginate && requiresWorkspacePostFilter) {
+    const slimRows = await prisma.submission.findMany({
+      where,
+      orderBy,
+      select: {
+        id: true,
+        filename: true,
+        uploadedAt: true,
+        status: true,
+        studentId: true,
+        assignmentId: true,
+        assignment: {
+          select: {
+            assignmentBriefId: true,
+          },
+        },
+        assessments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            overallGrade: true,
+            annotatedPdfPath: true,
+            createdAt: true,
+            ...(includeWorkspaceQa ? { resultJson: true } : {}),
+          },
+        },
+        _count: {
+          select: {
+            extractionRuns: true,
+            assessments: true,
+          },
+        },
+        extractionRuns: {
+          orderBy: { startedAt: "desc" },
+          take: 1,
+          select: {
+            status: true,
+            overallConfidence: true,
+            pageCount: true,
+            warnings: true,
+            sourceMeta: true,
+          },
+        },
+      },
+    });
+
+    const slimSubmissions = slimRows.map((s: any) =>
+      mapWorkspaceSubmission(s, {
+        includeWorkspaceQa,
+        includeWorkspaceFeedback: false,
+        turnitinStateBySubmissionId: null,
+      })
+    );
+    const filteredSubmissions = applyWorkspacePostFilters(slimSubmissions, {
+      readyOnly,
+      handoffOnly,
+      laneFilter,
+      qaReviewOnly,
+      sortBy,
+      sortDir,
+    });
+
+    const start = Math.max(0, (page - 1) * pageSize);
+    const pageSlice = filteredSubmissions.slice(start, start + pageSize);
+    const pageIds = pageSlice.map((row: any) => String(row.id));
+    const pageMetaById = new Map<string, any>(pageSlice.map((row: any) => [String(row.id), row]));
+
+    const detailRows = pageIds.length
+      ? await prisma.submission.findMany({
+          where: { id: { in: pageIds } },
+          select: {
+            id: true,
+            filename: true,
+            uploadedAt: true,
+            status: true,
+            studentId: true,
+            assignmentId: true,
+            student: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                externalRef: true,
+                courseName: true,
+              },
+            },
+            assignment: {
+              select: {
+                id: true,
+                title: true,
+                unitCode: true,
+                assignmentRef: true,
+                assignmentBriefId: true,
+              },
+            },
+            assessments: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: {
+                overallGrade: true,
+                annotatedPdfPath: true,
+                createdAt: true,
+                ...(includeWorkspaceFeedback ? { feedbackText: true } : {}),
+              },
+            },
+            _count: {
+              select: {
+                extractionRuns: true,
+                assessments: true,
+              },
+            },
+            extractionRuns: {
+              orderBy: { startedAt: "desc" },
+              take: 1,
+              select: {
+                status: true,
+                overallConfidence: true,
+                pageCount: true,
+                warnings: true,
+                sourceMeta: true,
+              },
+            },
+          },
+        })
+      : [];
+
+    const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
+    const detailedById = new Map<string, any>(
+      detailRows.map((s: any) => [
+        String(s.id),
+        mapWorkspaceSubmission(s, {
+          includeWorkspaceQa: false,
+          includeWorkspaceFeedback,
+          turnitinStateBySubmissionId,
+        }),
+      ])
+    );
+
+    const pagedItems = pageIds
+      .map((id) => {
+        const detailed = detailedById.get(id);
+        if (!detailed) return null;
+        const meta = pageMetaById.get(id);
+        return {
+          ...detailed,
+          qaFlags: meta?.qaFlags ?? detailed.qaFlags ?? null,
+          assessmentActor: meta?.assessmentActor ?? detailed.assessmentActor ?? null,
+        };
+      })
+      .filter(Boolean);
+
+    const total = filteredSubmissions.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return NextResponse.json({
+      items: pagedItems,
+      pageInfo: {
+        page,
+        pageSize,
+        totalItems: total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  }
+
   const [countBeforeFilter, rows] = await Promise.all([
     paginate && !requiresWorkspacePostFilter ? prisma.submission.count({ where }) : Promise.resolve(0),
     prisma.submission.findMany({
@@ -429,96 +703,24 @@ export async function GET(req: Request) {
   ]);
   const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
 
-  const submissions = rows.map((s: any) => {
-    const latest = s.assessments?.[0] || null;
-    const feedbackText = includeWorkspaceFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
-    const latestRun = s.extractionRuns?.[0] || null;
-    const extractionQuality = computeExtractionQuality({
-      submissionStatus: s.status,
-      extractedText: null,
-      latestRun: latestRun
-        ? {
-            status: latestRun.status,
-            overallConfidence: latestRun.overallConfidence,
-            pageCount: latestRun.pageCount,
-            warnings: latestRun.warnings,
-            sourceMeta: latestRun.sourceMeta,
-          }
-        : null,
-    });
-
-    const automation = deriveAutomationState({
-      status: s.status,
-      studentId: s.studentId,
-      assignmentId: s.assignmentId,
-      extractedText: null,
-      _count: s._count,
-      grade: latest?.overallGrade || null,
-      overallGrade: latest?.overallGrade || null,
-      feedback: feedbackText,
-      markedPdfPath: latest?.annotatedPdfPath || null,
-      extractionQuality,
-    });
-    const latestJson = includeWorkspaceQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
-    const qaFlags = includeWorkspaceQa ? computeQaFlags(latestJson) : null;
-    const automationState = automation.state;
-    const automationReason = automation.reason;
-    const automationExceptionCode = automation.exceptionCode;
-    const automationRecommendedAction = automation.recommendedAction;
-
-    return {
-      id: s.id,
-      filename: s.filename,
-      uploadedAt: s.uploadedAt,
-      status: s.status,
-      studentId: s.studentId,
-      assignmentId: s.assignmentId,
-      assignmentBriefId: s.assignment?.assignmentBriefId ?? null,
-      student: s.student,
-      assignment: s.assignment,
-      _count: s._count,
-      grade: latest?.overallGrade || null,
-      overallGrade: latest?.overallGrade || null,
-      feedback: feedbackText,
-      markedPdfPath: latest?.annotatedPdfPath || null,
-      gradedAt: latest?.createdAt || null,
-      assessmentActor: includeWorkspaceQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
-      extractionMode: String((latestRun?.sourceMeta as any)?.extractionMode || "").toUpperCase() || null,
-      coverReady: Boolean((latestRun?.sourceMeta as any)?.coverReady),
-      automationState,
-      automationReason,
-      automationExceptionCode,
-      automationRecommendedAction,
-      extractionQuality,
-      qaFlags,
-      turnitin: turnitinStateBySubmissionId[s.id] || null,
-    };
-  });
+  const submissions = rows.map((s: any) =>
+    mapWorkspaceSubmission(s, {
+      includeWorkspaceQa,
+      includeWorkspaceFeedback,
+      turnitinStateBySubmissionId,
+    })
+  );
 
   let filteredSubmissions = submissions;
   if (requiresWorkspacePostFilter) {
-    if (readyOnly || handoffOnly) {
-      filteredSubmissions = filteredSubmissions.filter((row) => isReadyToUploadLike(row));
-    }
-    if (laneFilter === "QA_REVIEW") {
-      filteredSubmissions = filteredSubmissions.filter((row) => Boolean(row.qaFlags?.shouldReview));
-    } else if (laneFilter !== "ALL") {
-      filteredSubmissions = filteredSubmissions.filter((row) => String(row.automationState || "") === laneFilter);
-    }
-    if (qaReviewOnly) {
-      filteredSubmissions = filteredSubmissions.filter((row) => Boolean(row.qaFlags?.shouldReview));
-    }
-    if (sortBy === "grade") {
-      const dir = sortDir === "asc" ? 1 : -1;
-      filteredSubmissions = [...filteredSubmissions].sort((a: any, b: any) => {
-        const av = gradeRank(String(a.grade || a.overallGrade || ""));
-        const bv = gradeRank(String(b.grade || b.overallGrade || ""));
-        if (av !== bv) return (av - bv) * dir;
-        const at = new Date(a.uploadedAt || 0).getTime() || 0;
-        const bt = new Date(b.uploadedAt || 0).getTime() || 0;
-        return (at - bt) * -1;
-      });
-    }
+    filteredSubmissions = applyWorkspacePostFilters(filteredSubmissions, {
+      readyOnly,
+      handoffOnly,
+      laneFilter,
+      qaReviewOnly,
+      sortBy,
+      sortDir,
+    });
   }
 
   if (!paginate) return NextResponse.json(filteredSubmissions);

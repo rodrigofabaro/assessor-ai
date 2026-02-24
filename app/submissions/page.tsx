@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buildCopySummary } from "@/lib/submissionReady";
 import { isReadyToUpload } from "@/lib/submissionReady";
 import { useSubmissionsList, type LaneKey } from "@/lib/submissions/useSubmissionsList";
@@ -82,6 +82,7 @@ export default function SubmissionsPage() {
   const [qaPreviewSignature, setQaPreviewSignature] = useState("");
   const [qaPreviewAt, setQaPreviewAt] = useState<number | null>(null);
   const [qaPreviewRequestId, setQaPreviewRequestId] = useState("");
+  const feedbackCacheRef = useRef<Record<string, string | null>>({});
 
   // Resolve drawer state lives here; drawer owns its internal state.
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -154,11 +155,30 @@ export default function SubmissionsPage() {
     }
   }
 
+  async function getLatestFeedbackText(submissionId: string, existingFeedback?: string | null) {
+    const existing = String(existingFeedback || "").trim();
+    if (existing) return existing;
+
+    const key = String(submissionId || "").trim();
+    if (!key) return "";
+    if (Object.prototype.hasOwnProperty.call(feedbackCacheRef.current, key)) {
+      return String(feedbackCacheRef.current[key] || "");
+    }
+
+    const data = await jsonFetch<{ submission?: { assessments?: Array<{ feedbackText?: string | null }> } }>(
+      `/api/submissions/${encodeURIComponent(key)}`,
+      { cache: "no-store" }
+    );
+    const feedback = String(data?.submission?.assessments?.[0]?.feedbackText || "").trim();
+    feedbackCacheRef.current[key] = feedback || null;
+    return feedback;
+  }
+
   async function onCopySummary(s: SubmissionRow) {
     try {
-      const feedback = String(s.feedback || "").trim();
+      const feedback = await getLatestFeedbackText(s.id, s.feedback);
       const markedLink = toAbsoluteUrl(buildMarkedPdfUrl(s.id, null, Date.now()));
-      const payload = feedback ? `${feedback}\n\nMarked version link: ${markedLink}` : buildCopySummary(s);
+      const payload = feedback ? `${feedback}\n\nMarked version link: ${markedLink}` : buildCopySummary({ ...s, feedback });
       await navigator.clipboard.writeText(payload);
       setCopiedKey(`summary-${s.id}`);
       window.setTimeout(() => setCopiedKey(null), 1400);
@@ -187,14 +207,23 @@ export default function SubmissionsPage() {
   async function onBulkCopyFeedback(rows: SubmissionRow[]) {
     const completed = rows.filter((r) => isReadyToUpload(r));
     if (!completed.length) return;
-    const joined = completed
-      .map((r) => {
-        const feedback = String(r.feedback || "").trim();
-        const marked = toAbsoluteUrl(buildMarkedPdfUrl(r.id, null, Date.now()));
-        return `Submission: ${r.filename}\n${feedback}\n\nMarked version link: ${marked}`;
-      })
-      .join("\n\n====================\n\n");
     try {
+      const rowsWithFeedback = await Promise.all(
+        completed.map(async (r) => {
+          try {
+            const feedback = await getLatestFeedbackText(r.id, r.feedback);
+            return { row: r, feedback };
+          } catch {
+            return { row: r, feedback: String(r.feedback || "").trim() };
+          }
+        })
+      );
+      const joined = rowsWithFeedback
+        .map(({ row, feedback }) => {
+          const marked = toAbsoluteUrl(buildMarkedPdfUrl(row.id, null, Date.now()));
+          return `Submission: ${row.filename}\n${feedback}\n\nMarked version link: ${marked}`;
+        })
+        .join("\n\n====================\n\n");
       await navigator.clipboard.writeText(joined);
       setMsg(`Copied feedback pack for ${completed.length} submission(s).`);
     } catch {
@@ -527,7 +556,7 @@ export default function SubmissionsPage() {
             <span className="text-zinc-600">Page size</span>
             <select
               value={pageSize}
-              onChange={(e) => setPageSize(Math.max(10, Math.min(200, Number(e.target.value) || 80)))}
+              onChange={(e) => setPageSize(Math.max(10, Math.min(200, Number(e.target.value) || 40)))}
               className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs"
             >
               {[40, 80, 120, 160].map((n) => (

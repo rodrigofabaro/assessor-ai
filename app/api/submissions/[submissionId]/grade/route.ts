@@ -13,7 +13,14 @@ import { buildStructuredGradingV2 } from "@/lib/grading/assessmentResult";
 import { evaluateExtractionReadiness } from "@/lib/grading/extractionQualityGate";
 import { extractFirstNameForFeedback, personalizeFeedbackSummary } from "@/lib/grading/feedbackPersonalization";
 import { renderFeedbackTemplate } from "@/lib/grading/feedbackDocument";
-import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
+import {
+  buildPageNotesFromCriterionChecks,
+  pageNoteTextHasIncompleteAdvice,
+  repairPageNoteTextAdvice,
+  type MarkedPageNote,
+} from "@/lib/grading/pageNotes";
+import { resolvePageNoteBannedKeywords, type PageNoteGenerationContext } from "@/lib/grading/pageNoteSectionMaps";
+import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -78,6 +85,14 @@ type CriteriaScopePolicy = {
   allowedCriteriaCodes: string[];
   loLabel: string;
   ignoreManualExclusions: boolean;
+};
+
+type PageNoteCriterionCheckRow = {
+  code?: string;
+  decision?: string;
+  rationale?: string;
+  comment?: string;
+  evidence?: Array<{ page?: number; quote?: string | null; visualDescription?: string | null }>;
 };
 
 function normalizeText(value: unknown) {
@@ -1588,6 +1603,119 @@ function formatCriterionCodes(codes: string[], max = 6) {
   return `${shown.join(", ")} (+${normalized.length - shown.length} more)`;
 }
 
+function normalizeLoOutcomeLabel(value: unknown) {
+  const raw = String(value || "").trim().toUpperCase();
+  if (!raw) return "";
+  const tagged = raw.match(/\bLO\s*([1-9]\d*)\b/i);
+  if (tagged) return `LO${tagged[1]}`;
+  const plain = raw.match(/^([1-9]\d*)$/);
+  if (plain) return `LO${plain[1]}`;
+  return raw;
+}
+
+function buildCriterionOutcomeSummaryBlock(input: {
+  criteria: Array<{ code?: string; band?: string; lo?: string; description?: string }>;
+  criterionChecks: Array<{ code?: string; decision?: string; rationale?: string }>;
+}) {
+  const criteriaRows = Array.isArray(input.criteria) ? input.criteria : [];
+  const checkRows = Array.isArray(input.criterionChecks) ? input.criterionChecks : [];
+  if (!criteriaRows.length && !checkRows.length) return "";
+
+  const orderByCode = new Map<string, number>();
+  const loByCode = new Map<string, string>();
+  for (let i = 0; i < criteriaRows.length; i += 1) {
+    const row = criteriaRows[i];
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code) continue;
+    if (!orderByCode.has(code)) orderByCode.set(code, i);
+    const loLabel = normalizeLoOutcomeLabel(row?.lo);
+    if (loLabel && !loByCode.has(code)) loByCode.set(code, loLabel);
+  }
+
+  const decisionByCode = new Map<string, "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR">();
+  const reasonByCode = new Map<string, string>();
+  for (const row of checkRows) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code) continue;
+    const decisionRaw = String(row?.decision || "").trim().toUpperCase();
+    const decision =
+      decisionRaw === "ACHIEVED" || decisionRaw === "NOT_ACHIEVED" || decisionRaw === "UNCLEAR"
+        ? (decisionRaw as "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR")
+        : "UNCLEAR";
+    if (!decisionByCode.has(code)) decisionByCode.set(code, decision);
+    if (decision !== "ACHIEVED" && !reasonByCode.has(code)) {
+      const reason = firstSentence(row?.rationale || "", 140);
+      if (reason) reasonByCode.set(code, reason);
+    }
+  }
+
+  const compareCodes = (a: string, b: string) =>
+    (orderByCode.get(a) ?? Number.MAX_SAFE_INTEGER) - (orderByCode.get(b) ?? Number.MAX_SAFE_INTEGER) || a.localeCompare(b);
+  const allCodes = Array.from(new Set([...orderByCode.keys(), ...decisionByCode.keys()])).sort(compareCodes);
+  const achievedCodes = allCodes.filter((code) => decisionByCode.get(code) === "ACHIEVED");
+  const outstandingCodes = allCodes.filter((code) => {
+    const d = decisionByCode.get(code);
+    return d === "NOT_ACHIEVED" || d === "UNCLEAR";
+  });
+
+  const lines: string[] = [];
+  if (achievedCodes.length) {
+    lines.push(`Criteria achieved: ${formatCriterionCodes(achievedCodes, 10)}.`);
+  }
+  if (outstandingCodes.length) {
+    lines.push(`Criteria still to evidence clearly: ${formatCriterionCodes(outstandingCodes, 10)}.`);
+    const reasonParts = outstandingCodes
+      .map((code) => {
+        const reason = reasonByCode.get(code);
+        if (!reason) return "";
+        return `${code}: ${reason}`;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+    if (reasonParts.length) {
+      lines.push(`Why these are still open: ${reasonParts.join(" ")}`);
+    }
+  }
+
+  const loGroups = new Map<string, string[]>();
+  for (const code of allCodes) {
+    const lo = loByCode.get(code);
+    if (!lo) continue;
+    const arr = loGroups.get(lo) || [];
+    arr.push(code);
+    loGroups.set(lo, arr);
+  }
+  if (loGroups.size > 0) {
+    const loLabels = Array.from(loGroups.keys()).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const metLos: string[] = [];
+    const partialLos: string[] = [];
+    const missingLos: string[] = [];
+    for (const lo of loLabels) {
+      const codes = (loGroups.get(lo) || []).sort(compareCodes);
+      const achieved = codes.filter((code) => decisionByCode.get(code) === "ACHIEVED");
+      const outstanding = codes.filter((code) => decisionByCode.get(code) !== "ACHIEVED");
+      if (achieved.length === codes.length && codes.length > 0) {
+        metLos.push(lo);
+      } else if (achieved.length > 0) {
+        partialLos.push(`${lo} (achieved: ${formatCriterionCodes(achieved, 8)}; still open: ${formatCriterionCodes(outstanding, 8)})`);
+      } else {
+        missingLos.push(`${lo} (${formatCriterionCodes(outstanding, 8)} outstanding)`);
+      }
+    }
+    if (metLos.length) {
+      lines.push(`Learning outcomes fully evidenced here: ${formatCriterionCodes(metLos, 8)}.`);
+    }
+    if (partialLos.length) {
+      lines.push(`Learning outcomes partially evidenced: ${partialLos.slice(0, 3).join("; ")}.`);
+    }
+    if (missingLos.length) {
+      lines.push(`Learning outcomes not yet evidenced in full: ${missingLos.slice(0, 2).join("; ")}.`);
+    }
+  }
+
+  return lines.filter(Boolean).join("\n").trim();
+}
+
 function buildHigherGradeGapBullets(input: {
   finalGrade: string;
   rawGrade: string;
@@ -1878,6 +2006,345 @@ function buildEvidenceDensityByCriterion(criterionChecks: any[]) {
       pageSpread: pages.length,
     };
   });
+}
+
+const PAGE_NOTE_SPILL_GUARD_TERMS = [
+  // Energy/power unit leakage terms
+  "renewable",
+  "solar",
+  "pv",
+  "wind",
+  "hydro",
+  "geothermal",
+  "lcoe",
+  "converter",
+  "smart grid",
+  "simulink",
+  "matlab",
+  // Maths/phasor unit leakage terms
+  "phasor",
+  "sinusoidal",
+  "compound-angle",
+  "waveform",
+  "determinant",
+  "vector component",
+  "geogebra",
+  "desmos",
+  // Project-management unit leakage terms
+  "telos",
+  "risk register",
+  "critical path",
+  "cpm",
+  "rag status",
+  "milestone tracker",
+  "gantt chart",
+] as const;
+
+function isNotesAiRewriteEnabledByEnv() {
+  const raw = String(
+    process.env.NOTES_AI_REWRITE || (process.env.NODE_ENV === "production" ? "true" : "false")
+  )
+    .trim()
+    .toLowerCase();
+  return ["1", "true", "yes", "on"].includes(raw);
+}
+
+function normalizeNoteCriterionCode(value: unknown) {
+  const code = String(value || "").trim().toUpperCase();
+  return /^[PMD]\d{1,2}$/.test(code) ? code : "";
+}
+
+function sanitizeAiPolishedNoteText(value: unknown) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/^\s*[-*•]\s*/gm, "")
+    .replace(/\b(?:Strength|Improvement|Link|Presentation)\s*:\s*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function trimPageNoteWordBudget(value: string, maxWords = 95) {
+  const text = sanitizeAiPolishedNoteText(value);
+  if (!text) return "";
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return text;
+  return words.slice(0, maxWords).join(" ").replace(/\s+\S*$/, "").trim().replace(/[,:;\s-]+$/, "").concat(".");
+}
+
+function buildPageNoteSourceCorpusMap(
+  notes: MarkedPageNote[],
+  criterionChecks: PageNoteCriterionCheckRow[]
+) {
+  const out = new Map<string, string>();
+  const rows = Array.isArray(criterionChecks) ? criterionChecks : [];
+  for (const note of Array.isArray(notes) ? notes : []) {
+    const page = Number(note?.page || 0);
+    const code = normalizeNoteCriterionCode(note?.criterionCode);
+    if (!page || !code) continue;
+    const bits: string[] = [];
+    for (const row of rows) {
+      const rowCode = normalizeNoteCriterionCode(row?.code);
+      if (rowCode !== code) continue;
+      bits.push(String(row?.rationale || row?.comment || ""));
+      for (const ev of Array.isArray(row?.evidence) ? row.evidence : []) {
+        if (Number(ev?.page || 0) !== page) continue;
+        bits.push(String(ev?.quote || ""));
+        bits.push(String(ev?.visualDescription || ""));
+      }
+    }
+    const key = `${page}:${code}`;
+    out.set(key, normalizeText(bits.join(" ")).toLowerCase());
+  }
+  return out;
+}
+
+function pageNoteContainsForeignCriteria(input: {
+  text: string;
+  noteCriterionCode?: string;
+  allowedCriteriaSet?: string[] | null;
+  allowCriterionCodesInText?: boolean;
+}) {
+  const text = String(input.text || "");
+  const noteCode = normalizeNoteCriterionCode(input.noteCriterionCode);
+  const allowed = new Set(
+    (Array.isArray(input.allowedCriteriaSet) ? input.allowedCriteriaSet : [])
+      .map((c) => normalizeNoteCriterionCode(c))
+      .filter(Boolean)
+  );
+  if (noteCode) allowed.add(noteCode);
+  const matches = Array.from(text.matchAll(/\b([PMD]\d{1,2})\b/gi)).map((m) => String(m[1] || "").toUpperCase());
+  if (!matches.length) return false;
+  if (!input.allowCriterionCodesInText) return true;
+  return matches.some((code) => !allowed.has(code) || (noteCode && code !== noteCode));
+}
+
+function pageNoteContainsOutOfContextLeakTerms(input: {
+  text: string;
+  sourceCorpus: string;
+  context?: PageNoteGenerationContext | null;
+}) {
+  const text = String(input.text || "").toLowerCase();
+  const source = String(input.sourceCorpus || "").toLowerCase();
+  if (!text) return false;
+  const banned = new Set<string>(resolvePageNoteBannedKeywords(input.context));
+  for (const term of PAGE_NOTE_SPILL_GUARD_TERMS) banned.add(term);
+  for (const term of banned) {
+    const normalized = String(term || "").trim().toLowerCase();
+    if (!normalized) continue;
+    if (!text.includes(normalized)) continue;
+    if (source.includes(normalized)) continue;
+    const fuzzyTokens = normalized
+      .split(/[^a-z0-9]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 3);
+    if (fuzzyTokens.length >= 2 && fuzzyTokens.every((t) => source.includes(t))) continue;
+    return true;
+  }
+  return false;
+}
+
+async function maybePolishPageNotesWithAi(input: {
+  enabled: boolean;
+  apiKey: string;
+  model: string;
+  fallbackModel?: string | null;
+  tone: string;
+  notes: MarkedPageNote[];
+  criterionChecks: PageNoteCriterionCheckRow[];
+  context?: PageNoteGenerationContext | null;
+  allowCriterionCodesInText: boolean;
+}) {
+  if (!input.enabled) {
+    return { notes: input.notes, applied: false, reason: "disabled" as const, replacedCount: 0 };
+  }
+  const notes = Array.isArray(input.notes) ? input.notes : [];
+  if (!notes.length) {
+    return { notes, applied: false, reason: "no-notes" as const, replacedCount: 0 };
+  }
+
+  const sourceCorpusByNote = buildPageNoteSourceCorpusMap(notes, input.criterionChecks);
+  const promptPayload = notes.slice(0, 20).map((note) => {
+    const page = Number(note.page || 0);
+    const criterionCode = normalizeNoteCriterionCode(note.criterionCode);
+    const sourceKey = `${page}:${criterionCode}`;
+    return {
+      page,
+      criterionCode: criterionCode || null,
+      rawNote: (Array.isArray(note.lines) ? note.lines : []).join(" ").trim(),
+      sourceEvidenceHint: String(sourceCorpusByNote.get(sourceKey) || "").slice(0, 500),
+      sectionLabel: note.sectionLabel || null,
+    };
+  });
+
+  const buildBody = (modelName: string) =>
+    JSON.stringify({
+      model: modelName,
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: [
+                "Rewrite the page notes into natural, student-facing UK English.",
+                "Keep each note specific to the evidence already shown on that page.",
+                "Do not invent methods, tasks, criteria, or assignment details not in the provided raw note/evidence hint.",
+                "Do not use template labels like Strength:, Improvement:, Link:, or Presentation:.",
+                "Use one short coherent note per page (1-3 sentences).",
+                "Keep the same meaning and action points, but make the wording more human and less repetitive.",
+                `Tone: ${String(input.tone || "supportive")}.`,
+                `Unit: ${String(input.context?.unitCode || "") || "unknown"}. Assignment: ${String(input.context?.assignmentCode || "") || "unknown"}.`,
+                `Criterion codes in note text allowed: ${input.allowCriterionCodesInText ? "yes" : "no"}.`,
+                "Return JSON only.",
+                "",
+                JSON.stringify({ notes: promptPayload }, null, 2),
+              ].join("\n"),
+            },
+          ],
+        },
+      ],
+      ...buildResponsesTemperatureParam(modelName, 0.2),
+      max_output_tokens: Math.max(500, Math.min(2200, 260 + notes.length * 180)),
+      text: {
+        format: {
+          type: "json_schema",
+          name: "page_note_rewrites",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              notes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    page: { type: "number" },
+                    criterionCode: { type: ["string", "null"] },
+                    noteText: { type: "string" },
+                  },
+                  required: ["page", "criterionCode", "noteText"],
+                },
+              },
+            },
+            required: ["notes"],
+          },
+        },
+      },
+    });
+
+  const fetchRewrite = (modelName: string) =>
+    fetchOpenAiJson(
+      "/v1/responses",
+      input.apiKey,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: buildBody(modelName),
+      },
+      {
+        timeoutMs: Number(process.env.OPENAI_PAGE_NOTES_POLISH_TIMEOUT_MS || 25000),
+        retries: 1,
+      }
+    );
+
+  let usedModel = String(input.model || "").trim();
+  let response = await fetchRewrite(usedModel);
+  if (
+    !response.ok &&
+    isModelVerificationBlocked(response.message, usedModel) &&
+    input.fallbackModel &&
+    input.fallbackModel !== usedModel
+  ) {
+    const fallback = await fetchRewrite(String(input.fallbackModel || "").trim());
+    if (fallback.ok) {
+      response = fallback;
+      usedModel = String(input.fallbackModel || "").trim();
+    }
+  }
+  if (!response.ok) {
+    return { notes, applied: false, reason: "api-error" as const, replacedCount: 0, error: response.message };
+  }
+
+  const usage = (response.json as any)?.usage || null;
+  if (usage) {
+    recordOpenAiUsage({
+      model: usedModel,
+      op: "page_note_polish",
+      usage,
+    });
+  }
+  const parsed = extractStructuredModelJson(response.json) as
+    | { notes?: Array<{ page?: number; criterionCode?: string | null; noteText?: string }> }
+    | null;
+  const rewrites = Array.isArray(parsed?.notes) ? parsed!.notes! : [];
+  if (!rewrites.length) {
+    return { notes, applied: false, reason: "empty-output" as const, replacedCount: 0 };
+  }
+
+  const rewriteByKey = new Map<string, { noteText: string; criterionCode: string }>();
+  for (const row of rewrites) {
+    const page = Number(row?.page || 0);
+    const criterionCode = normalizeNoteCriterionCode(row?.criterionCode);
+    const noteText = sanitizeAiPolishedNoteText(row?.noteText);
+    if (!page || !noteText) continue;
+    rewriteByKey.set(`${page}:${criterionCode}`, { noteText, criterionCode });
+  }
+
+  let replacedCount = 0;
+  const nextNotes = notes.map((note) => {
+    const page = Number(note?.page || 0);
+    const criterionCode = normalizeNoteCriterionCode(note?.criterionCode);
+    const key = `${page}:${criterionCode}`;
+    const rewrite = rewriteByKey.get(key);
+    if (!rewrite) return note;
+
+    const sourceCorpus = sourceCorpusByNote.get(key) || "";
+    let noteText = sanitizeAiPolishedNoteText(rewrite.noteText);
+    if (!noteText) return note;
+    noteText = repairPageNoteTextAdvice(noteText);
+    noteText = trimPageNoteWordBudget(noteText);
+    if (!noteText) return note;
+    if (pageNoteContainsForeignCriteria({
+      text: noteText,
+      noteCriterionCode: criterionCode,
+      allowedCriteriaSet: input.context?.criteriaSet || [],
+      allowCriterionCodesInText: input.allowCriterionCodesInText,
+    })) {
+      return note;
+    }
+    if (
+      pageNoteContainsOutOfContextLeakTerms({
+        text: noteText,
+        sourceCorpus,
+        context: input.context,
+      })
+    ) {
+      return note;
+    }
+    if (pageNoteTextHasIncompleteAdvice(noteText)) {
+      return note;
+    }
+    replacedCount += 1;
+    return {
+      ...note,
+      lines: [noteText],
+      items: [
+        {
+          kind: ((note as any)?.severity === "info" ? "praise" : "action") as "praise" | "action",
+          text: noteText,
+        },
+      ],
+    };
+  });
+
+  return {
+    notes: nextNotes,
+    applied: replacedCount > 0,
+    reason: replacedCount > 0 ? ("ok" as const) : ("guard-fallback" as const),
+    replacedCount,
+  };
 }
 
 function diffReferenceSnapshots(previous: any, current: any) {
@@ -3111,7 +3578,11 @@ export async function POST(
     const higherGradeGuidance = higherGradeGapBullets.length
       ? higherGradeGapBullets.join(" ")
       : "To progress to a higher band, make each criterion link explicit with page-based evidence.";
-    const feedbackText = renderFeedbackTemplate({
+    const criterionOutcomeSummary = buildCriterionOutcomeSummaryBlock({
+      criteria: criteria as any,
+      criterionChecks: decision.criterionChecks as any,
+    });
+    let feedbackText = renderFeedbackTemplate({
       template: feedbackTemplate,
       studentFirstName: studentFirstName || "Student",
       studentFullName: submission?.student?.fullName || studentFirstName || "Student",
@@ -3127,27 +3598,67 @@ export async function POST(
       gradingTone: tone,
       gradingStrictness: strictness,
       higherGradeGuidance,
+      criterionOutcomeSummary,
     });
+    const feedbackClaimLint = lintOverallFeedbackClaims({
+      text: feedbackText,
+      criterionChecks: decision.criterionChecks as any,
+    });
+    feedbackText = feedbackClaimLint.text;
+    if (feedbackClaimLint.changed) {
+      systemNotes.push(
+        `Overall feedback wording lint softened ${feedbackClaimLint.changedLines} contradictory claim line(s) for unachieved criteria.`
+      );
+    }
     const submissionPageCount = Math.max(
       0,
       Number(submission.extractionRuns?.[0]?.pageCount || rawPdfPageCount || 0)
     );
-    const pageNotes = cfg.pageNotesEnabled
+    const pageNoteContext: PageNoteGenerationContext = {
+      unitCode: String(brief.unit?.unitCode || ""),
+      assignmentCode: String(brief.assignmentCode || ""),
+      assignmentTitle: String(brief.title || ""),
+      assignmentType: String((brief as any)?.assignmentType || (brief as any)?.type || ""),
+      criteriaSet: criteriaCodes,
+    };
+    const includeCriterionCodeInPageNotes = cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode;
+    let pageNotes = cfg.pageNotesEnabled
       ? buildPageNotesFromCriterionChecks(decision.criterionChecks, {
           maxPages: cfg.pageNotesMaxPages,
           maxLinesPerPage: Math.max(8, cfg.pageNotesMaxLinesPerPage),
           tone: cfg.pageNotesTone,
-          includeCriterionCode: cfg.studentSafeMarkedPdf ? false : cfg.pageNotesIncludeCriterionCode,
+          includeCriterionCode: includeCriterionCodeInPageNotes,
           totalPages: submissionPageCount,
           handwritingLikely,
-          context: {
-            unitCode: String(brief.unit?.unitCode || ""),
-            assignmentCode: String(brief.assignmentCode || ""),
-            assignmentTitle: String(brief.title || ""),
-            criteriaSet: criteriaCodes,
-          },
+          context: pageNoteContext,
         })
       : [];
+    const notesAiRewriteEnvEnabled = isNotesAiRewriteEnabledByEnv();
+    if (pageNotes.length && cfg.pageNotesAiPolishEnabled && notesAiRewriteEnvEnabled) {
+      const notePolishModel =
+        String(process.env.OPENAI_PAGE_NOTES_POLISH_MODEL || "").trim() || usedModel || activeModel;
+      const polishedNotes = await maybePolishPageNotesWithAi({
+        enabled: true,
+        apiKey,
+        model: notePolishModel,
+        fallbackModel,
+        tone: cfg.pageNotesTone,
+        notes: pageNotes as any,
+        criterionChecks: decision.criterionChecks as any,
+        context: pageNoteContext,
+        allowCriterionCodesInText: includeCriterionCodeInPageNotes,
+      });
+      if (polishedNotes.applied) {
+        pageNotes = polishedNotes.notes;
+        systemNotes.push(`AI page-note polish applied (${polishedNotes.replacedCount}/${pageNotes.length} notes).`);
+      } else {
+        systemNotes.push(
+          `AI page-note polish skipped (${polishedNotes.reason}${(polishedNotes as any).error ? `: ${(polishedNotes as any).error}` : ""}).`
+        );
+      }
+    } else if (pageNotes.length && cfg.pageNotesAiPolishEnabled && !notesAiRewriteEnvEnabled) {
+      systemNotes.push("AI page-note polish skipped (NOTES_AI_REWRITE disabled).");
+    }
 
     const previousSnapshot = (previousAssessment?.resultJson as any)?.referenceContextSnapshot || null;
     const previousCriterionChecks = extractCriterionRowsFromAssessmentResult((previousAssessment?.resultJson as any) || {});

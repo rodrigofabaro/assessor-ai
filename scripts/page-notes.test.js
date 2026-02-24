@@ -53,7 +53,8 @@ function assert(condition, message) {
 
 function run() {
   const { buildPageNotesFromCriterionChecks } = loadTsModule("lib/grading/pageNotes.ts");
-  const { criterionAllowedInResolvedSection } = loadTsModule("lib/grading/pageNoteSectionMaps.ts");
+  const { criterionAllowedInResolvedSection, resolvePageNoteSectionCriteriaMap } = loadTsModule("lib/grading/pageNoteSectionMaps.ts");
+  const { lintOverallFeedbackClaims } = loadTsModule("lib/grading/feedbackClaimLint.ts");
   const rows = [
     {
       code: "P6",
@@ -84,10 +85,18 @@ function run() {
   });
   assert(supportive.length === 2, "maxPages should limit output");
   const note = supportive[0] || { lines: [], items: [] };
-  assert((note.lines || []).length >= 2, "note should include useful lines");
+  assert((note.lines || []).length >= 1, "note should include useful lines");
   assert(
-    (note.lines || []).some((line) => /(strength|improvement|link|presentation|supports|helps evidence)/i.test(line)),
+    (note.lines || []).some((line) => /\b(page|evidence|result|requirement|improv|clear|verify)\b/i.test(line)),
     "note should include human note content"
+  );
+  assert(
+    !(note.lines || []).some((line) => /^(Strength|Improvement|Link|Presentation):/i.test(line)),
+    "supportive note should avoid legacy label prefixes"
+  );
+  assert(
+    (note.lines || []).length <= 3,
+    "supportive note should usually be compact (fluent note style)"
   );
 
   const strictNoCode = buildPageNotesFromCriterionChecks(rows, {
@@ -99,8 +108,12 @@ function run() {
   const firstBlock = strictNoCode[0]?.lines || [];
   assert(!firstBlock.some((line) => /^Criterion:/i.test(line)), "should remove criterion header when flag disabled");
   assert(
-    strictNoCode.some((p) => p.lines.some((l) => /(Strength:|Improvement:|This supports:)/i.test(l))),
+    strictNoCode.some((p) => p.lines.some((l) => /\b(requirement|evidence|verify|page)\b/i.test(l))),
     "structured note lines should be present in strict tone"
+  );
+  assert(
+    !strictNoCode.some((p) => p.lines.some((l) => /^(Strength|Improvement|Link|Presentation):/i.test(l))),
+    "strict tone should avoid legacy label prefixes"
   );
 
   const unit4Rows = [
@@ -143,8 +156,91 @@ function run() {
     );
   }
   const itemCounts = unit4Notes.map((n) => (Array.isArray(n.items) ? n.items.length : n.lines.length));
-  assert(new Set(itemCounts).size >= 2, "note item count should vary (not forced to one fixed structure)");
-  assert(itemCounts.some((c) => c <= 3), "some notes should be short (2-3 items)");
+  assert(itemCounts.every((c) => c >= 1), "each note should include at least one item/line");
+  assert(itemCounts.some((c) => c <= 3), "some notes should remain compact");
+  assert(itemCounts.every((c) => c !== 5), "notes should not be forced into a 5-part structure");
+  const unit4Map = resolvePageNoteSectionCriteriaMap({
+    unitCode: "4004",
+    assignmentType: "project_report",
+    assignmentCode: "A1",
+  });
+  for (const noteBlock of unit4Notes) {
+    if (!noteBlock.sectionId || !noteBlock.criterionCode || !unit4Map?.[noteBlock.sectionId]) continue;
+    assert(
+      unit4Map[noteBlock.sectionId].includes(noteBlock.criterionCode),
+      "note criterion should be mapped to the rendered section"
+    );
+  }
+  const allowedKinds = new Set(["praise", "gap", "action", "verification"]);
+  for (const noteBlock of unit4Notes) {
+    for (const item of Array.isArray(noteBlock.items) ? noteBlock.items : []) {
+      assert(allowedKinds.has(item.kind), `note item kind should use global note model kinds: ${item.kind}`);
+    }
+  }
+
+  const m2GapNote = buildPageNotesFromCriterionChecks(
+    [
+      {
+        code: "M2",
+        decision: "NOT_ACHIEVED",
+        rationale:
+          "M2 not achieved: evidence does not clearly demonstrate an alternative milestone monitoring method beyond Gantt with explicit justified selection.",
+        evidence: [{ page: 12, quote: "Gantt chart and milestones review" }],
+      },
+    ],
+    {
+      tone: "supportive",
+      maxPages: 5,
+      maxLinesPerPage: 10,
+      includeCriterionCode: true,
+      context: {
+        unitCode: "4004",
+        assignmentCode: "A1",
+        assignmentTitle: "Managing a Professional Engineering Project",
+        criteriaSet: ["M2"],
+      },
+    }
+  );
+  const m2Text = m2GapNote.flatMap((n) => n.lines || []).join(" ");
+  assert(/\bGantt chart\b/i.test(m2Text), "M2 supportive note should reference the observed Gantt evidence");
+  assert(/\bTo meet M2\b/i.test(m2Text), "M2 supportive note should explicitly state the M2 gap");
+  assert(/\bRAG status|critical path|milestone tracker\b/i.test(m2Text), "M2 supportive note should include concrete alternative method examples");
+
+  const genericAchieved = buildPageNotesFromCriterionChecks(
+    [
+      {
+        code: "P1",
+        decision: "ACHIEVED",
+        rationale: "Evidence is present for this criterion.",
+        evidence: [{ page: 2, quote: "Final result shown = 24" }],
+      },
+    ],
+    {
+      tone: "supportive",
+      maxPages: 5,
+      maxLinesPerPage: 10,
+      includeCriterionCode: false,
+      context: {
+        unitCode: "4004",
+        assignmentCode: "A1",
+        assignmentTitle: "Project Planning Report",
+        criteriaSet: ["P1"],
+      },
+    }
+  );
+  const genericAchievedText = genericAchieved.flatMap((n) => n.lines || []).join(" ");
+  assert(
+    !/You have relevant evidence here for this requirement/i.test(genericAchievedText),
+    "generic achieved note filler should be suppressed"
+  );
+  assert(
+    !/A short verification line after the final result/i.test(genericAchievedText),
+    "generic verification-line wording should not appear by default"
+  );
+  assert(
+    !/\b(add (?:one )?(?:short )?(?:line|sentence)|link to (?:the )?(?:criterion|requirement)|map criteria)\b/i.test(genericAchievedText),
+    "incomplete advice phrasing should not appear in final note output"
+  );
 
   // Cross-submission guard (not only Unit 4): generic D1 wording may mention renewable systems,
   // but for non-energy contexts it should be replaced with a safe note.
@@ -172,6 +268,21 @@ function run() {
   );
   const nonEnergyJoined = nonEnergyNotes.flatMap((n) => (Array.isArray(n.items) ? n.items.map((i) => i.text) : n.lines)).join(" ");
   assert(!/\brenewable\b/i.test(nonEnergyJoined), "global note guard should block out-of-context renewable wording");
+  assert(
+    !/\badd one sentence that explicitly connects your evidence to the criterion\b/i.test(nonEnergyJoined),
+    "incomplete criterion-link advice should be rewritten into complete guidance"
+  );
+
+  const linted = lintOverallFeedbackClaims({
+    text: "Criteria achieved: P1, M2.\nM2 achieved clearly through one Gantt chart example.",
+    criterionChecks: [
+      { code: "P1", decision: "ACHIEVED" },
+      { code: "M2", decision: "NOT_ACHIEVED" },
+    ],
+  });
+  assert(linted.changed === true, "feedback claim lint should change contradictory unachieved-criterion claims");
+  assert(!/\bM2 achieved\b/i.test(linted.text), "linted feedback should not claim an unachieved criterion was achieved");
+  assert(/\bM2 discussed\b/i.test(linted.text), "linted feedback should soften the wording instead");
 
   console.log("page notes tests passed.");
 }

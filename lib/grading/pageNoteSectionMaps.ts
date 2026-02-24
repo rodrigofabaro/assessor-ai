@@ -1,9 +1,11 @@
-export type PageNoteItemKind = "strength" | "improvement" | "link" | "presentation" | "supports";
+export type PageNoteItemKind = "praise" | "gap" | "action" | "verification";
+export type PageNoteSeverity = "info" | "action";
 
 export type PageNoteGenerationContext = {
   unitCode?: string | null;
   assignmentCode?: string | null;
   assignmentTitle?: string | null;
+  assignmentType?: string | null;
   criteriaSet?: string[] | null;
   allowedKeywords?: string[] | null;
   bannedKeywords?: string[] | null;
@@ -21,23 +23,53 @@ type SectionRule = {
 };
 
 type CriteriaSectionRule = {
+  assignmentType: string;
   criteriaToSections: Record<string, string[]>;
+  sectionsToCriteria: Record<string, string[]>;
   sections: SectionRule[];
   bannedKeywords: string[];
 };
 
-const UNIT4_PROJECT_MANAGEMENT_RULES: CriteriaSectionRule = {
-  criteriaToSections: {
-    P1: ["project_scope"],
-    P2: ["project_scope"],
-    P3: ["financial_planning", "schedule_planning"],
-    P4: ["schedule_planning", "monitoring_control"],
-    P5: ["risk_management"],
-    M1: ["financial_planning", "schedule_planning"],
-    M2: ["monitoring_control", "risk_management"],
-    D1: ["evaluation_reflection", "project_scope"],
-    D2: ["evaluation_reflection", "monitoring_control"],
-  },
+function invertSectionCriteriaMap(sectionsToCriteria: Record<string, string[]>) {
+  const criteriaToSections: Record<string, string[]> = {};
+  for (const [sectionId, codes] of Object.entries(sectionsToCriteria || {})) {
+    for (const rawCode of Array.isArray(codes) ? codes : []) {
+      const code = String(rawCode || "").trim().toUpperCase();
+      if (!code) continue;
+      if (!criteriaToSections[code]) criteriaToSections[code] = [];
+      if (!criteriaToSections[code].includes(sectionId)) criteriaToSections[code].push(sectionId);
+    }
+  }
+  return criteriaToSections;
+}
+
+function createCriteriaSectionRule(input: {
+  assignmentType: string;
+  sectionsToCriteria: Record<string, string[]>;
+  sections: SectionRule[];
+  bannedKeywords: string[];
+}): CriteriaSectionRule {
+  return {
+    assignmentType: input.assignmentType,
+    sectionsToCriteria: input.sectionsToCriteria,
+    criteriaToSections: invertSectionCriteriaMap(input.sectionsToCriteria),
+    sections: input.sections,
+    bannedKeywords: input.bannedKeywords,
+  };
+}
+
+const PROJECT_REPORT_SECTION_TO_CRITERIA: Record<string, string[]> = {
+  project_scope: ["P1", "P2", "D1"],
+  financial_planning: ["P3", "M1"],
+  schedule_planning: ["P3", "P4", "M1"],
+  risk_management: ["P5", "M2"],
+  monitoring_control: ["P4", "M2", "D2"],
+  evaluation_reflection: ["D1", "D2"],
+};
+
+const UNIT4_PROJECT_MANAGEMENT_RULES: CriteriaSectionRule = createCriteriaSectionRule({
+  assignmentType: "project_report",
+  sectionsToCriteria: PROJECT_REPORT_SECTION_TO_CRITERIA,
   sections: [
     { id: "project_scope", label: "Project Planning", keywords: ["scope", "objective", "aim", "deliverable", "stakeholder", "requirements", "proposal"] },
     { id: "financial_planning", label: "Financial Planning", keywords: ["budget", "cost", "financial", "finance", "cash flow", "costing", "cost breakdown"] },
@@ -61,6 +93,10 @@ const UNIT4_PROJECT_MANAGEMENT_RULES: CriteriaSectionRule = {
     "matlab/simulink",
     "simulink",
   ],
+});
+
+const ASSIGNMENT_TYPE_RULES: Record<string, CriteriaSectionRule> = {
+  project_report: UNIT4_PROJECT_MANAGEMENT_RULES,
 };
 
 function normalizeUnitCode(value: unknown) {
@@ -70,6 +106,10 @@ function normalizeUnitCode(value: unknown) {
 }
 
 export function resolvePageNoteRules(context?: PageNoteGenerationContext | null): CriteriaSectionRule | null {
+  const assignmentType = String(context?.assignmentType || "").trim().toLowerCase();
+  if (assignmentType && ASSIGNMENT_TYPE_RULES[assignmentType]) {
+    return ASSIGNMENT_TYPE_RULES[assignmentType];
+  }
   const unitCode = normalizeUnitCode(context?.unitCode);
   const title = String(context?.assignmentTitle || "").toLowerCase();
   const isUnit4Project =
@@ -78,6 +118,10 @@ export function resolvePageNoteRules(context?: PageNoteGenerationContext | null)
     (title.includes("project") && (title.includes("planning") || title.includes("engineering")));
   if (isUnit4Project) return UNIT4_PROJECT_MANAGEMENT_RULES;
   return null;
+}
+
+export function resolvePageNoteSectionCriteriaMap(context?: PageNoteGenerationContext | null) {
+  return resolvePageNoteRules(context)?.sectionsToCriteria || null;
 }
 
 export function resolvePageNoteBannedKeywords(context?: PageNoteGenerationContext | null): string[] {

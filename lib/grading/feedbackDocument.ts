@@ -14,6 +14,7 @@ export type FeedbackTemplateInput = {
   gradingTone?: string;
   gradingStrictness?: string;
   higherGradeGuidance?: string;
+  criterionOutcomeSummary?: string;
 };
 
 export const FEEDBACK_TEMPLATE_REQUIRED_TOKENS = ["{overallGrade}", "{feedbackBullets}"] as const;
@@ -30,6 +31,7 @@ export const FEEDBACK_TEMPLATE_OPTIONAL_TOKENS = [
   "{gradingTone}",
   "{gradingStrictness}",
   "{higherGradeGuidance}",
+  "{criterionOutcomeSummary}",
 ] as const;
 export const FEEDBACK_TEMPLATE_ALL_TOKENS = [
   ...FEEDBACK_TEMPLATE_REQUIRED_TOKENS,
@@ -40,6 +42,8 @@ const DEFAULT_TEMPLATE = [
   "Hello {studentFirstName},",
   "",
   "{feedbackSummary}",
+  "",
+  "{criterionOutcomeSummary}",
   "",
   "{feedbackBullets}",
   "",
@@ -66,11 +70,13 @@ export function getDefaultFeedbackTemplate() {
 
 export function renderFeedbackTemplate(input: FeedbackTemplateInput) {
   const template = clean(input.template) || DEFAULT_TEMPLATE;
+  const hasCriterionOutcomeToken = template.includes("{criterionOutcomeSummary}");
   const confidenceValue =
     typeof input.confidence === "number"
       ? input.confidence.toFixed(2)
       : clean(input.confidence ?? "");
   const higherGradeGuidance = clean(input.higherGradeGuidance);
+  const criterionOutcomeSummary = clean(input.criterionOutcomeSummary);
   const map: Record<string, string> = {
     studentFirstName: clean(input.studentFirstName) || "Student",
     studentFullName: clean(input.studentFullName) || clean(input.studentFirstName) || "Student",
@@ -86,11 +92,20 @@ export function renderFeedbackTemplate(input: FeedbackTemplateInput) {
     gradingTone: clean(input.gradingTone) || "professional",
     gradingStrictness: clean(input.gradingStrictness) || "balanced",
     higherGradeGuidance: higherGradeGuidance || "Continue strengthening criterion-linked evidence to progress to higher bands.",
+    criterionOutcomeSummary,
   };
-  return template.replace(
-    /\{(studentFirstName|studentFullName|feedbackSummary|feedbackBullets|overallGrade|assessorName|date|unitCode|assignmentCode|submissionId|confidence|gradingTone|gradingStrictness|higherGradeGuidance)\}/g,
+  let rendered = template.replace(
+    /\{(studentFirstName|studentFullName|feedbackSummary|feedbackBullets|overallGrade|assessorName|date|unitCode|assignmentCode|submissionId|confidence|gradingTone|gradingStrictness|higherGradeGuidance|criterionOutcomeSummary)\}/g,
     (_m, k) => map[String(k)] || ""
   );
+  if (criterionOutcomeSummary && !hasCriterionOutcomeToken) {
+    if (/\n\s*Final grade\s*:/i.test(rendered)) {
+      rendered = rendered.replace(/\n(\s*Final grade\s*:)/i, `\n\n${criterionOutcomeSummary}\n\n$1`);
+    } else {
+      rendered = `${rendered}\n\n${criterionOutcomeSummary}`;
+    }
+  }
+  return rendered;
 }
 
 export function deriveBulletsFromFeedbackText(text: string, maxBullets = 8) {

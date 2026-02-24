@@ -4,6 +4,7 @@ import {
   resolvePageNoteSectionForCriterion,
   type PageNoteGenerationContext,
   type PageNoteItemKind,
+  type PageNoteSeverity,
 } from "@/lib/grading/pageNoteSectionMaps";
 
 type EvidenceLike = {
@@ -34,11 +35,14 @@ export type MarkedPageNote = {
   lines: string[];
   items?: Array<{ kind: PageNoteItemKind; text: string }>;
   criterionCode?: string;
+  showCriterionCodeInTitle?: boolean;
   sectionId?: string | null;
   sectionLabel?: string | null;
+  severity?: PageNoteSeverity;
 };
 
 type PageNoteItem = { kind: PageNoteItemKind; text: string };
+const NOTE_WORD_BUDGET_MAX = 95;
 
 const GLOBAL_TEMPLATE_LEAK_TERMS = [
   "solar",
@@ -147,6 +151,65 @@ function toSentence(v: string) {
   return `${s}.`;
 }
 
+function stripLegacyPageNotePrefixes(value: string) {
+  return String(value || "")
+    .replace(/^\s*(Strength|Improvement|Link|Presentation)\s*:\s*/i, "")
+    .replace(/^\s*This supports\s*:\s*/i, "")
+    .trim();
+}
+
+function hasIncompleteAdviceCue(value: string) {
+  const s = sanitizeStudentNoteText(value).toLowerCase();
+  if (!s) return false;
+  if (!/\b(add (?:one )?(?:short )?(?:line|sentence)|link to (?:the )?(?:criterion|requirement)|map criteria|connect.*criterion)\b/i.test(s)) {
+    return false;
+  }
+  const hasWhat = /\b(what|evidence|method|result|output|figure|table|calculation|judgement|comparison|prove|shows?)\b/i.test(s);
+  const hasWhere = /\b(where|end of|finish the section|final paragraph|under the result|under the figure|in this section|in-text)\b/i.test(s);
+  const hasHow = /\b(for example|e\.g\.|state|include|say|using|format|structure)\b/i.test(s);
+  return !(hasWhat && hasWhere && hasHow);
+}
+
+function expandIncompleteAdvice(value: string) {
+  const s = sanitizeStudentNoteText(value);
+  if (!s) return "";
+  if (!hasIncompleteAdviceCue(s)) return s;
+  return "Finish this section with one short sentence that states what evidence you used, what you did, and why it meets the requirement (place it at the end of the paragraph or directly under the result/figure).";
+}
+
+export function pageNoteTextHasIncompleteAdvice(value: string) {
+  return hasIncompleteAdviceCue(value);
+}
+
+export function repairPageNoteTextAdvice(value: string) {
+  return expandIncompleteAdvice(value);
+}
+
+function applyNoteWordBudget(items: PageNoteItem[], maxWords = NOTE_WORD_BUDGET_MAX) {
+  const out: PageNoteItem[] = [];
+  let used = 0;
+  for (const item of items) {
+    const text = sanitizeStudentNoteText(item.text);
+    if (!text) continue;
+    const words = text.split(/\s+/).filter(Boolean);
+    if (!words.length) continue;
+    if (used + words.length <= maxWords) {
+      out.push({ ...item, text });
+      used += words.length;
+      continue;
+    }
+    const remaining = maxWords - used;
+    if (remaining < 10) break;
+    const clipped = compactLine(words.slice(0, remaining).join(" "), 320);
+    if (clipped) {
+      out.push({ ...item, text: clipped });
+      used = maxWords;
+    }
+    break;
+  }
+  return out;
+}
+
 function normalizeDecisionLabel(value: unknown, metFallback: unknown): "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR" {
   const up = String(value || "").trim().toUpperCase();
   if (up === "ACHIEVED" || up === "NOT_ACHIEVED" || up === "UNCLEAR") return up;
@@ -179,6 +242,85 @@ function summarizeReason(v: string) {
   return compactLine(firstSentence, 130);
 }
 
+function wordCount(v: string) {
+  const s = sanitizeStudentNoteText(v);
+  if (!s) return 0;
+  return s.split(/\s+/).filter(Boolean).length;
+}
+
+function countHits(text: string, pattern: RegExp) {
+  const hits = text.match(pattern);
+  return Array.isArray(hits) ? hits.length : 0;
+}
+
+function hasSpecificEvidenceSignal(entry: PageCriterionEntry) {
+  const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+  if (!corpus.trim()) return false;
+  return (
+    /\b(gantt|milestone|critical path|cpm|risk register|decision matrix|budget|cash flow|timeline|tracking|progress)\b/i.test(corpus) ||
+    /\b(graph|plot|waveform|figure|chart|table|diagram|screenshot|photo|overlay|axis|marker|cursor)\b/i.test(corpus) ||
+    /\b(legislation|legal|ethic|gdpr|health and safety|copyright|regulation)\b/i.test(corpus) ||
+    /\b(evaluate|evaluation|recommendation|reflection|trade[- ]off|judgement|conclusion|compare)\b/i.test(corpus) ||
+    /\b(equation|formula|calculation|working|units|substitution|magnitude|component|vector|phasor)\b/i.test(corpus)
+  );
+}
+
+function extractObservedEvidenceLine(entry: PageCriterionEntry) {
+  const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+  if (!corpus.trim()) return "";
+  if (/\bgantt\b/i.test(corpus)) return "You have shown milestone scheduling using a Gantt chart on this page.";
+  if (/\bcritical path|cpm\b/i.test(corpus)) return "You have included critical path / CPM evidence here.";
+  if (/\brisk register\b/i.test(corpus)) return "You have included a risk register / risk tracking evidence here.";
+  if (/\bdecision matrix\b/i.test(corpus)) return "You have included a decision matrix to support your choice here.";
+  if (/\blegislation|legal|ethic|gdpr|health and safety|regulation\b/i.test(corpus))
+    return "You have included relevant legislation/ethical considerations here.";
+  if (/\bgraph|plot|waveform|overlay\b/i.test(corpus)) return "You have included graphical evidence here to support your explanation.";
+  if (/\btable\b/i.test(corpus)) return "You have included a table that supports this part of the evidence.";
+  if (/\bdiagram|figure|screenshot|photo\b/i.test(corpus)) return "You have included visual evidence here to support the point.";
+  if (/\bevaluate|evaluation|recommendation|reflection|trade[- ]off|judgement\b/i.test(corpus))
+    return "You have started to evaluate your work here, rather than only describing it.";
+  if (/\bequation|formula|calculation|working\b/i.test(corpus)) return "You have shown the method/working clearly on this page.";
+  if (/\bvector|phasor|magnitude|component\b/i.test(corpus)) return "You have shown the correct method steps clearly here.";
+  return "";
+}
+
+function isGenericStrengthText(value: string) {
+  const s = sanitizeStudentNoteText(value).toLowerCase();
+  return (
+    s === "you have clear evidence here for this requirement." ||
+    s === "you have relevant evidence here for this requirement." ||
+    s === "you have started to evidence this requirement on this page." ||
+    s === "you have relevant evaluative evidence here for this requirement."
+  );
+}
+
+function isLowValueImprovementText(value: string) {
+  const s = sanitizeStudentNoteText(value).toLowerCase();
+  return (
+    !s ||
+    s === "add one sentence that explains exactly how this evidence meets the requirement." ||
+    s.includes("a short verification line after the final result would make this even easier to confirm")
+  );
+}
+
+function isLowValuePageNoteText(value: string) {
+  const s = sanitizeStudentNoteText(value).toLowerCase();
+  if (!s) return true;
+  if (s.length < 30) return true;
+  if (
+    /^you have (?:clear|relevant) evidence here for this requirement\./i.test(s) ||
+    /^clarify how this page evidence meets the requirement/i.test(s)
+  ) {
+    return true;
+  }
+  if (
+    /^you have relevant evidence here for this requirement\.\s*a short verification line after the final result/i.test(s)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function decisionPriority(decision: string) {
   if (decision === "NOT_ACHIEVED") return 0;
   if (decision === "UNCLEAR") return 1;
@@ -190,20 +332,20 @@ function strengthLine(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
 
   if (code === "P6") {
-    if (/\bphasor|rl|triangle\b/i.test(corpus)) return "Strength: Correct phasor triangle method is shown.";
-    if (/\bsin|cos|current|time|wave\b/i.test(corpus)) return "Strength: Your sinusoidal rearrangement steps are clear.";
-    return "Strength: Your pass-level sinusoidal method is clear.";
+    if (/\bphasor|rl|triangle\b/i.test(corpus)) return "You show the correct phasor triangle method here.";
+    if (/\bsin|cos|current|time|wave\b/i.test(corpus)) return "Your sinusoidal rearrangement steps are clear here.";
+    return "Your pass-level sinusoidal method is clear on this page.";
   }
   if (code === "P7") {
-    if (/\bdeterminant|cross product\b/i.test(corpus)) return "Strength: Good determinant setup for vector method.";
+    if (/\bdeterminant|cross product\b/i.test(corpus)) return "You set up the determinant method clearly here.";
     if (/\bcomponent|horizontal|vertical|cos|sin\b/i.test(corpus))
-      return "Strength: Correct method is shown for resolving vector components.";
-    return "Strength: Your vector method is presented clearly.";
+      return "You use the correct method for resolving vector components here.";
+    return "Your vector method is presented clearly on this page.";
   }
   if (code === "M3") {
     if (/\bgraph|plot|waveform|overlay|figure\b/i.test(corpus))
-      return "Strength: You show the combine-wave method with graphical evidence.";
-    return "Strength: Your compound-angle/single-wave method is clear.";
+      return "You show the combined-wave method with useful graphical evidence here.";
+    return "Your compound-angle/single-wave method is clear here.";
   }
   if (code === "D2") {
     if (/\bsoftware|geogebra|desmos|graph|plot|screenshot\b/i.test(corpus))
@@ -212,13 +354,13 @@ function strengthLine(entry: PageCriterionEntry) {
   }
   if (code === "D1") {
     if (/\bcompare|evaluation|efficien|performance|cost|reliab|trade[- ]off\b/i.test(corpus)) {
-      return "Strength: Your evidence is clear for this requirement.";
+      return "You have started to evaluate the evidence here rather than only describing it.";
     }
-    return "Strength: Your evidence is clear for this requirement.";
+    return extractObservedEvidenceLine(entry) || "";
   }
-  return entry.decision === "ACHIEVED"
-    ? "Strength: Your evidence is clear for this requirement."
-    : "Strength: Your evidence is clear for this requirement.";
+  const observed = extractObservedEvidenceLine(entry);
+  if (observed) return observed;
+  return "";
 }
 
 function gapLine(entry: PageCriterionEntry) {
@@ -226,25 +368,48 @@ function gapLine(entry: PageCriterionEntry) {
   const rationale = summarizeReason(entry.rationale);
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
 
+  if (code === "M2" && entry.decision !== "ACHIEVED") {
+    if (/\bgantt\b/i.test(corpus) && /\b(milestone|monitor|tracking|progress|critical path|cpm)\b/i.test(corpus)) {
+      return "To meet M2, add one alternative milestone monitoring method beyond the Gantt chart and show how you would use it to check progress and respond to delays.";
+    }
+    return "To meet M2, show one alternative milestone monitoring method and explain clearly why it is suitable for tracking progress.";
+  }
+
   if (code === "D2" && entry.decision !== "ACHIEVED") {
-    return "Next step: make the software-to-calculation confirmation explicit across at least three distinct problems.";
+    return "To evidence D2, make the software-to-calculation confirmation explicit across at least three distinct problems.";
   }
   if (code === "D1" && entry.decision !== "ACHIEVED") {
-    return "Next step: move from description to critical evaluation by judging one specific renewable energy system using clear performance criteria.";
+    return "To strengthen D1, move from description to critical evaluation by judging one clear example against performance criteria.";
   }
   if (code === "P7" && /\bmagnitude|component|horizontal|vertical\b/i.test(corpus)) {
-    return "Next step: present magnitudes as positive values and note direction separately.";
+    return "Present magnitudes as positive values, then note direction separately.";
   }
   if (code === "M3" && entry.decision !== "ACHIEVED") {
-    return "Next step: make the link between the graph and your analytical combined-wave result more explicit.";
+    return "Make the link between the graph and your analytical combined-wave result more explicit.";
   }
   if (entry.decision === "ACHIEVED") {
-    return "Improvement: Add one short verification line right after your final result (e.g. quick units/sense-check) so it is easy to confirm.";
+    const codeSupportsVerificationPrompt = new Set(["P6", "P7", "M3", "D2"]).has(code);
+    const mathLike =
+      /\b(sin|cos|tan|phasor|vector|determinant|equation|formula|magnitude|component|current|voltage|frequency|units?)\b/i.test(
+        corpus
+      ) || (/\d/.test(corpus) && /[=+\-/*]/.test(corpus));
+    const hasFinalAnswerCue = /\b(final|answer|result|therefore|hence)\b/i.test(corpus);
+    const alreadyChecked = /\b(check|verify|verified|substitut|sense[- ]check|unit[s]?)\b/i.test(corpus);
+    if (codeSupportsVerificationPrompt && mathLike && hasFinalAnswerCue && !alreadyChecked) {
+      return "Add a one-line check under the answer (for example units or substitution) so the result can be confirmed quickly.";
+    }
+    return "";
   }
   if (rationale) {
-    return `Improvement: ${rationale}`;
+    if (/^(?:m\d|d\d|p\d)\s+not achieved\b/i.test(rationale)) {
+      return `To improve this page, ${rationale.charAt(0).toLowerCase()}${rationale.slice(1)}`;
+    }
+    if (/^(?:evidence|method|working|explanation|link|comparison|confirmation)\b/i.test(rationale)) {
+      return `To improve this page, ${rationale.charAt(0).toLowerCase()}${rationale.slice(1)}`;
+    }
+    return `To improve this page, ${rationale.charAt(0).toLowerCase()}${rationale.slice(1)}`;
   }
-  return "Improvement: Add one sentence that explicitly connects your evidence to the criterion.";
+  return "Add one sentence that explains exactly how this evidence meets the requirement.";
 }
 
 function visualPresentationLine(entry: PageCriterionEntry) {
@@ -277,6 +442,13 @@ function visualDevelopmentSuggestionLine(entry: PageCriterionEntry) {
 
 function actionLines(entry: PageCriterionEntry): string[] {
   const code = entry.code;
+  if (code === "M2") {
+    return [
+      "Show one method beyond Gantt (for example a milestone checklist with RAG status, CPM/critical path output, or a milestone tracker).",
+      "Add a short explanation of what the method shows and how it helps you manage delays or slippage.",
+      "Label any chart/table/image clearly so the evidence is quick to verify.",
+    ];
+  }
   if (code === "D1") {
     return [
       "Choose one clear focus example and evaluate it using relevant performance criteria and trade-offs.",
@@ -313,17 +485,102 @@ function actionLines(entry: PageCriterionEntry): string[] {
     ];
   }
   return [
-    "Link: Add one sentence that explicitly connects your evidence to the criterion.",
-    "Presentation: Label your final result so the method used is easy to verify.",
-    "Presentation: Label your final result so the method used is easy to verify.",
+    "Add one sentence that explains exactly how this evidence meets the requirement.",
+    "Label the final result, table, or figure you are relying on so it is quick to verify.",
   ];
 }
 
-function bandImpactLine(entry: PageCriterionEntry) {
-  if (entry.code === "D2" && entry.decision !== "ACHIEVED") {
-    return "This is why D2 is not fully evidenced yet.";
+function buildSupportiveFluentNoteItems(input: {
+  entry: PageCriterionEntry;
+  items: PageNoteItem[];
+  includeCode: boolean;
+}) {
+  const { entry, items, includeCode } = input;
+  const code = String(entry.code || "").toUpperCase();
+  const byKind = new Map<PageNoteItemKind, string[]>();
+  for (const item of items) {
+    const list = byKind.get(item.kind) || [];
+    const txt = stripLegacyPageNotePrefixes(String(item.text || "").trim());
+    if (txt) list.push(txt);
+    byKind.set(item.kind, list);
   }
-  return `This supports: ${entry.code}.`;
+
+  const praise = (byKind.get("praise") || [])[0] || "";
+  const gaps = (byKind.get("gap") || []).slice(0, 2);
+  const actions = (byKind.get("action") || []).slice(0, 2);
+  const verification = (byKind.get("verification") || []).slice(0, 2);
+
+  const joinSentence = (parts: string[]) =>
+    parts
+      .map((p) => sanitizeStudentNoteText(p))
+      .filter(Boolean)
+      .map((p) => toSentence(p))
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  const hasUsefulContent = (v: string) =>
+    /\b(gantt|graph|plot|table|diagram|software|comparison|milestone|tracking|method|result|equation|vector|phasor|analysis|evaluation|judgement|delay|critical path|rag|units?|magnitude|component)\b/i.test(
+      v || ""
+    );
+  const looksGeneric = (v: string) =>
+    /^(?:you have (?:clear|relevant) evidence here for this requirement|you have started to evidence this requirement on this page)\.?$/i.test(
+      sanitizeStudentNoteText(v)
+    );
+
+  // Unit 4 M2 special pattern to match the user's expected style more closely.
+  if (code === "M2" && entry.decision !== "ACHIEVED") {
+    const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+    const hasGantt = /\bgantt\b/i.test(corpus);
+    const lead = hasGantt
+      ? "You have tracked your milestones clearly using a Gantt chart."
+      : praise || "You have made a good start with your milestone tracking evidence.";
+    const coreGapRaw =
+      gaps.find((v) => /\bTo meet M2\b/i.test(v)) ||
+      "To meet M2, you also need to show one other milestone monitoring method beyond the Gantt chart and demonstrate how you would use it to check progress and take action.";
+    const coreGap = coreGapRaw
+      .replace(/^To (?:strengthen|improve) this,\s*/i, "")
+      .replace(/^to meet\b/i, "To meet");
+    const methodExamples =
+      "A simple milestone checklist with RAG status, a CPM/critical path output, or a short milestone tracker would all be suitable.";
+    const explainLine =
+      actions.find((v) => /\bexplain|what the method shows|manage delays|slippage\b/i.test(v)) ||
+      "Add a brief explanation of what the method shows and how it helps you manage delays.";
+    const labelLine = verification[0] ? verification[0] : "";
+    const body = joinSentence([lead, coreGap, methodExamples, explainLine, labelLine]);
+    return [{ kind: "action" as PageNoteItemKind, text: body }];
+  }
+
+  const orderedParts: string[] = [];
+  const primaryGap = gaps[0] || "";
+  const secondaryGap = actions[0] || gaps[1] || "";
+  const verificationLine = verification[0] || actions[1] || "";
+  const leadStrength =
+    praise && (!looksGeneric(praise) || entry.decision === "ACHIEVED" || hasUsefulContent(praise)) ? praise : "";
+
+  if (entry.decision === "ACHIEVED") {
+    if (leadStrength) orderedParts.push(leadStrength);
+    if (primaryGap) orderedParts.push(primaryGap);
+    if (verificationLine && !/^\s*if you use images or charts here/i.test(verificationLine)) orderedParts.push(verificationLine);
+  } else {
+    if (leadStrength) orderedParts.push(leadStrength);
+    if (primaryGap) {
+      orderedParts.push(primaryGap);
+    } else if (includeCode && code && code !== "CRITERION") {
+      orderedParts.push(`For ${code}, add clearer evidence and explanation so the requirement is fully met.`);
+    }
+
+    if (secondaryGap) orderedParts.push(secondaryGap);
+    if (verificationLine) orderedParts.push(verificationLine);
+  }
+
+  if (!orderedParts.length && praise) orderedParts.push(praise);
+  const paragraph = joinSentence(orderedParts);
+  if (!paragraph) return items;
+  return [{ kind: (entry.decision === "ACHIEVED" ? "praise" : "action") as PageNoteItemKind, text: paragraph }];
+}
+
+function bandImpactLine(entry: PageCriterionEntry) {
+  return "";
 }
 
 function softenSupportiveStrengthLine(value: string) {
@@ -349,6 +606,7 @@ function softenSupportiveGapLine(value: string) {
     .replace(/^To improve:\s*/i, "")
     .replace(/^To improve for moderation:\s*/i, "For moderation, ");
   if (/^For moderation,/i.test(s)) return s;
+  if (/^To (?:strengthen|improve|meet|evidence)\b/i.test(s)) return s;
   if (/^move from description to critical evaluation\b/i.test(s)) {
     return `To push this further, ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
   }
@@ -382,30 +640,24 @@ function shouldIncludeLinkItem(entry: PageCriterionEntry) {
 }
 
 function formatItemTextForTone(kind: PageNoteItemKind, value: string, style: PageNoteStyleProfile) {
-  let text = String(value || "").trim();
+  let text = stripLegacyPageNotePrefixes(String(value || "").trim());
   if (!text) return "";
-  if (kind === "strength" && style.softenStrengthLine) text = softenSupportiveStrengthLine(text);
-  if (kind === "improvement" && style.softenGapLine) text = softenSupportiveGapLine(text);
-  if ((kind === "link" || kind === "presentation") && style.softenActionLines) text = softenSupportiveActionLine(text);
-  if (kind === "supports" && style.softenCriterionLink) {
-    text = text
-      .replace(/^This supports\s+/i, "This helps evidence ")
-      .replace(/^This is why\s+/i, "This is why ")
-      .replace(/\.$/, "");
-  }
+  if (kind === "praise" && style.softenStrengthLine) text = softenSupportiveStrengthLine(text);
+  if (kind === "gap" && style.softenGapLine) text = softenSupportiveGapLine(text);
+  if ((kind === "action" || kind === "verification") && style.softenActionLines) text = softenSupportiveActionLine(text);
   return text;
 }
 
 function safeFallbackNoteItem(input: { kind: PageNoteItemKind; code: string }) {
   const code = String(input.code || "CRITERION").toUpperCase();
-  if (input.kind === "strength") return "Strength: Your evidence is relevant to this requirement.";
-  if (input.kind === "improvement") {
-    return "Improvement: Clarify the evidence link and add one short verification line after your final result.";
+  if (input.kind === "praise") return "You have relevant evidence here for this requirement.";
+  if (input.kind === "gap") {
+    return `To improve this page for ${code}, add clearer evidence showing what you did and what result or output proves the requirement.`;
   }
-  if (input.kind === "link") return "Link: Add one sentence that explicitly connects your evidence to the criterion.";
-  if (input.kind === "presentation")
-    return "Presentation: Label the final result, table, or figure you are using so it is easy to verify.";
-  return `This supports: ${code}.`;
+  if (input.kind === "action") {
+    return "Finish this section with one short sentence that states what evidence you used, what you did, and why it meets the requirement (place it at the end of the paragraph or directly under the result/figure).";
+  }
+  return "Label the figure/table/result and refer to it in the paragraph so the evidence is quick to verify.";
 }
 
 function applyTemplateGuardToNoteItems(
@@ -464,42 +716,61 @@ function buildStructuredNoteItems(input: {
   const actions = actionLines(entry);
   const visualLine = visualPresentationLine(entry) || visualDevelopmentSuggestionLine(entry);
   const criterionLink = bandImpactLine(entry);
+  const linkAction =
+    actions.find((line) => /\b(connect|explains?|show[s]?|demonstrates?|supports?)\b.*\b(requirement|criterion|evidence)\b/i.test(line)) ||
+    "";
+  const presentationAction =
+    actions.find((line) => /\b(label|caption|axis|axes|marker|cursor|figure|table|presentation)\b/i.test(line)) || "";
+  const genericAction = actions.find((line) => line && line !== linkAction && line !== presentationAction) || "";
+  const allowGenericPresentationPrompt =
+    entry.decision !== "ACHIEVED" &&
+    (/\b(image|figure|diagram|chart|graph|plot|waveform|screenshot|photo|table|sketch)\b/i.test(`${entry.context} ${entry.rationale}`) ||
+      hasSpecificEvidenceSignal(entry));
 
   // Flexible structure: include only relevant items; do not force a fixed 5-line template.
   if (entry.decision === "ACHIEVED") {
-    items.push({ kind: "strength", text: strength });
-    items.push({ kind: "improvement", text: improvement });
+    if (strength && !isGenericStrengthText(strength)) items.push({ kind: "praise", text: strength });
+    if (improvement && !isLowValueImprovementText(improvement)) {
+      items.push({
+        kind: /\b(check|verify|units?|substitut|label|caption|figure|table)\b/i.test(improvement) ? "verification" : "action",
+        text: improvement,
+      });
+    }
   } else {
-    items.push({ kind: "improvement", text: improvement });
     if (/good start here/i.test(strength) || entry.decision === "UNCLEAR") {
-      items.unshift({ kind: "strength", text: strength });
+      items.unshift({ kind: "praise", text: strength });
+    }
+    if (improvement) items.push({ kind: "gap", text: improvement });
+    if (genericAction && !isLowValueImprovementText(genericAction)) {
+      items.push({ kind: "action", text: genericAction });
     }
   }
 
-  if (shouldIncludeLinkItem(entry)) {
+  if (entry.decision !== "ACHIEVED" && shouldIncludeLinkItem(entry)) {
     const explicitLinkAction =
-      actions.find((line) => /^link:/i.test(String(line || ""))) ||
-      "Link: Add one sentence that explicitly connects your evidence to the criterion.";
-    items.push({ kind: "link", text: explicitLinkAction });
+      linkAction ||
+      "Add one sentence that explicitly connects your evidence to the criterion.";
+    if (!isLowValueImprovementText(explicitLinkAction)) {
+      items.push({ kind: "action", text: explicitLinkAction });
+    }
   }
 
   if (visualLine) {
-    items.push({ kind: "presentation", text: visualLine });
-  } else if (handwritingLikely) {
-    items.push({ kind: "presentation", text: style.handwritingTip });
-  } else if (entry.decision !== "ACHIEVED") {
-    const presentationAction =
-      actions.find((line) => /^presentation:/i.test(String(line || ""))) ||
-      "Presentation: Label the final result so the method used is easy to verify.";
-    items.push({ kind: "presentation", text: presentationAction });
+    items.push({ kind: "verification", text: visualLine });
+  } else if (handwritingLikely && entry.decision !== "ACHIEVED" && /\b(handwrit|scan|photo|image)\b/i.test(`${entry.context} ${entry.rationale}`)) {
+    items.push({ kind: "verification", text: style.handwritingTip });
+  } else if (allowGenericPresentationPrompt) {
+    const fallbackPresentation = presentationAction || "Label the final result so the method used is easy to verify.";
+    items.push({ kind: "verification", text: fallbackPresentation });
   }
 
   const addSupports =
     includeCode &&
     entry.code !== "CRITERION" &&
-    (tone !== "supportive" || entry.decision !== "ACHIEVED" || shouldIncludeLinkItem(entry));
-  if (addSupports) {
-    items.push({ kind: "supports", text: criterionLink });
+    tone !== "supportive" &&
+    (entry.decision !== "ACHIEVED" || shouldIncludeLinkItem(entry));
+  if (addSupports && criterionLink && entry.decision !== "ACHIEVED") {
+    items.push({ kind: "verification", text: criterionLink });
   }
 
   const guarded = applyTemplateGuardToNoteItems(items, entry, context);
@@ -513,13 +784,29 @@ function buildStructuredNoteItems(input: {
     if (deduped.length >= Math.max(1, Math.min(8, maxLinesPerPage))) break;
   }
   if (!deduped.length) {
-    deduped.push({ kind: "improvement", text: safeFallbackNoteItem({ kind: "improvement", code: entry.code }) });
+    deduped.push({ kind: "action", text: safeFallbackNoteItem({ kind: "action", code: entry.code }) });
   }
 
-  return deduped.map((item) => ({
+  let formatted = deduped.map((item) => ({
     ...item,
     text: formatItemTextForTone(item.kind, item.text, style),
   }));
+  if (tone === "supportive") {
+    formatted = buildSupportiveFluentNoteItems({ entry, items: formatted, includeCode });
+  }
+  formatted = formatted
+    .map((item) => ({ ...item, text: expandIncompleteAdvice(item.text) }))
+    .filter((item) => !isLowValuePageNoteText(item.text));
+  formatted = applyNoteWordBudget(formatted);
+  if (!formatted.length) {
+    formatted = [
+      {
+        kind: "action",
+        text: safeFallbackNoteItem({ kind: "action", code: entry.code }),
+      },
+    ];
+  }
+  return formatted;
 }
 
 function formatStructuredNoteLines(input: {
@@ -535,7 +822,7 @@ function formatStructuredNoteLines(input: {
     lines.push(compactLine(`${style.focusLabel}: ${entry.code}`, 80));
   }
   for (const item of items) {
-    lines.push(compactLine(toSentence(item.text), 195));
+    lines.push(toSentence(item.text));
   }
   return lines.filter(Boolean);
 }
@@ -665,6 +952,11 @@ export function buildPageNotesFromCriterionChecks(
       const sectionId = sectionMatch?.id || null;
       const sectionLabel = sectionMatch?.label || null;
       if (!criterionAllowedInResolvedSection({ code: primary.code, sectionId, context: generationContext })) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(
+            `[pageNotes] skipped note for ${primary.code} on page ${page} because resolved section ${String(sectionId || "unknown")} is not allowed`
+          );
+        }
         return { page, lines: [] };
       }
       const items = buildStructuredNoteItems({
@@ -686,8 +978,10 @@ export function buildPageNotesFromCriterionChecks(
         lines,
         items,
         criterionCode: primary.code,
+        showCriterionCodeInTitle: includeCode,
         sectionId,
         sectionLabel,
+        severity: (primary.decision === "ACHIEVED" ? "info" : "action") as PageNoteSeverity,
       };
     })
     .filter((note) => note.lines.length > 0);

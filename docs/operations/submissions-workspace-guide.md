@@ -1,7 +1,7 @@
 # Submissions Workspace Guide
 
 Route: `/submissions`
-Last updated: 2026-02-20
+Last updated: 2026-02-24
 
 ## What This Page Is
 
@@ -24,6 +24,24 @@ It is not the final place to validate detailed criterion evidence. Use submissio
 - use QA preview before QA commit
 - do not batch grade rows with unresolved blockers
 - always review skipped reasons from batch result
+
+## Detail Page Loop (Current Operator Flow)
+
+For `/submissions/[submissionId]` (single submission review):
+
+1. Open the row later from the queue.
+2. Read the single status line in the header (`Action needed`, `Preview ready`, `Audit saved`, `Complete`).
+3. Follow the numbered left workflow rail only for the highlighted step.
+4. When preview is fresh (or audit is already saved), review `Approval & outputs`.
+5. Confirm grade + feedback + marked PDF readiness.
+6. Use:
+   - `Save to audit`
+   - `Save to audit & next`
+
+Notes:
+
+- Review-ready submissions auto-open `Approval & outputs`.
+- Technical diagnostics (confidence/readiness internals) are hidden under `Technical details (optional)` so the main review path stays focused.
 
 ## Current Controls (2026-02-20)
 

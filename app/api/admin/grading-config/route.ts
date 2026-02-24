@@ -73,6 +73,7 @@ export async function PUT(req: Request) {
       pageNotesMaxPages: body.pageNotesMaxPages as any,
       pageNotesMaxLinesPerPage: body.pageNotesMaxLinesPerPage as any,
       pageNotesIncludeCriterionCode: body.pageNotesIncludeCriterionCode as any,
+      pageNotesAiPolishEnabled: body.pageNotesAiPolishEnabled as any,
     });
     const templateResolution = resolveFeedbackTemplate(saved, ctx.user?.id || null);
     appendSettingsAuditEvent({
@@ -94,6 +95,8 @@ export async function PUT(req: Request) {
         feedbackTemplateByUserCountTo: Object.keys(saved.feedbackTemplateByUserId || {}).length,
         pageNotesEnabledFrom: prev.pageNotesEnabled,
         pageNotesEnabledTo: saved.pageNotesEnabled,
+        pageNotesAiPolishEnabledFrom: prev.pageNotesAiPolishEnabled,
+        pageNotesAiPolishEnabledTo: saved.pageNotesAiPolishEnabled,
       },
     });
     return NextResponse.json({

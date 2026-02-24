@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
 import { summarizeFeedbackText } from "@/lib/grading/feedbackDocument";
@@ -111,6 +111,12 @@ type GradePreview = {
   referenceContextSnapshot?: any;
 };
 
+type GradePreviewRunMeta = {
+  runCount: number;
+  atIso: string;
+  requestId: string | null;
+};
+
 type AppConfigPayload = {
   activeAuditUser?: { fullName?: string | null } | null;
 };
@@ -137,6 +143,12 @@ type AssessmentRequirement = {
   charts?: string[];
   needsEquation?: boolean;
   needsImage?: boolean;
+};
+
+type QueueLookupRow = {
+  id: string;
+  automationState?: string | null;
+  status?: string | null;
 };
 
 type CriterionDecision = "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
@@ -195,6 +207,169 @@ function normalizeRequirementSection(section?: string) {
   return `Part ${s.toUpperCase()}`;
 }
 
+type FeedbackDiffLine = { kind: "same" | "add" | "remove"; text: string };
+
+function splitFeedbackLines(value: string) {
+  const normalized = String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  return normalized.split("\n");
+}
+
+function diffFeedbackTextLines(beforeText: string, afterText: string): FeedbackDiffLine[] {
+  const a = splitFeedbackLines(beforeText);
+  const b = splitFeedbackLines(afterText);
+  const n = a.length;
+  const m = b.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = m - 1; j >= 0; j -= 1) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  const out: FeedbackDiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      out.push({ kind: "same", text: a[i] });
+      i += 1;
+      j += 1;
+      continue;
+    }
+    if (dp[i + 1][j] >= dp[i][j + 1]) {
+      out.push({ kind: "remove", text: a[i] });
+      i += 1;
+    } else {
+      out.push({ kind: "add", text: b[j] });
+      j += 1;
+    }
+  }
+  while (i < n) {
+    out.push({ kind: "remove", text: a[i] });
+    i += 1;
+  }
+  while (j < m) {
+    out.push({ kind: "add", text: b[j] });
+    j += 1;
+  }
+  return out;
+}
+
+function summarizeFeedbackDiff(lines: FeedbackDiffLine[]) {
+  let addCount = 0;
+  let removeCount = 0;
+  let changedLineCount = 0;
+  for (const line of lines) {
+    if (line.kind === "add") {
+      addCount += 1;
+      changedLineCount += 1;
+    } else if (line.kind === "remove") {
+      removeCount += 1;
+      changedLineCount += 1;
+    }
+  }
+  return { addCount, removeCount, changedLineCount };
+}
+
+function compactFeedbackDiffLines(lines: FeedbackDiffLine[], contextLines = 1) {
+  if (!lines.length) return [] as Array<FeedbackDiffLine | { kind: "meta"; text: string }>;
+  const keep = new Set<number>();
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i].kind === "same") continue;
+    for (let j = Math.max(0, i - contextLines); j <= Math.min(lines.length - 1, i + contextLines); j += 1) {
+      keep.add(j);
+    }
+  }
+  if (!keep.size) return [] as Array<FeedbackDiffLine | { kind: "meta"; text: string }>;
+
+  const out: Array<FeedbackDiffLine | { kind: "meta"; text: string }> = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (keep.has(i)) {
+      out.push(lines[i]);
+      i += 1;
+      continue;
+    }
+    let j = i;
+    while (j < lines.length && !keep.has(j)) j += 1;
+    const hidden = j - i;
+    out.push({ kind: "meta", text: `${hidden} unchanged line${hidden === 1 ? "" : "s"} hidden` });
+    i = j;
+  }
+  return out;
+}
+
+function FeedbackDiffPreview(props: {
+  title: string;
+  beforeText: string;
+  afterText: string;
+  beforeLabel?: string;
+  afterLabel?: string;
+  initiallyOpen?: boolean;
+}) {
+  const lines = useMemo(() => diffFeedbackTextLines(props.beforeText, props.afterText), [props.beforeText, props.afterText]);
+  const summary = useMemo(() => summarizeFeedbackDiff(lines), [lines]);
+  const compact = useMemo(() => compactFeedbackDiffLines(lines, 1), [lines]);
+  if (summary.changedLineCount === 0) return null;
+
+  return (
+    <details
+      open={props.initiallyOpen}
+      className="rounded-xl border border-zinc-200 bg-white p-2"
+    >
+      <summary className="cursor-pointer text-[11px] font-semibold text-zinc-700">
+        {props.title} · +{summary.addCount} / -{summary.removeCount}
+      </summary>
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+            {props.beforeLabel || "Before"}
+          </div>
+          <div className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded border border-zinc-200 bg-white p-2 text-[11px] text-zinc-700">
+            {props.beforeText || "(Empty)"}
+          </div>
+        </div>
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+            {props.afterLabel || "After"}
+          </div>
+          <div className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded border border-zinc-200 bg-white p-2 text-[11px] text-zinc-700">
+            {props.afterText || "(Empty)"}
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">Line diff</div>
+        <div className="mt-1 max-h-56 overflow-auto rounded border border-zinc-200 bg-white p-2 font-mono text-[11px]">
+          {compact.map((line, idx) => {
+            if ((line as any).kind === "meta") {
+              return (
+                <div key={`fd-meta-${idx}`} className="italic text-zinc-500">
+                  ... {(line as any).text} ...
+                </div>
+              );
+            }
+            const row = line as FeedbackDiffLine;
+            const prefix = row.kind === "add" ? "+" : row.kind === "remove" ? "-" : " ";
+            const rowClass =
+              row.kind === "add"
+                ? "bg-emerald-50 text-emerald-900"
+                : row.kind === "remove"
+                  ? "bg-rose-50 text-rose-900"
+                  : "text-zinc-500";
+            return (
+              <div key={`fd-${idx}`} className={cx("whitespace-pre-wrap rounded px-1 py-0.5", rowClass)}>
+                {prefix} {row.text || " "}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </details>
+  );
+}
+
 function StatusPill({ children }: { children: string }) {
   return (
     <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700">
@@ -205,6 +380,7 @@ function StatusPill({ children }: { children: string }) {
 
 export default function SubmissionDetailPage() {
   const params = useParams<{ submissionId: string }>();
+  const router = useRouter();
   const submissionId = String(params?.submissionId || "");
 
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -214,6 +390,8 @@ export default function SubmissionDetailPage() {
   const [msg, setMsg] = useState("");
   const [gradingBusy, setGradingBusy] = useState(false);
   const [gradingPreview, setGradingPreview] = useState<GradePreview | null>(null);
+  const [gradingPreviewMeta, setGradingPreviewMeta] = useState<GradePreviewRunMeta | null>(null);
+  const [lastPreviewFingerprint, setLastPreviewFingerprint] = useState("");
   const [gradingCfg, setGradingCfg] = useState<GradingConfig | null>(null);
   const [tone, setTone] = useState<GradingConfig["tone"]>("professional");
   const [strictness, setStrictness] = useState<GradingConfig["strictness"]>("balanced");
@@ -224,7 +402,7 @@ export default function SubmissionDetailPage() {
   const studentSearchInputRef = useRef<HTMLInputElement | null>(null);
   const quickActionsPanelRef = useRef<HTMLDetailsElement | null>(null);
   const studentPanelRef = useRef<HTMLDetailsElement | null>(null);
-  const workflowPanelRef = useRef<HTMLElement | null>(null);
+  const workflowPanelRef = useRef<HTMLDivElement | null>(null);
   const assignmentPanelRef = useRef<HTMLDetailsElement | null>(null);
   const extractionPanelRef = useRef<HTMLDetailsElement | null>(null);
   const gradingPanelRef = useRef<HTMLDivElement | null>(null);
@@ -252,7 +430,6 @@ export default function SubmissionDetailPage() {
   const [coverSaveState, setCoverSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [pdfView, setPdfView] = useState<"original" | "marked">("original");
   const [gradingConfigOpen, setGradingConfigOpen] = useState(false);
-  const [runGradeWhenReady, setRunGradeWhenReady] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [pdfViewport, setPdfViewport] = useState<"compact" | "comfort" | "full">("comfort");
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
@@ -272,6 +449,8 @@ export default function SubmissionDetailPage() {
   const [coverUnitCode, setCoverUnitCode] = useState("");
   const [coverAssignmentCode, setCoverAssignmentCode] = useState("");
   const [coverSubmissionDate, setCoverSubmissionDate] = useState("");
+  const autoPreviewFingerprintRef = useRef("");
+  const guidedStepRef = useRef("");
 
   /* ---------- Extraction view state ---------- */
   const [activePage, setActivePage] = useState(0);
@@ -352,6 +531,12 @@ export default function SubmissionDetailPage() {
     () => studentFeedbackPreview.trim() !== String(feedbackDraft || "").trim(),
     [studentFeedbackPreview, feedbackDraft]
   );
+  const unsavedFeedbackDiff = useMemo(() => {
+    const beforeText = String(feedbackBaseline.text || "");
+    const afterText = String(feedbackDraft || "");
+    if (beforeText === afterText) return null;
+    return { beforeText, afterText };
+  }, [feedbackBaseline.text, feedbackDraft]);
   const changeChips = useMemo(() => {
     const out: string[] = [];
     if ((submission?.assessments?.length || 0) > 1) out.push(`Regraded ${Math.max(0, (submission?.assessments?.length || 1) - 1)}x`);
@@ -429,6 +614,21 @@ export default function SubmissionDetailPage() {
       diff.push("Page notes changed");
     }
     return diff.length ? diff : null;
+  }, [gradingHistory, selectedAssessment]);
+  const selectedAssessmentFeedbackDiff = useMemo(() => {
+    const idx = gradingHistory.findIndex((a) => a.id === selectedAssessment?.id);
+    if (idx < 0 || idx >= gradingHistory.length - 1) return null;
+    const older = gradingHistory[idx + 1];
+    const newer = selectedAssessment;
+    const beforeText = String(older?.feedbackText || "");
+    const afterText = String(newer?.feedbackText || "");
+    if (beforeText === afterText) return null;
+    return {
+      beforeText,
+      afterText,
+      older,
+      newer,
+    };
   }, [gradingHistory, selectedAssessment]);
   const selectedResultJson = useMemo(() => {
     const rj = selectedAssessment?.resultJson;
@@ -611,7 +811,7 @@ export default function SubmissionDetailPage() {
       { key: "student", label: "Student linked", ok: studentLinked, hint: "Link or create student profile." },
       { key: "assignment", label: "Assignment linked", ok: assignmentLinked, hint: "Confirm brief/spec binding." },
       { key: "extraction", label: "Extraction complete", ok: extractionComplete, hint: "Run extraction and review warnings." },
-      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Preview grade, then save grade to audit." },
+      { key: "grade", label: "Grade generated", ok: gradeGenerated, hint: "Generate preview, review, then approve and save." },
       { key: "feedback", label: "Feedback generated", ok: feedbackGenerated, hint: "Ensure feedback text is present." },
       { key: "marked", label: "Marked PDF", ok: markedPdfGenerated, hint: "Generate marked PDF from grading run." },
     ];
@@ -868,9 +1068,21 @@ export default function SubmissionDetailPage() {
     }
   }
 
-  async function runGrading(options?: { dryRun?: boolean }) {
+  async function findNextSubmissionIdInQueue(currentId: string) {
+    const payload = await jsonFetch<{ items?: QueueLookupRow[] }>("/api/submissions?view=workspace&paginate=1&page=1&pageSize=120&qa=0&includeFeedback=0&sortBy=uploadedAt&sortDir=desc", {
+      cache: "no-store",
+    });
+    const rows = Array.isArray(payload?.items) ? payload.items : [];
+    const others = rows.filter((r) => String(r?.id || "") && String(r.id) !== currentId);
+    const preferred = others.find((r) => String(r.automationState || "").toUpperCase() !== "COMPLETED");
+    return String(preferred?.id || others[0]?.id || "").trim() || null;
+  }
+
+  async function runGrading(options?: { dryRun?: boolean; goToNextAfterSave?: boolean }) {
     if (!submissionId) return;
     const dryRun = !!options?.dryRun;
+    const goToNextAfterSave = !!options?.goToNextAfterSave && !dryRun;
+    const requestPreviewFingerprint = dryRun ? previewInputsFingerprint : "";
     setGradingBusy(true);
     setErr("");
     setMsg("");
@@ -886,22 +1098,52 @@ export default function SubmissionDetailPage() {
         }),
       });
       if (dryRun) {
+        const previewAtIso = new Date().toISOString();
         setGradingPreview((res?.preview || null) as GradePreview | null);
+        setLastPreviewFingerprint(requestPreviewFingerprint || "");
+        setGradingPreviewMeta((prev) => ({
+          runCount: (prev?.runCount || 0) + 1,
+          atIso: previewAtIso,
+          requestId: String(res?.requestId || "").trim() || null,
+        }));
         setMsg(
           `Preview only (not saved): ${String(res?.preview?.overallGrade || "unknown")} · confidence ${Number(res?.preview?.confidence || 0).toFixed(2)}`
         );
         notifyToast("success", "Preview generated. Not saved to audit.");
-        setLastActionNote(`Preview generated at ${new Date().toLocaleString()} (not committed)`);
+        setLastActionNote(
+          `Preview generated at ${new Date(previewAtIso).toLocaleString()}${res?.requestId ? ` · req ${String(res.requestId).slice(0, 8)}` : ""} (not committed)`
+        );
+        scrollToPanel(gradingPanelRef.current);
       } else {
         setGradingPreview(null);
-        // Always switch editor/view back to latest run after commit.
-        setSelectedAssessmentId("");
+        setGradingPreviewMeta(null);
+        setLastPreviewFingerprint("");
+        const committedAssessmentId = String(res?.assessment?.id || "").trim();
         await refresh();
+        // Explicitly bind the newly created assessment run so Audit & Outputs never appears stale/empty.
+        if (committedAssessmentId) setSelectedAssessmentId(committedAssessmentId);
+        else setSelectedAssessmentId("");
         setMsg(`Grading complete: ${String(res?.assessment?.overallGrade || "done")}`);
         notifyToast("success", "Grading complete.");
-        setPdfView("marked");
-        openAndScroll("outputs");
+        if (!goToNextAfterSave) {
+          setPdfView("marked");
+          openAndScroll("outputs");
+        }
         setLastActionNote(`Grading committed to audit at ${new Date().toLocaleString()}`);
+        if (goToNextAfterSave) {
+          try {
+            const nextId = await findNextSubmissionIdInQueue(submissionId);
+            if (nextId) {
+              notifyToast("success", "Saved. Opening next submission...");
+              router.push(`/submissions/${nextId}`);
+            } else {
+              notifyToast("success", "Saved. No next submission found, returning to queue.");
+              router.push("/submissions");
+            }
+          } catch {
+            router.push("/submissions");
+          }
+        }
       }
     } catch (e: any) {
       const message = e?.message || "Grading failed.";
@@ -1108,8 +1350,9 @@ export default function SubmissionDetailPage() {
     };
     scrollToPanel(map[target]);
   };
-  const openSidePanel = (target: "student" | "assignment" | "extraction" | "outputs") => {
+  const openSidePanel = (target: "quick" | "student" | "assignment" | "extraction" | "outputs") => {
     const panels: Record<string, HTMLDetailsElement | null> = {
+      quick: quickActionsPanelRef.current,
       student: studentPanelRef.current,
       assignment: assignmentPanelRef.current,
       extraction: extractionPanelRef.current,
@@ -1119,6 +1362,17 @@ export default function SubmissionDetailPage() {
       if (!panel) return;
       panel.open = key === target;
     });
+  };
+  const openGuidedWorkflowStep = (step: "cover" | "assignment" | "student" | "preview" | "audit") => {
+    if (step === "cover") return openCoverEditorAndFocus(preferredCoverField);
+    if (step === "assignment") return openAndScroll("assignment");
+    if (step === "student") return openAndScroll("student");
+    if (step === "preview") {
+      openSidePanel("quick");
+      scrollToPanel(gradingPanelRef.current);
+      return;
+    }
+    openAndScroll("outputs");
   };
   const openSingleOutputSection = (panel: HTMLDetailsElement) => {
     if (!panel.open) return;
@@ -1153,7 +1407,7 @@ export default function SubmissionDetailPage() {
     !!submission?.assignment &&
     extractionComplete &&
     !gradingBusy;
-  const canCommitPreview =
+  const canCommitPreviewBase =
     !!submission?.student &&
     !!submission?.assignment &&
     extractionComplete &&
@@ -1165,21 +1419,12 @@ export default function SubmissionDetailPage() {
         : !extractionComplete
           ? "Run extraction before grading."
           : "";
-  const commitDisabledReason = !gradingPreview
-    ? !submission?.student
-      ? "Link student to save grade to audit."
-      : !submission?.assignment
-        ? "Link assignment/brief first."
-        : !extractionComplete
-          ? "Run extraction before grading."
-          : "Preview recommended first. You can still save directly to audit."
-    : !submission?.student
-      ? "Link student to save grade to audit."
-      : "Save preview as an audited grade";
   const primaryActionLabel = gradingBusy
     ? "Grading…"
+    : checklist.readyToUpload || checklist.gradeGenerated
+      ? "Open approval & outputs"
     : canPreviewGrading
-      ? "Preview grade (no save)"
+      ? "Generate preview"
       : !extractionComplete
         ? extractionRunning
           ? "Extracting…"
@@ -1187,15 +1432,174 @@ export default function SubmissionDetailPage() {
         : "Review blockers";
   const primaryActionDisabled = gradingBusy || extractionRunning;
   const runPrimaryAction = () => {
+    if (checklist.readyToUpload || checklist.gradeGenerated) {
+      return openAndScroll("outputs");
+    }
     if (canPreviewGrading) return void runGrading({ dryRun: true });
     if (!extractionComplete) return void runExtraction();
     scrollToPanel(workflowPanelRef.current);
   };
+  const preferredCoverField = useMemo<"studentName" | "studentId" | "unitCode" | "assignmentCode" | "submissionDate">(() => {
+    if (!String(coverMeta?.studentName?.value || "").trim()) return "studentName";
+    if (!String(coverMeta?.unitCode?.value || "").trim()) return "unitCode";
+    if (!String(coverMeta?.assignmentCode?.value || "").trim()) return "assignmentCode";
+    if (!String(coverMeta?.submissionDate?.value || "").trim()) return "submissionDate";
+    if (!String(coverMeta?.studentId?.value || "").trim()) return "studentId";
+    return "studentName";
+  }, [coverMeta]);
+  const autoPreviewEligible = canPreviewGrading && coverReady && !checklist.gradeGenerated;
+  const previewInputsFingerprint = useMemo(() => {
+    if (!canPreviewGrading) return "";
+    return JSON.stringify({
+      submissionId,
+      latestRunId: latestRun?.id || "",
+      studentId: submission?.student?.id || "",
+      assignmentId: submission?.assignment?.id || "",
+      coverReady,
+      coverMeta: {
+        studentName: String(coverMeta?.studentName?.value || ""),
+        studentId: String(coverMeta?.studentId?.value || ""),
+        unitCode: String(coverMeta?.unitCode?.value || ""),
+        assignmentCode: String(coverMeta?.assignmentCode?.value || ""),
+        submissionDate: String(coverMeta?.submissionDate?.value || ""),
+      },
+      grading: { tone, strictness, useRubric },
+    });
+  }, [canPreviewGrading, submissionId, latestRun?.id, submission?.student?.id, submission?.assignment?.id, coverReady, coverMeta, tone, strictness, useRubric]);
+  const autoPreviewFingerprint = useMemo(() => {
+    if (!autoPreviewEligible) return "";
+    return previewInputsFingerprint;
+  }, [autoPreviewEligible, previewInputsFingerprint]);
+  const previewStale =
+    !!gradingPreview &&
+    !!lastPreviewFingerprint &&
+    !!previewInputsFingerprint &&
+    lastPreviewFingerprint !== previewInputsFingerprint;
+  const previewFresh = !!gradingPreview && !previewStale;
+  const canCommitPreview = canCommitPreviewBase && previewFresh;
+  const previewWorkflowStatus = useMemo(() => {
+    if (gradingBusy) return { label: "Preview running", tone: "border-sky-200 bg-sky-50 text-sky-900" };
+    if (!canPreviewGrading) return { label: "Preview blocked", tone: "border-amber-200 bg-amber-50 text-amber-900" };
+    if (previewStale) return { label: "Preview stale", tone: "border-amber-200 bg-amber-50 text-amber-900" };
+    if (previewFresh) return { label: "Preview ready", tone: "border-emerald-200 bg-emerald-50 text-emerald-900" };
+    return { label: "Preview needed", tone: "border-zinc-200 bg-zinc-50 text-zinc-700" };
+  }, [gradingBusy, canPreviewGrading, previewStale, previewFresh]);
+  const auditWorkflowStatus = useMemo(() => {
+    if (checklist.readyToUpload) return { label: "Audit saved", tone: "border-emerald-200 bg-emerald-50 text-emerald-900" };
+    if (checklist.gradeGenerated) return { label: "Audit partial", tone: "border-amber-200 bg-amber-50 text-amber-900" };
+    return { label: "Not saved", tone: "border-zinc-200 bg-zinc-50 text-zinc-700" };
+  }, [checklist.readyToUpload, checklist.gradeGenerated]);
+  const trafficLight = useMemo(() => {
+    if (checklist.readyToUpload) {
+      return {
+        color: "green" as const,
+        label: "Complete",
+        tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
+        hint: "Audit outputs saved and ready to upload.",
+      };
+    }
+    if (checklist.gradeGenerated) {
+      return {
+        color: "green" as const,
+        label: "Audit saved",
+        tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
+        hint: "Assessment is saved. Review outputs and finish any remaining checks.",
+      };
+    }
+    if (gradingBusy) {
+      return {
+        color: "amber" as const,
+        label: "Processing preview",
+        tone: "border-amber-200 bg-amber-50 text-amber-900",
+        hint: "Preview is running. Review results when it completes.",
+      };
+    }
+    if (!extractionComplete || !coverReady || !submission?.assignment || !submission?.student) {
+      return {
+        color: "red" as const,
+        label: "Action needed",
+        tone: "border-rose-200 bg-rose-50 text-rose-900",
+        hint: "Complete cover review and links first.",
+      };
+    }
+    if (!previewFresh || previewStale) {
+      return {
+        color: "amber" as const,
+        label: previewStale ? "Preview stale" : "Preview required",
+        tone: "border-amber-200 bg-amber-50 text-amber-900",
+        hint: previewStale ? "Regenerate preview after changes." : "Generate/review preview before approval.",
+      };
+    }
+    return {
+      color: "green" as const,
+      label: "Ready to approve",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
+      hint: "Review audit outputs and approve.",
+    };
+  }, [gradingBusy, extractionComplete, coverReady, submission?.assignment, submission?.student, previewFresh, previewStale, checklist.readyToUpload, checklist.gradeGenerated]);
+  const commitDisabledReason = gradingBusy
+    ? "Grading is already running."
+    : !submission?.student
+      ? "Link student to approve and save."
+      : !submission?.assignment
+        ? "Link assignment/brief first."
+        : !extractionComplete
+          ? "Run extraction before grading."
+          : !gradingPreview
+            ? "Generate preview first."
+            : previewStale
+              ? "Preview is stale. Generate preview again after changes."
+              : "Approve and save current preview";
   const quickActionHint = canCommitPreview
     ? "Preview and save are available."
     : canPreviewGrading
-      ? "Preview is available. Link student to save grade to audit."
+      ? previewStale
+        ? "Preview is stale after changes. Generate preview again before save."
+        : !gradingPreview
+          ? "Generate preview, review it, then approve and save."
+          : "Preview is available. Link student to save grade to audit."
       : gradingDisabledReason || checklist.nextBlockingAction || "Complete the next blocker to continue.";
+  const guidedStep = useMemo(() => {
+    if (!submissionId) return "";
+    if (!extractionComplete) return "extraction";
+    if (!coverReady) return "cover-review";
+    if (!submission?.assignment) return "assignment";
+    if (!submission?.student) return "student";
+    if (checklist.gradeGenerated) return "outputs";
+    if (previewFresh) return "outputs";
+    if (canPreviewGrading) return "grading-review";
+    return "";
+  }, [submissionId, extractionComplete, coverReady, submission?.assignment, submission?.student, previewFresh, canPreviewGrading, checklist.gradeGenerated]);
+  const currentSidebarWorkflowStep = useMemo(() => {
+    if (guidedStep === "extraction" || guidedStep === "cover-review") return "cover";
+    if (guidedStep === "assignment") return "assignment";
+    if (guidedStep === "student") return "student";
+    if (guidedStep === "grading-review") return "preview";
+    if (guidedStep === "outputs") return checklist.readyToUpload ? "done" : "approval";
+    return "";
+  }, [guidedStep, checklist.readyToUpload]);
+  const currentWorkflowStepLabel = useMemo(() => {
+    if (currentSidebarWorkflowStep === "cover") return "Step 1: Cover review";
+    if (currentSidebarWorkflowStep === "assignment") return "Step 2: Assignment";
+    if (currentSidebarWorkflowStep === "preview") return "Step 3: Preview";
+    if (currentSidebarWorkflowStep === "student") return "Step 4: Student";
+    if (currentSidebarWorkflowStep === "approval" || currentSidebarWorkflowStep === "done") {
+      return "Step 5: Approval & outputs";
+    }
+    return "Workflow";
+  }, [currentSidebarWorkflowStep]);
+  const reviewReadyMode = checklist.readyToUpload || checklist.gradeGenerated || previewFresh;
+  const hasTechnicalDiagnostics =
+    (gradeRunConfidenceSignals.extraction !== null ||
+      gradeRunConfidenceSignals.grading !== null ||
+      gradeRunPolicy ||
+      gradeRunExcludedCriteriaCodes.length > 0) ||
+    !!gradeRunConfidencePolicy ||
+    !!gradeRunReadinessChecklist ||
+    !!gradeRunReferenceSnapshot ||
+    gradeRunEvidenceDensityRows.length > 0 ||
+    gradeRunEvidenceDensitySummary.totalCitations > 0 ||
+    !!gradeRunRerunIntegrity;
   const jumpToNextBlocker = () => {
     const item = checklist.items.find((i) => !i.ok);
     if (!item) return;
@@ -1270,6 +1674,64 @@ export default function SubmissionDetailPage() {
     setCriterionOverrideDrafts(next);
   }, [selectedAssessment?.id, structuredGrading, criterionOverrideMap]);
 
+  const pendingCriterionOverridePatches = useMemo(() => {
+    const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
+    const patches: Array<{
+      code: string;
+      finalDecision?: CriterionDecision;
+      reasonCode?: OverrideReasonCode;
+      note?: string;
+      remove?: boolean;
+    }> = [];
+    for (const row of rows) {
+      const code = String(row?.code || "").trim().toUpperCase();
+      if (!/^[PMD]\d{1,2}$/.test(code)) continue;
+      const draft = criterionOverrideDrafts[code];
+      if (!draft) continue;
+      const existing = criterionOverrideMap.get(code);
+      const baseDecision = String(row?.decision || (row?.met === true ? "ACHIEVED" : row?.met === false ? "NOT_ACHIEVED" : "UNCLEAR")).toUpperCase() as CriterionDecision;
+      const draftNote = String(draft.note || "").trim();
+      const existingNote = String(existing?.note || "").trim();
+      if (existing) {
+        const unchanged =
+          String(existing.finalDecision || "").toUpperCase() === String(draft.finalDecision || "").toUpperCase() &&
+          String(existing.reasonCode || "").toUpperCase() === String(draft.reasonCode || "").toUpperCase() &&
+          existingNote === draftNote;
+        if (!unchanged) {
+          const resetToBase =
+            draft.finalDecision === baseDecision &&
+            draft.reasonCode === "ASSESSOR_JUDGEMENT" &&
+            !draftNote;
+          if (resetToBase) {
+            patches.push({ code, remove: true });
+          } else {
+            patches.push({
+              code,
+              finalDecision: draft.finalDecision,
+              reasonCode: draft.reasonCode,
+              note: draftNote,
+            });
+          }
+        }
+        continue;
+      }
+
+      const createsOverride =
+        draft.finalDecision !== baseDecision || draft.reasonCode !== "ASSESSOR_JUDGEMENT" || Boolean(draftNote);
+      if (createsOverride) {
+        patches.push({
+          code,
+          finalDecision: draft.finalDecision,
+          reasonCode: draft.reasonCode,
+          note: draftNote,
+        });
+      }
+    }
+    return patches;
+  }, [structuredGrading, criterionOverrideDrafts, criterionOverrideMap]);
+  const manualAuditChangesPending =
+    feedbackDirty || pendingCriterionOverridePatches.length > 0;
+
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!feedbackDirty) return;
@@ -1314,6 +1776,49 @@ export default function SubmissionDetailPage() {
 
   async function rebuildMarkedPdf() {
     await saveAssessmentFeedback();
+  }
+
+  async function applyManualReviewAndRegenerateOutputs() {
+    if (!submissionId || !selectedAssessment?.id) return;
+    if (!manualAuditChangesPending) {
+      setMsg("No manual review changes to apply.");
+      return;
+    }
+    if (!feedbackDraft.trim() && pendingCriterionOverridePatches.length === 0) {
+      setErr("Add feedback text or criterion overrides before applying manual review changes.");
+      return;
+    }
+    setFeedbackEditorBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await jsonFetch(`/api/submissions/${submissionId}/assessments/${selectedAssessment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(feedbackDraft.trim()
+            ? {
+                feedbackText: feedbackDraft,
+                studentName: feedbackStudentName,
+                markedDate: feedbackMarkedDate || null,
+              }
+            : {}),
+          ...(pendingCriterionOverridePatches.length ? { criterionOverrides: pendingCriterionOverridePatches } : {}),
+        }),
+      });
+      await refresh();
+      setMsg(
+        `Manual review applied${pendingCriterionOverridePatches.length ? ` (${pendingCriterionOverridePatches.length} override change${pendingCriterionOverridePatches.length === 1 ? "" : "s"})` : ""}. Audit outputs regenerated.`
+      );
+      notifyToast("success", "Manual review applied and outputs regenerated.");
+      setLastActionNote(`Manual review applied at ${new Date().toLocaleString()} by ${activeAuditActorName}`);
+    } catch (e: any) {
+      const message = e?.message || "Failed to apply manual review changes.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setFeedbackEditorBusy(false);
+    }
   }
 
   async function regenerateMarkedFromCurrentRun() {
@@ -1481,12 +1986,65 @@ export default function SubmissionDetailPage() {
   }, [coverStudentName, coverStudentId, coverUnitCode, coverAssignmentCode, coverSubmissionDate, latestRun?.id]);
 
   useEffect(() => {
-    if (!runGradeWhenReady) return;
-    if (!canPreviewGrading) return;
+    if (!autoPreviewEligible) return;
+    if (!autoPreviewFingerprint) return;
+    if (autoPreviewFingerprintRef.current === autoPreviewFingerprint) return;
+    autoPreviewFingerprintRef.current = autoPreviewFingerprint;
+    setLastActionNote("Auto-running preview after cover review is ready...");
     void runGrading({ dryRun: true });
-    setRunGradeWhenReady(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runGradeWhenReady, canPreviewGrading]);
+  }, [autoPreviewEligible, autoPreviewFingerprint]);
+
+  useEffect(() => {
+    if (!submissionId) return;
+    if (!guidedStep) return;
+    const key = `${submissionId}:${guidedStep}`;
+    if (guidedStepRef.current === key) return;
+    guidedStepRef.current = key;
+
+    const t = window.setTimeout(() => {
+      if (guidedStep === "extraction") {
+        openAndScroll("extraction");
+        return;
+      }
+      if (guidedStep === "cover-review") {
+        openCoverEditorAndFocus(preferredCoverField);
+        return;
+      }
+      if (guidedStep === "assignment") {
+        openAndScroll("assignment");
+        return;
+      }
+      if (guidedStep === "student") {
+        openAndScroll("student");
+        return;
+      }
+      if (guidedStep === "grading-review") {
+        openSidePanel("quick");
+        scrollToPanel(gradingPanelRef.current);
+        return;
+      }
+      if (guidedStep === "outputs") {
+        openAndScroll("outputs");
+      }
+    }, 30);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionId, guidedStep, preferredCoverField]);
+
+  const reviewReadyModeRef = useRef("");
+  useEffect(() => {
+    if (!submissionId) return;
+    if (!reviewReadyMode) return;
+    const key = `${submissionId}:${checklist.readyToUpload ? "saved" : checklist.gradeGenerated ? "graded" : "preview"}`;
+    if (reviewReadyModeRef.current === key) return;
+    reviewReadyModeRef.current = key;
+    const t = window.setTimeout(() => {
+      openSidePanel("outputs");
+      scrollToPanel(outputsPanelRef.current);
+    }, 40);
+    return () => window.clearTimeout(t);
+  }, [submissionId, reviewReadyMode, checklist.readyToUpload, checklist.gradeGenerated]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1515,18 +2073,34 @@ export default function SubmissionDetailPage() {
 
   return (
     <main className="py-2">
-      <div className="mb-3 flex flex-col gap-2 rounded-xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white px-3 py-2 shadow-sm">
+      <div ref={workflowPanelRef} className="mb-3 flex flex-col gap-2 rounded-xl border border-slate-300 bg-gradient-to-r from-slate-100 via-white to-white px-3 py-2 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="inline-flex items-center rounded-full border border-slate-300 bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-900">
-              Workflow Operations
-            </div>
-            <h1 className="mt-1 truncate text-xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="truncate text-xl font-semibold tracking-tight text-zinc-900">
               Submission Review Workspace
             </h1>
             <p className="mt-1 text-[11px] text-zinc-600">
               {submission?.student?.fullName || triageInfo?.studentName || "Unlinked student"} · {submission?.filename || "Submission"}
             </p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className={cx("inline-flex h-5 items-center rounded-full border px-2.5 text-xs font-semibold", trafficLight.tone)}>
+                <span
+                  className={cx(
+                    "mr-1.5 inline-flex h-2 w-2 rounded-full",
+                    trafficLight.color === "green"
+                      ? "bg-emerald-500"
+                      : trafficLight.color === "red"
+                        ? "bg-rose-500"
+                        : "bg-amber-500"
+                  )}
+                />
+                {trafficLight.label}
+              </span>
+              <span className="inline-flex h-5 items-center rounded-full border border-zinc-200 bg-white px-2 text-[11px] font-semibold text-zinc-700">
+                {currentWorkflowStepLabel}
+              </span>
+              <span className="text-[11px] text-zinc-600">{trafficLight.hint}</span>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-start gap-2">
@@ -1537,7 +2111,7 @@ export default function SubmissionDetailPage() {
               >
                 ← Back
               </Link>
-              <span className="mt-1 text-xs opacity-0">placeholder</span>
+              <span className="mt-1 text-[10px] text-zinc-500">Assessor: {activeAuditActorName}</span>
             </div>
             <div ref={gradingPanelRef} className="flex flex-col items-start">
               <button
@@ -1553,60 +2127,19 @@ export default function SubmissionDetailPage() {
               >
                 {primaryActionLabel}
               </button>
+              {!checklist.readyToUpload ? (
+                <button
+                  type="button"
+                  onClick={jumpToNextBlocker}
+                  className="mt-1 h-7 rounded-md border border-zinc-200 bg-white px-2.5 text-[10px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  Fix next blocker
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-1 text-[11px]">
-          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
-            Unit <span className="font-semibold text-zinc-900">{submission?.assignment?.unitCode || triageInfo?.unitCode || "—"}</span>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
-            Assignment <span className="font-semibold text-zinc-900">{submission?.assignment?.assignmentRef || triageInfo?.assignmentRef || "—"}</span>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-sky-900">
-            Status <span className="font-semibold">{submission?.status || "—"}</span>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
-            Uploaded <span className="font-semibold text-zinc-900">{safeDate(submission?.uploadedAt)}</span>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-zinc-800">
-            Extraction <span className="font-semibold text-zinc-900">{latestRun?.status || "—"}</span>
-          </div>
-        </div>
       </div>
-
-      <section ref={workflowPanelRef} className="mb-3 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cx(
-              "inline-flex h-5 items-center rounded-full border px-2.5 text-xs font-semibold",
-              checklist.readyToUpload ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
-            )}
-          >
-            {checklist.readyToUpload ? "Ready to upload" : `${checklist.pendingCount} pending`}
-          </span>
-          <div className="min-w-[240px] flex-1 text-xs text-zinc-600">{checklist.nextBlockingAction}</div>
-          {!checklist.readyToUpload ? (
-            <button
-              type="button"
-              onClick={jumpToNextBlocker}
-              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-            >
-              Fix next blocker
-            </button>
-          ) : null}
-          {!canPreviewGrading && gradingDisabledReason ? (
-            <span className="text-xs font-semibold text-amber-800">Grading blocked: {gradingDisabledReason}</span>
-          ) : null}
-          {canPreviewGrading && !submission?.student ? (
-            <span className="text-xs font-semibold text-amber-800">Preview available. Link student to save grade to audit.</span>
-          ) : null}
-          <span className="ml-auto inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
-            Assessor source: {activeAuditActorName}
-          </span>
-        </div>
-      </section>
 
       {(err || msg) && (
         <div
@@ -1694,159 +2227,112 @@ export default function SubmissionDetailPage() {
             <div className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
               <div><span className="font-semibold text-zinc-900">?</span> Toggle this shortcuts panel</div>
               <div><span className="font-semibold text-zinc-900">E</span> Run extraction</div>
-              <div><span className="font-semibold text-zinc-900">G</span> Run grading preview (no save)</div>
+                  <div><span className="font-semibold text-zinc-900">G</span> Generate preview (no save)</div>
               <div><span className="font-semibold text-zinc-900">S</span> Toggle student panel</div>
             </div>
           </div>
         </div>
       ) : null}
 
-      <section className="mb-3 flex flex-wrap items-center gap-2">
-        {[
-          { key: "checklist", label: "Checklist", ok: checklist.readyToUpload, onClick: () => scrollToPanel(workflowPanelRef.current) },
-          { key: "student", label: "Student", ok: checklist.studentLinked, onClick: () => openAndScroll("student") },
-          { key: "assignment", label: "Assignment", ok: checklist.assignmentLinked, onClick: () => openAndScroll("assignment") },
-          { key: "extraction", label: "Extraction", ok: checklist.extractionComplete, onClick: () => openAndScroll("extraction") },
-          { key: "grading", label: "Grading", ok: checklist.gradeGenerated, onClick: () => scrollToPanel(gradingPanelRef.current) },
-          { key: "outputs", label: "Outputs", ok: checklist.feedbackGenerated && checklist.markedPdfGenerated, onClick: () => openAndScroll("outputs") },
-        ].map((nav) => (
-          <button key={nav.key} type="button" onClick={nav.onClick} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
-            <span className={cx("h-1.5 w-1.5 rounded-full", nav.ok ? "bg-emerald-500" : "bg-amber-500")} />
-            {nav.label}
-          </button>
-        ))}
-      </section>
-
-      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm">
-        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-9">
-          {[
-            {
-              key: "student",
-              label: "Student",
-              value: submission?.student?.fullName || triageInfo?.studentName || "Unlinked",
-              actionable: true,
-              actionLabel: !String(coverMeta?.studentName?.value || "").trim() ? "Add cover name" : "Toggle student panel",
-              onAction: !String(coverMeta?.studentName?.value || "").trim()
-                ? () => openCoverEditorAndFocus("studentName")
-                : toggleStudentPanel,
-            },
-            {
-              key: "unit",
-              label: "Unit",
-              value:
-                submission?.assignment?.unitCode ||
-                triageInfo?.unitCode ||
-                String(coverMeta?.unitCode?.value || "—"),
-              actionable: !String(coverMeta?.unitCode?.value || "").trim(),
-              actionLabel: "Add",
-              onAction: () => openCoverEditorAndFocus("unitCode"),
-            },
-            {
-              key: "assignment",
-              label: "Assignment",
-              value:
-                submission?.assignment?.assignmentRef ||
-                triageInfo?.assignmentRef ||
-                String(coverMeta?.assignmentCode?.value || "—"),
-              actionable: true,
-              actionLabel: submission?.assignment ? "Open assignment panel" : "Add",
-              onAction: submission?.assignment
-                ? () => openAndScroll("assignment")
-                : () => openCoverEditorAndFocus("assignmentCode"),
-            },
-            {
-              key: "submissionDate",
-              label: "Submission Date",
-              value: String(coverMeta?.submissionDate?.value || "Missing"),
-              actionable: !String(coverMeta?.submissionDate?.value || "").trim(),
-              actionLabel: "Add",
-              onAction: () => openCoverEditorAndFocus("submissionDate"),
-            },
-            {
-              key: "grade",
-              label: "Grade",
-              value: latestAssessment?.overallGrade || "Pending",
-              actionable: true,
-              actionLabel: canPreviewGrading ? "Preview grade" : "Open checklist",
-              onAction: canPreviewGrading ? () => void runGrading({ dryRun: true }) : () => scrollToPanel(workflowPanelRef.current),
-            },
-            { key: "gradedBy", label: "Graded by", value: String(latestAssessment?.resultJson?.gradedBy || "—"), actionable: false },
-            { key: "uploaded", label: "Uploaded", value: safeDate(submission?.uploadedAt), actionable: false },
-            { key: "gradedWhen", label: "Graded when", value: safeDate(latestAssessment?.createdAt), actionable: false },
-            {
-              key: "status",
-              label: "Status",
-              value: submission?.status || "—",
-              actionable: true,
-              actionLabel: "Open checklist",
-              onAction: () => scrollToPanel(workflowPanelRef.current),
-            },
-          ].map((item) => (
+      <section className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">At a glance</div>
+            <div className="mt-0.5 text-sm text-zinc-700">
+              {trafficLight.label}. {trafficLight.hint}
+            </div>
+            <div className="mt-1 text-xs text-zinc-500">
+              Use the left workflow steps in order. Open only the section you need next.
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
-              key={item.key}
               type="button"
-              onClick={item.actionable ? item.onAction : undefined}
-              className={cx(
-                "min-w-0 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-left",
-                item.actionable ? "cursor-pointer hover:border-sky-300 hover:bg-sky-50" : "cursor-default"
-              )}
-              title={item.actionable ? item.actionLabel : undefined}
+              onClick={() => scrollToPanel(workflowPanelRef.current)}
+              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
             >
-              <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                <span className="truncate">{item.label}</span>
-                {item.actionable ? <span className="text-sky-700">•</span> : null}
-              </div>
-              <div className="truncate text-[12px] font-semibold text-zinc-900">{item.value}</div>
-              {item.key === "assignment" && !submission?.assignment ? (
-                <div className="mt-1.5 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <select
-                    value={selectedAssignmentId}
-                    onChange={(e) => setSelectedAssignmentId(e.target.value)}
-                    disabled={assignmentBusy || !assignmentOptions.length}
-                    className="h-7 min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-1.5 text-[11px] text-zinc-900"
-                    title="Select assignment"
-                  >
-                    <option value="">
-                      {assignmentOptions.length ? "Select assignment..." : "No assignments available"}
-                    </option>
-                    {assignmentOptions.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {`${opt.unitCode} ${opt.assignmentRef || ""}`.trim()} - {opt.title}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void linkAssignment(selectedAssignmentId || null);
-                    }}
-                    disabled={!selectedAssignmentId || assignmentBusy}
-                    className={cx(
-                      "h-7 shrink-0 rounded-md px-2 text-[11px] font-semibold",
-                      !selectedAssignmentId || assignmentBusy
-                        ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
-                        : "bg-sky-700 text-white hover:bg-sky-800"
-                    )}
-                    title="Link selected assignment"
-                  >
-                    {assignmentBusy ? "Linking..." : "Link"}
-                  </button>
-                </div>
-              ) : null}
+              Open workflow
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => openGuidedWorkflowStep("audit")}
+              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+            >
+              Open approval & outputs
+            </button>
+          </div>
         </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Student</div>
+            <div className="mt-0.5 truncate text-sm font-semibold text-zinc-900">
+              {submission?.student?.fullName || triageInfo?.studentName || "Unlinked"}
+            </div>
+            <div className="mt-0.5 text-xs text-zinc-600">
+              {submission?.student ? "Linked" : "Link in Step 4"}
+            </div>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Assignment</div>
+            <div className="mt-0.5 truncate text-sm font-semibold text-zinc-900">
+              {submission?.assignment
+                ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim()
+                : `${triageInfo?.unitCode || String(coverMeta?.unitCode?.value || "—")} ${triageInfo?.assignmentRef || String(coverMeta?.assignmentCode?.value || "")}`.trim()}
+            </div>
+            <div className="mt-0.5 text-xs text-zinc-600">
+              {submission?.assignment ? "Linked" : "Link in Step 2"}
+            </div>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Extraction</div>
+            <div className="mt-0.5 text-sm font-semibold text-zinc-900">{latestRun?.status || "Not run"}</div>
+            <div className="mt-0.5 text-xs text-zinc-600">
+              Cover {coverReady ? "reviewed" : "needs review"} · Uploaded {safeDate(submission?.uploadedAt)}
+            </div>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Audit</div>
+            <div className="mt-0.5 text-sm font-semibold text-zinc-900">
+              {latestAssessment?.overallGrade ? `Grade ${latestAssessment.overallGrade}` : "Not saved"}
+            </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-1">
+              <span className={cx("inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold", auditWorkflowStatus.tone)}>
+                {auditWorkflowStatus.label}
+              </span>
+              <span
+                className={cx(
+                  "inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                  checklist.feedbackGenerated ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"
+                )}
+              >
+                Feedback {checklist.feedbackGenerated ? "ready" : "pending"}
+              </span>
+              <span
+                className={cx(
+                  "inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                  checklist.markedPdfGenerated ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"
+                )}
+              >
+                Marked PDF {checklist.markedPdfGenerated ? "ready" : "pending"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {changeChips.length ? (
+          <details className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <summary className="cursor-pointer text-xs font-semibold text-zinc-700">Recent changes / signals ({changeChips.length})</summary>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {changeChips.map((chip) => (
+                <span key={chip} className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </details>
+        ) : null}
       </section>
-      {changeChips.length ? (
-        <section className="mb-3 flex flex-wrap items-center gap-1.5">
-          {changeChips.map((chip) => (
-            <span key={chip} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-semibold text-zinc-700">
-              {chip}
-            </span>
-          ))}
-        </section>
-      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-3">
         {/* RIGHT: PDF */}
@@ -1970,18 +2456,221 @@ export default function SubmissionDetailPage() {
         <div className="order-1 lg:order-1 lg:sticky lg:top-3 lg:max-h-[86vh] lg:overflow-y-auto">
           <div className="grid gap-2">
           <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <div className="border-b border-zinc-200 px-2 py-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Workflow sequence</div>
+              <div className="mt-0.5 text-[11px] text-zinc-600">Follow the current step. Completed steps collapse automatically.</div>
+            </div>
+            <div className="grid gap-1 p-2">
+              {[
+                {
+                  key: "cover",
+                  num: "1",
+                  label: "Cover review",
+                  done: coverReady,
+                  current: currentSidebarWorkflowStep === "cover",
+                  onClick: () => openGuidedWorkflowStep("cover"),
+                  hint: coverReady ? "Ready" : "Review extracted cover fields",
+                },
+                {
+                  key: "assignment",
+                  num: "2",
+                  label: "Assignment",
+                  done: checklist.assignmentLinked,
+                  current: currentSidebarWorkflowStep === "assignment",
+                  onClick: () => openGuidedWorkflowStep("assignment"),
+                  hint: checklist.assignmentLinked ? "Linked" : "Link assignment/brief",
+                },
+                {
+                  key: "preview",
+                  num: "3",
+                  label: "Preview",
+                  done: previewFresh || checklist.gradeGenerated,
+                  current: currentSidebarWorkflowStep === "preview",
+                  onClick: () => openGuidedWorkflowStep("preview"),
+                  hint: checklist.gradeGenerated ? "Reviewed / saved" : previewStale ? "Stale - regenerate" : previewWorkflowStatus.label,
+                },
+                {
+                  key: "student",
+                  num: "4",
+                  label: "Student",
+                  done: checklist.studentLinked,
+                  current: currentSidebarWorkflowStep === "student",
+                  onClick: () => openGuidedWorkflowStep("student"),
+                  hint: checklist.studentLinked ? "Linked" : "Link student before approval",
+                },
+                {
+                  key: "audit",
+                  num: "5",
+                  label: "Approval & outputs",
+                  done: checklist.readyToUpload,
+                  current: currentSidebarWorkflowStep === "approval",
+                  onClick: () => openGuidedWorkflowStep("audit"),
+                  hint: checklist.readyToUpload ? "Saved" : canCommitPreview ? "Approve & save" : auditWorkflowStatus.label,
+                },
+              ].map((step) => (
+                <button
+                  key={step.key}
+                  type="button"
+                  onClick={step.onClick}
+                  className={cx(
+                    "flex items-center justify-between gap-2 rounded-lg border px-2 py-1.5 text-left",
+                    step.current
+                      ? "border-amber-300 bg-amber-50"
+                      : step.done
+                        ? "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"
+                        : "border-rose-200 bg-rose-50/40 hover:bg-rose-50/60"
+                  )}
+                >
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span
+                      className={cx(
+                        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold",
+                        step.done
+                          ? "border-emerald-300 bg-emerald-100 text-emerald-800"
+                          : step.current
+                            ? "border-amber-300 bg-amber-100 text-amber-800"
+                            : "border-rose-300 bg-rose-100 text-rose-800"
+                      )}
+                    >
+                      {step.num}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[11px] font-semibold text-zinc-900">{step.label}</span>
+                      <span className="block truncate text-[10px] text-zinc-600">{step.hint}</span>
+                    </span>
+                  </span>
+                  <span className={cx("h-2 w-2 shrink-0 rounded-full", step.done ? "bg-emerald-500" : step.current ? "bg-amber-500" : "bg-rose-500")} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white">
+
+          <details
+            ref={assignmentPanelRef}
+            className="group order-2 border-b border-zinc-200 bg-white"
+            onToggle={(e) => {
+              const el = e.currentTarget;
+              if (el.open) openSidePanel("assignment");
+            }}
+          >
+            <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
+              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-[9px] font-bold text-zinc-700">
+                    2
+                  </span>
+                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
+                  <span className="truncate">Assignment</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", currentSidebarWorkflowStep === "assignment" ? "bg-amber-100 text-amber-800" : checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}>
+                    {currentSidebarWorkflowStep === "assignment" ? "Current" : checklist.assignmentLinked ? "Done" : "Pending"}
+                  </span>
+                  <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}>
+                    {checklist.assignmentLinked ? "Linked" : "Pending"}
+                  </span>
+                </span>
+              </div>
+            </summary>
+            <div className="border-t border-zinc-200 px-3 pb-3 pt-2 text-base font-semibold text-zinc-900">
+              {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
+            </div>
+            <div className="px-3 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
+            <div className="px-3 pb-3 pt-2">
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Link or change assignment</div>
+                <div className="mt-2 flex items-center gap-1.5">
+                  <select
+                    value={selectedAssignmentId}
+                    onChange={(e) => setSelectedAssignmentId(e.target.value)}
+                    disabled={assignmentBusy || !assignmentOptions.length}
+                    className="h-8 min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-2 text-[11px] text-zinc-900"
+                    title="Select assignment"
+                  >
+                    <option value="">
+                      {assignmentOptions.length ? "Select assignment..." : "No assignments available"}
+                    </option>
+                    {assignmentOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {`${opt.unitCode} ${opt.assignmentRef || ""}`.trim()} - {opt.title}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void linkAssignment(selectedAssignmentId || null)}
+                    disabled={!selectedAssignmentId || assignmentBusy}
+                    className={cx(
+                      "h-8 shrink-0 rounded-md px-2.5 text-[11px] font-semibold",
+                      !selectedAssignmentId || assignmentBusy
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                        : "bg-sky-700 text-white hover:bg-sky-800"
+                    )}
+                    title="Link selected assignment"
+                  >
+                    {assignmentBusy ? "Linking..." : "Link"}
+                  </button>
+                  {submission?.assignment ? (
+                    <button
+                      type="button"
+                      onClick={() => void linkAssignment(null)}
+                      disabled={assignmentBusy}
+                      className={cx(
+                        "h-8 shrink-0 rounded-md border px-2.5 text-[11px] font-semibold",
+                        assignmentBusy
+                          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                      )}
+                      title="Clear assignment link"
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-1 text-[10px] text-zinc-500">
+                  Suggested selection is prefilled from cover metadata when possible.
+                </div>
+              </div>
+            </div>
+
+            {triageInfo?.coverage?.missing?.length ? (
+              <div className="mx-3 mb-3 mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="text-xs font-semibold uppercase tracking-wide">Reference coverage</div>
+                <div className="mt-2">Missing: {triageInfo.coverage.missing.join(", ")}</div>
+              </div>
+            ) : null}
+          </details>
+
           <details
             ref={quickActionsPanelRef}
-            className="group order-1 bg-white"
-            open
+            className="group order-3 bg-white"
           >
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
               <div className="flex h-[28px] items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-[9px] font-bold text-zinc-700">
+                    3
+                  </span>
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
-                  <span className="truncate">Quick actions</span>
+                  <span className="truncate">Preview</span>
                 </span>
-                <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] normal-case text-zinc-700">Action center</span>
+                <span className="inline-flex items-center gap-1">
+                  <span
+                    className={cx(
+                      "truncate rounded-full px-1.5 py-0.5 text-[9px] normal-case",
+                      previewFresh
+                        ? "bg-emerald-100 text-emerald-800"
+                        : previewStale
+                          ? "bg-amber-100 text-amber-800"
+                          : currentSidebarWorkflowStep === "preview"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-rose-100 text-rose-800"
+                    )}
+                  >
+                    {previewFresh ? "Done" : previewStale ? "Stale" : currentSidebarWorkflowStep === "preview" ? "Current" : "Pending"}
+                  </span>
+                </span>
               </div>
             </summary>
             <div className="border-t border-zinc-200 p-2">
@@ -1995,21 +2684,21 @@ export default function SubmissionDetailPage() {
                   "h-8 rounded-md px-3 text-[12px] font-semibold",
                   canPreviewGrading ? "bg-sky-700 text-white hover:bg-sky-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
-                title={gradingDisabledReason || "Run grading preview (no save)"}
+                title={gradingDisabledReason || "Generate grading preview (no save)"}
               >
-                Preview grade (no save)
+                Generate preview
               </button>
               <button
                 type="button"
-                onClick={() => void runGrading({ dryRun: false })}
-                disabled={!canCommitPreview}
+                onClick={() => openGuidedWorkflowStep("audit")}
+                disabled={!gradingPreview}
                 className={cx(
                   "h-8 rounded-md px-3 text-[12px] font-semibold",
-                  canCommitPreview ? "bg-emerald-700 text-white hover:bg-emerald-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                  gradingPreview ? "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
                 )}
-                title={commitDisabledReason}
+                title={gradingPreview ? "Open approval and audit outputs." : "Generate preview first."}
               >
-                Save grade to audit
+                Continue to approval
               </button>
             </div>
             <details className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5">
@@ -2050,20 +2739,6 @@ export default function SubmissionDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void regenerateMarkedFromCurrentRun()}
-                  disabled={!selectedAssessment?.id || feedbackEditorBusy}
-                  className={cx(
-                    "h-7 rounded-md border px-2.5 text-[11px] font-semibold",
-                    !selectedAssessment?.id || feedbackEditorBusy
-                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
-                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
-                  )}
-                  title={!selectedAssessment?.id ? "No assessment run selected yet." : "Regenerate marked PDF for selected run"}
-                >
-                  Regenerate marked PDF
-                </button>
-                <button
-                  type="button"
                   onClick={() => setShortcutsOpen(true)}
                   className="h-7 rounded-md border border-zinc-200 bg-white px-2.5 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50"
                 >
@@ -2071,20 +2746,19 @@ export default function SubmissionDetailPage() {
                 </button>
               </div>
               <div className="mt-2 text-[11px] text-zinc-500">
-                Preview does not create an assessment record. Save to audit persists grade and feedback.
+                Guided flow: review cover fields first, then preview auto-runs when cover review and assignment are ready.
               </div>
-              <label className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-zinc-700">
-                <input
-                  type="checkbox"
-                  className="h-3 w-3 rounded border-zinc-300"
-                  checked={runGradeWhenReady}
-                  onChange={(e) => setRunGradeWhenReady(e.target.checked)}
-                />
-                Auto-run preview when ready (no save)
-              </label>
             </details>
             {gradingPreview ? (
               <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 p-2 text-[11px] text-emerald-900">
+                {(() => {
+                  const previewResponse = (gradingPreview.response || {}) as any;
+                  const previewFeedbackSummary = String(previewResponse?.feedbackSummary || "").trim();
+                  const previewFeedbackBullets = Array.isArray(previewResponse?.feedbackBullets)
+                    ? previewResponse.feedbackBullets.map((v: unknown) => String(v || "").trim()).filter(Boolean)
+                    : [];
+                  return (
+                    <>
                 <div className="font-semibold">
                   Preview: {String(gradingPreview.overallGrade || "—")}{" "}
                   {typeof gradingPreview.confidence === "number" ? `· confidence ${gradingPreview.confidence.toFixed(2)}` : ""}
@@ -2096,18 +2770,55 @@ export default function SubmissionDetailPage() {
                   Citations: {Number(gradingPreview.evidenceDensitySummary?.totalCitations || 0)} · Criteria without evidence:{" "}
                   {Number(gradingPreview.evidenceDensitySummary?.criteriaWithoutEvidence || 0)}
                 </div>
+                {previewStale ? (
+                  <div className="mt-1 rounded border border-amber-200 bg-amber-50 p-1.5 text-[10px] font-semibold text-amber-900">
+                    Preview is stale. Generate preview again before approving and saving.
+                  </div>
+                ) : null}
+                {previewFeedbackSummary ? (
+                  <div className="mt-1 rounded border border-emerald-200/70 bg-white/60 p-1.5 text-zinc-800">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Feedback summary preview</div>
+                    <div className="mt-0.5 whitespace-pre-wrap text-[11px]">{previewFeedbackSummary}</div>
+                  </div>
+                ) : null}
+                {previewFeedbackBullets.length ? (
+                  <div className="mt-1 rounded border border-emerald-200/70 bg-white/60 p-1.5 text-zinc-800">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Feedback bullets preview</div>
+                    <ul className="mt-0.5 list-disc pl-4">
+                      {previewFeedbackBullets.slice(0, 4).map((line: string, idx: number) => (
+                        <li key={`preview-fb-${idx}`} className="mt-0.5">
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                    {previewFeedbackBullets.length > 4 ? (
+                      <div className="mt-1 text-[10px] text-zinc-600">+{previewFeedbackBullets.length - 4} more bullet(s) in preview response</div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {gradingPreviewMeta ? (
+                  <div className="mt-1 text-[10px] text-emerald-800/90">
+                    Preview run #{gradingPreviewMeta.runCount} ·{" "}
+                    {new Date(gradingPreviewMeta.atIso).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                    {gradingPreviewMeta.requestId ? ` · req ${gradingPreviewMeta.requestId.slice(0, 12)}` : ""}
+                  </div>
+                ) : null}
+                    </>
+                  );
+                })()}
               </div>
             ) : null}
             </div>
           </details>
-          </div>
-
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
 
           <details
             ref={studentPanelRef}
             id="student-link-panel"
-            className="group order-3 border-b border-zinc-200 bg-white"
+            className="group order-4 border-b border-zinc-200 bg-white"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("student");
@@ -2116,11 +2827,19 @@ export default function SubmissionDetailPage() {
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
               <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-[9px] font-bold text-zinc-700">
+                    4
+                  </span>
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Student</span>
                 </span>
-                <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
-                  {checklist.studentLinked ? "Linked" : "Pending"}
+                <span className="inline-flex items-center gap-1">
+                  <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", currentSidebarWorkflowStep === "student" ? "bg-amber-100 text-amber-800" : checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}>
+                    {currentSidebarWorkflowStep === "student" ? "Current" : checklist.studentLinked ? "Done" : "Pending"}
+                  </span>
+                  <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", checklist.studentLinked ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}>
+                    {checklist.studentLinked ? "Linked" : "Pending"}
+                  </span>
                 </span>
               </div>
             </summary>
@@ -2247,40 +2966,8 @@ export default function SubmissionDetailPage() {
           </details>
 
           <details
-            ref={assignmentPanelRef}
-            className="group order-2 border-b border-zinc-200 bg-white"
-            onToggle={(e) => {
-              const el = e.currentTarget;
-              if (el.open) openSidePanel("assignment");
-            }}
-          >
-            <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
-              <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
-                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
-                  <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
-                  <span className="truncate">Assignment</span>
-                </span>
-                <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", checklist.assignmentLinked ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
-                  {checklist.assignmentLinked ? "Linked" : "Pending"}
-                </span>
-              </div>
-            </summary>
-            <div className="border-t border-zinc-200 px-3 pb-3 pt-2 text-base font-semibold text-zinc-900">
-              {submission?.assignment ? `${submission.assignment.unitCode} ${submission.assignment.assignmentRef || ""}`.trim() : "Unassigned"}
-            </div>
-            <div className="px-3 text-sm text-zinc-600">{submission?.assignment?.title || "—"}</div>
-
-            {triageInfo?.coverage?.missing?.length ? (
-              <div className="mx-3 mb-3 mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                <div className="text-xs font-semibold uppercase tracking-wide">Reference coverage</div>
-                <div className="mt-2">Missing: {triageInfo.coverage.missing.join(", ")}</div>
-              </div>
-            ) : null}
-          </details>
-
-          <details
             ref={extractionPanelRef}
-            className="group order-4 border-b border-zinc-200 bg-white"
+            className="group order-1 border-b border-zinc-200 bg-white"
             onToggle={(e) => {
               const el = e.currentTarget;
               if (el.open) openSidePanel("extraction");
@@ -2289,13 +2976,21 @@ export default function SubmissionDetailPage() {
             <summary className="cursor-pointer list-none border-b border-transparent px-2 py-0.5 group-open:border-zinc-200 [&::-webkit-details-marker]:hidden">
               <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-[9px] font-bold text-zinc-700">
+                    1
+                  </span>
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
                   <span className="truncate">Cover extraction</span>
                 </span>
-                <span className="truncate rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] normal-case text-zinc-700">
-                  {latestRun
-                    ? `${latestRun.status} · ${Math.round((latestRun.overallConfidence || 0) * 100)}%`
-                    : "Not run"}
+                <span className="inline-flex items-center gap-1">
+                  <span className={cx("inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]", currentSidebarWorkflowStep === "cover" ? "bg-amber-100 text-amber-800" : coverReady ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}>
+                    {currentSidebarWorkflowStep === "cover" ? "Current" : coverReady ? "Done" : "Review"}
+                  </span>
+                  <span className="truncate rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] normal-case text-zinc-700">
+                    {latestRun
+                      ? `${latestRun.status} · ${Math.round((latestRun.overallConfidence || 0) * 100)}%`
+                      : "Not run"}
+                  </span>
                 </span>
               </div>
             </summary>
@@ -2481,20 +3176,46 @@ export default function SubmissionDetailPage() {
             <summary className="cursor-pointer list-none px-2 py-0.5 [&::-webkit-details-marker]:hidden">
               <div className="flex h-[24px] items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-[9px] font-bold text-zinc-700">
+                    5
+                  </span>
                   <span className="text-zinc-400 transition-transform group-open:rotate-90">▸</span>
-                  <span className="truncate">Audit & outputs</span>
+                  <span className="truncate">Approval & outputs</span>
                 </span>
-                <span
-                  className={cx(
-                    "inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]",
-                    feedbackDirty ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-700"
-                  )}
-                >
-                  {feedbackDirty ? "Unsaved edits" : "Saved"}
+                <span className="inline-flex items-center gap-1">
+                  <span
+                    className={cx(
+                      "inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]",
+                      currentSidebarWorkflowStep === "approval"
+                        ? "bg-amber-100 text-amber-800"
+                        : checklist.readyToUpload
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-rose-100 text-rose-800"
+                    )}
+                  >
+                    {currentSidebarWorkflowStep === "approval"
+                      ? "Current"
+                      : checklist.readyToUpload
+                        ? "Done"
+                        : "Pending"}
+                  </span>
+                  <span
+                    className={cx(
+                      "inline-flex h-[16px] items-center rounded-full px-1.5 text-[8px]",
+                      feedbackDirty ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                    )}
+                  >
+                    {feedbackDirty ? "Unsaved edits" : "Clean"}
+                  </span>
                 </span>
               </div>
             </summary>
             <div ref={outputsAccordionRef} className="grid gap-1 border-t border-zinc-200 px-2 pb-2 pt-1.5 text-sm">
+              {!gradingHistory.length ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                  No saved assessment outputs yet. Use <span className="font-semibold">Approve &amp; Save</span> to create audit outputs (feedback + marked PDF).
+                </div>
+              ) : null}
               {gradingHistory.length ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
                   <span className="text-xs font-semibold text-zinc-700">Assessment run</span>
@@ -2518,52 +3239,167 @@ export default function SubmissionDetailPage() {
                   </select>
                 </div>
               ) : null}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    void (checklist.readyToUpload ? copyOverallFeedbackPack() : copyText("Feedback", studentFeedbackPreview))
-                  }
-                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
-                >
-                  {checklist.readyToUpload ? "Copy overall feedback" : "Copy feedback"}
-                </button>
-                {checklist.readyToUpload ? (
+              <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Final confirmation</div>
+                    <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1.1fr),minmax(0,1.4fr)]">
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Grade</div>
+                        <div className="mt-1 text-xl font-semibold tracking-tight text-zinc-900">
+                          {selectedAssessment?.overallGrade || gradingPreview?.overallGrade || "Pending"}
+                        </div>
+                        <div className="mt-1 text-[11px] text-zinc-600">
+                          {selectedAssessment?.id
+                            ? `Selected assessment · ${safeDate(selectedAssessment.createdAt)}`
+                            : gradingPreview
+                              ? "Preview only (not saved yet)"
+                              : "Generate preview before saving"}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Readiness</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={cx(
+                              "inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                              previewStale
+                                ? "border-amber-200 bg-amber-50 text-amber-800"
+                                : previewFresh
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                  : "border-rose-200 bg-rose-50 text-rose-800"
+                            )}
+                          >
+                            {previewStale ? "Preview stale" : previewFresh ? "Preview fresh" : "Preview missing"}
+                          </span>
+                          <span
+                            className={cx(
+                              "inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                              checklist.feedbackGenerated ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"
+                            )}
+                          >
+                            Feedback {checklist.feedbackGenerated ? "ready" : "pending"}
+                          </span>
+                          <span
+                            className={cx(
+                              "inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                              checklist.markedPdfGenerated ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"
+                            )}
+                          >
+                            Marked PDF {checklist.markedPdfGenerated ? "ready" : "pending"}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-[11px] text-zinc-600">
+                          {canCommitPreview
+                            ? "Ready to save to audit."
+                            : commitDisabledReason}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {manualAuditChangesPending ? (
+                        <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                          Manual changes pending
+                          {pendingCriterionOverridePatches.length > 0 ? ` · ${pendingCriterionOverridePatches.length} override${pendingCriterionOverridePatches.length === 1 ? "" : "s"}` : ""}
+                          {feedbackDirty ? `${pendingCriterionOverridePatches.length > 0 ? " + " : " · "}feedback edits` : ""}
+                        </span>
+                      ) : (
+                        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">
+                          No pending manual changes
+                        </span>
+                      )}
+                      {lastActionNote ? (
+                        <span className="text-[10px] text-zinc-500">{lastActionNote}</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-[11px] text-zinc-600">
+                      Confirm the grade, feedback and marked output, then save to audit and move on.
+                    </div>
+                  </div>
+                  <div className="flex min-w-[240px] flex-col items-stretch gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void runGrading({ dryRun: false })}
+                      disabled={!canCommitPreview}
+                      className={cx(
+                        "rounded-lg px-3 py-1.5 text-xs font-semibold",
+                        canCommitPreview ? "bg-emerald-700 text-white hover:bg-emerald-800" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                      )}
+                      title={commitDisabledReason}
+                    >
+                      {gradingBusy ? "Saving…" : "Save to audit"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void runGrading({ dryRun: false, goToNextAfterSave: true })}
+                      disabled={!canCommitPreview}
+                      className={cx(
+                        "rounded-lg border px-3 py-1.5 text-xs font-semibold",
+                        canCommitPreview ? "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50" : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                      )}
+                      title={commitDisabledReason}
+                    >
+                      {gradingBusy ? "Saving…" : "Save to audit & next"}
+                    </button>
+                    {!canCommitPreview ? (
+                      <div className="text-[10px] text-zinc-500">
+                        {commitDisabledReason}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <details className="rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+                <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-zinc-600">
+                  Utilities (copy / regenerate)
+                </summary>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => void copyText("Marked version link", toAbsoluteUrl(markedPdfUrl))}
-                    disabled={!selectedAssessment?.annotatedPdfPath}
+                    onClick={() =>
+                      void (checklist.readyToUpload ? copyOverallFeedbackPack() : copyText("Feedback", studentFeedbackPreview))
+                    }
+                    className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    {checklist.readyToUpload ? "Copy overall feedback" : "Copy feedback"}
+                  </button>
+                  {checklist.readyToUpload ? (
+                    <button
+                      type="button"
+                      onClick={() => void copyText("Marked version link", toAbsoluteUrl(markedPdfUrl))}
+                      disabled={!selectedAssessment?.annotatedPdfPath}
+                      className={cx(
+                        "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+                        !selectedAssessment?.annotatedPdfPath
+                          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                      )}
+                    >
+                      Copy marked link
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void copyText("Criterion decisions", buildCriterionDecisionsText())}
+                    className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Copy criterion decisions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void regenerateMarkedFromCurrentRun()}
+                    disabled={!selectedAssessment?.id || feedbackEditorBusy}
                     className={cx(
                       "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                      !selectedAssessment?.annotatedPdfPath
+                      !selectedAssessment?.id || feedbackEditorBusy
                         ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
                         : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                     )}
                   >
-                    Copy marked link
+                    Regenerate with current settings
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => void copyText("Criterion decisions", buildCriterionDecisionsText())}
-                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
-                >
-                  Copy criterion decisions
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void regenerateMarkedFromCurrentRun()}
-                  disabled={!selectedAssessment?.id || feedbackEditorBusy}
-                  className={cx(
-                    "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                    !selectedAssessment?.id || feedbackEditorBusy
-                      ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                  )}
-                >
-                  Regenerate with current settings
-                </button>
-              </div>
+                </div>
+              </details>
               <div
                 className={cx(
                   "rounded-xl border p-2 text-[11px]",
@@ -2595,7 +3431,6 @@ export default function SubmissionDetailPage() {
                   Previous run: {previousAssessment.overallGrade || "—"} at {safeDate(previousAssessment.createdAt)}
                 </div>
               ) : null}
-              {lastActionNote ? <div className="text-[11px] text-zinc-500">{lastActionNote}</div> : null}
               {selectedAssessmentDiff?.length ? (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-700">
                   <div className="font-semibold text-zinc-800">Diff vs previous run</div>
@@ -2606,6 +3441,21 @@ export default function SubmissionDetailPage() {
                   </ul>
                 </div>
               ) : null}
+              {selectedAssessmentFeedbackDiff ? (
+                <FeedbackDiffPreview
+                  title="Feedback text changes vs previous run"
+                  beforeText={selectedAssessmentFeedbackDiff.beforeText}
+                  afterText={selectedAssessmentFeedbackDiff.afterText}
+                  beforeLabel={`Previous (${safeDate(selectedAssessmentFeedbackDiff.older?.createdAt)})`}
+                  afterLabel={`Selected (${safeDate(selectedAssessmentFeedbackDiff.newer?.createdAt)})`}
+                />
+              ) : null}
+              {hasTechnicalDiagnostics ? (
+                <details className="rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+                  <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-zinc-600">
+                    Technical details (optional)
+                  </summary>
+                  <div className="mt-2 grid gap-2">
               {(gradeRunConfidenceSignals.extraction !== null ||
                 gradeRunConfidenceSignals.grading !== null ||
                 gradeRunPolicy ||
@@ -2840,6 +3690,9 @@ export default function SubmissionDetailPage() {
                   ) : null}
                 </details>
               ) : null}
+                  </div>
+                </details>
+              ) : null}
               <div className="flex items-center justify-between">
                 <span className="text-zinc-700">Selected grade</span>
                 <span className="font-semibold text-zinc-900">{selectedAssessment?.overallGrade || "—"}</span>
@@ -2911,6 +3764,18 @@ export default function SubmissionDetailPage() {
                   className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs text-zinc-900"
                   placeholder="Edit the feedback text shown in audit and marked PDF."
                 />
+                {unsavedFeedbackDiff ? (
+                  <div className="mt-2">
+                    <FeedbackDiffPreview
+                      title="Unsaved feedback changes"
+                      beforeText={unsavedFeedbackDiff.beforeText}
+                      afterText={unsavedFeedbackDiff.afterText}
+                      beforeLabel="Saved"
+                      afterLabel="Draft"
+                      initiallyOpen
+                    />
+                  </div>
+                ) : null}
                 <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2">
                   <div className="text-[11px] font-semibold text-emerald-900">Student view preview</div>
                   <div className="mt-1 whitespace-pre-wrap text-xs text-emerald-950">
@@ -2918,6 +3783,26 @@ export default function SubmissionDetailPage() {
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void applyManualReviewAndRegenerateOutputs()}
+                    disabled={!selectedAssessment?.id || feedbackEditorBusy || !manualAuditChangesPending}
+                    className={cx(
+                      "rounded-lg px-3 py-1.5 text-xs font-semibold",
+                      !selectedAssessment?.id || feedbackEditorBusy || !manualAuditChangesPending
+                        ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                        : "bg-emerald-700 text-white hover:bg-emerald-800"
+                    )}
+                    title={
+                      !selectedAssessment?.id
+                        ? "No assessment run selected yet."
+                        : !manualAuditChangesPending
+                          ? "No manual feedback/override changes to apply."
+                          : "Apply manual feedback/criterion overrides and regenerate audit outputs."
+                    }
+                  >
+                    {feedbackEditorBusy ? "Applying…" : "Apply manual review & regenerate outputs"}
+                  </button>
                   <button
                     type="button"
                     onClick={saveAssessmentFeedback}
@@ -2945,7 +3830,7 @@ export default function SubmissionDetailPage() {
                     Rebuild marked PDF
                   </button>
                   <span className="text-[11px] text-zinc-500">
-                    Assessor uses current active user. Saves audit output and regenerates marked PDF for this run.
+                    Manual review button applies current feedback editor text plus any draft criterion overrides, then recalculates audit output and regenerates the marked PDF.
                   </span>
                 </div>
               </div>

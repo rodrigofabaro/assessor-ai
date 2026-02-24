@@ -387,6 +387,11 @@ export async function PATCH(
             unitCode: String(resultJson?.referenceContextSnapshot?.unit?.unitCode || ""),
             assignmentCode: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.assignmentCode || ""),
             assignmentTitle: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.title || ""),
+            assignmentType: String(
+              resultJson?.referenceContextSnapshot?.assignmentBrief?.assignmentType ||
+                resultJson?.referenceContextSnapshot?.assignmentBrief?.type ||
+                ""
+            ),
             criteriaSet: criteriaWithBand.map((c: any) => String(c?.code || "").trim().toUpperCase()).filter(Boolean),
           },
         })

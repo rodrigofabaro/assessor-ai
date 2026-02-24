@@ -14,7 +14,7 @@ export type MarkedPdfPayload = {
   assessorName?: string;
   markedDate?: string;
   overallPlacement?: "first" | "last";
-  pageNotes?: Array<{ page: number; lines: string[] }>;
+  pageNotes?: Array<{ page: number; lines: string[]; criterionCode?: string; showCriterionCodeInTitle?: boolean }>;
 };
 
 function sanitizeRenderableText(value: unknown) {
@@ -268,7 +268,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     const noteW = Math.min(360, pw - margin * 2);
     const noteFontSize = 8.6;
     const noteLineH = 10;
-    const wrapped = lines.map((line) => wrapText(`- ${line}`, noteW - 16, font, noteFontSize));
+    const wrapped = lines.map((line) => wrapText(line, noteW - 16, font, noteFontSize));
     const wrappedRows = wrapped.reduce((sum, rows) => sum + Math.max(1, rows.length), 0);
     const noteH = 18 + wrappedRows * noteLineH + 10;
     const nx = pw - noteW - margin;
@@ -284,7 +284,11 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
       borderWidth: 1,
       opacity: 1,
     });
-    page.drawText("Note", {
+    const criterionCode = String((note as any)?.criterionCode || "").trim().toUpperCase();
+    const showCriterionCodeInTitle = (note as any)?.showCriterionCodeInTitle !== false;
+    const noteTitle =
+      showCriterionCodeInTitle && /^[PMD]\d{1,2}$/.test(criterionCode) ? `Note (${criterionCode})` : "Note";
+    page.drawText(noteTitle, {
       x: nx + 8,
       y: ny + noteH - 13,
       size: 9.2,

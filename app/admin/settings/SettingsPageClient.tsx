@@ -104,6 +104,7 @@ type GradingConfigPayload = {
   pageNotesMaxPages: number;
   pageNotesMaxLinesPerPage: number;
   pageNotesIncludeCriterionCode: boolean;
+  pageNotesAiPolishEnabled: boolean;
 };
 
 type AppUser = {
@@ -632,6 +633,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       setGradingSaving(false);
     }
   }, [gradingCfg, load]);
+
 
   const saveAppConfig = useCallback(async () => {
     if (!appCfg) return;
@@ -1568,6 +1570,18 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                   />
                   Include criterion code in note text
                 </label>
+                <label className="inline-flex items-center gap-2 text-sm text-zinc-700 md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={!!gradingCfg.pageNotesAiPolishEnabled}
+                    onChange={(e) =>
+                      setGradingCfg((v) => (v ? { ...v, pageNotesAiPolishEnabled: e.target.checked } : v))
+                    }
+                    disabled={!canWriteSensitive}
+                    className="h-4 w-4 rounded border-zinc-300"
+                  />
+                  AI polish page notes (extra AI step; keeps original note if rewrite looks off-topic)
+                </label>
                 <label className="text-sm text-zinc-700">
                   Note tone
                   <select
@@ -1615,6 +1629,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
                     className="mt-1 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900"
                   />
                 </label>
+              </div>
+              <div className="mt-2 text-xs text-zinc-500">
+                AI note polishing rewrites page notes into a more natural style across assignments. It is optional and
+                guarded to reduce cross-assignment wording leakage.
               </div>
               <div className="mt-3 rounded-lg border border-zinc-200 bg-white p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tone preview</div>

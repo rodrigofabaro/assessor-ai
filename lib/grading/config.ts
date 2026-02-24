@@ -22,6 +22,7 @@ export type GradingConfig = {
   pageNotesMaxPages: number;
   pageNotesMaxLinesPerPage: number;
   pageNotesIncludeCriterionCode: boolean;
+  pageNotesAiPolishEnabled: boolean;
   updatedAt: string;
 };
 
@@ -41,6 +42,7 @@ export function defaultGradingConfig(): GradingConfig {
     pageNotesMaxPages: 6,
     pageNotesMaxLinesPerPage: 3,
     pageNotesIncludeCriterionCode: false,
+    pageNotesAiPolishEnabled: false,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -126,6 +128,10 @@ function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
       typeof input.pageNotesIncludeCriterionCode === "boolean"
         ? input.pageNotesIncludeCriterionCode
         : base.pageNotesIncludeCriterionCode,
+    pageNotesAiPolishEnabled:
+      typeof input.pageNotesAiPolishEnabled === "boolean"
+        ? input.pageNotesAiPolishEnabled
+        : base.pageNotesAiPolishEnabled,
     updatedAt: new Date().toISOString(),
   };
 }

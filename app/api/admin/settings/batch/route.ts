@@ -118,6 +118,7 @@ export async function PUT(req: Request) {
         pageNotesMaxPages: gradingInput.pageNotesMaxPages as any,
         pageNotesMaxLinesPerPage: gradingInput.pageNotesMaxLinesPerPage as any,
         pageNotesIncludeCriterionCode: gradingInput.pageNotesIncludeCriterionCode as any,
+        pageNotesAiPolishEnabled: gradingInput.pageNotesAiPolishEnabled as any,
       };
       if (templateInput !== null && (templateScope === "default" || !ctx.user?.id)) {
         gradingPatch.feedbackTemplate = templateInput;
@@ -141,6 +142,8 @@ export async function PUT(req: Request) {
           strictnessTo: gradingResult.strictness,
           studentSafeMarkedPdfFrom: prevGrading.studentSafeMarkedPdf,
           studentSafeMarkedPdfTo: gradingResult.studentSafeMarkedPdf,
+          pageNotesAiPolishEnabledFrom: prevGrading.pageNotesAiPolishEnabled,
+          pageNotesAiPolishEnabledTo: gradingResult.pageNotesAiPolishEnabled,
           feedbackTemplateByUserCountFrom: Object.keys(prevGrading.feedbackTemplateByUserId || {}).length,
           feedbackTemplateByUserCountTo: Object.keys(gradingResult.feedbackTemplateByUserId || {}).length,
         },

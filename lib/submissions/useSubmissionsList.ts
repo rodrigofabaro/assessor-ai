@@ -29,7 +29,7 @@ const LANE_ORDER: LaneMeta[] = [
   { key: "COMPLETED", label: "Completed", description: "Assessment complete and outputs available." },
 ];
 
-const DEFAULT_PAGE_SIZE = 80;
+const DEFAULT_PAGE_SIZE = 40;
 
 function rankGrade(value: string) {
   const x = String(value || "").toUpperCase();
@@ -133,10 +133,12 @@ export function useSubmissionsList() {
       setErr("");
       setMsg("");
       try {
+        const requiresServerQa = laneFilter === "QA_REVIEW" || qaReviewOnly;
         const params = new URLSearchParams();
         params.set("view", "workspace");
-        params.set("qa", "1");
-        params.set("includeFeedback", "1");
+        params.set("qa", requiresServerQa ? "1" : "0");
+        // Keep the list payload lightweight; feedback is fetched on demand by copy actions.
+        params.set("includeFeedback", "0");
         params.set("paginate", "1");
         params.set("page", String(page));
         params.set("pageSize", String(pageSize));
@@ -181,6 +183,60 @@ export function useSubmissionsList() {
       cancelled = true;
     };
   }, [hydratedFromUrl, page, pageSize, timeframe, sortBy, sortDir, statusFilter, unlinkedOnly, laneFilter, readyOnly, handoffOnly, qaReviewOnly, debouncedQuery, refreshNonce]);
+
+  useEffect(() => {
+    if (!hydratedFromUrl) return;
+    if (laneFilter === "QA_REVIEW" || qaReviewOnly) return;
+    const submissionIds = items
+      .filter((row) => row && row.id && row.qaFlags == null)
+      .map((row) => String(row.id))
+      .filter(Boolean);
+    if (!submissionIds.length) return;
+
+    let cancelled = false;
+
+    async function hydrateQa() {
+      try {
+        const payload = await jsonFetch<{
+          byId?: Record<
+            string,
+            {
+              qaFlags?: SubmissionRow["qaFlags"];
+              assessmentActor?: string | null;
+            }
+          >;
+        }>("/api/submissions/qa-flags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ submissionIds }),
+          cache: "no-store",
+        });
+        if (cancelled) return;
+        const byId = payload?.byId || {};
+        setItems((prev) =>
+          prev.map((row) => {
+            const patch = row?.id ? byId[String(row.id)] : null;
+            if (!patch) return row;
+            return {
+              ...row,
+              qaFlags: (patch.qaFlags as SubmissionRow["qaFlags"]) ?? row.qaFlags ?? null,
+              assessmentActor:
+                typeof patch.assessmentActor === "string" || patch.assessmentActor === null
+                  ? patch.assessmentActor
+                  : (row.assessmentActor ?? null),
+            };
+          })
+        );
+      } catch {
+        // Non-blocking optimization path; keep the list usable without QA badges.
+      }
+    }
+
+    void hydrateQa();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydratedFromUrl, items, laneFilter, qaReviewOnly]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
