@@ -257,11 +257,16 @@ function hasSpecificEvidenceSignal(entry: PageCriterionEntry) {
 function extractObservedEvidenceLine(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
   if (!corpus.trim()) return "";
+  const code = String(entry.code || "").toUpperCase();
   if (/\bgantt\b/i.test(corpus)) return "You have shown milestone scheduling using a Gantt chart on this page.";
   if (/\bcritical path|cpm\b/i.test(corpus)) return "You have included critical path / CPM evidence here.";
   if (/\brisk register\b/i.test(corpus)) return "You have included a risk register / risk tracking evidence here.";
   if (/\bdecision matrix\b/i.test(corpus)) return "You have included a decision matrix to support your choice here.";
-  if (/\blegislation|legal|ethic|gdpr|health and safety|regulation\b/i.test(corpus))
+  if (
+    /\blegislation|legal|ethic|gdpr|health and safety|regulation\b/i.test(corpus) &&
+    (code === "D1" ||
+      !/\b(gantt|milestone|critical path|cpm|tracking|monitor|pugh|matrix|timeline|project plan|project planning|schedule)\b/i.test(corpus))
+  )
     return "You have included relevant legislation/ethical considerations here.";
   if (/\bgraph|plot|waveform|overlay\b/i.test(corpus)) return "You have included graphical evidence here to support your explanation.";
   if (/\btable\b/i.test(corpus)) return "You have included a table that supports this part of the evidence.";
@@ -347,6 +352,20 @@ function strengthLine(entry: PageCriterionEntry) {
     }
     return extractObservedEvidenceLine(entry) || "";
   }
+  if (code === "M1") {
+    if (/\b(pugh|decision matrix|compare|comparison|monitor|monitoring|method|justif|selection)\b/i.test(corpus)) {
+      return "You have compared and justified your approach clearly here.";
+    }
+    const observed = extractObservedEvidenceLine(entry);
+    if (/legislation\/ethical considerations/i.test(observed)) return "";
+    return observed;
+  }
+  if (code === "P1") {
+    if (/\b(aim|objective|rationale|project selection|scope)\b/i.test(corpus)) {
+      return "Your project selection and aims are clearly stated here.";
+    }
+    return "";
+  }
   const observed = extractObservedEvidenceLine(entry);
   if (observed) return observed;
   return "";
@@ -390,13 +409,15 @@ function gapLine(entry: PageCriterionEntry) {
     return "";
   }
   if (rationale) {
-    if (/^(?:m\d|d\d|p\d)\s+not achieved\b/i.test(rationale)) {
-      return `To improve this page, ${rationale.charAt(0).toLowerCase()}${rationale.slice(1)}`;
+    const cleanedRationale = rationale.replace(/\b(with|which|that)\s*$/i, "").trim();
+    const safeRationale = cleanedRationale || rationale;
+    if (/^(?:m\d|d\d|p\d)\s+not achieved\b/i.test(safeRationale)) {
+      return `To improve this page, ${safeRationale.charAt(0).toLowerCase()}${safeRationale.slice(1)}`;
     }
-    if (/^(?:evidence|method|working|explanation|link|comparison|confirmation)\b/i.test(rationale)) {
-      return `To improve this page, ${rationale.charAt(0).toLowerCase()}${rationale.slice(1)}`;
+    if (/^(?:evidence|method|working|explanation|link|comparison|confirmation)\b/i.test(safeRationale)) {
+      return `To improve this page, ${safeRationale.charAt(0).toLowerCase()}${safeRationale.slice(1)}`;
     }
-    return `To improve this page, ${rationale.charAt(0).toLowerCase()}${rationale.slice(1)}`;
+    return `To improve this page, ${safeRationale.charAt(0).toLowerCase()}${safeRationale.slice(1)}`;
   }
   return "Add one sentence that explains exactly how this evidence meets the requirement.";
 }
@@ -417,13 +438,17 @@ function visualPresentationLine(entry: PageCriterionEntry) {
 
 function visualDevelopmentSuggestionLine(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+  if (entry.decision === "ACHIEVED") return "";
+  if (String(entry.code || "").toUpperCase() === "P1") return "";
   const hasVisualEvidence =
     /\b(image|figure|diagram|chart|graph|plot|waveform|screenshot|photo|table|sketch)\b/i.test(corpus);
   if (hasVisualEvidence) return "";
 
   const likelyBenefitsFromVisual =
-    entry.decision !== "ACHIEVED" ||
-    /\b(compare|explain|process|method|system|layout|design|flow|performance|evaluation|analysis|relationship)\b/i.test(corpus);
+    hasSpecificEvidenceSignal(entry) ||
+    /\b(compare|process|method|system|layout|flow|performance|evaluation|analysis|relationship|milestone|tracking|critical path|software)\b/i.test(
+      corpus
+    );
   if (!likelyBenefitsFromVisual) return "";
 
   return "A simple labelled sketch/diagram/table could help you develop the idea further and make your explanation easier to follow.";
@@ -788,6 +813,9 @@ function buildStructuredNoteItems(input: {
     .filter((item) => !isLowValuePageNoteText(item.text));
   formatted = applyNoteWordBudget(formatted);
   if (!formatted.length) {
+    if (entry.decision === "ACHIEVED") {
+      return [];
+    }
     formatted = [
       {
         kind: "action",

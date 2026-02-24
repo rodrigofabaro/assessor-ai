@@ -3603,6 +3603,7 @@ export async function POST(
     const feedbackClaimLint = lintOverallFeedbackClaims({
       text: feedbackText,
       criterionChecks: decision.criterionChecks as any,
+      overallGrade,
     });
     feedbackText = feedbackClaimLint.text;
     if (feedbackClaimLint.changed) {
