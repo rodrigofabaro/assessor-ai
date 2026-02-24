@@ -1,0 +1,196 @@
+Unit 5005: Further Thermodynamics
+Unit Code: M/651/0859
+Level: 5
+Credits: 15
+Introduction
+From the refrigerators that we use in our homes to the colossal power stations that
+generate the electricity we use and provide power to industry, the significance that
+thermodynamics plays in the 21st century cannot be underestimated.
+This unit aims to build on the techniques explored in Unit 4013: Fundamentals of
+Thermodynamics and Heat Transfer , to develop further students’ skills in applied
+thermodynamics by investigating the relationships between theory and practice.
+Among the topics included in this unit are: heat pumps and refrigeration,
+performance of air compressors, steam power plants, and gas turbines.
+On successful completion of this unit, students will be able to learn about the
+performance and operation of heat pumps and refrigeration systems, the applications
+and efficiency of industrial compressors, the use of charts and/or tables to determine
+steam plant parameters and characteristics, and the operation of gas turbines and
+assess their efficiency.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+872
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Evaluate the performance and operation of heat pumps and refrigeration
+systems
+LO2 Review the applications and efficiency of industrial compressors
+LO3 Determine steam plant parameters and characteristics using charts and/or
+tables
+LO4 Examine the operation of gas turbines and assess their efficiency.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+873
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Evaluate the performance and operation of heat pumps and refrigeration
+systems
+Heat pumps and refrigeration:
+Reversed heat engines: reversed Carnot and Rankine cycles
+Second law of thermodynamics
+Refrigeration tables and charts (p-h diagrams)
+Coefficient of performance of heat pumps and refrigerators
+Vapor compression refrigeration cycle
+Refrigerant fluids: properties and environmental effects
+Economics of heat pumps.
+LO2 Review the applications and efficiency of industrial compressors
+Performance of air compressors:
+Theoretical and realistic cycles
+Isothermal and adiabatic work
+Volumetric efficiency
+Intercoolers, dryers, and air receivers
+Hazards and faults: safety consideration and associated legislation.
+LO3 Determine steam plant parameters and characteristics using charts and/or
+tables
+Steam power plant:
+Use of tables and charts to analyse steam cycles
+Circuit diagrams showing boiler, super heater, turbine, condenser,
+and feed pump
+Theoretical and actual operation: Carnot and Rankine cycle
+Efficiencies and improvements: sustainability and environmental efficiency
+considerations in decision-making.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+874
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Examine the operation of gas turbines and assess their efficiency
+Gas turbines:
+Single and double-shaft gas turbine operation
+Property diagrams: Brayton (Joule) cycle
+Intercooling, reheating, and regeneration
+Combined heat and power plants
+Self-starting and burner ignition continuation
+Fuels and Combustion,
+Theoretical and actual combustion
+Enthalpy-of-formation, enthalpy of combustion, and heating value
+Safety first culture and application within the context: use of health and
+safety policies, procedures and regulations, compliance, risk assessment
+and mitigation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+875
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Evaluate the performance and operation of heat pumps
+and refrigeration systems
+P1 Using didactic sketches, M1 Assess the limiting factors D1 Conduct a cost–benefit
+evaluate the operating that impact the economics of analysis of the installation
+principles of both heat pumps heat pumps. of a ground source heat
+and refrigeration systems. pump on a smallholding
+M2 Illustrate the contradiction
+to make valid
+P2 Use refrigeration tables between refrigeration cycles
+recommendations
+and pressure/enthalpy charts and the second law of
+for improvements.
+to determine COP, heating thermodynamics.
+effect, and refrigeration effect
+of reversed heat engines.
+LO2 Review the applications and efficiency of industrial
+compressors
+P3 Review the different types M3 Evaluate isothermal D2 Critically evaluate the
+of industrial compressors efficiency by calculating the volumetric efficiency
+and identify justifiable isothermal and polytropic formula for a
+applications for each. work of a reciprocating reciprocating compressor.
+compressor.
+P4 Discuss compressor faults
+and potential hazards.
+P5 Determine the volumetric
+efficiency of a reciprocating
+compressor.
+LO3 Determine steam plant parameters and characteristics
+using charts and/or tables
+P6 Determine the need for M4 Justify why the Rankine D3 Critically evaluate the
+superheated steam in a cycle is preferred over the pragmatic modifications
+power-generating plant. Carnot cycle in steam made to the basic Rankine
+production plants around cycle to improve the
+P7 Apply the use of charts
+the world. overall efficiency of steam
+and/or tables to establish
+generation power plants.
+overall steam plant
+efficiencies in power systems.
+LO4 Examine the operation of gas turbines and assess their
+efficiency
+P8 Investigate the principles M5 Compare the actual plant D4 Evaluate the enthalpy
+of operation of a gas turbine and theoretical efficiencies in of combustion, using
+plant. a single-shaft gas turbine enthalpy of formation
+system, accounting for any for the gas turbines.
+P9 Examine the efficiency
+discrepancies found.
+of a gas turbine system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+876
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Assael M.J., Maitland G.C., Maskow T., Stockar U.V., Wakeham W.A. and Will S. (2022)
+Commonly Asked Questions in Thermodynamics. 2nd Ed. CRC Press.
+Bejan A. (2016) Advanced Engineering Thermodynamics. John Wiley & Sons, Inc.
+Borgnakke C. and Sonntag R. (2022) Fundamental of Thermodynamics. 10th Ed. Wiley.
+Baskharone E. A. (2012) Thermal Science: Essentials of Thermodynamics, Fluid Mechanics,
+and Heat Transfer. McGraw Hill.
+Cengel Y.A., Boles M.A. and Kanoglu M. (2019) Thermodynamics: An Engineering
+Approach Si . 9th Ed. McGraw Hill.
+Dixon, S. L. and Hall C. (2013) Fluid mechanics and thermodynamics of turbomachinery.
+Butterworth-Heinemann.
+Granet I., Alvarado J. and Bluestein M. (2021) Thermodynamics and Heat Power. 9th Ed.
+CRC Press.
+Kleinstreuer C. (2021) Essentials of Engineering Thermodynamics. 1st Ed. McGraw-Hill.
+Lloyd W. (Editor) (2023) Handbook of Heat Transfer and Fluid Flow (Hardback).
+Willford Press.
+Murphy K. (Editor) (2023) Engineering Thermodynamics: Simulation with Entropy
+(Hardback). Clanrye International.
+Potter M.C. and Somerton C.W. (2019) Schaums Outline of Thermodynamics for
+Engineers. 4th Ed. McGraw-Hill.
+Rayner J. (2008) Basic Engineering Thermodynamics . 5th Ed. Pearson.
+Trachenko K. (Author) (2023) Theory of Liquids: From Excitations to Thermodynamics
+(Hardback). Cambridge University Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+877
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Applied Thermal Engineering
+International Communications in Heat and Mass Transfer
+International Journal of Heat and Mass Transfer
+International Journal of Turbomachinery, Propulsion and Power
+International Journal of Thermal Sciences
+Thermodynamics: A Section of Entropy
+Journal of Turbomachinery
+Links
+This unit links to the following related units:
+Unit 4013: Fundamentals of Thermodynamics and Heat Engines
+Unit 5023: Thermofluids.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+878
+Issue 6 – October 2025 © Pearson Education Limited 2025

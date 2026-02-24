@@ -1,0 +1,213 @@
+Unit 5021: Further Control Systems
+Engineering
+Unit Code: M/651/0886
+Level: 5
+Credits: 15
+Introduction
+Control engineering is usually implemented at the top level of large projects,
+determining the engineering system performance specifications, the required
+interfaces, and hardware and software requirements. In most industries, stricter
+requirements for product quality, energy efficiency, pollution level controls and the
+general drive for improved performance, place tighter limits on control systems.
+A reliable and high-performance control system depends a great deal upon accurate
+measurements obtained from a range of transducers, mechanical, electrical, optical
+and, in some cases, chemical. The information provided is often converted into digital
+signals on which the control system acts to maintain optimum performance of the
+process.
+The aim of this unit is to provide the student with the further knowledge of the
+principles of control systems and to advance understanding of how these principles
+can be used to model and analyse simple control systems found in industry. The
+study of control engineering is essential for most engineering disciplines, including
+electrical, mechanical, chemical, aerospace, and manufacturing.
+On successful completion of this unit students will be able to devise a typical three-
+term controller for optimum performance, grasp several control techniques and how
+these can be used to predict and control the behaviour of a range of engineering
+processes in a practical way.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+990
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explain concepts and contemporary applications of control systems
+LO2 Analyse the elements of a high-level control system and its model development
+LO3 Evaluate the structure and behaviour of high-level control systems
+LO4 Examine the application of control parameters to produce optimum
+performance of a control system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+991
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explain concepts and contemporary applications of control systems
+Background, terminology, underpinning principles, and system basics:
+Control system terminology and identification, including plant, process, system,
+disturbances, inputs and outputs, initial time, additivity, homogeneity, linearity
+and stability
+Control systems properties and configurations, classification and performance
+criteria of control systems
+Block diagram representation of control systems and their relevance in industrial
+application
+Principles of Transfer Function (TF) for open and closed loop systems, use of
+current computational tools for use in control systems (e.g., MATLAB, Simulink,
+LabVIEW)
+Latest methods of using data for control systems and applications − data
+collection systems, data formats, documentation control processes and
+procedures (e.g., location, access, authorisation)
+Control systems and Industry 4.0 – relevance and impact on organisations.
+LO2 Analyse the elements of a high-level control system and its model
+development
+Developing system applications:
+Simple mathematical models of electrical, mechanical, and electro-mechanical
+systems
+Block diagram representation of simple control systems
+Introduction of Laplace transform and its properties, simple first and second
+order systems and their dynamic responses
+Modelling and simulation of simple first and second order control system using
+current computational tool (e.g., MATLAB, Simulink, LabVIEW).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+992
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Evaluate the structure and behaviour of high-level control systems
+System behaviour:
+Transient and steady behaviour of simple open loop and closed loop control
+systems in response to a unit step input
+Practical closed loop control systems and the effect of external disturbances
+Poles and zeros and their role in the stability of control systems, steady-state
+error. Applicability of Routh-Hurwitz stability criterion
+Use of current computational tools (e.g., MATLAB, Simulink, LabVIEW) to model,
+simulate and analyse the dynamic behaviour of simple open and closed loop
+control systems.
+LO4 Examine the application of control parameters to produce optimum
+performance of a control system
+Control parameters and optimum performance:
+Introduction to the three-term PID controller, the role of a Proportional
+controller (P), Integral controller (I) and the Derivative controller (D)
+General block diagram representation and analysis, effects of each term,
+P-I-D, control applied to first and second order systems
+Simple closed loop analysis of the different combinations of the terms in PID
+controllers, effect of the three terms on disturbance signals and an introduction
+to simple PID controller tuning methods
+Modelling and simulation using current computational tools (e.g., MATLAB,
+Simulink, LabVIEW) to analyse the effects of each P-I-D term, individually and in
+combination on a control system
+Overview of developments and future applications of using AI in supporting
+adaptive/self-learning control systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+993
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explain concepts and contemporary applications of
+control systems
+P1 Explain a control system M1 Apply advanced modelling D1 Evaluate the
+using block diagram techniques to develop the performance of a PID
+representation and block diagram of a closed controller for position
+simplifications. loop system for the position control of a DC motor.
+control of DC motor using a
+P2 Conceptualise a model of
+PID controller.
+an open and closed loop
+control system using
+simulation.
+LO2 Analyse the elements of a high-level control system and
+its model development
+P3 Analyse the main building M2 Analyse Electrical, D2 Critically evaluate
+blocks for high-level electrical Mechanical and Electro- complex electrical,
+and mechanical control Mechanical control systems mechanical and
+systems. using appropriate electromechanical
+mathematical models control systems using
+P4 Apply Laplace transforms
+and simulation. mathematical models,
+to mechanical or electrical
+control engineering
+control problems.
+methods and simulation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+994
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Evaluate the structure and behaviour of high-level
+control systems
+P5 Analyse the behaviour M4 Use analytical techniques D3 Critically review the
+and response of first and to analyse how the stability of performance of a second-
+second order systems. a dynamic PID control system. order electromechanical
+control system when
+P6 Evaluate the external
+subjected to external
+effects on the stability of
+disturbances.
+PID control systems and the
+techniques used to maintain
+stability in these systems.
+LO4 Examine the application of control parameters to
+produce optimum performance of a control system
+P7 Examine the role and
+M5 Analyse dynamic D4 Evaluate the behaviour
+implementation of the
+responses of PID controllers of a second-order control
+PID controllers in a simple
+in terms of position control, system when PID terms are
+electrical, mechanical, and/or tracking and disturbance changed individually and
+electro-mechanical control rejection. in combination, using
+systems. modelling and computer
+simulation techniques.
+P8 Synthesize the effects of
+the P, I, and D parameters on
+the dynamic responses of the
+first and second order
+systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+995
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bolton W. (2021) Instrumentation and Control Systems . 3rd Ed. Elsevier.
+Dabney J.B. and Harman T.L. (2003) Mastering Simulink . Prentice Hall.
+Dorf R.C. and Bishop R.H. (2022) Modern Control Systems . 14th Ed. Pearson.
+Essic J. (2018) Hands-On Introduction to LabVIEW for Scientists and Engineers .
+4th Ed. Oxford University Press.
+Iqbal K. (2020) A First Course in Control System Design. 2nd Ed. River Publishers.
+Kondratenko Y.P, Kuntsevich V.M., Chikrii A.A. and Gubarev V.F. (2021)
+Advanced Control Systems – Theory and Applications. 1st Ed. River Publishers.
+Moore H. (2019) MATLAB for engineers. 5th Ed. Pearson.
+Nagrath I.J. (2022) Control Systems Engineering. 7th Ed. New Age International
+Publishers.
+Nise N.S. (2011) Control Systems Engineering . 6th Ed. John Wiley & Sons.
+Sarangapani J. and Xu H. (2021) Optimal Networked Control Systems with MATLAB.
+CRC Press.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Frontiers in Control Engineering
+IEEE Open Journal of Control Systems
+IFAC Journal of Systems and Control
+Journal of Control Science and Engineering
+Journal of Dynamic and Control Systems
+Journal of Process Control.
+Links
+This unit links to the following related units:
+Unit 4016: Instrumentation and Control Systems
+Unit 5008: Distributed Control Systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+996
+Issue 6 – October 2025 © Pearson Education Limited 2025

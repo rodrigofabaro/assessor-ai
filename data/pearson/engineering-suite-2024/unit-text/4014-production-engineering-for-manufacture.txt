@@ -1,0 +1,254 @@
+Unit 4014: Production Engineering for
+Manufacture
+Unit Code: H/651/0729
+Level: 4
+Credits: 15
+Introduction
+All of the manufactured products we use in our daily lives, from processed food to
+clothing and cars, are the result of production engineering. Production engineers
+need to have a comprehensive knowledge and understanding of all the possible
+production technologies available, their advantages and disadvantages, the
+requirements of the production system operation and the interaction between
+the various components of the production system.
+This unit introduces students to the production process for key material types; the
+various types of machinery used to manufacture products and the different ways of
+organising production systems to optimise the production process; consideration of
+how to measure the effectiveness of a production system within the overall context
+of the manufacturing system; and an examination of how production engineering
+contributes to ensuring safe and reliable operation of manufacturing.
+On successful completion of this unit students will be able to learn about the role and
+purpose of production engineering and its relationship with the other elements of a
+manufacturing system; most appropriate production processes and associated facility
+arrangements for manufacturing products of different material types; and designing
+a production system incorporating a number of different production processes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+105
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Illustrate the role and purpose of production engineering and its relationship
+with the other elements of a manufacturing system
+LO2 Describe the most appropriate production processes and associated facility
+arrangements for manufacturing products of different material types
+LO3 Analyse how a production system can incorporate a number of different
+production processes for a given product or assembly
+LO4 Explore the effectiveness of a production system in terms of its operation
+within the wider manufacturing system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+106
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Illustrate the role and purpose of production engineering and its
+relationship with the other elements of a manufacturing system
+Production engineering activities:
+Common practices for manufacturing
+Research and develop tools, processes, machines, and equipment
+Integrate facilities, production layout, and systems for producing quality
+products
+Design, implement and refine products, services, processes and systems,
+considering manufacture, assembly and end of life
+Use financial planning, recording and review processes and documentation,
+budgets, estimating, cost control, cost forecasting, and investment appraisal
+Application of quality system tools to support production engineering to include,
+Inspection strategies, Check Sheets, Fishbone Diagram, Histogram, Pareto Chart,
+Control Chart, Scatter Diagram and Process Flowcharts.
+Combination of manufacturing technology and management science.
+LO2 Describe the most appropriate production processes and associated facility
+arrangements for manufacturing products of different material types
+Production processes:
+Common ceramics, polymer, composite, and metals manufacturing processes
+The influence of mechanical and physical properties of the materials on the
+production process. Bonding and jointing technologies, including welding,
+adhesives, fasteners, locking and retaining methods, interference fits and
+mechanical assemblies.
+LO3 Analyse how a production system can incorporate a number of different
+production processes for a given product or assembly
+Function of the range of production facilities within a manufacturing plant:
+Production design for manufacture and assembly
+Cellular and flexible manufacturing systems
+Component production using CNC machining centres and automated production
+processes (single, batch, flow, mass)
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+107
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Automated materials handling equipment, conveyor systems, automatic guided
+vehicle servicing, product assembly and production lines
+Heat treatment facilities, paint and coating plants
+Warehouse, stock storage equipment
+The purpose, operation and effects of incorporating concepts such as lean
+manufacturing and just-in-time (JIT) supply to the production process
+Relevant manufacturing methods used and their applications, such as
+machining, joining, forming, assembling, shaping, processing, printing,
+moulding, extruding and casting.
+LO4 Explore the effectiveness of a production system in terms of its operation
+within the wider manufacturing system
+Production systems:
+Production performance criteria, through-put rates, yield rates,
+cost effectiveness, sustainability, flexibility and reliability
+Optimising supply chain performance and management
+Documentation control processes and procedures such as format,
+location, access, authorisation
+Production documentation management: job cards/build records,
+2D & 3D drawing/models, Bill of Materials (BOM), Cost Analysis Reports,
+Compliance Report, Standard Operating Instructions (SOI’s), Standard Process
+Instructions (POI’s), Engineering Query Notifications (EQN’s) and Drawing Query
+Notifications (DQN’s)
+Use of Industry 4.0 tools/technologies and integration to promote effectiveness
+and operations (e.g. automation, robots, PLCs, digital systems and
+manufacturing engineering systems)
+Essential collaboration between manufacturer, supplier and retailer.
+Production errors and rectification:
+Cost in terms of time, material waste, product recall, reputation and litigation
+Production data collection, critical evaluation and analysis; effective use of data
+collection systems and data formats.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+108
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+The human component:
+Human factors. Impact of organisational, job and environment factors on
+individual performance, characteristics, and behaviours at workplace
+Cultural openness to new ideas and continuous improvement
+Technically savvy to encourage advanced/latest technologies for efficiencies
+including performance optimisation
+Collaboration and information sharing.
+Performance management and rewards
+Engineer training and development practices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+109
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Illustrate the role and purpose of production engineering
+and its relationship with the other elements of a
+manufacturing system
+P1 Illustrate multiple M1 Assess how the D1 Analyse how the
+elements of a modern production engineer can production engineer
+manufacturing system. influence the design process supports the development
+and refine products, services of operational strategies
+P2 Explain the role of the
+and systems, taking into to achieve production and
+production engineer within a
+account optimisation and cost financial objectives.
+manufacturing system.
+effectiveness.
+LO2 Describe the most appropriate production processes and
+associated facility arrangements for manufacturing products
+of different material types
+P3 Examine the properties M2 Discuss the benefits D2 Evaluate how the
+and applications of ceramic associated with polymer choice of bonding and
+products manufactured using manufacturing process. jointing processes
+the sintering, hot pressing, influences both the
+chemical vapour deposition product design and the
+(CVD) and reaction bonding selection of the most
+processes. effective production
+process.
+P4 Describe the properties
+and applications of
+composite products
+manufactured using manual
+and automated layup,
+filament winding, pultrusion
+and resin transfer moulding
+processes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+110
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Analyse how a production system can incorporate a
+number of different production processes for a given product
+or assembly
+P5 Review the type and M3 Explain how materials, D3 Critique the
+sequence of production components and sub- relationships of just-in-
+processes a product or assembly handling and time (JIT) and lean
+component would follow conveyance can impact on manufacturing to total
+from initial design through to the effectiveness and quality and world-class
+manufacture and distribution efficiency of a modern manufacturing and their
+manufacturing plant. effects on production
+P6 Analyse the function of the
+processes for a given
+various production processes
+product or assembly.
+within a modern
+manufacturing plant
+considering the benefits
+and drawbacks.
+LO4 Explore the effectiveness of a production system in terms
+of its operation within the wider manufacturing system
+P7 Review the type of data M4 Explain the immediate D4 Analyse the criteria
+that would be collected and long-term effects that by which production
+and analysed to measure production errors and performance can be
+production performance rectification can have on a measured within the wider
+manufacturing company. manufacturing system.
+P8 Explore the measures that
+can improve production
+performance criteria.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+111
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Baudin M. and Netland T. (2023) Introduction to Manufacturing: An Industrial Engineering
+and Management Perspective . 1st Ed. Routledge.
+Burduk A., Batako A.D.L., Machado J., Wyczolkowski R., Dostatni E. and Rojek I. (Editors
+(2023) Intelligent Systems in Production Engineering and Maintenance III − Lecture Notes in
+Mechanical Engineering (Paperback). Springer.
+Davim J.P. (Editor) (2016) Design of Experiments in Production Engineering . Springer
+International Publishing Switzerland.
+Durakbasa N.M. and Gencyilmaz M.G. (Editors) (2021) Digitizing Production Systems:
+Selected Papers from ISPR2021 − Lecture Notes in Mechanical Engineering (Paperback).
+Springer.
+Grote K.H. and Hefazi H. (Editors) (2021) Springer Handbook of Mechanical Engineering .
+Springer Nature.
+Groover M.P. (2020) Fundamentals of Modern Manufacturing: Materials, Processes,
+and Systems . John Wiley & Sons.
+Machado C. and Davim J.P. (Editors) (2022) Green Production Engineering and
+Management . 1st Ed. Woodhead Publishing.
+Mair G. (2019) Essential Manufacturing . Wiley.
+Phanden R.K., Kumar R., Pandey P.M., and Chakraborty A. (Editors) (2023) Advances in
+Industrial and Production Engineering: Select Proceedings of FLAME 2022 − Lecture Notes
+in Mechanical Engineering (Paperback). Springer.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Advances in Production Engineering and Management
+International Journal of Production Research
+Journal of Industrial and Production Engineering
+Management Systems in Production Engineering
+Production Engineering
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+112
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4023: Computer Aided Design and Manufacture (CAD/CAM)
+Unit 5015: Manufacturing Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+113
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,221 @@
+Unit 4025: Operations and Plant
+Management
+Unit Code: H/651/0747
+Level: 4
+Credits: 15
+Introduction
+The challenges of modern manufacturing industries require today’s operations
+engineers to adopt a multi-skilled methodology when dealing with the array of
+complex engineering problems they are faced with. Long gone are the days of ‘pure’
+mechanical or electrical maintenance staff; operations engineers may well specialise
+within one discipline, but they must have the knowledge and ability to safely tackle
+problems that could encompass many varied engineering fields if they are to keep
+the wheels of industry in motion.
+The underlying aims of this unit are to develop the students’ knowledge of the
+engineering fundamentals that augment the design and operation of plant
+engineering systems, and to furnish them with the tools and techniques to
+maintain the ever more technological equipment.
+The students are introduced to the concept of thermodynamic systems and their
+properties in the first learning outcome; this will provide a platform for the topic of
+heat transfer in industrial applications (as covered in learning outcome four) and
+underpin their future studies in subsequent units. The second learning outcome
+examines common mechanical power transmission system elements found in
+numerous production/manufacturing environments, whilst the third learning
+outcome investigates fundamental static and dynamic fluid systems.
+On completion of this unit students will be able to learn about the fundaments that
+underpin the operation of the systems they deal with on a daily basis and apply these
+fundamentals to the successful maintenance of the systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+187
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Analyse fundamental thermodynamic systems and their properties
+LO2 Investigate power transmission systems
+LO3 Determine the parameters of static and dynamic fluid systems
+LO4 Examine the principles of heat transfer in industrial applications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+188
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Analyse fundamental thermodynamic systems and their properties
+Fundamental system:
+Forms of energy and basic definitions
+Definitions of systems (open and closed, isolated) and surroundings
+First and second laws of thermodynamics
+The gas laws: Charles’ Law, Boyle’s Law, general gas law and the Characteristic
+Gas Equation
+The importance and applications of pressure/volume diagrams and the concept
+of work done
+Polytropic processes: constant pressure, constant volume, adiabatic and
+isothermal processes
+Use problem solving tools for analysis where relevant – for example, as Root
+Cause Analysis (RCA) Process Failure Modes Effects Analysis (PFMEA), Fishbone,
+Practical Problem Solving (PPS) and Advanced Product Quality Planning (APQP)
+Relate knowledge and skills on thermodynamics systems to operations and plant
+management through real-world industry scenarios.
+LO2 Investigate power transmission systems
+Power transmission:
+Flat and v-section belts drives: maximum power and initial tension requirements
+Types of power transmissions: mechanical, hydraulic, pneumatic, electrical
+Constant wear and constant pressure theories
+Gear trains: simple and compound gear trains; determination of velocity ratio;
+torque and power
+Friction clutches: flat, single, and multi-plate clutches; maximum power
+transmitted
+Conical clutches: maximum power transmitted
+Relate knowledge and skills on power transmission systems to operations and
+plant management through real-world industry scenarios.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+189
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Determine the parameters of static and dynamic fluid systems
+Fluid flow theory:
+Continuity equations
+Application of Bernoulli’s Equation
+Reynolds number; turbulent and laminar flow
+Measuring devices for fluids: flow, viscosity, and pressure
+Determination of head loss in pipes by D’Arcy’s formula, use of Moody diagrams
+Immersed surfaces: centre of pressure, use of parallel axis theorem for
+immersed surfaces
+Hydrostatic pressure and thrust on immersed surfaces
+Relate knowledge and skills on fluid systems to operations and plant
+management through real-world industry scenarios.
+LO4 Examine the principles of heat transfer in industrial applications
+Heat transfer:
+Modes of transmission of heat: conduction, convection, and radiation
+Heat transfer through composite walls; use of U and k values;
+example case studies
+Recuperator, regenerator, and evaporative heat exchangers
+Application of formulae to heat exchangers
+Heat losses in thick and thin-walled pipes: optimum lagging thickness.
+Case studies:
+Example industry applications (e.g., applications relevant to management
+of abnormal conditions, emergency management and recovery).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+190
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Analyse fundamental thermodynamic systems and
+their properties
+P1 Examine the operation of M1 Discuss the index of D1 Illustrate the importance
+thermodynamic systems compression in polytrophic of expressions for work done
+and their properties. processes. in thermodynamic processes
+by applying first principles.
+P2 Explain the application of
+the first law of
+thermodynamics to
+appropriate systems.
+P3 Analyse the relationships
+between system constants
+for a perfect gas.
+LO2 Investigate power transmission systems
+P4 Calculate the maximum M2 Analyse the factors that D2 Critique the ‘constant
+power which can be inform the design of an wear’ and ‘constant pressure’
+transmitted by means industrial belt drive system. theories as applied to friction
+of a belt. clutches.
+P5 Calculate the maximum
+power which can be
+transmitted by means
+of a friction clutch.
+P6 Investigate the power
+and torque transmitted
+through gear trains.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+191
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Determine the parameters of static and dynamic fluid
+systems
+P7 Determine the head M3 Explore turbulent and D3 Compare the practical
+losses in pipeline flow. laminar flow in Newtonian application of three different
+fluids. types of differential pressure
+P8 Calculate the hydrostatic
+measuring device.
+pressure and thrust on an
+immersed surface.
+P9 Determine the centre of
+pressure on an immersed
+surface.
+LO4 Examine the principles of heat transfer in industrial
+applications
+P10 Examine the heat M4 Explore heat losses D4 Differentiate between
+transfer through composite through lagged and parallel and counter flow
+walls. unlagged pipes. recuperator heat
+exchangers.
+P11 Apply heat transfer
+formulae to heat
+exchangers.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+192
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Badescu V., Lazaroiu G.C. and Barelli L. (Editors) (2019) Power Engineering −
+Advances and Challenges Part B: Electrical Power. 1st Ed. CRC Press.
+Berkshire F.H. (2021) Introductory Incompressible Fluid Mechanics Paperback .
+Kindle Edition. Cambridge University Press.
+Cachon G. and Terwiesch C. (2023) Operations Management. 3rd Edition. McGraw-Hill
+Chowdhury T., Chakrabarti A. and Chanda C.K. (2021) Power Transmission System
+Analysis Against Faults and Attacks. 1st Ed. CRC Press.
+Dunn D. (2001) Fundamental Engineering Thermodynamics . Longman.
+Eastop, T.D. and McConkey, A. (1996) Applied Thermodynamics for Engineering
+Technologists . 5th Ed. Prentice Hall.
+Hanlon R.T. (2020) Block by Block: The Historical and Theoretical Foundations of
+Thermodynamics Paperback. Kindle Edition. OUP Oxford.
+Ghojel J. (2023) Heat Transfer Basics: A Concise Approach to Problem Solving (Hardback).
+Wiley.
+lloyd E. (Editor) (2023) Handbook of Heat Transfer and Fluid Flow (Hardback).
+Willford Press.
+Massey B.S. and Ward-Smith J. (2011) Mechanics of Fluids . 9th Ed. Oxford: Spon Press.
+Moran M. J., and Tsatsaronis G. (2017) ‘Engineering Thermodynamics’ .
+In CRC Handbook Of Thermal Engineering (pp. 1-112). Abingdon: CRC Press.
+Pokrovskii V.N. (2020) Thermodynamics of Complex Systems: Principles and applications −
+IOP ebooks (Hardback). Institute of Physics Publishing.
+Sarkar D. (2015). Thermal power plant: design and operation . Elsevier.
+Stevenson W.J (2021) Operations Management . 14th Edition. McGraw-Hill.
+Vera J.H. and Wilczek-Vera G. (2021) Classical Thermodynamics of Fluid Systems:
+Principles and Applications (Paperback). CRC Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+193
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+IEEE Transactions on Power Systems
+International Journal of Heat and Mass Transfer
+International Journal of Operations and Production Management
+International Journal of Services and Operations Management
+Journal of Operations Management
+Links
+This unit links to the following related units:
+Unit 4024: Electro, Pneumatic and Hydraulic Systems
+Unit 4026: Electrical Systems and Fault Finding.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+194
+Issue 6 – October 2025 © Pearson Education Limited 2025

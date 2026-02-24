@@ -1,0 +1,73 @@
+{
+  "code": "4063",
+  "title": "Engineering Mechanics and Materials",
+  "detectedTitle": "Engineering Mechanics and Materials",
+  "startPage": 500,
+  "endPage": 507,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Describe the fundamental structures of common engineering materials"
+    },
+    {
+      "id": "LO2",
+      "description": "Determine the most important properties of engineering materials"
+    },
+    {
+      "id": "LO3",
+      "description": "Assess the performance of engineering materials using key indicators, including materials constraints and established database resources"
+    },
+    {
+      "id": "LO4",
+      "description": "Calculate solutions to problems within static and dynamic mechanical systems, with consideration of constraints on performance."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

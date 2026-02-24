@@ -1,0 +1,73 @@
+{
+  "code": "4014",
+  "title": "Production Engineering for Manufacture",
+  "detectedTitle": "Production Engineering for Manufacture",
+  "startPage": 121,
+  "endPage": 129,
+  "pageCount": 9,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Illustrate the role and purpose of production engineering and its relationship with the other elements of a manufacturing system"
+    },
+    {
+      "id": "LO2",
+      "description": "Describe the most appropriate production processes and associated facility arrangements for manufacturing products of different material types"
+    },
+    {
+      "id": "LO3",
+      "description": "Analyse how a production system can incorporate a number of different production processes for a given product or assembly"
+    },
+    {
+      "id": "LO4",
+      "description": "Explore the effectiveness of a production system in terms of its operation within the wider manufacturing system."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "code": "4025",
+  "title": "Operations and Plant Management",
+  "detectedTitle": "Operations and Plant Management",
+  "startPage": 203,
+  "endPage": 210,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Analyse fundamental thermodynamic systems and their properties"
+    },
+    {
+      "id": "LO2",
+      "description": "Investigate power transmission systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Determine the parameters of static and dynamic fluid systems"
+    },
+    {
+      "id": "LO4",
+      "description": "Examine the principles of heat transfer in industrial applications."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5",
+      "P6"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P7",
+      "P8",
+      "P9"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P10",
+      "P11"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11"
+  ]
+}

@@ -1,0 +1,184 @@
+Unit 4013: Fundamentals of
+Thermodynamics and Heat
+Transfer
+Unit Code: D/651/0727
+Level: 4
+Credits: 15
+Introduction
+Thermodynamics is one of the most common applications of science in our lives,
+and it is so much a part of our daily life that it is often taken for granted. For example,
+when driving your car, the chemical energy from the fuel or electrical energy from the
+batteries are converted into mechanical energy to propel the vehicle, and the heat
+produced by burning gas when cooking will produce steam which can lift the lid of the
+pan. These are examples of thermodynamics, which is the study of the dynamics and
+behaviour of energy and its manifestations.
+This unit introduces students to the principles and concepts of thermodynamics and
+its application in modern engineering.
+On successful completion of this unit students will be able to learn about fundamental
+thermodynamic systems and their properties, the steady flow energy equation to
+plant equipment, principles of heat transfer to industrial applications, and the
+performance of internal combustion engines.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+99
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Investigate fundamental thermodynamic systems and their properties
+LO2 Apply the Steady Flow Energy Equation for analysis of thermodynamic systems
+LO3 Determine the performance of heat engines
+LO4 Examine the principles of heat transfer applied to industrial applications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+100
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Investigate fundamental thermodynamic systems and their properties
+Fundamental systems:
+Application Areas of Thermodynamics
+Forms of energy and basic definitions
+Energy, Work and Power
+Thermodynamic state and equilibrium
+Definitions of systems (open and closed) and surroundings
+Properties of pure substances and property tables.
+First law of thermodynamics
+The gas laws: Charles’ Law, Boyle’s Law, general gas law and the Characteristic
+Gas Equation.
+The importance and applications of pressure/volume diagrams and the concept
+of work done
+Polytrophic processes: constant pressure, constant volume, adiabatic,
+isothermal and isentropic process.
+LO2 Apply the Steady Flow Energy Equation for analysis of thermodynamic
+systems
+Energy equations:
+Conventions used when describing the behaviour of heat and work
+The Non-Flow Energy Equation as it applies to closed systems
+Assumptions, applications and examples of practical systems
+Steady Flow Energy Equation as applied to open systems
+Assumptions made about the conditions around, energy transfer and the
+calculations for specific plant equipment e.g., boilers, super-heaters, turbines,
+pumps and condensers
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+101
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Determine the performance of heat engines
+Performance:
+Application of the second law of thermodynamics to heat engines, heat pumps
+and Refrigerators.
+Reversible and Irreversible Processes
+Comparison of theoretical and practical heat engine cycles, including Otto,
+Diesel and Carnot
+Explanations of practical applications of heat engine cycles, such as compression
+ignition (CI) and spark ignition (SI) engines with alternative fuels such as biofuels,
+hydrogen and ammonia, including their relative mechanical and thermodynamic
+efficiencies
+Describe possible efficiency improvements to heat engines.
+LO4 Examine the principles of heat transfer applied to industrial applications
+Principles of heat transfer:
+Modes of heat transfer: conduction, convection and radiation
+Heat conduction in plane walls and thermal resistance concept
+Heat transfer through composite walls and use of U and k values
+Heat losses in thick and thin walled pipes, optimum lagging thickness
+Application of heat transfer to different types of heat exchangers,
+including recuperator and evaporative
+Regenerators
+Safety first culture: health and safety policies, procedures and regulations;
+compliance; risk assessment process and procedures and mitigation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+102
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Investigate fundamental thermodynamic systems and
+their properties
+P1 Investigate the operation M1 Investigate the index of D1 Apply the first law
+of thermodynamic systems compression in polytrophic principles to derive the
+identifying its boundaries processes. work and heat transfer for
+and surroundings. thermodynamic processes
+of perfect gas.
+P2 Explain the application
+of the first law of
+thermodynamics to
+appropriate systems.
+P3 Explain the relationships
+between system constants
+for a perfect gas.
+LO2 Apply the Steady Flow Energy Equation for analysis of
+thermodynamic systems
+P4 Explain system M2 Apply Steady Flow Energy D2 Evaluate application
+parameters using the Equations for analysis of of Steady Flow Energy
+Non-Flow Energy Equation. open systems. Equation for analysis of
+complex open systems.
+P5 Apply the Steady Flow
+Energy Equation to plant
+equipment.
+LO3 Determine the performance of heat engines
+P6 Describe with the aid of M3 Analyse the operating D3 Calculate the working
+a PV (pressure volume) the condition of Carnot heat fluid properties in an ideal
+principals of Carnot or Otto engine/heat pumps with Otto/Diesel cycle and the
+or Diesel cycles based on the the efficiency. cycle efficiency.
+air-standard assumptions.
+P7 Determine the maximum
+efficiency of heat engine or
+heat pump or refrigerators.
+LO4 Examine the principles of heat transfer applied to
+industrial applications
+P8 Examine the principles M4 Explore heat losses D4 Distinguish the
+of heat transfer through through lagged and unlagged differences between
+composite walls. pipes. parallel and counter
+flow recuperator heat
+P9 Apply heat transfer
+exchangers and their heat
+formulae to heat exchangers.
+transfer efficiencies
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+103
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Ansermet J.P. and Brechet S.D. (2019) Principles of Thermodynamics Hardcover.
+Cambridge University Press.
+Assael M.J., Maitland G.C., Maskow T., Von Stockar U., Wakeham W.A. and Will S.
+(2022) Commonly asked questions in thermodynamics . CRC Press.
+Borgnakke C. and Sonntag R. (2022) Fundamental of Thermodynamics . 10th Ed. Wiley
+Cengel Y. (2019) Thermodynamics: An Engineering Approach SI , 9th Ed. McGraw Hill.
+Cengel Y. (2020) Heat and Mass Transfer: Fundamentals and Applications , 6th Ed.
+McGraw Hill.
+Desmet B. (2022) Thermodynamics of Heat Engines . Wiley.
+Heywood J. (2018) Internal combustion engine fundamentals . McGraw-Hill.
+Holman J. (2009) Heat Transfer . McGraw- Hill.
+Lee J.H. and Ramamurthi K. (2022) Fundamentals of thermodynamics . CRC Press.
+Lewis G.N., Randall M., Pitzer K.S. and Brewer L. (2020) Thermodynamics .
+Courier Dover Publications.
+Packer N. and Al-Shemmeri T. (2018) Conventional and Alternative Power Generation:
+Thermodynamics, Mitigation and Sustainability . Wiley.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Applied Thermal Engineering
+International Communications in Heat and Mass Transfer
+International Journal of Heat and Mass Transfer
+International Journal of Thermal Sciences
+Journal of Turbomachinery
+Links
+This unit links to the following related units:
+Unit 5005: Further Thermodynamics.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+104
+Issue 6 – October 2025 © Pearson Education Limited 2025

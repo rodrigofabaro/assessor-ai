@@ -1,0 +1,212 @@
+Unit 5018: Sustainability
+Unit Code: Y/615/1519
+Level: 5
+Credits: 15
+Introduction
+Living and working in the 21st century will bring a range of sustainability challenges
+that our society has not seen before. For many people on our planet key resources
+such as food, water and energy will be in short supply, whilst the effects of climate
+change will be felt by everyone.
+The Brundtland Commission of the United Nations on 20th March 20th 1987 defined
+sustainability as: ‘sustainable development is development that meets the needs of
+the present without compromising the ability of future generations to meet their own
+needs’. Engineers will be in the frontline of the battle to overcome the challenges of
+creating a sustainable economy, but no single discipline will have the capability to
+tackle the problems alone. Sustainability is a multidisciplinary challenge, and
+engineers of the future will have to work collaboratively with a whole range of other
+stakeholders, such as scientists, politicians and financiers, if they are to be able to
+produce the practical and technological solutions required within the necessarily
+urgent time scales.
+This unit is designed to support the Professional Engineering and Professional
+Engineering Management core units at Level 4 and 5. On successful completion of
+this unit the student with possess a wide range of knowledge and understanding
+of the issues and topics associated with sustainability and low carbon engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+969
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Determine the nature and scope of the technical challenges of ensuring
+sustainable development
+LO2 Articulate the importance of collaborating with other disciplines in developing
+technical solutions to sustainability problems
+LO3 Evaluate the use of alternative energy generation techniques in relation to their
+contribution to a low carbon economy
+LO4 Analyse a variety of data sources to estimate the carbon footprint of a socio-
+technical scenario.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+970
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Determine the nature and scope of the technical challenges of ensuring
+sustainable development
+The scope and social context of sustainability:
+Sustainable development
+Brundtland definition
+Global demographics, trends and predictions
+Population growth
+Standard of living, actual and expected
+Urbanisation and the balance of urban/rural space
+Sustainable design.
+Environmental issues:
+°
+Climate change, planetary energy balance, carbon cycle science, the 2 C climate
+change obligation
+Carbon capture and sequestration
+Pollution, pollution prevention and management
+Carbon trading
+Eco-systems and habitat.
+Resources:
+Food, water, energy and raw materials.
+LO2 Articulate the importance of collaborating with other disciplines in
+developing technical solutions to sustainability problems
+Systems thinking and socio-technical systems:
+The politics and economics of sustainability
+Kyoto Protocol
+UN Climate Change Conference (COP)
+European Union Emissions Trading Scheme.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+971
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Sustainable infrastructures:
+Low carbon transport systems
+Sustainable cities
+Green building
+Power storage and distribution
+Sustainable logistics
+Waste and recycling.
+LO3 Evaluate the use of alternative energy generation techniques in
+relationship to their contribution to a low carbon economy
+Alternative energy resources:
+Nuclear, solar, wind, tidal and wave, geothermal, biomass and bioenergy
+Whole life cycle costing
+Precautionary principle.
+LO4 Analyse a variety of data sources to estimate the carbon footprint of a
+socio-technical scenario.
+Types of carbon footprint:
+Organisational
+Value chain
+Product
+Carbon footprint science
+Calculation methodologies: direct and indirect
+System boundaries
+Case study examples.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+972
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Determine the nature and scope of the technical
+challenges of ensuring sustainable development
+P1 Determine the nature M1 Review existing D1 Critically analyse how the
+and scope of the technical sustainable development interrelationship between
+challenges of ensuring plans to identify the way the three key areas of
+sustainable development, technical challenges are technical challenges can be
+considering environmental, met and overcome. managed systemically to
+resource and demand ensure maximum
+issues. sustainability.
+LO2 Articulate the importance of collaborating with other
+disciplines in developing technical solutions to sustainability
+problems
+P2 Articulate the M2 Analyse how political and D2 Critically analyse how
+interdisciplinary issues economic issues can impact a systemic approach can
+associated with the upon technical solutions. be used to support
+construction of sustainable interdisciplinary
+infrastructures, with collaboration in developing
+attention to the competing sustainable infrastructures.
+pressures within these
+infrastructures.
+LO3 Evaluate the use of alternative energy generation
+techniques in relation to their contribution to a low carbon
+economy
+P3 Evaluate the issues that M3 Analyse the difficulties in D3 Critically analyse the
+need to be considered when the evaluation and selection selection of alternative
+selecting alternative low of alternative energy energy generation
+carbon energy sources. generation techniques for techniques for a low carbon
+a low carbon economy. economy within the wider
+socio-technical sustainability
+agenda.
+LO4 Analyse a variety of data sources to estimate the
+carbon footprint of a socio-technical scenario.
+P4 Evaluate a variety of data M4 Apply appropriate data D4 Analyse the alternative
+sources to estimate the from a range of options types and methods available
+carbon footprint of a to calculate the carbon for calculating the carbon
+number of socio-technical footprint of a socio-technical footprint of a sociotechnical
+scenarios. scenario. scenario, and make justified
+recommendations, selecting
+P5 Describe the process
+a best-fit method for
+of calculating a carbon
+effective comparison
+footprint.
+of systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+973
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bakhshi R. B. (2019) Sustainable Engineering: Principles and Practice . 3rd Ed.
+Cambridge University Press.
+Berners-Lee, M. (2019) There Is No Planet B: A Handbook for the Make or Break Years
+Cambridge University Press
+Berners-Lee, M. (2010) How Bad Are Bananas? Profile Books.
+Boyle, G. (2012) Energy Systems and Sustainability: Power for a Sustainable Future .
+Oxford University Press.
+Everett B., Peake S., and warren J. (2021) Energy Systems and Sustainability .
+3rd Ed. Oxford University Press.
+Fenner, A. and Ainger, C. (2013) Sustainable Infrastructures: Principles into Practice .
+ICE Publishing.
+Helm, D. (2015) The Carbon Crunch: Why we are Getting Climate Change Wrong and How
+to Fix It . Yale University Press.
+°
+Hone, D. (2014) Putting the Genie Back: 2 c Will Be Harder Than We Think .
+Whitefox Publishing.
+Morris P. and Therivel R. (2009) Methods of Environmental Impact Assessment .
+3rd Ed. London Routledge.
+Websites
+http://www.carbontrust.com Carbon Trust Carbon foot printing
+(General Reference)
+http://www.fern.org/ FERN Trading Carbon How it Works
+and Why it is Controversial
+(Ebook)
+https://www.populationinstitute.org Population Institute Demographic
+Vulnerability report
+(Report)
+http://www.un.org/ United Nations Integrating Population
+Issues into Sustainable Development
+(Report)
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+974
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+http://www.unwater.org/ United Nations Water Annual World
+Water Development Report
+(Report)
+https://sustainabledevelopment.un.org/ United Nations Sustainable
+Development Knowledge Platform
+(General Reference)
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit 5002: Professional Engineering Management.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+975
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,65 @@
+{
+  "code": "5011",
+  "title": "Industrial Power, Electronics and Storage",
+  "detectedTitle": "Industrial Power, Electronics and Storage",
+  "startPage": 932,
+  "endPage": 940,
+  "pageCount": 9,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Evaluate the energy demand to determine the technology and methods of energy production"
+    },
+    {
+      "id": "LO2",
+      "description": "Explore current energy efficiency measures, technologies, and policies specific to the building and transportation sectors"
+    },
+    {
+      "id": "LO3",
+      "description": "Analyse the control techniques of power electronics for renewable energy systems"
+    },
+    {
+      "id": "LO4",
+      "description": "Investigate the impacts of renewable resources to the grid and the various issues associated with integrating such resources to the grid."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ]
+}

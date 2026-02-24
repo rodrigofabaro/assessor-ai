@@ -1,0 +1,233 @@
+Unit 5001: Research Project
+Unit Code: J/615/1502
+Level: 5
+Credits: 30
+Introduction
+Completing a piece of research is an opportunity for students to showcase their
+intellect and talents. It integrates knowledge with different skills and abilities that
+may not have been assessed previously, which may include seeking out and reviewing
+original research papers, designing their own experimental work, solving problems as
+they arise, managing time, finding new ways of analysing and presenting data, and
+writing an extensive report. Research can always be a challenge but one that can be
+immensely fulfilling, an experience that goes beyond a mark or a grade, but extends
+into long-lasting areas of personal and professional development.
+This unit introduces students to the skills necessary to deliver a complex,
+independently conducted research project that fits within an engineering/
+manufacturing context.
+On successful completion of this unit, students will be able to deliver a complex
+and independent research project in line with the original objectives, explain the
+critical thinking skills associated with solving engineering/manufacturing problems,
+consider multiple perspectives in reaching a balanced and justifiable conclusion, and
+communicate effectively a research project’s outcome. Therefore, students develop
+skills such as critical thinking, analysis, reasoning, interpretation, decision-making,
+information literacy, information and communication technology literacy, innovation,
+conflict resolution, creativity, collaboration, adaptability, and written and oral
+communication.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+840
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine the preliminary stages involved in the creation of an
+engineering/manufacturing research project
+LO2 Examine the analytical techniques used to work on all stages of the project and
+strategies required to overcome the challenges involved in a research project
+LO3 Reflect on the impact the research experience could have in enhancing
+personal or group performance within an engineering/manufacturing context
+LO4 Explore the communications approach used for the preparation and
+presentation of the research project’s outcomes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+841
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine the preliminary stages involved in the creation of an
+engineering/manufacturing research project
+Setting up the research preliminaries:
+Project proposal (note: relevant to the subject of study)
+Developing a research question(s)
+Selection of project approach and use of relevant research methods
+(e.g., statistical analysis, surveys, etc.)
+Identification of project supervisor
+Estimation of resource requirements, including possible sources of funding
+Setting key project objectives, goals, and rationale
+Stakeholder requirements if any
+Development of project specification.
+LO2 Examine the analytical techniques used to work on all stages of the project
+and strategies required to overcome the challenges involved in a research
+project
+Investigative skills and project strategies:
+Key research methods and rationale, primary and secondary research
+Selecting the method(s) of collecting data
+Data analysis and interpreting findings
+Literature review (e.g., journals and published papers)
+Engaging with technical literature (e.g., industry case studies,
+engineering/manufacturing data reports, professional body publications)
+Technical depth
+Multi-perspectives analysis
+Independent thinking
+Statement of resources required for project completion
+Potential risk issues, including health and safety, environmental and commercial
+Project management and key milestones.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+842
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Reflect on the impact the research experience could have in enhancing
+personal or group performance within an engineering/manufacturing
+context
+Research purpose:
+Detailed statement of project aims
+Relevance of the research
+Benefits and beneficiaries of the research
+Professional, legal, social, and ethical aspects of research.
+LO4 Explore the communications approach used for the preparation and
+presentation of the research project’s outcomes
+Reporting the research:
+Reporting research undertaken, appropriate use of a suitable referencing
+method including citation
+Preparation of a final project report (including structure, professional format,
+research vocabulary)
+Project oral presentation such as using short presentations to discuss the work
+with representative audiences (e.g., professional discussions) and conclusions
+Project written presentation
+Poster development and other equivalent methods.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+843
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine the preliminary stages involved in the creation
+of an engineering/manufacturing research project
+P1 Produce a research M1 Analyse the project D1 Produce a
+project proposal that clearly specification and identify comprehensive project
+defines a research question any project risks. proposal that evaluates
+or hypothesis. and justifies the rationale
+for the research.
+P2 Examine the key project
+objectives, the resulting
+goals, and rationale.
+LO2 Examine the analytical techniques used to work on all
+stages of the project and strategies required to overcome the
+challenges involved in a research project
+P3 Conduct a literature M2 Analyse the strategies D2 Critically analyse
+review of published material, used to overcome the literature sources utilised,
+either in hard copy or challenges involved in the data analysis conducted,
+electronically, that is relevant literature review stage. and strategies to deal
+to your research project. with challenges.
+M3 Discuss merits, limitations,
+P4 Examine appropriate and pitfalls of approaches to
+research methods and data collection and analysis.
+approaches to primary
+and secondary research.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+844
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Reflect on the impact the research experience could have
+in enhancing personal or group performance within an
+engineering/manufacturing context
+P5 Reflect on the M4 Evaluate the benefits from D3 Critically evaluate how
+effectiveness and the impact the findings of the research the research experience
+the experience has had upon conducted, and the impact enhances personal or
+enhancing personal or group on CPD. group performance
+performance. within an engineering/
+manufacturing context.
+LO4 Explore the communications approach used for the
+preparation and presentation of the research project’s
+outcomes
+P6 Explore the different
+M5 Evaluate how the D4 Critically reflect how
+types of communication
+communication approach the audience for whom
+approaches that can be
+meets research project the research was
+used to present the research outcomes and objectives. conducted influenced the
+outcomes. communication approach
+used for the preparation
+P7 Communicate research
+and presentation of the
+outcomes in a professional
+research project’s
+manner for the intended
+outcomes.
+audience.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+845
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Belegundu A.D. and Chandrupatla T.R. (2019) Optimization Concepts and Applications
+in Engineering. 3rd Ed. Cambridge University Press.
+Breach M. (2008) Dissertation Writing for Engineers and Scientists. Student Edition.
+Pearson Education Limited.
+Cassel K. W. (2021) Matrix, Numerical, and Optimization Methods in Science and
+Engineering. Cambridge University Press.
+Jana A.K. (2023) Numerical Methods in Engineering: Theory and Process Applications.
+Cambridge University Press.
+Vaughan G.D., and Smith I.M. (2006) Numerical methods for engineers. CRC Press.
+KIRKUP L. (2019) Experimental Methods for Science and Engineering Students:
+An Introduction to the Analysis and Presentation of Data. 2nd Ed. Cambridge
+University Press.
+Leong E.C., Lee-Hsia C.H. and Wee Ong K.K. (2015) Guide to Research Projects for
+Engineering Students: Planning, Writing, and Presenting . Apple Academic Press Inc.
+Oberlender G.D. (2014) Project Management for Engineering and Construction .
+3rd Ed. McGraw-Hill Education.
+Qiu M., QIU H., and Zeng Y. (2022) Research and Technical Writing for Science and
+Engineering. CRC Press.
+Thiel D.V. (2014) Research Methods for Engineers. Cambridge University Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+846
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+American Journal of Engineering Research
+Arabian Journal for Science & Engineering
+Scientific Reports
+Engineering Reports
+Science Progress
+Cell Reports Physical Science
+Engineering Research Express
+European Journal of Engineering and Technology Research
+IETE journal of research
+Indian Journal of Engineering
+International Journal of Indian Research
+International Journal of Engineering Research in Africa
+International Journal of Engineering Research & Technology
+Journal of Engineering in Industrial Research
+Journal of Engineering Research
+Journal of Engineering Research and Sciences (JENRS)
+Journal of Engineering Research and Reports
+London Journal of Engineering Research
+The Journal of Engineering Research [TJER]
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit 5002: Professional Engineering Management
+Unit 5041: Engineering project.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+847
+Issue 6 – October 2025 © Pearson Education Limited 2025

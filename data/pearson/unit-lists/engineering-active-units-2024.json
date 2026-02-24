@@ -1,0 +1,75 @@
+{
+  "source": "user-provided active engineering units (Pearson HN Engineering Suite 2024)",
+  "awardingBody": "Pearson",
+  "descriptorPdf": "btec-hncd-unit-descriptor-engineering-suite-2024.pdf",
+  "units": [
+    { "code": "4001", "title": "Engineering Design" },
+    { "code": "4023", "title": "Computer Aided Design and Manufacture (CAD/CAM)" },
+    { "code": "5002", "title": "Professional Engineering Management (Pearson-set)" },
+    { "code": "5015", "title": "Manufacturing Systems Engineering" },
+
+    { "code": "4002", "title": "Engineering Maths" },
+    { "code": "4024", "title": "Electro, Pneumatic and Hydraulic Systems" },
+    { "code": "5003", "title": "Advanced Mechanical Principles" },
+    { "code": "5016", "title": "Lean Manufacturing" },
+
+    { "code": "4003", "title": "Engineering Science" },
+    { "code": "4025", "title": "Operations and Plant Management" },
+    { "code": "5004", "title": "Virtual Engineering" },
+    { "code": "5017", "title": "Advanced Manufacturing Technology" },
+
+    { "code": "4004", "title": "Managing a Professional Engineering Project (Pearson-set)" },
+    { "code": "4026", "title": "Electrical Systems and Fault Finding" },
+    { "code": "5005", "title": "Further Thermodynamics" },
+    { "code": "5018", "title": "Sustainability" },
+
+    { "code": "4006", "title": "Mechatronics" },
+    { "code": "4030", "title": "Industry 4.0" },
+    { "code": "5006", "title": "Further Mathematics" },
+    { "code": "5019", "title": "Further Electrical, Electronic and Digital Principles" },
+
+    { "code": "4008", "title": "Mechanical Principles" },
+    { "code": "4068", "title": "Industrial Robots" },
+    { "code": "5007", "title": "Commercial Programming Software" },
+    { "code": "5020", "title": "Utilisation of Electrical Power" },
+
+    { "code": "4011", "title": "Fluid Mechanics" },
+    { "code": "4033", "title": "Programmable Logic Controllers" },
+    { "code": "5008", "title": "Distributed Control Systems" },
+    { "code": "5021", "title": "Further Control Systems Engineering" },
+
+    { "code": "4013", "title": "Fundamentals of Thermodynamics and Heat Engines" },
+    { "code": "4061", "title": "Programming for Engineers" },
+    { "code": "5009", "title": "Further Programmable Logic Controllers (PLCs)" },
+    { "code": "5022", "title": "Industrial Services" },
+
+    { "code": "4014", "title": "Production Engineering for Manufacture" },
+    { "code": "4062", "title": "Professional Engineering Practice (Pearson-set)" },
+    { "code": "5010", "title": "Further Electrical Machines and Drives" },
+    { "code": "5023", "title": "Thermofluids" },
+
+    { "code": "4015", "title": "Automation, Robotics and Programmable Logic Controllers (PLCs)" },
+    { "code": "4063", "title": "Engineering Mechanics and Materials" },
+    { "code": "5011", "title": "Industrial Power, Electronics and Storage" },
+    { "code": "5051", "title": "Heating, Ventilation and Air Conditioning (HVAC)" },
+
+    { "code": "4017", "title": "Quality and Process Improvement" },
+    { "code": "4064", "title": "Analogue and Digital Electronics" },
+    { "code": "5012", "title": "Industrial Systems" },
+
+    { "code": "4019", "title": "Electrical and Electronic Principles" },
+    { "code": "4067", "title": "Digital Devices and Systems" },
+    { "code": "5013", "title": "Embedded Systems" },
+
+    { "code": "4020", "title": "Digital Principles" },
+    { "code": "4085", "title": "Mechatronic Systems in Manufacturing" },
+    { "code": "5014", "title": "Analogue Electronic Systems" },
+
+    { "code": "4021", "title": "Electrical Machines" },
+    { "code": "5001", "title": null, "note": "Title not provided in user list; include by code." },
+
+    { "code": "4022", "title": "Electronic Circuits and Devices" },
+
+    { "code": "5041", "title": null, "note": "User marked as 'Unique'; include by code." }
+  ]
+}

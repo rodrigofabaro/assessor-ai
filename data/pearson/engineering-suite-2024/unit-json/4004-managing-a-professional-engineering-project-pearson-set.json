@@ -1,0 +1,65 @@
+{
+  "code": "4004",
+  "title": "Managing a Professional Engineering Project (Pearson-set)",
+  "detectedTitle": "Managing a Professional Engineering Project",
+  "startPage": 50,
+  "endPage": 58,
+  "pageCount": 9,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Select a project that will provide a solution to an identified engineering/manufacturing problem."
+    },
+    {
+      "id": "LO2",
+      "description": "Conduct planned project activities to generate outcomes which provide a solution to the identified engineering/manufacturing problem."
+    },
+    {
+      "id": "LO3",
+      "description": "Produce a project report analysing the outcomes of each of the project processes and stages."
+    },
+    {
+      "id": "LO4",
+      "description": "Present the project report drawing conclusions on the outcomes of the project."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P4"
+    ],
+    "LO4": [
+      "M4",
+      "P5"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5"
+  ]
+}

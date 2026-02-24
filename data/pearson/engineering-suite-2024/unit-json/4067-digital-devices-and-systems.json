@@ -1,0 +1,73 @@
+{
+  "code": "4067",
+  "title": "Digital Devices and Systems",
+  "detectedTitle": "Digital Devices and Systems",
+  "startPage": 530,
+  "endPage": 537,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Design combinational logic circuits for suitable applications"
+    },
+    {
+      "id": "LO2",
+      "description": "Design sequential logic circuits for suitable applications"
+    },
+    {
+      "id": "LO3",
+      "description": "Implement combinational and sequential logic circuits using a hardware description language (HDL) software package"
+    },
+    {
+      "id": "LO4",
+      "description": "Test combinational and sequential logic designs using a field-programmable gate array (FPGA) development board."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "D2",
+      "M1",
+      "M2",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO3": [
+      "D4",
+      "M4",
+      "P4"
+    ],
+    "LO4": [
+      "M5",
+      "M6",
+      "P5",
+      "P6"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ]
+}

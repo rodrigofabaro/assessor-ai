@@ -1,0 +1,79 @@
+{
+  "code": "4023",
+  "title": "Computer Aided Design and Manufacture (CAD/CAM)",
+  "detectedTitle": "Computer Aided Design and Manufacture (CAD/CAM)",
+  "startPage": 187,
+  "endPage": 195,
+  "pageCount": 9,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Describe the key principles of manufacturing using a CAD/CAM system"
+    },
+    {
+      "id": "LO2",
+      "description": "Prepare 3D solid models of a component suitable for transfer into a CAM system"
+    },
+    {
+      "id": "LO3",
+      "description": "Use CAM software to generate manufacturing simulations of a component"
+    },
+    {
+      "id": "LO4",
+      "description": "Produce a dimensionally accurate component on a CNC/AM machine using a CAD/CAM system."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "M5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M6",
+      "P7",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

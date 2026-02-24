@@ -1,0 +1,247 @@
+Unit 4063: Engineering Mechanics and
+Materials
+Unit Code: F/650/2943
+Level: 4
+Credits: 15
+Introduction
+Every aspect of engineering depends upon the use and manipulation of materials.
+Whether naturally occurring or man-made, it is the properties of these materials that
+are fundamental to their creation, processing and application.
+This unit explores the fundamental structure of common engineering materials, their
+principal mechanical, chemical and electrical properties, and how these properties
+affect manufacture, application, service life and end-of-life management and
+recycling. Systems for categorising and ranking materials are also covered.
+Finally, the service life performance of these materials is studied through calculations
+that measure their performance in static and dynamic applications, building on the
+work started in the associated level 4 unit, Engineering Science.
+On successful completion of this unit, students will be able to identify the underlying
+structural properties of engineering materials and how these properties relate to their
+application and performance. They will also be confident in completing calculations
+relating to the static performance of these materials when in service.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+484
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit a student will be able to:
+LO1 Describe the fundamental structures of common engineering materials
+LO2 Determine the most important properties of engineering materials
+LO3 Assess the performance of engineering materials using key indicators, including
+materials constraints and established database resources
+LO4 Calculate solutions to problems within static and dynamic mechanical systems,
+with consideration of constraints on performance.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+485
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Describe the fundamental structures of common engineering materials
+Classification of materials:
+Metals, polymers, ceramics, composites, semiconductors, biomaterials, smart
+and nano materials; sub-classification of important materials, for example,
+ferrous and non-ferrous metals, alloys, thermoplastic and thermosetting
+polymers.
+Structure of materials:
+Atomic and molecular bonding; bonding forces; primary atomic bonding; ionic,
+covalent, hybridisation and metallic bonding
+Secondary bonding, van der Waals forces, dipole bonds; mixed bonding and
+bonding energies
+Crystallography of materials, unit cells, crystal systems, cubic and hexagonal;
+single crystal and polycrystalline materials; defects, dislocations, slip planes
+and impurities; polymorphism and allotropy, introduction to phase diagrams;
+non-crystalline (amorphous) materials
+Structure and application of specific common materials, including metals,
+polymers and ceramics; changes to structure and properties due to alloying,
+doping, heat treatment and processing.
+LO2 Determine the most important properties of engineering materials
+Types of properties:
+Mechanical, electrical, chemical, thermal, magnetic, optical and deteriorative
+(decay); examples of the importance of listed properties and common values;
+reasons for variation in a material’s properties, for example, processing, heat
+treatment, operating environment
+The importance of these properties in design and operation.
+Properties of engineering materials:
+Definitions, units, applicability and expected values for common material, for
+example, density, modulus of elasticity, Poisson’s ratio, yield and tensile strength,
+percentage elongation, strength and fracture toughness, coefficient of thermal
+expansion and thermal conductivity, specific heat capacity and electrical
+resistivity; appreciation of quantitative and qualitative aspects of the properties
+of engineering materials
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+486
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Examples of the importance of listed properties and common values; use of
+commercial material properties databases to find these values.
+LO3 Assess the performance of engineering materials using key indicators,
+including materials constraints and established database resources
+Links between materials properties and structural design:
+Design constraints; operating conditions – temperature, loading and
+environment; cost, availability, processability, appearance and environmental
+constraints.
+Materials selection and the design process:
+Analysing the requirements, converting customer’s request into a list of
+constraints for materials selection, creating materials specification parameters;
+forms of supply of common materials, stock items and special order; research
+using databases and online sources (e.g. Ansys Granta Selector, Matmatch,
+Cambridge Engineering Selector, suppliers’ catalogues); suggest possible
+solutions; market analysis (availability, cost and type of supply form); impact on
+manufacturing/production methods (e.g. single, batch, flow and mass), test and
+evaluate selection against specification parameters using simulation software;
+sustainability, end of life and recycling considerations
+Report preparation, presentation, feedback, evaluation and modification.
+LO4 Calculate solutions to problems within static and dynamic mechanical
+systems, with consideration of constraints on performance.
+Shafts and beams:
+Revision of basics, Newton’s second law, static equilibrium, types of beams and
+supports, shear force and bending moment calculations; bending in beams,
+engineers’ theory of bending; selection of appropriate beams and columns to
+meet given specifications.
+Torsion:
+Revision of shear stress and strain; theory of torsion in solid and hollow circular
+shafts, engineers’ theory of torsion, power transmitted by a shaft; composite
+shafts.
+Introduction to dynamics:
+Revision of conservation of energy and work-energy transfer in engineering
+systems; linear velocity, angular velocity and acceleration; velocity and
+acceleration diagrams of planar mechanisms; introduction to gyroscopic motion.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+487
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Describe the fundamental structures of common
+engineering materials
+P1 Describe the crystalline M1 Detail the differences D1 Differentiate between
+structures of the three most between the effects of polymorphism and allotropy,
+common unit cells found in impurities, alloying specifying how the allotropy
+metals and link these cell elements and doping of iron is employed in the
+types to the metals’ processes on the heat treatment of steel to
+engineering properties. properties of an alter its engineering
+engineering material. properties.
+P2 Discuss the different
+material associated with
+amorphous and crystalline
+polymer structures.
+LO2 Determine the most important properties of
+engineering materials
+P3 Determine the most M2 Describe how the D2 Evaluate Poisson’s ratio
+important properties, properties of metals can and Young’s modulus to
+for a given application, be modified by their explain their significance
+of engineering materials. production processes and in material selection for
+how these effects can be a specific application.
+P4 Explain why the correct
+subsequently relieved.
+assessment of a materials’
+in-service behaviour is
+considered so important
+when selecting a material
+for a particular application.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+488
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Assess the performance of engineering materials
+using key indicators, including materials constraints and
+established database resources
+P5 Use a commercial M3 Prepare a customer D3 Explore how metals
+database to establish report for a fully costed and polymers are currently
+values for given material application using a recycled and arrangements
+properties. commercial database, for end-of-life decisions are
+offering at least two made for manufactured
+P6 Assess suitable materials
+alternatives for products.
+for given products,
+consideration.
+specifying the normal
+form of supply for your
+suggestions.
+LO4 Calculate solutions to problems within static and
+dynamic mechanical systems, with consideration of
+constraints on performance.
+P7 Calculate the shear force,
+M4 Construct diagrams to D4 Discuss the relationship
+bending moment and stress
+find the vector solutions of between the various forms of
+due to bending in given
+velocities and accelerations mechanical energy and their
+examples of simply within planar mechanisms. conservation.
+supported beams.
+P8 Carry out selection
+exercises for given beams
+and columns.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+489
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Ashby M.F. and Jones D.R.H. (2012) Engineering Materials 2 . 4th Ed.
+Butterworth-Heinemann.
+Ashby M.F. and Jones D.R.H. (2018) Engineering Materials 1 . 5th Ed.
+Butterworth-Heinemann.
+Callister W.D. and RETHWISCH D.G. (2020) Materials Science and Engineering .
+10th Ed. Wiley.
+Chehade F.H., Hu C. and Wang K. (Editors) (2022) Applied Mechanics and Engineering −
+Applied Mechanics and Materials (Paperback). Trans Tech Publications Ltd.
+Hertzberg R.W., Vinci R.P. and Hertzberg J.L. (2021) Deformation and Fracture Mechanics
+of Engineering Materials (Paperback). John Wiley & Sons Inc.
+Hu J.W. (Editor) (2021) Applied Engineering, Materials and Mechanics IV − Key Engineering
+Materials (Paperback). Trans Tech Publications Ltd.
+Kalpakjian S. and Schmid S.R. (2013) Manufacturing Engineering and Technology .
+7th Ed. Pearson.
+Mittelstedt C. (2023) Engineering Mechanics 2: Strength of Materials: An introduction with
+many examples (Paperback). Springer Fachmedien Wiesbaden.
+Nugroho A.A. and Dahham O.S. (Editors) (2023) Engineering Materials and Engineering
+Design − Applied Mechanics and Materials (Paperback). Trans Tech Publications Ltd.
+Tooley M. and Dingle L. (2021) Engineering Science: For Foundation Degree and Higher
+National . 2nd Ed. Routledge.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+490
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+ACS Applied Engineering Materials
+Advanced Engineering Materials
+Composites Part B: Engineering
+European Journal of Mechanics
+International journal of Refractory Metals and Hard Materials
+Journal of Engineering Materials and Technology
+Journal of Engineering Mechanics
+Journal of Engineering Mechanics and Machinery
+Journal of Materials Processing Technology
+Material Science: Science Direct
+Material Science and Engineering
+Materials & Design
+Materials Testing
+Probabilistic Engineering Mechanics
+Links
+This unit links to the following related units:
+Unit 4003: Engineering Science
+Unit 4008: Mechanical Principles
+Unit 4009: Materials, Properties and Testing
+Unit 5003: Advanced Mechanical Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+491
+Issue 6 – October 2025 © Pearson Education Limited 2025

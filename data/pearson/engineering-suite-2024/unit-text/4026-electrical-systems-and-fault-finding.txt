@@ -1,0 +1,246 @@
+Unit 4026: Electrical Systems and Fault
+Finding
+Unit Code: K/651/0749
+Level: 4
+Credits: 15
+Introduction
+Electrical systems can be found in a very wide range of locations such as in
+manufacturing facilities, airports, transport systems, shopping centres, hotels and
+hospitals; people will come across them every day in their workplace and at home.
+The system must take the electrical supply from the national grid, convert it to a
+suitable voltage and then distribute it safely to the various system components
+and uses such as electric motors, lighting circuits and environmental controls.
+This unit introduces students to the characteristics and operational parameters of
+a range of electrical system components that are used in a variety of applications;
+and how to fault find when they go wrong.
+On successful completion of this unit students will be able to follow electrical system
+circuit diagrams, understand the operation of the various components that make up
+the system and select the most suitable fault-finding technique. Therefore, students
+will develop skills such as critical thinking, analysis, reasoning, interpretation, decision-
+making, information literacy, information and communication technology literacy,
+innovation, creativity, collaboration, and adaptability, which are crucial skills for
+gaining employment and developing academic competence for higher education
+progression.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+195
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Investigate the key constructional features and applications of electrical
+systems, including identification and resolution of potential faults
+LO2 Examine the types, applications, and common fault-finding methodologies of
+electrical motors and generators
+LO3 Analyse potential faults and fault diagnostics in the various types of lighting
+circuits available in the industry by assessing their practical application
+LO4 Discuss the operating characteristics of electrical safety components including
+evaluation of their effectiveness through fault-finding techniques.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+196
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Investigate the key constructional features and applications of electrical
+systems, including identification and resolution of potential faults
+Electrical systems:
+Purpose and types of electrical systems, role of electrical power distribution
+systems, modern trends and diverse range of applications
+Key elements of electrical distribution systems, such as transformers, circuit
+breakers, protection devices, and wiring techniques. Constructional features of
+the key elements, for example, transformers such as step up/down, isolating,
+shell and core, windings, connections, efficiency
+Common faults within these systems and the steps to troubleshoot and fix them.
+Example scenarios include short-circuits, ground faults, and overloads.
+Non-common and complex faults. Application of tools such as multimeters,
+circuit testers, and thermal imagers in fault finding could also be covered.
+Fault finding, location and signal tracing techniques/methodologies:
+Input-to-output, output-to-input, half-split method, symptom to cause fault,
+unit substitution, visual examination, top-down approach, module and
+component isolation.
+Use of fault-finding aids:
+Risk assessment, test plans, functional charts, diagrams, trouble-shooting charts,
+component data sheets, operation and maintenance manuals, software-based
+records and data; fault/repair reporting, mean time between failure (MTBF)
+figures.
+LO2 Examine the types, applications, and common fault-finding methodologies
+of electrical motors and generators
+Types, methodologies, and applications of electrical motors and generators:
+Different types of motors and generators such as DC motors, AC motors,
+synchronous generators, and induction generators
+Current and future uses and industrial applications
+Fault finding – typical issues such as winding failures, mechanical failures,
+control circuit faults; overcurrent, overvoltage and overload
+Fault finding/mitigation methodologies for diagnosis, repair, and future
+maintenance.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+197
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Analyse potential faults and fault diagnostics in various types of lighting
+circuits available in the industry by assessing their practical application
+Lighting circuits, applications and fault finding:
+Types of lighting circuits such as series and parallel
+Combination circuits analysis and use in residential and industry contexts
+Lighting design considerations − quality of light, control of glare, luminance,
+internal/external lighting for visual tasks, emergency lighting
+Construction and practical applications
+Typical faults including circuit overload, faulty switches, wiring issues;
+fault diagnostics
+Safety requirements for use in hazardous zones.
+LO4 Discuss the operating characteristics of electrical safety components
+including evaluation of their effectiveness through fault-finding techniques
+Electrical safety components and applications:
+Various electrical safety components such as circuit breakers, ground fault
+interrupters, surge protectors, and safety switches
+Operating principles, uses and common malfunctions of electrical safety
+components
+Selection of appropriate component types for a selection of industry scenarios
+Role of safety components in protecting equipment and personnel
+Techniques to test effectiveness and reliability of safety components
+(e.g., using an insulation resistance tester)
+Electrical safety standards:
+Approved codes of practice
+Safety first culture and active engagement with health and safety policies
+and procedures, regulations and compliance, risk assessment process and
+procedures.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+198
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Investigate the key constructional features and
+applications of electrical systems, including identification and
+resolution of potential faults
+P1 Investigate constructional M1 Analyse constructional D1 Present modern trends
+features of an electrical features of multiple in electrical systems, their
+distribution system, electrical systems, their constructional features
+demonstrating the ability to applications, with and applications across
+detect and resolve common demonstrable proficiency in various industries, with
+faults, for a given scenario. identifying, diagnosing, and demonstrable knowledge
+resolving common and less of effective strategies for
+common faults. fault prevention and
+system optimisation.
+LO2 Examine the types, applications, and common fault-
+finding methodologies of electrical motors and generators.
+P2 Examine the types and M2 Analyse efficiency D2 Perform an
+applications of electrical aspects of electrical motors examination of a wide
+motors and generators, and generators in a given range of modern electrical
+and relevant fault-finding application scenario with motors and generators
+methodologies. focus on fault-finding and and their usage in large
+fault mitigation. applications across diverse
+industries, with a focus
+on fault-finding
+methodologies to
+diagnose and resolve
+complex faults.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+199
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Analyse potential faults and fault diagnostics in the
+various types of lighting circuits available in the industry by
+assessing their practical application
+P3 Analyse two types of M3 Conduct a detailed D3 Evaluate a broad
+lighting circuits used in the analysis of various types spectrum of modern
+industry including diagnosis of lighting circuits, their lighting circuits in practical
+of common faults found in a practical industry application scenarios, with
+specific practical application. applications, including a focus on diagnosing,
+diagnosis of common and troubleshooting and
+less common faults. proposing solutions for a
+range of serious faults.
+LO4 Discuss the operating characteristics of electrical safety
+components including evaluation of their effectiveness
+through fault-finding techniques
+P4 Discuss the operating M4 Analyse the operating D4 Critically analyse the
+characteristics of commonly characteristics of a selection operating characteristics
+used electrical safety of electrical safety of modern electrical safety
+components. components and fault- components, using
+finding scenarios in an sophisticated fault-finding
+P5, Demonstrating the ability
+industrial situation. techniques, with strategies
+to evaluate the effectiveness of
+for improving safety
+electrical components using
+component performance
+simple fault-finding
+and reliability.
+techniques.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+200
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Boss M.J. and Norris G.M. (2015) Electrical Safety: Systems, Sustainability, and
+Stewardship . 1st Ed. CRC Press.
+Cadena R. (2021) Electricity for the Entertainment Electrician & Technician . 3rd Ed.
+Routledge.
+Fuchs E.F. and Masoum M.A.S. (2023) Power Quality in Power Systems, Electrical
+Machines, and Power-Electronic Drives (Paperback). Elsevier Science Publishing Co Inc.
+Gill P. (2016) Electrical Power Equipment Maintenance and Testing . 2nd Ed. CRC Press.
+Gonen T. (2014) Electric Power Distribution Engineering . 3rd Ed. CRC Press.
+Guru B.S. and Hiziroglu H.R. (2001) Electric Machinery and Transformers. 3rd Ed.
+Oxford University Press.
+Herman S.L. (2013) Electric Motor Control. 10th Ed. Cengage Learning.
+Hughes A. and Brury B. (2019) Electric Motors and Drives: Fundamentals, Types and
+Applications . 5th Ed. Newnes.
+Kitcher C. (2018) Practical Guide to Inspection, Testing and Certification of Electrical
+Installations . 4th Ed. Routledge.
+Kumar J., Tripathy M. and Jena P. (Editors) (2023) Control Applications in Modern Power
+Systems: Select Proceedings of EPREC 2021 − Lecture Notes in Electrical Engineering 870
+(Paperback). Springer Verlag.
+Maycock W.P. (2023) Electric Lighting and Power Distribution: An Elementary Manual On
+Electrical Engineering, Suitable For Students Preparing For The Preliminary And Ordinary
+Grade Examinations Of The City And Guilds Of London Institute ; Volume 1 (Hardback).
+Legare Street Press.
+Neitzel D.K. (2019), Capelli-Schellpfeffer M. and Winfield A. (2019) Electrical Safety
+Handbook (ELECTRONICS) Hardcover. McGraw Hill.
+Olsen I. (2017 ) Electrical Generation and Distribution Systems and Power Quality
+Disturbances (Hardback). Scitus Academics LLC.
+Ree J.M.P. (2022) Lecture Notes on Electrical lighting illumination: Simplified Approach
+(Paperback).
+Taylor W.T. (2023) Electric Power Systems: A Practical Treatment of the Main Conditions,
+Problems, Facts and Principles in the Installation and Operation of Modern Electric Power
+Systems, for System Operators, General Electrical Engineers and Students (Paperback).
+Legare Street Press.
+The Institution of Engineering and Technology. BS 7671 − 18th Edition: The IET Wiring
+Regulations Information and help for electrical installers .
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+201
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+IEEE Industry Applications Magazine
+IEEE Power and Energy Magazine
+IEEE Sensors
+IEEE Transactions on Power Systems
+Journal of Electrical Systems
+Links
+This unit links to the following related units:
+Unit 4019: Electrical and Electronic Principles
+Unit 4021: Electrical Machines
+Unit 4022: Electronic Circuits and Devices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+202
+Issue 6 – October 2025 © Pearson Education Limited 2025

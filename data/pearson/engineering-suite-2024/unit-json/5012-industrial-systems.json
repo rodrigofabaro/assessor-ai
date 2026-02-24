@@ -1,0 +1,71 @@
+{
+  "code": "5012",
+  "title": "Industrial Systems",
+  "detectedTitle": "Industrial Systems",
+  "startPage": 941,
+  "endPage": 947,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Appraise the main elements of an electronically controlled industrial system"
+    },
+    {
+      "id": "LO2",
+      "description": "Review and specify the interface requirements between electronic, electrical, and mechanical transducers and controllers"
+    },
+    {
+      "id": "LO3",
+      "description": "Employ practical and computer-based methods to design and test a measurement system"
+    },
+    {
+      "id": "LO4",
+      "description": "Apply appropriate analytical techniques to predict the performance of a given system."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

@@ -1,0 +1,252 @@
+Unit 5017: Advanced Manufacturing
+Unit Code: D/651/0880
+Level: 5
+Credits: 15
+Introduction
+The ability of successful companies to meet the growing demand of customers is
+heavily influenced by the development of advanced manufacturing technologies.
+Customers expect high complexity products, on demand, and with a growing element
+of customisation. In adopting advanced manufacturing technologies, successful
+companies will ensure faster time to market of new products, improve products and
+processes, use new, sustainable, materials, and customise to customer requirements.
+Manufacturing systems engineering underpins this development.
+In order to meet changing customer expectations and gain competitive advantage,
+focus needs to be applied to developing smart factories and advanced manufacturing
+technologies. Manufacturing organisations will seek integration between
+manufacturing technology, high performance computing, the internet, and the
+product at all stages of its life cycle.
+The unit will introduce Industry 4.0, the term that has been adopted to describe the
+‘fourth’ industrial revolution currently underway, at present, in the manufacturing and
+commercial sectors of our society. It is a revolution based on the integration of cyber-
+physical systems with the Internet of Things and services. For the manufacturing
+sector, this integration has been enabled by successfully combining high performance
+computing, the internet and the development of advanced manufacturing
+technologies. Industry 4.0 is changing the way the world’s most successful companies
+produce the products that their global customers demand.
+On successful completion of this unit students will be able to analyse the use of a
+range of advanced manufacturing technologies to improve the competitive advantage
+of the organisations adopting them; digitalisation trends in advanced manufacturing
+technologies; and develop their own research activities into the latest developments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+961
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine a range of advanced manufacturing processes and their effective
+application
+LO2 Contrast advanced manufacturing technologies to determine their
+appropriateness for an application or process.
+LO3 Analyse an existing manufactured product and associated process to introduce
+proposals for possible improvements based on the introduction of advanced
+manufacturing technologies.
+LO4 Evaluate the concept of the next industrial revolution to determine the impact
+on both manufacturers and the consumer.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+962
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine a range of advanced manufacturing processes and their effective
+application
+Manufacturing processes:
+Subtractive machining, Pressing and forming, casting, and moulding, joining and
+soldering, mixing, final assembly, packaging, material handling, quality
+control/inspection.
+Advanced manufacturing processes:
+Additive manufacture process, fused deposition modelling, selective laser
+sintering, selective laser melting, Stereolithography, Powder bed and inkjet head
+3D printing.
+Thermal processes: Laser Beam Machining, Plasma Arc Machining, Electron
+Beam Machining
+Mechanical processes: Abrasive Jet Machining Abrasive Water Jet Machining
+Abrasive Flow Machining, hybrid CNC machining (e.g. Millturn)
+Hybrid manufacturing processes: additive manufacture and mechanical
+machining, welding and mechanical milling, laser cutting and electro-discharge
+machining.
+Micro and Nano machining processes.
+Types of application or industry:
+Industry examples: aerospace, automotive, healthcare, electronics, food and
+beverage, chemical and pharmaceutical, minerals, oil and gas, retail, fashion
+Application examples: assembly, joining, moulding, soldering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+963
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Contrast advanced manufacturing technologies to determine their
+appropriateness for an application or process
+Manufacturing technologies:
+High precision robotics and automation: healthcare (components and
+processes), aerospace, automotive, process control and visualisation through
+automation technology
+Improvement in productivity through greater automation
+Quality of manufacturing processes improved through integration of robotics
+The application of hybrid processes in the manufacturing and repair of complex
+components (e.g. the use Hybrid Machine Combining Milling and Additive
+Manufacturing to manufacture rapid tooling such as moulds and dies).
+Examples of using 3D printing and other forms of additive manufacturing to
+produce medical equipment, spares parts for items that may have become
+obsolete, mass customisation; what the customer wants, when they want it.
+Hybrid Additive manufacturing technology (e.g., replacing forming, moulding,
+pressing), impact on rapid prototyping, availability of spares/obsolete parts,
+medical components available and customised.
+LO3 Analyse an existing manufactured product and associated process to
+introduce proposals for possible improvements based on the introduction
+of advanced manufacturing technologies
+Manufactured product:
+Research the traditional methods used to manufacture an existing product,
+determine the associated processes required to bring it to market and identify
+the limitations of these methods and processes
+Explore how advanced manufacturing technology could be applied to produce
+this product and suggest how applying such processes would influence its
+production, environmental impact, costs, time to market and customer
+satisfaction (e.g., healthcare/medical such as hip joint, traditional method
+vs mass customisation and the possible use of additive layer manufacture)
+Additive layer manufacture and its availability is opening up new markets,
+but also new business models for organisations; explore the future possibilities
+for self-serve/or self-production of items.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+964
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Evaluate the concept of the next industrial revolution to determine the
+impact on both manufacturers and the consumer
+Key technological drivers and Industry 4.0:
+Industry 4.0 – latest developments and future trends in advanced manufacturing
+sector
+Internet of Things: over time industry has transformed from being local-based to
+communication-based technology; the possibilities for connected technology and
+connected factories are ever increasing
+Cyber-physical systems: collaborative robotics and highly integrated
+manufacturing systems
+Mass customisation: growing demand and desire for individual products;
+advanced manufacturing technology and the ability to manage complexity
+Digitalisation and increased automation; the ability to simulate and create
+a digital twin has the potential to dramatically reduce time to market
+The drive to increase efficiency requires innovation and innovative technology;
+Net zero, renewable energies, and waste reduction
+Uses and trends in data collection systems, data formats, data analytics and
+dashboards
+Big data; the development of an ever-connected production environment
+alongside cloud computing; challenges with a stream of production data and the
+need to analyse this in order to make timely informed decisions Discussion in
+groups involving industry case studies and impact of trending innovations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+965
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine a range of advanced manufacturing processes
+and their effective application
+P1 Examine any two advanced M1 Compare a traditional D1 Research and evaluate a
+manufacturing processes or manufacturer to one manufactured product and
+technologies with examples of employing advanced identify the technology
+where they are most effective. manufacturing to discuss used.
+the fundamental
+differences.
+LO2 Contrast advanced manufacturing technologies to
+determine their appropriateness for an application or
+process
+P2 Contrast advanced M2 Explore how advanced D2 Examine the potential
+manufacturing technologies manufacturing could be justification for an
+to determine their applied, and give examples organisation to invest in
+appropriateness for an of where technology would advanced manufacturing
+application or process. be suited. technology.
+LO3 Analyse an existing manufactured product and
+associated process to introduce proposals for possible
+improvements based on the introduction of advanced
+manufacturing technologies
+P3 Analyse an existing M3 Evaluate the D3 Critically evaluate the
+manufactured product and effectiveness of the current impact on both the
+the key technology used to method to suggest an customer and the
+produce the item. alternative advanced manufacturer of using
+manufacturing technology. advanced manufacturing
+technology rather than the
+existing method.
+LO4 Evaluate the key technological drivers of Industry 4.0 −
+the next industrial revolution to determine the impact on
+both manufacturers and the consumer
+P4 Evaluate the concept of a M4 Evaluate the impact of D4 Justify the types of
+4th industrial revolution. advanced manufacturing on industry or product that
+both manufacturers and the would benefit most from
+P5 Examine the key
+customer. an innovative advanced
+technological drivers
+manufacturing approach.
+for Industry 4.0.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+966
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Ajay, Singh H., Parveen and Almangour B. (Editors) (2023) Handbook of Smart
+Manufacturing − Forecasting the Future of Industry 4.0. 1st Ed. CRC Press.
+Baudin M. and Netland T. (2023) Introduction to Manufacturing − An Industrial
+Engineering and Management Perspective. 1st Ed. Routledge.
+Brauer D. and Cesarone J. (2022) Total Manufacturing Assurance − Controlling Product
+Quality, Reliability, and Safety. 2nd Ed. CRC Press.
+Cheng F.T. (Editor) (2021) Industry 4.1: Intelligent Manufacturing with Zero Defects.
+Wiley-IEEE Press.
+Groover M.P. (2016) Automation, Production Systems, and Computer-Integrated
+Manufacturing. 4th Ed. Pearson Higher Education.
+Gupta K. and Salonitis K. (Editors) (2021) Sustainable Manufacturing. 1st Ed. Elsevier.
+Kalpakjian S. and Schmid S. (2022) Manufacturing Engineering and Technology in SI Units.
+8th Ed. Pearson.
+Liker J.K. (2020) The Toyota Way, Second Edition: 14 Management Principles from the
+World’s Greatest Manufacturer. 2nd Ed. McGraw-Hill.
+Patel C.D. and chen C.H. (Editors) (2024) Digital Manufacturing − Key Elements of a Digital
+Factory. 1st Ed. Elsevier.
+Popkova E.G., Ragulina Y.V. and Bogoviz A.V. (Editors) (2019). Industry 4.0: Industrial
+revolution of the 21st century (Vol. 169, p. 249). Cham: Springer.
+Pruncu C.I. and zbitou J. (2023) Advanced Manufacturing Methods − Smart Processes
+and Modeling for Optimization . 1st Ed. CRC Press.
+Singh C.D. and kaur H. (Editors) (2023) Factories of the Future: Technological
+Advancements in the Manufacturing Industry . Wiley.
+Steenhuis H.J. (2024) The Business of Additive Manufacturing − 3D Printing and the
+4th Industrial Revolution . 1st Ed. Routledge.
+Youssef H.A., El-Hofy H.A. and Ahmed M.H. (2024) Manufacturing Technology −
+Materials, Processes, and Equipment. 2nd Ed. CRC Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+967
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Additive Manufacturing
+Additive Manufacturing Letters
+Advances in Industrial and Manufacturing Engineering
+Journal of Advanced Manufacturing Systems
+Journal of Advanced Manufacturing Technology
+Journal of Manufacturing Processes
+Journal of Manufacturing Science and Technology
+Journal of Manufacturing Systems
+Manufacturing Letters
+The International Journal of Advanced Manufacturing Technology
+Links
+This unit links to the following related units:
+Unit 5015: Manufacturing Systems Engineering
+Unit 5016: Lean Manufacturing
+Unit 5018: Sustainability.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+968
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,71 @@
+{
+  "code": "4022",
+  "title": "Electronic Circuits and Devices",
+  "detectedTitle": "Electronic Circuits and Devices",
+  "startPage": 181,
+  "endPage": 186,
+  "pageCount": 6,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Determine the operational characteristics of amplifier circuits"
+    },
+    {
+      "id": "LO2",
+      "description": "Investigate the types and effects of feedback on an amplifier’s performance"
+    },
+    {
+      "id": "LO3",
+      "description": "Examine the operation and application of oscillators"
+    },
+    {
+      "id": "LO4",
+      "description": "Apply testing procedures to electronic devices and circuits."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

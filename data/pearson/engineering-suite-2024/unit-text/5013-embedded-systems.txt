@@ -1,0 +1,207 @@
+Unit 5013: Embedded Systems
+Unit Code: L/651/0867
+Level: 5
+Credits: 15
+Introduction
+Embedded systems are a key element of modern engineering systems, applied in
+areas as diverse as agriculture, automotive, medical, and space, in industrial setting,
+and in the home and office. In many cases, embedded systems are linked together
+in networks and consist of a combination of hardware and software components to
+performs specific functions. Embedded systems are the basis of modern engineering
+design and practice, notably in machine-to-machine communication and the Internet
+of Things (IoT).
+This unit develops the knowledge of computer hardware, focussing on the small,
+low-cost type of computer (i.e., a microcontroller ), that are used in embedded systems.
+It then develops skill in selecting peripheral devices that operate external to the
+microcontroller and interface with it; generally, these relate to sensors, actuators,
+human interface, or data transfer. In parallel with this, students will be developing
+programming skills, writing programmes which download straight to the
+microcontroller, to interact with its external circuit. Students will also explore
+the wider context of embedded systems, learning how they are applied in ‘hi-tech’
+applications, in many cases revolutionising our ability to undertake certain activities.
+Unit assessment will require the design, development, and testing of an embedded
+system, to meet a given design brief; this will develop skills which are in much
+demand in industry. A written assignment, exploring one or more of the many
+fast-moving embedded system applications in use today, will also be completed.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+932
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine embedded system technology
+LO2 Design an embedded system using available interfaces to perform a range
+of functions
+LO3 Implement embedded system design by writing code in an appropriate
+programming language, to simulate, test and debug the system
+LO4 Evaluate applications of embedded systems in the wider environment.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+933
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine embedded system technology
+Embedded systems:
+Embedded system overview
+Embedded systems by example: Microcontroller/microprocessor based systems;
+architecture, key units and peripherals, interfaces, memory etc.; industry case
+studies
+Embedded system design process
+Hardware (CPU, memory, digital and analogue I/Os etc.)
+Software (IDE, Python, simplified C/C++ etc.)
+Communication protocols (network, wireless, IoT)
+LO2 Design an embedded system using available interfaces to perform a range
+of functions
+Simple digital interfacing:
+Arduino shields and carriers to utilise a range of components
+Switches, light emitting diodes (LEDs), keypads, and 7-segment displays
+DC load switching (e.g., of small motor or solenoid), use of PWM to provide
+variable DC motor speed control
+Interfacing to external devices
+ADC application, including range and resolution.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+934
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Implement embedded system design by writing code in an appropriate
+programming language, to simulate, test and debug the system
+The development cycle:
+Integrated Development Environment (IDE), Assembler and High-Level
+Languages, compilers, simulators, completing an in-circuit debug
+Devising a code structure e.g., using flow diagrams and pseudo code.
+Programming languages and codes:
+Review of an appropriate high level programming languages Language
+constructs − data types, programme flow, looping, branching, and conditional
+statements etc.
+Developing application code: initialisation, data input, conditional branching
+and looping, data output
+Latest IDEs for controller programming
+Development using e.g.: Python, C/C++ or a suitable language/platform
+Code simulation, download, test plans and testing (e.g. unit testing, system
+testing, acceptance testing), and debug, troubleshoot.
+LO4 Evaluate applications of embedded systems in the wider environment
+Review of application of embedded systems:
+Using example sectors e.g., motor vehicle, smart buildings, medical, office,
+wearable. Review possible limiting factors in an embedded design e.g.,
+power supply, reliability, security
+Review of current trends in embedded systems, including the Internet of Things
+(IOT), machine learning, cloud computing, artificial intelligence, sustainability,
+green engineering and so on
+Embedded systems for future societies
+Review and select technologies for performance optimisation
+Embedded systems and Industry 4.0/5.0. Integration and impact on
+organisations
+Suitability of embedded systems to meet accessibility, inclusive and diversity
+considerations; application context, job roles, and engagement with stakeholder
+groups.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+935
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine embedded system technology
+P1 Examine the main M1 Analyse methods D1 Critically analyse the
+architecture of a selected by which controllers microcontroller architecture
+microcontroller. communicate with external selected in terms of its
+environment limitations and suitability
+P2 Explain the function of
+for various applications.
+the main microcontroller
+elements.
+LO2 Design an embedded system using available interfaces
+to perform a range of functions
+P3 For a given application, M2 Review selected devices D2 Critically appraise the
+design an embedded system in terms of their functionality functionality of the entire
+to meet the specified for a given design task. embedded system,
+functional requirements. including further design
+M3 Discuss the trade-off for
+improvements.
+the choices made in terms of
+performance, power, cost
+etc. to meet the given design
+objectives.
+LO3 Implement embedded system design by writing code in
+an appropriate programming language, to simulate, test and
+debug the system
+P4 Implement an embedded M4 Produce a refined test D3 Evaluate a fully working
+system by writing a well- plan to test all functions embedded system with real
+structured code to perform a of the given system. peripherals, in discussion
+selection of functions as per with a peer group of
+the design. developers.
+P5 Develop an initial test plan
+to demonstrate a subset of
+functionality of the proposed
+system.
+LO4 Evaluate applications of embedded systems in the wider
+environment
+P6 Evaluate current uses of M5 Explore emerging trends D4 Critically appraise
+embedded systems in a in developing embedded ongoing research on future
+chosen sector. systems, for example applications of embedded
+artificial intelligence, systems, clearly identifying
+the Internet of Things societal demands and
+or sustainability. needs and recognising
+technical and economic
+factors in a global context.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+936
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bertolotti C. and Hu T. (2020). Embedded Software Development: The Open-Source
+Approach . 1st Ed. CRC Press
+Blum J. (2019) Exploring Arduino: Tools and Techniques for Engineering Wizardry .
+2nd Ed. Wiley
+Cheich M. (2021) Arduino book for beginners . eBook. Kindle edition.
+Hobbs C. (2020) Embedded Software Development for Safety-Critical Systems.
+Auerbach Publications
+Ibrahim D. (2019) ARM-based Microcontroller Projects Using mbed . 1st Ed. Newnes
+Lacamera D. (2023) Embedded Systems Architecture . 2nd Ed. Packt Publishing
+rd
+Monk S. (2023) Programming Arduino: Getting Started with Sketches 3 Ed.
+McGraw Hill TAB
+Motahhir S. (2023) Smart Embedded Systems and Applications . 1st Ed. River Publishers
+Pachari R.K., Pandey J.K., Sharmu A., Nautiyal O. and Ram M. (2021) Applied Soft
+Computing and Embedded System Applications in Solar Energy . CRC Press
+Rossi M., Toscani N. Mauri M. and Dezza F.C. (2022) Introduction to Microcontroller
+Programming for Power Electronics Control Applications – Coding with MATLAB and
+Simulink . 1st Ed. CRC Press
+White E. (2023) Making Embedded Systems . 2nd Ed. O’Reilly Media, Inc.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Design Automation for Embedded Systems
+IEEE Embedded Systems Letters
+IEEE Internet of Things Magazine
+IEEE Internet of Things Journal
+International Journal of Embedded Systems
+Journal of Embedded Systems
+Journal of System Architecture
+Microprocessors and Microsystems
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+937
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 5019: Further Electrical, Electronic and Digital Principles
+Unit 5021: Further Control Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+938
+Issue 6 – October 2025 © Pearson Education Limited 2025

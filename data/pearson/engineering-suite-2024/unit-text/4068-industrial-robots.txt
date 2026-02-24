@@ -1,0 +1,216 @@
+Unit 4068: Industrial Robots
+Unit code L/617/3940
+Unit level 4
+Credit 15
+Introduction
+Industrial robotics is the present and future of automated manufacturing and is an
+unstoppable reality. With the emergence of lighter, smarter and safer industrial robot
+models that are increasingly easy to interface, the demand has never been so high
+and is expected to grow year on year. Popular applications for industrial robots
+include welding, painting, assembly and materials handling. Modern industrial robots
+are now an integral part of cyber-physical mechatronic systems contributing to
+Industry 4.0 manufacturing.
+The aim of this unit is for students to investigate the range, operation and benefits of
+industrial robots within manufacturing applications. Among the topics included are
+industrial robot selection, and programming and safety protocols that anticipate
+future developments in industrial robot technology.
+On successful completion of this unit students will have an understanding of the
+electrical, mechanical, hydraulic and pneumatic operation of common industrial
+robots, how to select and program an industrial robot for a given requirement,
+taking account of safety considerations, and how to assess the economic future
+of robot technologies in manufacturing.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+522
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Describe the operational characteristics, selection criteria and applications of
+industrial robots within manufacturing industries
+LO2 Explain the safety standards associated with industrial robots
+LO3 Program an industrial robot for automated process application
+LO4 Investigate the global economic scope of industrial robots and integration into
+smart factories.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+523
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Describe the operational characteristics, selection criteria and applications
+of industrial robots within manufacturing industries
+Types and selection:
+Operational characteristics: Cartesian, cylindrical, spherical, toroidal, SCARA
+Selection: number of axes; load, orientation, speed, travel, precision,
+environment and duty cycle parameters (LOSTPED); anthropomorphic robots
+Common Brands: e.g. Fanuc, Yaskawa and ABB.
+Applications:
+Welding, painting, material handling, packaging, assembly, inspection,
+dangerous and robust working environments, repetitive tasks.
+Operation and characteristics of 6-axis industrial robots:
+Controller: motion controller, motor drives, power supplies, human−machine
+interface (HMI)
+Manipulator: sensing, brakes, axis motor, effector motor, environment sensing
+Tooling: grippers, types, interfaces
+Axis operation: purpose of each axis, work area, reach, wrist roll, pitch and yaw
+motion, rotation, home position and calibration
+End effectors: types of gripper tools and hands, two-jaw, vacuum and magnetic.
+LO2 Explain the safety standards associated with industrial robots
+Safety standards:
+Functional Safety: IEC61508, Hazard and Risk Assessment
+Robot and robot system safety: ANSI/RIA R15.06-2012, BS EN ISO 10218:2011
+Cell safety features: operating envelope, space restrictions; operating
+safeguards, emergency stops, guarding, barriers, interlocks, light curtains, laser,
+two-hand controls, scanners, floor mats; barrier sizing – around, under, through,
+over (AUTO)
+Operational modes, user interfaces
+Safety first culture within the context: health and safety policies, procedures and
+regulations, compliance, risk management and mitigation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+524
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Program an industrial robot for automated process application
+Software:
+Latest tools and technologies to aid programming of industrial robots.
+For example: data objects, instruction lists, BASIC, MATALB, Python, Yaskawa,
+MotoSim Enhanced Graphic Virtual Robot Control, ABB, RobotStudio,
+Fanuc Roboguide, Denso Wincaps III.
+Robot application programming:
+Types: joint-level, robot-level and high-level programming
+Command and control: graphical user interfaces, point-n-click, scheduling
+software
+Tasking software: drag-n-drop, specific application deployment, scripted
+language, lead by the nose
+Online: joysticks, pendants, jogging, modifying existing positions
+Computer simulation offline programming
+Controlling robots with programmable logic controllers (PLCs; see Unit 18 )
+Robot commands: motion, interlock and sensor
+Manufacturers’ languages: ABB Rapid, Kuka KRL, Yaskawa Inform
+Case studies: Team programming projects, peer evaluations and professional
+discussions.
+LO4 Investigate the global economic scope of industrial robots and integration
+into smart factories.
+Economic scope:
+Major markets: Japan, USA, China, South Korea, Germany
+Application demand: automotive, electrical and electronics, metal
+Robot density; impact on workforce; training of workforce.
+Advances in robot technology:
+Machine vision, artificial intelligence (AI), collaborative robots (cobots), Internet
+of Things (IoT), edge computing, simplified integration, networked robots, cloud
+robotics, virtual reality robots; training of robots; role of robotics in Industry 4.0.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+525
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Describe the operational characteristics, selection
+criteria and applications of industrial robots within
+manufacturing industries LO1 and LO2
+P1 Review the types of M1 Analyse the features D1 Evaluate the selection of
+industrial robots and and operation of six axis a safety-compliant industrial
+their applications within robots within robot system for a given
+manufacturing industries. manufacturing manufacturing application.
+applications.
+P2 Describe selection
+criteria for industrial robot
+applications.
+LO2 Explain the safety standards associated with
+industrial robots
+P3 Outline the principles M2 Develop hazard
+and methods of functional and risk assessment
+safety analysis within for an industrial robot
+automated manufacturing. manufacturing system.
+P4 Explain the safety
+criteria for robot cells within
+manufacturing applications.
+LO3 Program an industrial robot for automated process
+application
+P5 Investigate the range of M3 Analyse offline and D2 Design, develop and test
+programming languages online programming a robot program for a series
+and methods available methods for industrial of automated industrial
+for industrial robots. robots. tasks.
+P6 Program an industrial
+robot to perform a simple
+task.
+LO4 Investigate the global economic scope of industrial
+robots and integration into smart factories.
+P7 Assess the advantages M4 Analyse the benefits of D3 Evaluate the global
+and scope of collaborative artificial intelligence within economics of increased
+robots over traditional industrial robotics and robot density in smart
+methods. contribution to factories and the impact
+Industry 4.0. on the human workforce.
+P8 Investigate advances in
+industrial robot technology.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+526
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Blume C., K. Selke and Jakob W. (2011) Programming Languages for Industrial Robots −
+Artificial Intelligence (Paperback). Springer-Verlag Berlin and Heidelberg
+GmbH & Co. KG.
+Calinon S. (2021) Robot Programming by Demonstration (Hardback). Taylor & Francis Inc.
+Doulgeri Z. and Dimeas F. (Editors) (2023) Human-Robot Collaboration: Unlocking the
+potential for industrial applications − Control, Robotics and Sensors (Hardback).
+Institution of Engineering and Technology.
+Dum B. (2021) The Complete Guide to Programming a Robotics for Dummies: Build,
+Analysis, Control, Applications, Autonomous, Defending Human Expertise, Machine
+Learning, And Virtual (Paperback).
+Eteokleous N. and Nisiforou E. (Editors) (2021) Designing, Constructing,
+and Programming Robots for Learning (Hardback). IGI Global.
+Engelberger J.F. (2012) Robotics in Practice: Management and Applications of Industrial
+Robots . Berlin: Springer.
+Grau A. and Wang Z. (Editor) (2020) Industrial Robotics: New Paradigms (Hardback).
+IntechOpen.
+Lazarescu M., Biradar R.C., Geetha D., Tabassum N. and Hegde N. (Editors) (2023)
+AI and Blockchain Applications in Industrial Robotics (Hardback). IGI Global.
+Nagat F. and Watanabe, K. (2013) Controller Design for Industrial Robots and Machine
+Tools: Applications to Manufacturing Processes . Cambridge: Woodhead Publishing in
+Mechanical Engineering.
+perlberg J. (2016) Industrial Robotics . Boston: Cengage Learning.
+Petrič T., Ude A. and Leon Žlajpah L. (Editors) (2023) Advances in Service and Industrial
+Robotics: RAAD 2023 − Mechanisms and Machine Science 135 (Hardback). Springer.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+527
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Automation and Remote Control
+Automation
+IFAC Journal of Systems and Control
+IEEE Journal on Robotics and Automation
+International Journal of Automation and Control (IJAAC)
+Journal of AI, Robotics and Workplace Automation
+Journal of Automation and Intelligence
+Programmable Logic Controllers (Special issue)
+Robotics
+Links
+This unit links to the following related units:
+Unit 4015: Automation, Robotics and Programmable Logic Controllers (PLCs)
+Unit 4016: Instrumentation and Control Systems
+Unit 4030: Industry 4.0
+Unit 4033: Programmable Logic Controllers (PLCs)
+Unit 5009: Further Programmable Logic Controllers (PLCs)
+Unit 5021: Further Control Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+528
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,75 @@
+{
+  "code": "5007",
+  "title": "Commercial Programming Software",
+  "detectedTitle": "Commercial Programming Software",
+  "startPage": 904,
+  "endPage": 910,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Research a range of software application tools to determine how they can support electronic engineering functions effectively"
+    },
+    {
+      "id": "LO2",
+      "description": "Explain how a software package can be used to simulate the behaviour of an electronic circuit function and compare the results to real components and circuits"
+    },
+    {
+      "id": "LO3",
+      "description": "Programme a microprocessor-based device to achieve a specified outcome or task using commercially available software"
+    },
+    {
+      "id": "LO4",
+      "description": "Evaluate an electronics software application tool to report on its ability to replicate the real world and the resource savings this can bring to an organisation."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "M5",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

@@ -1,0 +1,249 @@
+Unit 5011: Industrial Power, Electronics
+and Storage
+Unit Code: J/651/0865
+Level: 5
+Credits: 15
+Introduction
+This unit presents a wide-ranging introduction to the field of existing and renewable
+energy systems. There are many alternative sources of energy (some ‘green’) which
+can be converted to an electrical form, providing energy for transport, heat/cooling,
+and lighting, as well as energy for various industrial processes and applications.
+Power electronic converters are an essential component of renewable and distributed
+energy sources, including wind turbines, photovoltaics, marine energy systems and
+energy storage systems. It is necessary to gain a clear understanding of, and be able
+to examine, the technical implications of providing sustainable electrical energy to
+meet the energy demand of the future.
+The unit will also explore the potential impacts of climate change and why more, and
+different forms of sustainable energy sources are required together with the need for
+energy efficiency measures.
+On successful completion of this unit, students will be able to learn about the
+technological concepts behind providing a sustainable electrical energy supply for the
+future, the fundamental technical and economic processes, and drivers at play in the
+electrical power industry and how they affect the selection and use of energy sources.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+916
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Evaluate the energy demand to determine the technology and methods of
+energy production
+LO2 Explore current energy efficiency measures, technologies, and policies specific
+to the building and transportation sectors
+LO3 Analyse the control techniques of power electronics for renewable energy
+systems
+LO4 Investigate the impacts of renewable resources to the grid and the various
+issues associated with integrating such resources to the grid.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+917
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Evaluate the energy demand to determine the technology and methods of
+energy production
+Energy demand:
+Historical energy production, energy consumption, environmental aspects and
+global warming
+The need for energy systems and global energy demand over the short to long
+term
+Environmental effects associated with energy generation and consumption
+Practicality, benefits, drawbacks, and effectiveness of renewable energy sources
+Overview of non-renewable and renewable energy technologies (wind, solar, bio,
+hydro, geothermal) and the associated costs
+Future energy trends, scenarios, and sustainable energy sources.
+LO2 Explore current energy efficiency measures, technologies, and policies
+specific to the building and transportation sectors
+Energy auditing, management, costs, requirements, bench marking and optimisation:
+Energy management, planning, monitoring, policy, ecology, and environment.
+Energy and buildings:
+Overview of the significance of energy use and energy processes
+Internal and external factors on energy use and the attributes of the factors
+Sustainable buildings, Status of energy use in buildings and estimation of energy
+use in a building
+Standards for thermal performance of building envelope and evaluation of the
+overall thermal transfer
+Measures and technologies to improve energy efficiency in buildings,
+SWOT analysis.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+918
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Energy and electric vehicles:
+Electrical vehicle configurations, requirements, and circuit topology; full electric
+and plug in hybrid vehicles
+Policies, charging infrastructure, grid implications, measures, and technologies to
+support more sustainable transportation, SWOT analysis
+Use of MATLAB/Simulink or alternative appropriate software to model, simulate
+and analyse the energy efficiency of a typical standard house or electric vehicle.
+LO3 Analyse the control techniques of power electronics for renewable energy
+systems
+Control techniques:
+Environmental aspects of electrical energy conversion using power electronics
+Introduce design criteria of power converters for renewable energy applications
+Analyse and comprehend the various operating modes of wind electrical
+generators and solar energy systems
+Introduce the industrial application of power converters, namely AC to DC,
+DC to DC and AC to AC converters for renewable energy systems
+Explain the recent advancements in power systems using the power electronic
+systems. Introduction to basic analysis and operation techniques on power
+electronic systems
+Functional analysis of power converters’ main topologies
+Use of MATLAB/Simulink to model, simulate and analyse the dynamic behaviour
+of a simple renewable energy system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+919
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Investigate the impacts of renewable resources to the grid and the various
+issues associated with integrating such resources to the grid
+Impact of renewable resources:
+Safe and secure operation of a simple power system
+Standalone and grid connected renewable energy systems
+Introduction to smart grid, features, functions, architectures, distributed
+generation, grid integration and implications. Grid interactive systems, grid tied
+systems, inverters, and application of its devices
+Smart homes, power management, smart grid, intelligent/smart metering
+Communication technologies and power electronics modules for smart grid
+network, importance of power electronics in smart grid, for example energy
+storage (electrical, chemical, biological, and heat), and the future of smart grid
+Use of MATLAB/Simulink to model, simulate and analyse the dynamic behaviour
+of a standard smart grid
+Discuss in groups popular and latest models of integrating a diverse range of
+renewable resources to the grid.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+920
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Evaluate the energy demand to determine the technology
+and methods of energy production
+P1 Evaluate the energy M1 Determine the D1 Justify the most
+demand of a specific scenario effectiveness and drawbacks suitable technologies and
+or case study by identifying of renewable energy systems methods of energy
+the required technology for short- and long-term production for the local
+and methods of energy impact on energy demands. area, backed by relevant
+production with reasoning or data or research.
+consideration of alternatives.
+LO2 Explore current energy efficiency measures, technologies,
+and policies specific to the building and transportation sectors
+P2 Explore energy efficiency M2 Provide detailed SWOT D2 Conduct an impact
+measures, technologies, and analysis of various energy analysis of current and
+policies in the building and efficiency measures, emerging energy
+transportation sectors technologies, and policies efficiency measures,
+suggesting alternatives. in the building and technologies and policies
+transportation sectors. in the building and
+transportation sectors,
+with insightful
+recommendations or
+predictions for future
+developments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+921
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Analyse the control techniques of power electronics for
+renewable energy systems
+P3 Analyse the control M3 Provides an analysis of the D3 Conduct an in-depth
+techniques of power control techniques of power impact analysis of the
+electronics for a given electronics for renewable control techniques of
+renewable energy system, energy systems, power electronics for
+applying understanding of demonstrating a clear renewable energy
+the key concepts and understanding of the systems, demonstrating a
+practices. theoretical principles and superior understanding of
+practical applications, principles, applications
+including identification of and future trends.
+strengths and weaknesses of
+various techniques.
+LO4 Investigate the impacts of renewable resources to the grid
+and the various issues associated with integrating such
+resources to the grid
+P4 Investigate key impacts of
+M4 Evaluate the impacts of D4 Synthesise the
+renewable resources on the
+renewable resources on the challenges and potential
+grid and issues associated
+grid and the issues with solutions, drawing on
+with integrating such integration, demonstrating relevant case studies and
+resources an understanding of the cutting-edge research.
+complexities involved.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+922
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Ackermann T. (2012) Wind Power in Power Systems . Wiley.
+Bhimbhra P.S. (2012) Power Electronics . Khanna Publishers.
+Cole B. (Editor) (2023) Power Electronics: Devices, Circuits and Applications (Hardback).
+Clanrye International.
+Duffie J.A. and Beckman W. A. (2013) Solar Engineering of Thermal Processes . Wiley.
+Dugan R.C., McGranaghan M.F., Santoso S., and Beaty H.W. (2012) Electrical Power
+Systems Quality , Third Edition (Electronics) Hardcover – Illustrated. McGraw Hill.
+Fekik A., Ghanes M. and Denoun H. (Editors) (2023) Power Electronics Converters and
+their Control for Renewable Energy Applications (Paperback). Elsevier Science &
+Technology.
+Kassakian J.G., Perreault D.J., Verghese G.C. and Schlecht M.F. (2023) Principles of
+Power Electronics (Hardback). Cambridge University Press.
+Kumar S., Singh B., and Singh A.K. (Editors) (2023) Recent Advances in Power Electronics
+and Drives: Select Proceedings of EPREC 2021 − Lecture Notes in Electrical Engineering 852
+(Paperback). Springer.
+Kumar N., Guerrero J.M., Kastha D., and Saha T.K. (Editors) (2022) Power Electronics for
+Next-Generation Drives and Energy Systems. Volume 1: Converters and control for drives .
+IET Digital Library.
+Masters G.M. (2013) Renewable and Efficient Electric Power Systems (IEEE Press)
+Hardcover – Illustrated. Wiley-IEEE Press.
+Na (2014) A Course in Electrical and Electronic Measurements and Instrumentation
+(Nineteenth Revised Edition 2011 Reprint 2014) Paperback. NA.
+Peake S. (Editor) (2017) Renewable Energy: Power for a Sustainable Future Paperback –
+Illustrated. OUP Oxford.
+Rashid M.H.(Editor) (2023) Power Electronics Handbook (Hardback). Elsevier.
+Vittal V., Mccalley J.D., Anderson P.M., and Fouad A.A. (2019) Power System Control and
+Stability (IEEE Press Series on Power and Energy Systems) Hardcover. Wiley-IEEE Press.
+Willis H.L. (Editor) (2018) Distributed Power Generation: Planning and Evaluation . eBook.
+Routledge.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+923
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Energies
+Energy and Buildings
+Energy Policy
+IEEE Power and Energy Magazine
+IEEE Transactions on Power Electronics
+International Journal of Electrical Power and Energy Systems
+International Journal of Sustainable Transportation
+Journal of Cleaner Production
+Renewable and Sustainable Energy Reviews
+Renewable Energy
+Transportation Research Part D: Transport and Environment
+Links
+This unit links to the following related units:
+Unit 5018: Sustainability
+Unit 5020: Utilisation of Electrical Power.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+924
+Issue 6 – October 2025 © Pearson Education Limited 2025

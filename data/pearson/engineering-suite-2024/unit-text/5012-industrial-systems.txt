@@ -1,0 +1,202 @@
+Unit 5012: Industrial Systems
+Unit Code: K/651/0866
+Level: 5
+Credits: 15
+Introduction
+The speed and efficiency of many industrial processes is due, largely, to the control
+systems selected for the application and the engineer’s ability to apply the most
+appropriate technology for their operation.
+This unit presents a structured approach to the development of advanced electronic
+solutions in a range of modern industrial situations. An essential requirement here is
+the engineer’s ability to utilise the most appropriate technology for each application,
+to ensure the most efficient monitoring and control of variables such as pressure,
+temperature, and speed.
+Among the topics included in this unit are techniques and applications of electrical
+and electronic engineering, as they apply to various branches of industry, such as
+component handling, controlling actuators, responding to change of circumstances
+in a process, or security issues of connected sensors and systems.
+On successful completion of this unit students will be able to learn about system
+elements and their overall characteristics, and analytically assess the accuracy and
+repeatability of a range of instruments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+925
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Appraise the main elements of an electronically controlled industrial system
+LO2 Review and specify the interface requirements between electronic, electrical,
+and mechanical transducers and controllers
+LO3 Employ practical and computer-based methods to design and test a
+measurement system
+LO4 Apply appropriate analytical techniques to predict the performance of a
+given system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+926
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Appraise the main elements of an electronically controlled industrial
+system
+Fundamental concepts of industrial systems:
+Discrete control
+Input and output devices; open and closed loop systems
+System elements, principles, and applications of important and representative
+AC, DC and Stepper motors, and various types of linear actuators.
+LO2 Review and specify the interface requirements between electronic,
+electrical, and mechanical transducers and controllers
+Interfacing and transducers:
+Discrete automation using relays and solenoids, AC and DC motors, pneumatic,
+hydraulic and electrical actuators, and other transducers and devices for
+measuring and comparing physical parameters
+Sensors, passive and active including, hall effect, thermocouples, proximity,
+acoustics, RFID
+Interfacing between electrical, electronic and mechanical transducers
+Practical measurement using sensors and transducers, process actuators for
+temperature and pressure control including Internet enabled technologies.
+LO3 Employ practical and computer-based methods to design and test a
+measurement system
+System modelling and analysis:
+The use of transfer functions to help predict the behaviour and constancy of an
+industrial process, including accuracy, resolution and tolerances, repeatability
+and stability, sensitivity and response time
+Dealing with error and uncertainty in industrial systems
+Use of computer packages in measurement and control, and dealing with
+uncertainty and errors in systems (including Industry 4.0 systems).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+927
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Apply appropriate analytical techniques to predict the performance of a
+given system
+Use of analytical techniques for performance measurement. Examples of
+analytical techniques could include: the Monte Carlo method to predict locations
+and timings of machine failure for maintenance planning, or regression
+modelling to analyse raw material influence on production outputs
+Industry 4.0 and current trends in technology, including the future of industrial
+systems, seamless integration of systems, the impact of digital developments,
+the increase of wireless and remote control, Internet of Things, and big data.
+Management and strategic issues relating to Industry 4.0, specifically, security
+and hacking issues of connected sensors and systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+928
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Appraise the main elements of an electronically controlled
+industrial system
+P1 Appraise the key M1 Analyse the characteristics D1 Critically examine
+components used in an of an electronically controlled the performance of an
+electronically controlled industrial system by applying electronically controlled
+industrial system. a variety of techniques to the system to make
+solution of a given problem. recommendations for
+P2 Review the main concepts
+improvement.
+underlying electronically
+controlled industrial systems.
+LO2 Review and specify the interface requirements between
+electronic, electrical, and mechanical transducers and
+controllers
+P3 Review the interface M2 Predict the behaviour of D2 Critically investigate
+requirements between an electronically controlled the behaviour of a given
+electronic, electrical, and industrial system by applying control system to
+mechanical transducers a variety of transducers to the compare different
+and controllers. solution of a given problem electrical, electronic and
+and choose a ‘best’ solution. mechanical approaches
+P4 Justify the choice of
+to control.
+transducers and controllers
+for a given task.
+LO3 Employ practical and computer-based methods to design
+and test a measurement system
+P5 Employ any two practical M3 Interpret the D3 Develop an
+and computer-based characteristics and behaviour evaluative report on the
+methods to design and test of an existing electronic performance of an ideal
+a measurement system. measurement system by measurement system
+applying a variety of methods required to function
+P6 Explain the use of practical
+to find a solution to a given within Industry 4.0
+and analytical methods in
+problem. operations.
+creating and testing a
+measurement system.
+LO4 Apply appropriate analytical techniques to predict the
+performance of a given system
+P7 Apply the main analytical M4 Evaluate the D4 Analyse an existing
+techniques to explain the characteristics of an industrial system by using
+performance of a given electronically controlled appropriate analytical
+system. industrial system by applying techniques to
+a variety of analytical provide justified
+techniques to the solution recommendations to
+of a given problem. improve performance.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+929
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Badiru A.B. and Omitaomu O.A. (2023) Systems 4.0: Systems Foundations for Industry
+4.0. 1st Ed. CRC Press.
+Balamurugan S. (Editors) (2022) Industrial Internet of Things: Technologies and Research
+Directions. 1st Ed. CRC Press.
+Bidanda B. (2022) Maynard’s Industrial and Systems Engineering Handbook. 6th Ed.
+McGraw-Hill.
+th
+Bird J. (2022) Electrical Circuit Theory and Technology . 7 Ed. Routledge.
+Bishop O. (2021) Electronics: A First Course. 3rd Ed. Routledge.
+Hughes E. et al. (2016) Electrical and Electronic Technology . Pearson.
+Massaro A. (2021) Electronics in Advanced Research Industries: Industry 4.0 to Industry 5.0
+Advances. Wiley-IEEE Press.
+McMillan G.K. and Vegas P.H. (2019) Process/Industrial Instruments and Controls
+Handbook. 6th Ed. McGraw-Hill.
+Patin N. (2016) Power Electronics Applied to Industrial Systems and Transports.
+1st Ed. Elsevier.
+Peacock B. and Badiru A.B. (2023) Industrial Engineering in Systems Design:
+Guidelines, Practical Examples, Tools, and Techniques. 1st Ed. CRC Press.
+Rehg J.A. and Sartori, G.J. (2005) Industrial Electronics . Prentice-Hall.
+Sharma A., Jangir S.K., Kumar M., Choubey D.K., Shrivastava T. and Tan R.R., Aviso K.B.
+and Promentilla M.A.B. (2018) Input-Output Models for Sustainable Industrial Systems:
+Implementation Using Lingo (Lecture Notes in Management and Industrial Engineering).
+Springer.
+Wilamowski B.M. and Irwin J.D. (2011) The Industrial Electronic Handbook: Fundamentals
+of Industrial Electronics . CRC Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+930
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Future Industrial Systems: Opportunities and Challenges
+IEEE Transactions on Industrial Informatics
+Intelligent Industrial Systems
+International Journal of Industrial and Systems Engineering
+Journal of Industrial and Systems Engineering
+Journal of Industrial Information Integration
+Journal of Industrial System Engineering and Management
+Journal of Manufacturing Systems
+Journal of Mechanical Design Transactions of the ASME
+Technovation
+Links
+This unit links to the following related units:
+Unit 4016: Instrumentation and Control Systems
+Unit 4019: Electrical and Electronic Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+931
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,73 @@
+{
+  "code": "5001",
+  "title": "Research Project",
+  "detectedTitle": "Research Project",
+  "startPage": 856,
+  "endPage": 863,
+  "pageCount": 8,
+  "level": 5,
+  "creditValue": 30,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine the preliminary stages involved in the creation of an engineering/manufacturing research project"
+    },
+    {
+      "id": "LO2",
+      "description": "Examine the analytical techniques used to work on all stages of the project and strategies required to overcome the challenges involved in a research project"
+    },
+    {
+      "id": "LO3",
+      "description": "Reflect on the impact the research experience could have in enhancing personal or group performance within an engineering/manufacturing context"
+    },
+    {
+      "id": "LO4",
+      "description": "Explore the communications approach used for the preparation and presentation of the research project’s outcomes."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

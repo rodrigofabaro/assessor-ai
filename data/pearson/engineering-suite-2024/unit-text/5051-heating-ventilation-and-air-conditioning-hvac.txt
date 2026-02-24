@@ -1,0 +1,187 @@
+Unit 5051: Heating, Ventilation and Air
+Conditioning (HVAC)
+Unit code H/615/1524
+Unit level 5
+Credit value 15
+Introduction
+The buildings we use in everyday life to live, work, study and socialise are becoming
+increasingly more complex in their design. As well as being subject to more stringent
+environmental emission targets, within these buildings the heating, ventilation and
+air conditioning (HVAC) systems play a vital role in maintaining the comfort of the
+occupants within the built environment.
+This unit will introduce students to some of the most important HVAC systems and
+their supporting elements, and the underpinning science that is currently used in
+many different buildings around the world.
+Subjects covered include: ventilation rates, systems, legislation, strategies and
+associated equipment. Also explored are topics such as air conditioning systems,
+cooling loads, psychrometric principles and processes, heating systems, fuels,
+combustion processes, boiler efficiency calculations and Building Management
+Systems (BMS).
+On successful completion of this unit students will be able to explain the fundamental
+principles of HVAC systems and discuss the operational advantages of using BMS for
+maintaining the careful balance between ergonomic climate control and maximum
+economic efficiency.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1233
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explain the operating principles of non-domestic ventilation systems
+LO2 Explore the range of air conditioning systems
+LO3 Investigate the operational characteristics of non-domestic heating systems
+LO4 Describe the role Building Management Systems (BMS) have in controlling and
+monitoring HVAC systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1234
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explain the operating principles of non-domestic ventilation systems
+Ventilation systems:
+Ventilation requirements: approved documents, requirements for occupants
+or processes
+Ventilation strategies: local or centralised systems, natural ventilation,
+extract only, supply only and balanced systems
+Ventilation system components and typical system layouts.
+Ventilation rates:
+Calculation of ventilation rates, supply for occupants or processes,
+supply to achieve required room air change rate
+Mass and volumetric flow rates to maintain design room conditions.
+Fans:
+Fan types and operational characteristics
+Fan selection and Fan Laws.
+LO2 Explore the range of air conditioning systems
+Air conditioning systems:
+Air conditioning requirements: requirement for comfort cooling or close control
+Air conditioning strategies: types of air conditioning plant.
+Cooling loads:
+Estimation of heat gains and cooling loads
+Factors affecting the cooling load requirements, building/room use, shading,
+building construction and orientation, internal heat gains.
+Psychrometrics:
+Psychrometric principles: psychrometric terms and properties
+Plotting psychrometric processes using charts
+Use of psychrometric charts to determine cooling coil, heater battery,
+frost coil and humidifier duties.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1235
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Investigate the operational characteristics of non-domestic heating
+systems
+Heating systems:
+Heating requirements: approved documents, occupant’s comfort
+Heat loss calculations: heat losses though a structure, U values and there use in
+calculating heating load requirements
+Heating strategies: local or centralised systems
+Heating system components and typical system layouts.
+Fuels:
+Properties and characteristics of common solid, liquid and gaseous fuels.
+Combustion:
+Combustion principles
+Products of complete and incomplete combustion and their implications
+Minimum air requirements for stoichiometric combustion
+Causes of incomplete combustion.
+Boiler efficiency:
+Boiler efficiency calculations.
+LO4 Describe the role Building Management Systems (BMS) have in controlling
+and monitoring HVAC systems.
+Requirement of the BMS:
+Client/end user requirements and operational needs, energy efficiency concerns.
+Function of a BMS:
+Systems controlled by BMS: heating, lighting, ventilation, air conditioning,
+security/access
+Energy monitoring and reporting.
+BMS hardware:
+Types of BMS hardware available, advantages and disadvantages,
+performance and cost. Controlling software, remote access and control.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1236
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explain the operating principles of non-domestic
+ventilation systems LO1 and LO2
+P1 Explain and compare M1 Discuss the types of D1 Evaluate and compare a
+two alternative ventilation fans used in non-domestic number of passive and active
+strategies for a non- ventilation systems methods used to help cool
+domestic building and and analyse their buildings giving suitable
+recommend the most characteristics. examples.
+suitable.
+P2 Using the information
+from P1, calculate the
+ventilation requirements
+for the rooms in a non-
+domestic building.
+LO2 Explore the range of air conditioning systems
+P3 Explain the requirement
+M2 Analyse the factors
+for air conditioning in a
+affecting the cooling loads
+variety of non-domestic
+in buildings.
+buildings.
+P4 Estimate the cooling load
+requirements for rooms in
+non-domestic buildings
+using a recognised ‘rule
+of thumb’ method.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1237
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Investigate the operational characteristics of
+non-domestic heating systems LO3 and LO4
+P5 Explain and compare M3 Discuss the combustion D2 Calculate the minimum
+two alternative heating properties of common fuels air requirements for a given
+strategies for a non- used in non-domestic fuel and distinguish between
+domestic building and heating systems. complete and incomplete
+recommend the most combustion, predicting the
+suitable. possible consequences of
+incomplete combustion.
+P6 Estimate the heating load
+requirements for rooms in
+non-domestic buildings
+using a recognised ‘rule of
+thumb’ method.
+LO4 Describe the role Building Management Systems
+(BMS) have in controlling and monitoring HVAC systems.
+P7 Describe the M4 Evaluate the
+requirements of a building advantages of a building
+management system in fitted with a full Building
+non-domestic buildings. Management System.
+P8 Describe the functions
+performed by a building
+management system in a
+non-domestic building.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1238
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Chadderton, D. (2013) Building Services Engineering . 6th Ed. Abingdon: Routledge.
+Cibse (2016) Guide B: Heating, Ventilating, Air Conditioning and Refrigeration . London.
+Cibse (2016) Guide F: Energy Efficiency in Buildings . London.
+Cibse. (2009) CIBSE Guide H: Building control systems . CIBSE, London.
+Hall F. and GREENO R. (2023) Building Services Handbook . 10th Ed. Routledge.
+Porges F. (2020) HVAC Engineer’s Handbook .11th Ed. Blackwells.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1239
+Issue 6 – October 2025 © Pearson Education Limited 2025

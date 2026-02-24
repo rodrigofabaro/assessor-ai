@@ -1,0 +1,291 @@
+Unit 5002: Professional Engineering
+Management
+Unit Code: F/651/0809
+Level: 5
+Credits: 15
+Introduction
+Engineers are professionals who can design, develop, manufacture, construct,
+operate, and maintain the physical infrastructure and content of the world we live in.
+They do this by using their academic knowledge and practical experience, in a safe,
+effective, and sustainable manner, even when faced with a high degree of technical
+complexity.
+The aim of this unit is to continue building up on the knowledge gained in Unit 4004:
+Managing a Professional Engineering Project or Unit 4062 Professional Engineering
+Practice , to provide students with the professional standards for engineers and
+to guide them on how to develop the range of employability skills needed by
+professional engineers.
+Among the topics included in this unit are: engineering strategy and services delivery
+planning, the role of sustainability, Total Quality Management (TQM), engineering
+management tools, managing people, and becoming a professional engineer.
+On successful completion of this unit, students will be able to construct a coherent
+engineering services delivery plan to meet the requirements of a sector-specific
+organisation or business. They will display a personal commitment to professional
+standards and obligations to society, the engineering/manufacturing profession,
+and the environment.
+This unit is assessed by a Pearson-set theme. The project brief will be set by the
+centre, based on a theme provided by Pearson (this will change annually). The theme
+and chosen project within the theme will enable students to explore and examine a
+relevant and current topical aspect of professional engineering/manufacturing sector.
+*Please refer to the accompanying Pearson-set The Guide and the Theme
+Release document for further support and guidance on the delivery of the
+Pearson-set unit.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+848
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Evaluate risk management theories and practices employed in
+engineering/manufacturing projects
+LO2 Produce an engineering/manufacturing services delivery plan that meets the
+requirements of a sector-specific organisation
+LO3 Develop effective leadership, individual and group communication skills
+LO4 Demonstrate personal commitment to professional standards and obligations
+to society, the engineering profession, and the environment.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+849
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Evaluate risk management theories and practices employed in
+engineering/manufacturing projects
+The engineering/manufacturing business environment:
+Organisational structures and functional elements
+Strategic planning and deployment
+Engineering strategy and services delivery planning
+The role of sustainability and environmental efficiency in decision making
+Total Quality Management (TQM)
+Logistics and supply chain management
+Financial data, information, storage, and data management systems
+New product development strategies
+Legal obligations and corporate responsibility.
+Risk evaluation in engineering/manufacturing projects:
+Overview of risk analysis, assessment, and management
+Key theories, methods, and applications (e.g., machinery, manufacturing,
+power plants, supply chains, etc.)
+Case studies – example uses of Decision Tree Analysis, What If Analysis,
+Event Tree Analysis, Fault Tree Analysis
+Risk governance, safety, data sources, risk-informed decision-making,
+standards (e.g. ISO 31000: Risk management), security, and life-cycle use of risk.
+Engineering relationships:
+The relationship between engineering and financial management, marketing,
+purchasing, quality assurance, and public relations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+850
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Produce an engineering/manufacturing services delivery plan that meets
+the requirements of a sector-specific organisation
+Management tools/software for engineering/manufacturing sector:
+Problem analysis and decision-making, change management, performance
+management, product and process improvement, scheduling matrix, project
+management (including use of tools/techniques e.g. SWOT (strengths,
+weaknesses, opportunities, threats) analysis, stakeholder matrices, risk mapping,
+radar charts and summary risk profiles), and earned value analysis.
+Services Delivery Plan:
+Detailed task breakdown
+Challenges–Planned and unforeseen
+Internal and external influence
+Impact on other services/users/stakeholders
+Cost implications
+Responsibilities.
+LO3 Develop effective leadership, individual, and group communication skills
+Managing people:
+Describe the most effective leadership styles
+Techniques to effectively manage teams (e.g., clear vision, systematic,
+transparent, delegation, collaboration remote working, etc.)
+Individual/team CPD with opportunities for upskilling/reskilling (e.g., digital
+competencies and sustainability goals/frameworks) and ownership
+Impact of effectively managing people
+Motivation theories
+Coaching and mentoring.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+851
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Steps to follow for leading effective meetings and delivering effective presentations:
+Meeting management skills
+Communication skills: Listening, non-verbal communication, clarity and brevity,
+friendliness, confidence, empathy, open-mindedness, respect, feedback, and
+picking the right medium
+Communication with groups: Group expectations; communication formats
+(e.g. written reports, verbal, electronic, social media, data metrics); dealing with
+reactions and disagreements; allowing and encouraging participation; acting on
+agreed outcomes; negative communication; motivating disillusioned colleagues;
+persuasion and negotiation
+Human error evaluation
+Coaching and mentoring .
+Workplace considerations:
+Human factors (organisational, environmental, and job factors), influence and
+impact individual characteristics, performance, and behaviours in the workplace
+Systematic and proactive approach to problem-solving
+Safety-first culture, policies and procedures, and compliance with legislative and
+organisation health, safety, and environmental requirements
+Equality and diversity: Ensuring work produced and the approach to work is
+inclusive and takes proper, account of equality of opportunity and the diverse
+nature of the population.
+LO4 Demonstrate personal commitment to professional standards and
+obligations to society, the engineering profession, and the environment
+Becoming a professional engineer:
+Engineering social responsibility
+Importance of being active and up to date with the engineering profession,
+new developments and discoveries
+Methods of Continuing Professional Development (CPD). Work ethics: positive,
+professional, respectful, trusting, and ethical working relationships. Lead
+by example. Holistic stakeholder engagement. Ownership of professional
+development and up-to-date with subject/sector developments (e.g., digital
+competencies, sustainability goals/frameworks).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+852
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Evaluate risk management theories and practices
+employed in engineering/manufacturing projects
+P1 Discuss any two risk M1 Analyse the application D1 Critically evaluate the
+evaluation theories of risk management theories challenges encountered
+associated with the for a given engineering/ when meeting the
+management of engineering/ manufacturing context. requirements for
+manufacturing projects. successfully managing
+engineering activities, with
+P2 Evaluate risk assessment
+justified recommendations
+methods and practices that
+to overcome these
+impact the successful
+challenges.
+management of engineering/
+manufacturing activities.
+LO2 Produce an engineering/manufacturing services delivery
+plan that meets the requirements of a sector-specific
+organisation
+P3 Produce an engineering M2 Evaluate how each step of D2 Critically evaluate
+services delivery plan, the delivery plan developed contingencies that might
+applying the appropriate meets the requirements of a prevent the delivery
+sector-specific requirements. sector-specific organisation. plan from meeting the
+requirements of a sector-
+P4 Determine the
+specific organisation.
+engineering management
+tools needed for designing
+an engineering/
+manufacturing services
+delivery plan.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+853
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Develop effective leadership, individual and group
+communication skills
+P5 Develop the steps for M3 Evaluate leadership styles D3 Critically evaluate
+effective persuasion and and effective communication effective ways to coach
+negotiation. skills using specific examples and mentor disillusioned
+in an organisational context. colleagues or a poorly
+P6 Explain the steps for
+performing team.
+managing effective group
+meetings.
+P7 Outline the steps to
+deliver an effective
+presentation.
+LO4 Demonstrate personal commitment to professional
+standards and obligations to society, the engineering
+profession, and the environment
+P8 Examine the context
+M4 Summarise the D4 Provide justifications
+of social responsibility for
+engineering profession’s as to why it is necessary to
+scientists and engineers.
+ethical standards and be active and up to date
+patterns of behaviour. with the engineering
+P9 Demonstrate the ways
+profession’s new
+by which an engineer
+developments and
+can engage in continuing
+discoveries.
+professional development.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+854
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bahr N.J. (2015) System Safety Engineering and Risk Assessment – A Practical Approach .
+Second Edition. CRC Press
+Burns, B. (2014) Managing Change . 6th Ed. Pearson.
+Challender J. (2022) Professional Ethics in Construction and Engineering. Wiley.
+Covello V.T. (2021) Communicating in Risk, Crisis, and High Stress Situations:
+Evidence-Based Strategies and Practice . Wiley.
+Dearden, H. (2013) Professional Engineering Practice: Reflections on the Role of the
+Professional Engineer. CreateSpace Independent Publishing Platform.
+El-Reedy M.A. (2021) Offshore Projects and Engineering Management .
+1st Edition. Elsevier.
+Karten, N. (2010) Presentation Skills for Technical Professionals . IT Governance Ltd.
+Kerzner H. (2022) Project Management: A Systems Approach to Planning, Scheduling,
+and Controlling. 13th Edition, Wiley.
+Kiran D.R. (2022) Principles of Economics and Management for Manufacturing
+Engineering. Elsevier.
+Kong K. (2019) Professional Discourse. Cambridge University Press.
+Lock, D. (2013) Project Management . 10th Ed. Routledge.
+Muzio D., Sundeep A. and Kirkpatrick I. (2020) Professional Occupations and
+Organizations. Cambridge University Press.
+Rausand M. and Stein Haugen S. (2020) Risk Assessment: Theory, Methods, and
+Applications . John Wiley & Sons, Inc.
+Temple T.J. and Ladyman M.K. (2022) Challenges in Risk Analysis for Science and
+Engineering . IOP Publishing Ltd.
+Wilbers S. (2022) Persuasive Communication for Science and Technology Leaders:
+Writing and Speaking with Confidence . Wiley.
+Wright I. (2012) Risk Evaluation (Engineering Design Book 1) . Kindle Edition.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+855
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Advanced Engineering Informatics
+Advances in Engineering Software
+Applications in Engineering Science
+Control Engineering Practice
+Cleaner Engineering and Technology
+Engineering
+Engineering Applications of Artificial Intelligence
+Engineering Management
+Engineering Management Journal
+Frontiers of Engineering Management
+IEEE Transactions on Engineering Management
+Journal of Engineering and Technology Management
+Journal of Management & Organization
+Journal of Professional Issues in Engineering Education and Practice
+Microelectronic Engineering
+Probability in the Engineering and Information Sciences
+Probabilistic Engineering Mechanics
+Results in Engineering
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+856
+Issue 6 – October 2025 © Pearson Education Limited 2025

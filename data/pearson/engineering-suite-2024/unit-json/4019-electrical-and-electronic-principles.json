@@ -1,0 +1,71 @@
+{
+  "code": "4019",
+  "title": "Electrical and Electronic Principles",
+  "detectedTitle": "Electrical and Electronic Principles",
+  "startPage": 160,
+  "endPage": 166,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Apply an understanding of fundamental electrical quantities to analyse circuits with constant voltages and currents"
+    },
+    {
+      "id": "LO2",
+      "description": "Analyse circuits with sinusoidal voltages and currents"
+    },
+    {
+      "id": "LO3",
+      "description": "Describe the basis of semiconductor action, and its application to simple electronic devices"
+    },
+    {
+      "id": "LO4",
+      "description": "Explain the difference between digital and analogue electronics, describing simple applications of each."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3",
+      "P4"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P5",
+      "P6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

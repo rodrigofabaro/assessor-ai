@@ -1,0 +1,71 @@
+{
+  "code": "4068",
+  "title": "Industrial Robots",
+  "detectedTitle": "Industrial Robots",
+  "startPage": 538,
+  "endPage": 544,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Describe the operational characteristics, selection criteria and applications of industrial robots within manufacturing industries"
+    },
+    {
+      "id": "LO2",
+      "description": "Explain the safety standards associated with industrial robots"
+    },
+    {
+      "id": "LO3",
+      "description": "Program an industrial robot for automated process application"
+    },
+    {
+      "id": "LO4",
+      "description": "Investigate the global economic scope of industrial robots and integration into smart factories."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D2",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D3",
+      "M4",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

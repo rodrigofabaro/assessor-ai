@@ -1,0 +1,175 @@
+Unit 4022: Electronic Circuits and
+Devices
+Unit Code: T/651/0742
+Level: 4
+Credits: 15
+Introduction
+Electronics is pervasive and impacts various aspects of modern day living and the
+society as a whole. Many industries rely upon the use of electronics, thereby creating
+opportunities in industrial applications and research.
+This unit introduces students the operational characteristics of amplifier circuits, the
+types, and effects of feedback on a circuit performance, and the operation, application
+of oscillators. They will also be introduced to semiconductor devices and circuits, the
+use of electronics manufacturers’ data to analyse the performance of circuits and
+devices, the application of testing procedures, and use the findings of the tests to
+evaluate their operation.
+Among the topics included in this unit are: power amplifiers, class A, B and AB;
+operational amplifiers, inverting, non-inverting, differential, summing, integrator,
+differentiator; types such as open, closed, positive and negative feedback; frequency,
+stability, frequency drift, distortion, amplitude, wave shapes and testing procedures.
+On successful completion of this unit students will be able to learn about the
+operational characteristics of amplifier circuits, the types and effects of feedback
+on an amplifier’s performance, the operation and application of oscillators and
+application of testing procedures to electronic devices and circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+165
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Determine the operational characteristics of amplifier circuits
+LO2 Investigate the types and effects of feedback on an amplifier’s performance
+LO3 Examine the operation and application of oscillators
+LO4 Apply testing procedures to electronic devices and circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+166
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Determine the operational characteristics of amplifier circuits
+Operational characteristics:
+Power amplifiers: class A, B and AB
+Operational amplifiers: inverting, non-inverting, differential, summing, integrator,
+differentiator, comparator, instrumentation, Schmitt trigger, active filters
+Gain, bandwidth, frequency response, input, and output impedance
+Distortion and noise.
+Electronic circuits and semiconductors:
+Integrated use of semiconductors and electronic circuits; diodes and transistors,
+diode applications, Zener diode; operational characteristics.
+LO2 Investigate the types and effects of feedback on an amplifier’s performance
+Types and effects:
+Types including open, closed, positive and negative feedback
+Effect of feedback on gain, bandwidth, distortion, noise, stability, input,
+and output impedance
+The concept of virtual ground.
+LO3 Examine the operation and application of oscillators
+Operation and application:
+Types of oscillators such as Wien bridge, Twin-T, R-C ladder, L-C coupled,
+transistor, operational amplifier, crystal
+Frequency, stability, frequency drift, distortion, amplitude, and wave shapes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+167
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Apply testing procedures to electronic devices and circuits
+Testing procedures:
+Measuring performance, using practical results and computer simulations
+Voltage gain, current, bandwidth, frequency response, output power, input,
+and output impedance
+Distortion and noise.
+Devices to test:
+Introduction of concepts, device usage and testing
+Semiconductors
+Integrated circuits
+Amplifiers
+Oscillators
+Filters
+Power supplies
+Integrated circuit (IC) voltage regulators
+Combined analogue and digital IC’s.
+Component manufacturer’s data:
+Specifications, manuals, and circuit diagrams.
+Use of testing equipment:
+Meters, probes, and oscilloscopes
+Signal generators and signal analysers, logic analysers
+Virtual test equipment (simulation software)
+Effective use of tools and techniques when securely operating and testing
+systems and components (e.g., networks and devices).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+168
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Determine the operational characteristics of amplifier
+circuits
+P1 Describe the types of M1 Explain the results D1 Critically review the
+amplifiers available using obtained from applying results obtained from the
+their typical circuits. practical tests on an application of practical
+amplifier’s performance. and simulated tests on
+P2 Determine different
+amplifier circuits studied.
+performance characteristics
+of types of operational
+amplifier.
+LO2 Investigate the types and effects of feedback on an
+amplifier’s performance
+P3 Investigate the effect of M2 Perform practical tests to D2 Analyse the effect of
+different types of feedback show the effect of feedback feedback on an amplifier’s
+on the operational amplifier’s on an amplifier’s performance using
+performance. performance. practical and simulated
+tests.
+P4 For a given practical
+scenario, describe how
+circuits employ feedback.
+LO3 Examine the operation and application of oscillators
+P5 Examine types of available M3 Assess the performance D3 Analyse the results
+oscillators and their characteristics of different obtained from applying
+applications. type of oscillators. practical and simulated
+tests to oscillators studied.
+LO4 Apply testing procedures to electronic devices and circuits
+P6 Show use of M4 Perform tests on D4 Critically review the
+manufacturer’s data sheets in electronic devices and circuits, results obtained from
+selecting electronic devices recording results and applying practical and
+for a given context. recommending appropriate simulated tests to devices
+action. and circuits studied.
+P7 Apply information derived
+from manufacturer’s data
+when testing electronic
+devices and circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+169
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bird Jo. (2022) Bird’s Electrical Circuit Theory and Technology . 7th Ed. Routledge
+Boylestad R.L. and Nashelsky L. (2013) Electronic Devices and Circuit Theory .
+11th Ed. Pearson
+Floyd T.L. and Buchla D. (2021) Electronics Fundamentals: Conventional Current .
+10th Ed. Pearson
+Horowitz P. and Hill W. (2015) The Art of Electronics . 3rd Ed. Cambridge University Press
+Makarov S., Ludwig R. and Bitar S.J. (2019) Practical Electric Engineering. 2nd Ed.
+Springer.
+Storey N. (2017) ELECTRONICS A Systems Approach. 6th Ed. Pearson
+Yawale S. and Yawale S. (2022) Operational Amplifier: Theory and Experiment.
+1st Ed. Springer.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Electronic Devices and Networking Journal
+Electronic Devices Articles from Across Nature Portfolio
+IEEE Transactions on Electron Devices
+Microelectronics Journal
+Power Electronic Devices and Components
+Links
+This unit links to the following related units:
+Unit 4019: Electrical and Electronic Principles
+Unit 5019: Further Electrical, Electronic and Digital Principles
+Unit 5014: Analogue Electronic Systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+170
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,281 @@
+Unit 4001: Engineering Design
+Unit Code: T/650/9628
+Level: 4
+Credits: 15
+Introduction
+The tremendous possibilities of the techniques and processes developed by engineers
+can only be realised by great design. Design turns an idea into a useful artefact, the
+problem into a solution, or something ugly and inefficient into an elegant, desirable,
+and cost-effective everyday object. Without a sound understanding of the design
+process, the engineer works in isolation without the links between theory and the
+needs of the end user.
+The aim of this unit is to introduce students to the methodical steps that engineers
+use in creating functional products and processes as an individual or part of a design
+team; from a design brief to the work, and the stages involved in identifying and
+justifying a solution to a given engineering need.
+Among the topics included in this unit are: Gantt charts and critical path analysis,
+stakeholder requirements, market analysis, design process management, technical
+drawing, modelling and prototyping, manufacturability, sustainability and
+environmental impact, reliability, safety and risk analyses, and ergonomics.
+On successful completion of this unit, students will be able to prepare an engineering
+design specification that satisfies stakeholders’ requirements, implement best
+practices when analysing and evaluating possible design solutions, prepare a written
+technical design report, and present their finalised design to a customer or audience.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+8
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Create a design specification for a given design brief that meets stakeholder’s
+requirements, along with a proposed design solution
+LO2 Analyse possible technical solutions to implement the proposed design
+specification
+LO3 Produce a design report considering all key aspects including manufacturability
+(or design for manufacturing and assembly) and environmental impact
+LO4 Present the design solution to an audience, including evaluation of feedback
+and future improvements.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+9
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Create a design specification for a given design brief that meets
+stakeholder’s requirements, along with a proposed design solution
+Planning techniques used to prepare a design specification:
+Definition of client’s/users’ objectives, needs, and constraints
+Definition of design constraints, function, specification (e.g., including
+sub-systems and integrated systems), and milestones
+Planning the design task: Flow charts, Gantt charts, Design decision matrix,
+network, and critical path analysis necessary in the design process
+Use of relevant technical/engineering/industry standards within the design
+process (e.g., BS8888).
+Design process:
+Process development, steps to consider from start to finish
+The cycle from design to manufacture
+Three- and five-stage design processes
+Common tools and techniques used (e.g., Six Sigma, 8 wastes, etc.)
+Use of data, relevant tools (e.g., design tools/software, data reporting tools)
+Vocabulary used in engineering design.
+Stage of the design process which includes:
+Analysing the situation, providing problem statement, researching the problem,
+defining tasks and outputs, creating the design concept, and writing a
+specification
+Suggest possible solutions, select a preferred solution, prepare working
+drawings, describe relevant manufacturing aspects/processes (e.g., serialised
+manufacturing, field level operations, and support), construct a prototype,
+test and evaluate the design against objectives, design communication
+(write a report).
+Environmental considerations:
+Design for recycling, net zero/Low carbon, design for service and repair,
+social equity and innovation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+10
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Customer/stakeholder requirements:
+Converting customer requests to a list of objectives and constraints
+Interpretation of design requirements
+Market analysis of existing products and competitors
+Aspects of innovation and performance management in decision-making
+Stakeholder engagement and communications in the context: Listening,
+non-verbal communication, clarity and brevity, friendliness, confidence,
+empathy, open-mindedness, respect, feedback, and picking the right medium;
+communication with groups including group expectations, dealing with reactions
+and disagreements, allowing and encouraging participation, acting on agreed
+outcomes, negative communication, motivating disillusioned colleagues,
+persuasion and negotiation.
+LO2 Analyse possible technical solutions to implement the proposed design
+specification
+Conceptual design and evaluating possible solutions:
+Modelling, prototyping and simulation using industry standard software, (e.g.,
+AutoCAD, Fusion 360, Catia, SolidWorks, Creo) on high specification computers
+Sun systems and their integration into the final design
+Use of evaluation and analytical tools, e.g., cause and effect diagrams, CAD,
+knowledge-based engineering; use relevant data management systems,
+databases, data formats, data analytics and workflows
+Throughput, reliability, availability and maintainability (T-RAM)
+Possible solutions using latest methods e.g. additive manufacturing, hot isostatic
+pressing (HIP)
+Use of related documentation: job cards/build records, 2D & 3D drawing/models,
+Bill of Materials (BOM), Cost Analysis Reports, Compliance Report, Standard
+Operating Instructions (SOI’s), Standard Process Instructions (POI’s), Engineering
+Query Notifications (EQN’s) and Drawing Query Notifications (DQN’s).
+LO3 Produce a design report considering all key aspects including
+manufacturability (or design for manufacturing and assembly) and
+environmental impact
+Managing the design process:
+Recognising limitations including cost, physical processes, availability of
+material/components and skills, timing, scheduling and design factors such as
+environmental impact and due considerations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+11
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Working to specifications and standards, including:
+The role of compliance checking, feasibility assessment, and commercial viability
+of product design through testing and validation
+Analysing and interpreting data/information for documentation such as Parts Per
+Million (PPM) quality adherence, cost analysis and test data
+Documentation control processes and procedures such as format, location,
+access, authorisation.
+Design for testing, including:
+Material selection to suit selected processes, tools, and technologies
+Consideration of manufacturability, reliability, life cycle and environmental
+impact (e.g. UN sustainability goals)
+The importance of safety, risk management, and ergonomics
+Organisation approved Standard Operating Procedures (SOP’s) and
+documentation recording systems, risk assessment, and the potential
+implications on safety, quality, and delivery if they are not adhered to.
+Conceptual design and effective tools:
+Technologies and manufacturing processes used in order to transfer engineering
+designs into finished products.
+Design report:
+Sample professional design reports and widely used professional formats,
+key sections of the report, referencing formats including citation.
+LO4 Present the design solution to an audience, including evaluation of
+feedback and future improvements
+Communication and post-presentation review:
+Selection of communication/presentation tools/methods (e.g. formal and
+informal presentations, written reports, verbal, electronic, social media, data
+metrics), team presentation and management (e.g., team integration and
+dynamics, effective communications, conflict management).
+Analysis of presentation feedback:
+Strategies for improvement based on feedback, including systematic,
+proactive and transparent approach to improve design solutions.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+12
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Create a design specification for a given design brief that
+meets stakeholder’s requirements, along with a proposed
+design solution
+P1 Create a design M1 Evaluate potential planning D1 Compare and contrast
+specification from a given techniques, presenting a case the completed design
+design brief. for the method chosen. specification against a
+formal professional
+P2 Explain the influence of M2 Demonstrate critical path
+engineering specification.
+the stakeholder’s design analysis techniques in design
+brief and requirements in project scheduling/planning
+the preparation of the and explain their use.
+design specification.
+P3 Produce a design project
+schedule with a graphical
+illustration of
+the planned activities.
+LO2 Analyse possible technical solutions to implement the
+proposed design specification
+P4 Analyse industry M3 Apply the principles of D2 Evaluate potential
+standard evaluation and modelling, simulation and/or technical solutions,
+analytical tools used in prototyping, using appropriate presenting a case for the
+formulating possible software, to develop an final choice of solution.
+technical solutions. appropriate design solution.
+P5 Use appropriate design
+techniques to produce a
+possible design solution.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+13
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Produce a design report considering all key aspects
+including manufacturability (or design for manufacturing and
+assembly) and environmental impact
+P6 Prepare a formal M4 Assess any compliance, D3 Evaluate the
+engineering technical safety, and risk management effectiveness of the formal
+design report. issues contained within the professional engineering
+technical design report. technical design report
+P7 Explain the role of
+for producing a fully
+design specifications and
+compliant finished
+standards in the technical
+product.
+design report including
+environmental impact.
+LO4 Present the design solution to an audience, including
+evaluation of feedback and future improvements
+P8 Present the
+M5 Reflect on the effectiveness D4 Justify potential
+recommended design
+of the chosen communication improvements to the
+solution to the identified
+strategy in presenting the design solution and/or
+audience. design solution. presentation based on
+reflection and/or
+P9 Explain possible
+feedback.
+communication strategies
+and presentation methods
+that could be used to
+inform the stakeholders
+of the recommended
+solution.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+14
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Barberio M., Colella M., Figliola A. and Battisti A. (Editors) (2023) Architecture and Design
+for Industry 4.0: Theory and Practice − Lecture Notes in Mechanical Engineering
+(Hardback). Springer.
+Dul J. and Weerdmeester B. (2008) Ergonomics for beginners . 3rd Ed.
+Boca Raton: CRC Press.
+Dym C.L., Little P. and Orwin E. (2014) Engineering Design: a Project Based Introduction .
+4th Ed. Wiley.
+Griffiths B. (2003) Engineering Drawing for Manufacture . Kogan Page Science.
+Jack H. (2021) Engineering Design, Planning, and Management . 2nd Ed. Academic Press.
+Leake J.M, Goldstein M.H., and Borgerson J.L. (2022) Engineering Design Graphics:
+Sketching, Modeling, and Visualization . 3rd Ed. Wiley.
+Nassersharif B. (2022) Engineering Capstone Design. 1st Ed. CRC Press.
+Planchard D.C. (2023) Engineering Design with SOLIDWORKS 2023: A Step-by-Step Project
+Based Approach Utilizing 3D Solid Modelling . 1st Ed. SDC Publications.
+Pugh S. (1990) Total Design: Integrated Methods for Successful Product Engineering .
+1st Ed. Prentice Hall.
+Reddy K.V. (2008) Textbook of Engineering Drawing . 2nd Ed. Hyderabad: BS Publications.
+Simmons C. H. (2012) Manual of Engineering Drawing: Technical Product Specification
+and Documentation to British and International Standards . 4th Ed.
+Butterworth-Heinemann.
+Voland G (2014) Engineering by Design . 2nd Ed. Pearson.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+ASME Journal of Mechanical Design
+Design Science
+Journal of Engineering Design
+Journal of Engineering Design and Technology
+Research in Engineering Design
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+15
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4023: Computer Aided Design and Manufacture (CAD/CAM)
+Unit 5001: Research Project.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+16
+Issue 6 – October 2025 © Pearson Education Limited 2025

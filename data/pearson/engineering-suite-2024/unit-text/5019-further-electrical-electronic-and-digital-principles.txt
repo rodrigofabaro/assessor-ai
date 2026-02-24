@@ -1,0 +1,203 @@
+Unit 5019: Further Electrical, Electronic
+and Digital Principles
+Unit Code: H/651/0882
+Level: 5
+Credits: 15
+Introduction
+Almost every aspect of our lives relies on electrically powered, electronically
+controlled machines and devices, many of them digital in format. To properly
+understand how to make the most efficient use of these devices in a safe and
+economical way, it is vital to have a thorough knowledge of the underlying principles
+on which they rely.
+This unit builds on the preliminary techniques and skills introduced in
+Unit 4019: Electrical, Electronic Principles and Unit 4020: Digital Principles .
+The emphasis in this unit will be in developing a structured approach to the analysis
+of AC single-phase and three-phase powered circuitry. This will help students to
+arrive at the solution in the most efficient way, with the greatest probability of it being
+correct. In addition, students will be introduced to the expanding use of computers,
+using specialised software to solve electrical, electronic, and digital circuits. This will
+allow students to develop the necessary confidence and competence in the four key
+areas of mathematical techniques, circuit analysis, circuit simulation and laboratory
+practice.
+Successful completion of this unit will enable students to manage increasingly
+complex problems and prepare them for the challenge of Level 6 academic
+programmes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+976
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Solve a range of electrical and electronic problems by applying appropriate
+circuit theorems and mathematical methods
+LO2 Apply appropriate methods to analyse and solve three-phase network
+problems
+LO3 Examine analogue and digital circuits using appropriate laboratory and
+simulation techniques
+LO4 Explain the characteristics of non-linear circuits to predict their behaviour under
+a variety of conditions
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+977
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Solve a range of electrical and electronic problems by applying appropriate
+circuit theorems and mathematical methods
+Formal steady state circuit analysis:
+Determinants, mesh analysis and nodal analysis (and their comparison)
+Analysis using ideal sources
+Application of fundamental electrical circuit theorems (e.g. complex numbers,
+reactance, impedance, Kirchhoff’s laws, Norton and Thevenin’s theorems,
+superposition)
+AC and DC analysis similarities and differences.
+AC circuit analysis:
+Complex notation, polar and Cartesian coordinates, RLC circuits
+Advanced use of phasor diagrams
+Power: instantaneous power, power factor, apparent power, the power triangle
+AC and DC power analysis similarities and differences
+AC and DC power applications examples.
+LO2 Apply appropriate methods to analyse and solve three-phase network
+problems
+Three-phase theory:
+Theorems and theoretical aspects of three-phase networks
+Application of trigonometric methods to solution of phasor diagrams
+Application of complex numbers to represent quantities in AC circuits
+Single-phase representation, and power flow analysis
+Solution of balanced three-phase circuits
+Analysis and comparison of delta and wye configurations
+Complex notation applied to three-phase, unbalanced loads,
+unconnected neutral point
+Real power, reactive power, apparent power, power factor correction,
+and efficiency for three-phase systems
+Power measurements and calculations in AC and three-phase systems
+Applications of three-phase systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+978
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Examine analogue and digital circuits using appropriate laboratory and
+simulation techniques
+ECAD:
+Use of computer modelling and simulation techniques to analyse and solve
+electronic, electrical, and digital circuits, such as filters and amplifiers using
+operational amplifiers and discrete devices; digital logic circuit elements;
+and simple combination and sequential circuits
+Health and safety policies, procedures and regulations, risk assessment and
+mitigation, workplace considerations (i.e., devices and operating personnel)
+Use of electrical and electronic instrumentation devices (e.g. multimeter, signal
+generator, power supply, oscilloscope, etc.) to take measurements of various
+circuits
+Input/Output analysis for electronic, electrical, and digital circuits including
+combinations of systems
+DC-AC conversion with example practical applications.
+LO4 Explain the characteristics of non-linear circuits to predict their behaviour
+under a variety of conditions
+Non-linear circuits:
+Characteristics of linear and non-linear circuits (e.g. I-V relationships, component
+behaviour, hysteresis, memory effects, etc.), mathematical modelling of a
+number of semiconductor devices, including diodes, bipolar and Field Effect
+Transistors and how this can be used to predict their ‘real’ behaviour in practice
+Mathematically modelling the behaviour of semiconductor diodes,
+bipolar transistors, and Field Effect Transistors
+Non-linear behaviour of operational amplifiers.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+979
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Solve a range of electrical and electronic problems by
+applying appropriate circuit theorems and mathematical
+methods
+P1 Solve electrical AC circuit M1 Analyse behaviour of AC D1 Analyse the
+problems by applying the circuits in terms of electrical performance of AC circuits
+appropriate theorems and power and performance. and their application, with
+methods. justification of the theorems
+and methods used,
+including mathematical
+methods and/or simulation.
+LO2 Apply appropriate methods to analyse and solve three-
+phase network problems
+P2 Apply suitable theories and M2 Analyse how to D2 Critically analyse the
+methods to solve three-phase synthesise three-phase performance of three-
+network problems for a given systems in terms of phase circuits and their
+industry context. electrical power, efficiency, application, with
+and performance. justification of the methods
+used.
+LO3 Examine analogue and digital circuits using appropriate
+laboratory and simulation techniques.
+P3 Examine the performance M3 Analyse analogue and D3 Evaluate the operation
+of analogue and digital circuits digital circuits behaviour of analogue and digital
+by using the appropriate using the appropriate circuits by comparing their
+laboratory and simulation laboratory and simulation predicted behaviour with
+techniques. techniques. simulated, theoretical and
+practical results.
+LO4 Explain the characteristics of non-linear circuits to
+predict their behaviour under a variety of conditions
+P4 Explain the characteristics M4 Investigate a variety D4 Evaluate the application
+of non-linear circuits and how of non-linear circuits of theory, simulation and
+their behaviour differs in by calculating and/or practical investigation of a
+practice with ‘ideal’ devices. simulating the effects of number of circuits, using
+non-linear behaviour in a non-linear circuit theory.
+number of differing circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+980
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bird J. (2013) Electrical Circuit Theory and Technology . Routledge.
+Boylestad R.L. (2023) Introductory Circuit Analysis. Global Edition. 14th Ed. Pearson.
+Boylestad R.L., and Nashelsky L. (2013) Digital fundamentals: A systems approach .
+Pearson.
+Fleckenstein J.E. (2020) Three-Phase Electrical Power . CRC Press.
+Emery R.C. (2020) Digital Circuits: Logic and Design. 1st Ed. CRC Press.
+Hambley A.R. (2018) Electrical Engineering: Principles and Applications . Global Edition.
+7th Ed. Pearson.
+Hughes E. et al. (2012) Electrical and Electronic Technology . Pearson.
+Mohindru P. and Mohindru P. (2022) Electronic Circuit Analysis using LTSpice XVII
+Simulator: A Practical Guide for Beginners . 1st Ed. CRC Press.
+Rehg J.A. and Sartori G.J. (2005) Industrial Electronics . Prentice-Hall.
+Robertson C.R. (2008) Fundamental Electrical and Electronic Principles . 3rd edition,
+Newnes.
+Wilamowski B.M. and Irwin J.D. (2011) The Industrial Electronic Handbook: Fundamentals
+of Industrial Electronics . CRC Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+981
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Advances in Electrical Engineering, Electronics and Energy
+Electronic Letters
+Electronics World Magazine
+Everyday Practical Electronics Magazine
+IEEE Transactions on Circuits and Systems
+IEEE Transactions on Industrial Electronics
+IEEE Transactions on Power Electronics
+Industrial Economics Society
+Journal of Electrical and Electronic Engineering
+New Electronics Digital Magazine
+Links
+This unit links to the following related units:
+Unit 4019: Electrical and Electronic Principles
+Unit 4020: Digital Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+982
+Issue 6 – October 2025 © Pearson Education Limited 2025

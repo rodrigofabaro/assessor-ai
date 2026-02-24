@@ -1,0 +1,65 @@
+{
+  "code": "4005",
+  "title": "Renewable Energy",
+  "detectedTitle": "Renewable Energy",
+  "startPage": 59,
+  "endPage": 65,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explore potential renewable energy resources and technologies"
+    },
+    {
+      "id": "LO2",
+      "description": "Determine the optimum combination and efficiencies of renewable energy technologies for a particular location"
+    },
+    {
+      "id": "LO3",
+      "description": "Conduct a cost-benefit analysis to determine the most viable option between renewable and conventional energy sources"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse the socio-economic, legislative, and environmental factors in selecting appropriate renewable energy technologies."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ]
+}

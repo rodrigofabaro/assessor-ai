@@ -1,0 +1,195 @@
+Unit 4008: Mechanical Principles
+Unit Code: K/651/0720
+Level: 4
+Credits: 15
+Introduction
+Mechanical principles have been crucial for engineers to convert the energy produced
+by burning oil and gas into systems to propel, steer and stop our automobiles,
+aircraft, and ships, amongst thousands of other applications. The knowledge and
+application of these mechanical principles is still the essential underpinning science
+of all machines in use today or being developed into the latest technology.
+The aim of this unit is to introduce students to the essential mechanical principles
+associated with engineering applications.
+Topics included in this unit are: behavioural characteristics of static, dynamic and
+oscillating engineering systems including shear forces, bending moments, torsion,
+linear and angular acceleration, conservation of energy and vibrating systems; and the
+movement and transfer of energy by considering parameters of mechanical power
+transmission systems.
+On successful completion of this unit students will be able to learn about the
+underlying principles, requirements, and limitations of mechanical systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+65
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Solve problems within static mechanical systems
+LO2 Analyse dynamic mechanical systems
+LO3 Investigate elements of simple mechanical power transmission systems
+LO4 Analyse natural and damped vibrations within translational and rotational
+mass-spring systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+66
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Solve problems within static mechanical systems
+Shafts and beams:
+The effect of shear forces on beams
+Bending moments and stress due to bending in beams
+Selection of appropriate rolled steel sections to satisfy given specifications for
+beams and columns
+The theory of torsion in solid and hollow circular shafts
+Stress and deflection in solid and hollow circular shafts due to torsion
+Impact of stresses in different types of materials
+Introduction to stresses in pressure vessels
+Use of relevant problem-solving tools within the context e.g. root cause analysis
+(RCA), process failure modes effects analysis (PFMEA), fishbone, practical
+problem solving (PPS), advanced product quality planning (APQP)
+Use of relevant software and simulation tools within the context.
+LO2 Analyse dynamic mechanical systems
+Energy and work:
+The principle of conservation of energy and work-energy transfer in systems
+Linear and angular velocity and acceleration
+Velocity and acceleration diagrams of planar mechanisms
+Gyroscopic motion
+Examples and applications of dynamic systems and gyroscopic motion.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+67
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Investigate elements of simple mechanical power transmission systems
+Simple systems/subsystems:
+Parameters of simple and compounded geared systems
+Efficiency of lead screws and screw jacks.
+Couplings and energy storage:
+Universal couplings and conditions for constant-velocity
+Importance of energy storage elements and their applications including
+electro-mechanical systems
+Examples and applications of current mechanical power transmission
+systems/subsystems.
+LO4 Analyse natural and damped vibrations within translational and rotational
+mass-spring systems
+Types of motion:
+Simple harmonic motion
+Natural frequency of vibration in mass-spring systems.
+Damped systems:
+Frequency of damped vibrations in mass-spring-damper systems
+The conditions for an external force to produce resonance
+Examples and applications of mechanical vibrations (e.g., modelling of vibration
+isolation, vehicle suspensions).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+68
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Solve problems within static mechanical systems
+P1 Solve mechanical systems M1 Determine the material D1 Verify, using simulation
+problems that include used for a circular bar using software, analytical
+distribution of shear force, experimental data obtained calculations of the
+bending moment and stress from a torsion test for the magnitude of shear force
+due to bending in simply angle of twist under loading. and bending moments in
+supported beams cantilever and encastre
+beams for given design
+P2 Justify the selection of
+applications.
+standard rolled steel sections
+for beams and columns
+P3 Calculate the distribution of
+shear stress and the angular
+deflection due to torsion in
+solid and hollow circular shafts.
+LO2 Analyse dynamic mechanical systems
+P4 Analyse the energy transfer D2 Evaluate the behaviour
+M2 Analyse dynamic aspects
+processes within mechanical of mechanical dynamic
+of given mechanical
+systems that are operating in systems by applying
+system(s) using vector
+appropriate
+uniform acceleration motion diagrams of velocities and
+methodologies.
+accelerations within planar
+P5 Analyse the magnitude and
+mechanisms.
+effect of gyroscopic reaction
+torque.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+69
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Investigate elements of simple mechanical power
+transmission systems
+P6 Investigate the behaviour of M3 Examine devices which D3 Evaluate the cause of
+compound gear systems and function to store mechanical a documented case of
+the holding torque required to energy in their operation. mechanical power
+securely mount a gearbox transmission failure, and
+the steps to correct the
+P7 Investigate the operating
+problem and to rectify
+efficiency of lead screws and
+any design faults.
+screw jacks
+P8 Explain the conditions
+required for a constant velocity
+ratio between two joined
+shafts.
+LO4 Analyse natural and damped vibrations within
+translational and rotational mass-spring systems
+P9 Analyse the natural M4 Analyse the transient D4 Determine the
+frequency of vibration in response within a mass- conditions needed for
+a mass-spring system. spring damper system. mechanical resonance,
+and proposed measures
+to prevent this from
+occurring.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+70
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Aremu B. (2023) Introduction to Mechanical Engineering Science: A solid foundation of
+sound engineering principles, analysis and technical problem-solving skills (Paperback).
+IngramSpark.
+Bird J. and Ross C. (2020) Mechanical Engineering Principles . 4th Ed. London: Routledge.
+Hibbeler R.C. (2023) Mechanics of Materials . SI Edition. 11th Ed. Pearson
+Hibbeler R.C. (2020) Engineering Mechanics: Dynamics and Statics . SI Edition. 14th Ed.
+Pearson.
+Moseley H. (2022) The Mechanical Principles of Engineering and Architecture (Paperback).
+Legare Street Press.
+Rao S.S. (2023) Mechanical Vibrations in SI Units . 6th Ed. Pearson
+Tooley M. and Dingle L. (2020) Engineering Science: For Foundation Degree and Higher
+National . 2nd Ed. London: Routledge.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+International Journal of Mechanical Sciences
+Journal of Mechanical Engineering
+Journal of Mechanical Engineering Research and Developments
+Journal of Mechanical Science and Technology
+Mechanical Engineering Journal
+Links
+This unit links to the following related units:
+Unit 4001: Engineering Design
+Unit 4002: Engineering Maths
+Unit 5003: Advanced Mechanical Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+71
+Issue 6 – October 2025 © Pearson Education Limited 2025

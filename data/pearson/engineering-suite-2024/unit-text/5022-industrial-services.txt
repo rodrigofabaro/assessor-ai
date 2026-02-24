@@ -1,0 +1,187 @@
+Unit 5022: Industrial Services
+Unit Code: K/615/1525
+Level: 5
+Credits: 15
+Introduction
+Behind the scenes in many modern-day manufacturing facilities there lies a complex
+system of services that powers production, both day and night. The underlying aim of
+this unit is to enhance the students’ understanding of the electrical supply systems,
+industrial air compressors, steam services, refrigeration systems and heat pumps
+that are used in an array of industrial engineering environments.
+This broad-based methodology reflects the fact that operations engineering
+encompasses many disciplines and, as such, engineers must be conversant in the
+wide scope of service provision. The intention is to encourage students to develop
+a holistic approach to the design, operation, installation and maintenance of both
+industrial services and operating equipment.
+The student will be introduced to the fundamental principles of electrical power and
+lighting systems, the rudiments of industrial compressed air systems, the provision
+of steam for both power generation and process plant, and the applications and
+precepts of refrigeration plant and heat pumps.
+On successful completion of this unit students will be able to manage and maintain
+a wide range of commonly encountered industrial systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+997
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Apply the operating principles of electrical power and lighting systems
+LO2 Investigate the applications and efficiency of industrial compressors
+LO3 Discuss provision of steam services for process and power use
+LO4 Review industrial refrigeration and heat pump systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+998
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Apply the operating principles of electrical power and lighting systems
+Electrical power:
+Construction, starting and speed control of polyphase induction motors
+Three-phase transformers: construction, clock number and group,
+parallel operation
+Electrical distribution: power system topologies, efficiency, power factor causes
+and correction, effect on cost of supplies, circuit protection.
+Lighting systems:
+Lighting fundamentals: SI units, energy efficient circuit design and layout.
+LO2 Investigate the applications and efficiency of industrial compressors
+Industrial compressors:
+Types and applications of industrial compressors
+Role of intercoolers, dryers and air receivers
+Efficiency and performance of air compressors
+Hazards and faults: safety consideration and associated legislation.
+LO3 Discuss the provision of steam services for process and power use
+Steam power plant:
+Use of tables and charts to analyse wet and dry saturated steam
+Circuit diagrams showing steam raising plant
+Process steam: enthalpy of evaporation, available energy
+Overall plant efficiencies for process
+Power steam: superheated steam, turbine efficiency, Rankine cycle,
+cooling towers
+Overall plant efficiency for power
+Efficiencies and improvements.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+999
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Review industrial refrigeration and heat pump systems.
+Heat pumps and refrigeration:
+Typical industrial heat pump and refrigeration systems
+Application of the second law of thermodynamics
+Reversed heat engines: reversed Carnot cycle
+Vapour compression cycle
+Refrigerant fluids: environmental impact
+Refrigeration tables and charts (p-h diagrams)
+Coefficient of performance for heat pumps and refrigerators.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1000
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Apply the operating principles of electrical power and
+lighting systems
+P1 Illustrate the construction M1 Compare the economics D1 Analyse the approaches
+and modes of connection of of single-phase and three- available for reducing
+three-phase transformers. phase distribution, and electrical energy
+assess the methods of speed consumption/costs in an
+P2 Discuss the applications
+control applied to polyphase industrial production facility.
+and operating characteristics
+induction motors.
+of polyphase induction
+motors.
+P3 Apply the principles of
+good lighting design to
+produce a lighting scheme
+for a given application.
+LO2 Investigate the applications and efficiency of industrial
+compressors
+P4 Compare three types M2 Calculate the isothermal D2 Stating any assumptions,
+of industrial compressor and polytropic work of a provide an explanatory
+and identify justifiable reciprocating compressor derivation of the volumetric
+applications for each. and thus deduce the efficiency formula for a
+isothermal efficiency. reciprocating compressor.
+P5 Review potential
+Explain any discrepancies.
+industrial compressor
+faults and hazards.
+P6 Determine the
+performance characteristics
+of an industrial compressor.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1001
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Discuss the provision of steam services for process and
+power use
+P7 Demonstrate the need M3 Illustrate why the D3 Evaluate the
+for superheated steam in Rankine cycle is preferred modifications made to the
+a power generating plant. over the Carnot cycle in basic steam raising systems
+steam production plants to improve their overall
+P8 Discuss the requirements
+around the world. efficiency.
+for process steam and
+determine overall plant
+efficiencies for steam
+process and power systems.
+LO4 Review industrial refrigeration and heat pump systems.
+P9 Discuss the operating
+M4 Assess the limiting D4 Conduct a cost-benefit
+principles of both heat
+factors that impact on the analysis on the installation of
+pumps and industrial
+economics of heat pumps. a ground source heat pump
+refrigeration systems. on a smallholding. Present
+M5 Discuss the apparent
+your findings in the form
+P10 Calculate COP, heating
+contradiction between
+of academic poster/
+effect and refrigeration refrigeration cycles and
+presentation.
+effect of reversed heat the second law.
+engines, making use of
+refrigeration tables and
+pressure/enthalpy charts.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1002
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Anderson A. (2020) Wind Turbines: Theory and Practice . Cambridge University Press.
+Cibse. (2002) Code for lighting . Butterworth-Heinemann.
+Dunn, D. (2001) Fundamental Engineering Thermodynamics . Longman.
+Eastop, T.D. and McConkey, A. (1996) Applied Thermodynamics for Engineering
+Technologists . 5th Ed. Prentice Hall.
+Hughes, A. (2013) Electric Motors and Drives: Fundamentals, Types and Applications.
+4th Ed. Newnes.
+Giampaolo T. (2024) Compressor Handbook: Principles and Practice. 2nd Ed. Routledge.
+Rogers, G.F.C. and Mayhew, Y.R. (1994) Thermodynamic and Transport Properties of
+Fluids: S. I. Units . 5th Ed. Wiley-Blackwell.
+Melkebeek, J.A. (2018) Electrical Machines and Drives. Springer.
+Websites
+http://www.freestudy.co.uk/ Free Study
+(Tutorials)
+Links
+This unit links to the following related units:
+Unit 4013: Fundamentals of Thermodynamics and Heat Engines
+Unit 5005: Further Thermodynamics
+Unit 5023: Thermofluids.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1003
+Issue 6 – October 2025 © Pearson Education Limited 2025

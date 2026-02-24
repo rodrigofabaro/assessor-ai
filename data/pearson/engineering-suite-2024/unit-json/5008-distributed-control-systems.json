@@ -1,0 +1,89 @@
+{
+  "code": "5008",
+  "title": "Distributed Control Systems",
+  "detectedTitle": "Distributed Control Systems",
+  "startPage": 911,
+  "endPage": 917,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explore the impact of automated systems in modern control processes"
+    },
+    {
+      "id": "LO2",
+      "description": "Evaluate the basic concepts, architecture, operation and communication of Distributed Control Systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Suggest appropriate techniques to specify and implement a simple Distributed Control System"
+    },
+    {
+      "id": "LO4",
+      "description": "Develop programmes to use machine interfaces to monitor and control the behaviour of a complex system."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "M4",
+      "P4",
+      "P5",
+      "P6"
+    ],
+    "LO3": [
+      "D3",
+      "M5",
+      "M6",
+      "P7",
+      "P8",
+      "P9"
+    ],
+    "LO4": [
+      "D4",
+      "M7",
+      "M8",
+      "P10",
+      "P11",
+      "P12"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "M7",
+    "M8",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11",
+    "P12"
+  ]
+}

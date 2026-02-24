@@ -1,0 +1,77 @@
+{
+  "code": "4001",
+  "title": "Engineering Design",
+  "detectedTitle": "Engineering Design",
+  "startPage": 24,
+  "endPage": 32,
+  "pageCount": 9,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Create a design specification for a given design brief that meets stakeholder’s requirements, along with a proposed design solution"
+    },
+    {
+      "id": "LO2",
+      "description": "Analyse possible technical solutions to implement the proposed design specification"
+    },
+    {
+      "id": "LO3",
+      "description": "Produce a design report considering all key aspects including manufacturability (or design for manufacturing and assembly) and environmental impact"
+    },
+    {
+      "id": "LO4",
+      "description": "Present the design solution to an audience, including evaluation of feedback and future improvements."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

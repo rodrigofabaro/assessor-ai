@@ -1,0 +1,75 @@
+{
+  "code": "5014",
+  "title": "Analogue Electronic Systems",
+  "detectedTitle": "Analogue Electronic Systems",
+  "startPage": 955,
+  "endPage": 962,
+  "pageCount": 8,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Analyse single stage analogue amplifier circuits to predict and measure, by simulation, the gain, frequency response and input and output resistances"
+    },
+    {
+      "id": "LO2",
+      "description": "Develop functional subsystems through an understanding of the characteristics of operational amplifiers"
+    },
+    {
+      "id": "LO3",
+      "description": "Assess techniques for the conversion of signals between analogue and digital formats"
+    },
+    {
+      "id": "LO4",
+      "description": "Design electronic circuits using physical components."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P2",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P4",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P6",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

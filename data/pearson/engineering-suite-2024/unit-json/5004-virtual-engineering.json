@@ -1,0 +1,75 @@
+{
+  "code": "5004",
+  "title": "Virtual Engineering",
+  "detectedTitle": "Computational Modelling in Virtual Engineering",
+  "startPage": 880,
+  "endPage": 887,
+  "pageCount": 8,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explore the capabilities and limitations of computer-based models in meeting design fundamentals and their use in solving problems in engineering."
+    },
+    {
+      "id": "LO2",
+      "description": "Develop finite element model(s) in order to find and solve potential structural or performance issues."
+    },
+    {
+      "id": "LO3",
+      "description": "Perform CFD simulations to evaluate pressure and velocity distributions within an engineering setting."
+    },
+    {
+      "id": "LO4",
+      "description": "Discuss faults in the application of simulation techniques to evaluate the modelling method and data accuracy."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "P2",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P4",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "M6",
+      "P6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

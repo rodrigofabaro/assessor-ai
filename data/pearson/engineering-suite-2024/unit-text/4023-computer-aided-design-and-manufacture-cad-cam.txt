@@ -1,0 +1,256 @@
+Unit 4023: Computer Aided Design and
+Manufacture (CAD/CAM)
+Unit Code: A/651/0744
+Level: 4
+Credits: 15
+Introduction
+The capacity to quickly produce finished components from a software model is now
+essential in the competitive world of manufacturing. Businesses now invest heavily in
+Computer Aided Design (CAD) software, Computer Aided Manufacture (CAM) software
+and Computer Numerical Control (CNC) machines (Additive Manufacture (AM)) and
+subtractive machining) to facilitate this, thus reducing product lead times. CAD gives
+design engineers the platform to creatively model components that meet the specific
+needs of the consumer. When these models are combined with CAM software,
+manufacturing is made a reality.
+This unit introduces students to all the stages of the CAD/CAM process and to
+the process of modelling components using CAD software specifically suitable
+for transferring to CAM software. Among the topics included in this unit are:
+programming methods, component set-up, tooling, solid modelling, geometry
+manipulation, component drawing, importing solid model, manufacturing simulation,
+data transfer, CNC machine types, and inspections.
+On successful completion of this unit students will be able to learn about the
+key principles of manufacturing using a CAD/CAM system; 3D solid models of a
+component suitable for transfer into a CAM system; CAM software to generate
+manufacturing simulations of a component; and designing a dimensionally
+accurate component on a CNC machine or AKM system using a CAD/CAM system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+171
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Describe the key principles of manufacturing using a CAD/CAM system
+LO2 Prepare 3D solid models of a component suitable for transfer into a
+CAM system
+LO3 Use CAM software to generate manufacturing simulations of a component
+LO4 Produce a dimensionally accurate component on a CNC/AM machine using
+a CAD/CAM system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+172
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Describe the key principles of manufacturing using a CAD/CAM system
+Hardware:
+CAD workstation, printers, USB flash drives and network cables.
+Software:
+Operating systems, hard disk requirements, processor, CAD software
+e.g., SolidWorks, Autodesk Inventor, CATIA, Creo, Siemens NX; CAM software
+e.g., FeatureCam, Edgecam, GibbsCAM, SolidCAM, Cura.
+Inputs:
+CAD model, material specifications, tooling data, spindle speeds and feed rate
+data calculations, STL file, sliced 3D models (infill, wall thicknesses, material,
+speeds).
+Outputs:
+CAM files (eg .stp file), program code (gcode) and coordinates, manufacturing
+sequences, tooling requirements, auxiliary data.
+Programming methods:
+CAD/CAM, manual programming, conversational programming.
+Component set-up:
+Zero datum setting, tool set-up and offsets, axis of movements.
+Work-holding:
+Machine vice, chuck, fixtures, clamping, jigs.
+Tooling:
+Milling cutters, lathe tools, drills, specialist tooling, tool holders, tool turrets
+and carousels.
+Overview of emerging technologies:
+Industry case studies (e.g., Additive Manufacturing/3D printing).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+173
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Prepare 3D solid models of a component suitable for transfer into a CAM
+system
+Solid modelling:
+Sketch commands, extrude, cut, holes, sweep, revolve, shell, fillet, chamfer. Use
+lines, arcs, points, construction planes to generate surface forms. Assign material
+to review properties of solid models e.g., mass, centre of gravity, surface area.
+Geometry manipulation:
+Mirror, drag, rotate, copy, array, offset. Model tree manipulation and reordering.
+Component/Assembly drawing:
+Set-up template, orthographic and multi-view drawings, including sections,
+detail and exploded views, scale, dimensions, drawing from 3D model data.
+Implementation of BS8888 (UK’s national framework standard for engineering
+drawings and geometrical tolerancing)
+Attributes e.g., Notes, Bill of Materials (BOM), material, reference points,
+tolerances, finish, nomenclature (naming convention, e.g. part numbering).
+LO3 Use CAM software to generate manufacturing simulations of a component
+Import solid model:
+Set-up, model feature and geometry identification, stock size, material.
+Manufacturing simulation:
+Operations e.g., roughing and finishing, pockets, slots, profiling, holes, tool and
+work change positions, tool sizes and IDs, speeds and feeds, cutter path
+simulations, program editing
+CADCAM used in production of Additive Manufacturing (3D Printing)
+Use of Industry 4.0 and CAD/CAM: connectivity, advanced toolpaths, testing;
+integration of systems through simulation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+174
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Produce a dimensionally accurate component on a CNC/AM machine using
+a CAD/CAM system
+CNC machine types:
+Machining centres, turning centres, hybrid machining (e.g. Mazak, HAAS, Meltio),
+Robotic arm/gantry routers, MCUs e.g., Fanuc, Siemens, and Heidenheim.
+AM machine types:
+FDM, SLS, SLM, SLA (VP), DED, L-PBF, EB-PBF.
+Data transfer:
+Structured data between CAD and CAM software e.g., datum position and model
+orientation; file types e.g., SLDPRT, parasolid, STL, IGES, STEP, DXF, gcode;
+transfer to CNC machine e.g., network, USB, Ethernet, Dashboard UI.
+Inspection:
+Manual inspection e.g., using Micrometer, Vernier gauges, bore micrometres,
+thread gauge, radius guage, go-no-go gauge.
+Automated inspection e.g., co-ordinate measuring machine (CMM), stages of
+inspection throughout manufacturing process, Machine Vision inspection,
+metrology level 3D scanner.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+175
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Describe the key principles of manufacturing using a
+CAD/CAM system
+P1 Describe the hardware M1 Analyse the suitability of D1 Critically evaluate,
+and software elements of a different programming using illustrative examples,
+typical CAD/CAM system. methods of CNC/AM the impact of different
+machines. machining conditions
+P2 Describe, with examples,
+and specifications
+the inputs and outputs of the
+on component
+CAD/CAM process.
+manufacturing.
+P3 Explain the different
+methods of component set-
+up, work-holding/build plate
+adhesion and tooling/nozzle
+type/configuration available
+on CNC/AM machines.
+LO2 Prepare 3D solid models of a component suitable for
+transfer into a CAM system
+P4 Prepare a CAD solid model M2 Assess the importance D2 Critically evaluate the
+of a component or multi-part of using different geometry effectiveness of using a
+assembly to be manufactured manipulation methods for CAD/CAM system and
+on a computer numerically efficient model production. solid modelling to
+controlled systems. manufacture components.
+M3 Analyse accuracy aspects
+P5 Design a working drawing of drawing to aid inspection.
+of a component/assembly
+containing specific
+manufacturing detail.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+176
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Use CAM software to generate manufacturing simulations
+of a component
+P6 Use CAM software to M4 Using CAM software, D3 Analyse the effect
+generate a geometrically generate cutter tool path of applying different
+accurate CAD solid model simulations. manufacturing techniques
+of a component. and modifications to
+M5 Review sliced file/toolpath,
+achieve an optimised
+part orientation, infill,
+production time.
+supports, wall thickness,
+build plate adhesion.
+LO4 Produce a dimensionally accurate component on a
+CNC/AM machine using a CAD/CAM system
+P7 Produce a part program M6 Compare different D4 Critically analyse, giving
+for a component using CAM methods of component illustrative examples, the
+software and transfer the inspection used in different methods of data
+part program to a CNC/AM manufacturing. transfer through a
+machine and manufacture CAD/CAM system.
+a component.
+P8 Describe the structural
+elements of a CNC Machining
+Centre or 3D Printer.
+P9 Review a component
+manufactured on a CNC/
+AM machine to verify its
+accuracy.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+177
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bethune J.D. (2019) Engineering Design Graphics with Autodesk Inventor 2020 .
+1st Ed. Pearson.
+Bi Z. and Wang X. (2020) Computer Aided Design and Manufacturing . Wiley.
+BS 8888 (2017) Technical product documentation and specification .
+Chang K.H. (2021) Virtual Machining Using CAMWorks 2021 − CAMWorks as a
+SOLIDWORKS Module . 1st Ed. SDC Publications.
+Chitale A.K. and Gupta R.C. (2023) Product design and manufacturing .
+PHI Learning Pvt. Ltd.
+Confalone G.C., Smits J. and Kinnare T. (2023) 3D Scanning for Advanced Manufacturing,
+Design, and Construction . Wiley.
+Groover M.P. (2020) Fundamentals of modern manufacturing: materials, processes,
+and systems . John Wiley & Sons.
+Metwalli S.M. (2021) Machine Design with CAD and Optimization . Wiley.
+Omura G. and Benton B.C. (2014) Mastering AutoCAD 2015 and AutoCAD
+LT 2015 Essentials . Autodesk Official Press
+Pitroda H. P (2019) Computer Aided Design: Textbook and Practice book .
+Walnut publication
+Sarkar J., (2014). Computer aided design: a conceptual approach . CRC Press.
+Shih R.H. (2024) Principles and Practice: An Integrated Approach to Engineering Graphics
+and AutoCAD 2024 . 1st Ed. SDC Publications.
+Simmons C.H., Dennis E. and Maguire N.P. (2020) Manual of Engineering Drawing-
+British and International Standards. 5th Ed. Butterworth-Heinemann.
+Stark J. (2021) What Every Engineer Should Know about Practical CAD/CAM Applications.
+CRC Press.
+Zeus Precision Charts Ltd. (2007) Zeus Precision Data Charts and Reference Tables for
+Drawing Office, Toolroom & Workshop . Metric Revision.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+178
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals:
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+CAD Journal – CAD and Applications
+Computer-Aided Design
+Computer-Aided Design and Applications
+International journal of Computer Integrated manufacturing
+International Journal of CAD/CAM
+Links
+This unit links to the following related units:
+Unit 4001: Engineering Design
+Unit 4027: CAD for maintenance Engineers
+Unit 4034: Computer Aided Design (CAD) for Engineering
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+179
+Issue 6 – October 2025 © Pearson Education Limited 2025

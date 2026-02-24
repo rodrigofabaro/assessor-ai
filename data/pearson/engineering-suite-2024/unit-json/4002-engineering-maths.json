@@ -1,0 +1,73 @@
+{
+  "code": "4002",
+  "title": "Engineering Maths",
+  "detectedTitle": "Engineering Mathematics",
+  "startPage": 33,
+  "endPage": 40,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Apply a variety of mathematical methods to a range of engineering and manufacturing sector problems"
+    },
+    {
+      "id": "LO2",
+      "description": "Investigate applications of statistical and probability techniques to interpret, organise, and present data"
+    },
+    {
+      "id": "LO3",
+      "description": "Use analytical and computational methods for solving engineering and manufacturing sector problems by relating sinusoidal wave and vector functions to their respective applications"
+    },
+    {
+      "id": "LO4",
+      "description": "Examine how differential and integral calculus can be used to solve engineering and manufacturing sector problems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D2",
+      "M3",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D3",
+      "M4",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

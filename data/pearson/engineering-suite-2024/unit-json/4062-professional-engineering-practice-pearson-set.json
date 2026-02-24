@@ -1,0 +1,73 @@
+{
+  "code": "4062",
+  "title": "Professional Engineering Practice (Pearson-set)",
+  "detectedTitle": "Professional Engineering Practice",
+  "startPage": 490,
+  "endPage": 499,
+  "pageCount": 10,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Determine the roles, responsibilities and competences of the professional engineer"
+    },
+    {
+      "id": "LO2",
+      "description": "Describe the regulatory, legislative and ethical frameworks that govern the work of the professional engineer"
+    },
+    {
+      "id": "LO3",
+      "description": "Review the roles of communication, team working and leadership in the development of professional engineers"
+    },
+    {
+      "id": "LO4",
+      "description": "Discuss how professional engineers can develop holistic approaches to the sustainability of manufacturing processes."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

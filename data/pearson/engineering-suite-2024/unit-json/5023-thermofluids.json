@@ -1,0 +1,79 @@
+{
+  "code": "5023",
+  "title": "Thermofluids",
+  "detectedTitle": "Thermofluids",
+  "startPage": 1020,
+  "endPage": 1026,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Evaluate industrial thermodynamic systems and their properties"
+    },
+    {
+      "id": "LO2",
+      "description": "Examine the operation of practical steam and gas turbine plants"
+    },
+    {
+      "id": "LO3",
+      "description": "Illustrate the effects of viscosity in fluids"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse fluid systems and hydraulic machines."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5",
+      "P6"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P7",
+      "P8"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P9",
+      "P10",
+      "P11"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11"
+  ]
+}

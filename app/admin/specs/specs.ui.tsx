@@ -275,14 +275,24 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
 }
 
 export function SpecViewer({ selectedDoc, learningOutcomes }: { selectedDoc: ReferenceDocument | null; learningOutcomes: any[] }) {
+  const isPearsonSuiteBulkImport =
+    String((selectedDoc?.sourceMeta as any)?.importSource || "") === "pearson-engineering-suite-2024";
+  const pearsonCriteriaDescriptionsVerified = Boolean((selectedDoc?.sourceMeta as any)?.criteriaDescriptionsVerified);
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
       <h2 className="text-sm font-semibold">Specification preview</h2>
       {!selectedDoc ? (
         <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">Select a specification to view extracted learning outcomes and criteria.</div>
       ) : learningOutcomes.length ? (
-        <div className="mt-3 max-h-[68vh] overflow-auto pr-1">
+        <div className="mt-3 space-y-3">
+          {isPearsonSuiteBulkImport && !pearsonCriteriaDescriptionsVerified ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              Pearson bulk import safety mode: LOs and criteria codes are shown, but some criterion descriptions are hidden until the Pearson 3-column table parser is upgraded (to avoid misleading mixed text).
+            </div>
+          ) : null}
+          <div className="max-h-[68vh] overflow-auto pr-1">
           <LoCriteriaGrid learningOutcomes={learningOutcomes} />
+          </div>
         </div>
       ) : (
         <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">No extracted structure available. Run Extract to generate learning outcomes and criteria.</div>

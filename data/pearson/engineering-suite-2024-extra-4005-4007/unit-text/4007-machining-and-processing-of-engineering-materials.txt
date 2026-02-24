@@ -1,0 +1,240 @@
+Unit 4007: Machining and Processing of
+Engineering Materials
+Unit Code: D/651/0718
+Level: 4
+Credits: 15
+Introduction
+Practical articles that we see and use every day such as automobiles, aircraft, trains,
+and even the cans we use to store our food, came from the ideas and visions of
+engineers and designers. The production of these articles is based on well-established
+production processes, machines, and materials.
+The aim of this unit is to introduce students to the application of a variety of material
+forming processes involved in the production of components and articles for everyday
+use. Among the topics included in this unit are: conventional machining, additive layer
+manufacturing (ALM), shaping and moulding processes used in the production of
+components, machine tooling, jigs and fixtures required to support the manufacture
+of components, using metallic and non-metallic materials such as polymers and
+composites.
+On successful completion of this unit students will be able to describe moulding,
+shaping, and forging, ALM manufacturing processes, explain the importance of
+material selection, and summarise the impact machining processes have on the
+physical properties of a component.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+57
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explore the conventional machining, additive manufacture and forming
+processes and their application in the production of engineered components
+LO2 Explain how component materials, metals and non-metals, affect the selection
+of the most appropriate machining or forming process
+LO3 Examine the most appropriate machine tooling, jigs and fixtures to support the
+production of an engineered component
+LO4 Discuss the most appropriate moulding and shaping process used to produce
+a range of metal and non-metal engineered components.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+58
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explore the conventional machining, additive manufacture and forming
+processes and their application in the production of engineered
+components
+Manufacturing processes:
+Material removal machining processes including: conventional manual
+processes, CNC machining and erosion machining technologies
+Selection of machining processes to generate geometrical forms: flat and
+cylindrical geometry
+Additive manufacture principles, techniques (e.g., 3D printing,), processes and
+applications; virtual machining/forming technologies and example case studies
+Impact of material removal rate on surface finish and texture and speed of
+production
+Consideration of the effect of production volume (prototypes, batch, and high
+volume) on the selection of the most appropriate process, tooling and resource
+commitment
+Safe working practices when operating machining and process forming
+equipment.
+LO2 Explain how component materials, metals and non-metals, affect the
+selection of the most appropriate machining or forming process
+Material choice and machine process:
+Impact of material types on the choice of machining process including: round,
+square and hexagonal bar, tube, plate, section and pre-cast
+Effective of post processing activities of additive layer manufactured parts,
+e.g. hot isostatic pressing and shot peening.
+Machining characteristics when using polymers, composites, non-ferrous and
+ferrous metals and exotic materials
+Composites for machining/forming, latest advancements in composites
+How the mechanical properties of the component material can be affected by
+the machining process
+Effect of lubricants, coolants and cutting fluids on tooling, production speed,
+and quality of finish.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+59
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Examine the most appropriate machine tooling, jigs and fixtures to support
+the production of an engineered component
+Awareness of the range of cutting tools:
+Factors that prolong tool life, increased material removal rate and improved
+surface finish
+Properties for cutting tool materials
+Cause and effect of premature and catastrophic tool failure, preventative
+measures to promote tool life.
+Cutting forces and the mechanics of chip formation:
+Factors that affect cutting speeds and feeds, calculating cutting speeds and feeds
+Relationship between cutting speed and tool life, economics of metal removal
+Range of tooling jigs and fixtures including mechanical, magnetic, hydraulic and
+pneumatic
+Work-holding: six degrees of freedom.
+LO4 Discuss the most appropriate moulding and shaping process used to
+produce a range of metal and non-metal engineered components
+Moulding and shaping processes:
+Range of metal and ceramic powder moulding and shaping processes
+Casting, powder metallurgy and sintering
+Range of plastic moulding and shaping processes: blow, compression, extrusion,
+injection, laminating, reaction injection, matrix, rotational, spin casting, transfer
+and vacuum forming
+Discuss in groups industry case studies and good practices in producing metal
+and non-metal engineered components.
+Range, benefits and limitations of various shaping processes:
+Extrusion, forging, rolling, hot and cold presswork.
+Range of casting processes:
+Sand, permanent mould, investment, lost foam, die, centrifugal, glass and slip
+casting.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+60
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explore the conventional machining, additive
+manufacture and forming processes and their application in
+the production of engineered components
+P1 Explain the most M1 Analyse the D1 Evaluate the benefits
+appropriate machining or characteristics of and limitations of
+additive manufacture process conventional machining components manufactured
+to manufacture a selected processes, additive using conventional
+component manufacture processes, machining, additive
+plastic moulding processes manufacture and moulding
+P2 Explore the reasons why
+and powder metallurgy processes.
+a specific moulding process
+used in producing
+would be used to manufacture
+components.
+a selected component.
+LO2 Explain how component materials, metals and non-
+metals, affect the selection of the most appropriate
+machining or forming process
+P3 Explain how the M2 Detail the D2 Evaluate the structure
+manufacturing process can characteristics of cutting and mechanical properties
+affect the structure and tool geometries of a given engineered
+properties of the parent component manufactured
+M3 Examine why different
+material using the die-casting
+tool geometries are
+process and conventional
+P4 Describe the effect required for different
+material-removal
+lubricants, coolants and material types.
+machining processes.
+cutting fluids have on tooling,
+production speed, and quality
+of finish.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+61
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Examine the most appropriate machine tooling, jigs and
+fixtures to support the production of an engineered
+component
+P5 Examine the parameters of M4 Analyse the properties D3 Critique the relationship
+metal removal that determine and modes of failure of between metal removal
+the appropriate tooling for modern cutting tools used rate and tool life on the
+the production of a given in machining operations. economics of material
+engineered component removal.
+P6 Describe the range of
+tooling jigs and fixtures
+needed to retain a component
+during manufacture to
+mitigate possible failures
+linked to the cutting tools
+employed during the process.
+LO4 Discuss the most appropriate moulding and shaping
+process used to produce a range of metal and non-metal
+engineered components.
+P7 Explain which material M5 Analyse each of the D4 Evaluate how the
+characteristics determine the stages of the moulding composition and structure
+choice of moulding processes process and comment on of metal alloys, polymers
+the benefits associated with and polymer matrix
+P8 Discuss the benefits
+this manufacturing process. composites are affected by
+and limitations of products
+the material machining or
+manufactured by sintering
+forming process.
+and moulding processes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+62
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bhattacharyya B. and Doloi B. (2019) Modern machining technology: Advanced, hybrid,
+micro machining and super finishing technology . Academic Press.
+Chang K.H. (2021) Virtual Machining Using CAMWorks 2021: CAMWorks as a solidworks
+Module . 1st Ed. SDC Publications.
+Gajrani K.K., Prasad A. and Kumar A. (2022) Advances in Sustainable Machining
+and Manufacturing Processes. 1st Ed. CRC Press.
+Gibson I., Rosen D., Khorasani M. and Stucker B. (2020) Additive Manufacturing
+Technologies: 3D Printing, Rapid Prototyping, and Direct Digital Manufacturing . 3rd Ed.
+Cham, Switzerland: Springer Nature.
+Groover M.P. (2020) Fundamentals of Modern Manufacturing: Materials, Processes,
+And Systems . John Wiley and Sons.
+Gupta K. and Davim J.P. (2020) High-Speed Machining. 1st Ed. Academic Press.
+Huda Z. (2021) Machining Processes and Machines: Fundamentals, Analysis,
+and Calculations . 1st Ed. CRC Press.
+Kalpakjian S. and Schmid R.S. (2013) Manufacturing Engineering and Technology .
+th
+7 Ed. Pearson.
+Nayak R.K., Pradhan M.K. and Sahoo A.K. (2022) Machining of Nanocomposites.
+1st Ed. CRC Press.
+Pramanik A. (2021) Machining and Tribology: Processes, Surfaces, Coolants,
+and Modeling. 1st Ed. Elsevier.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+International Journal of Machining and Machinability of Materials
+International Journal of Machine Tools and Manufacture
+Journal of Materials: Design and Applications ,
+Machining Science and Technology
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+63
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4009: Materials, Properties and Testing
+Unit 4010: Mechanical Workshop Practices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+64
+Issue 6 – October 2025 © Pearson Education Limited 2025

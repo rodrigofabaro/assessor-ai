@@ -1,0 +1,71 @@
+{
+  "code": "4006",
+  "title": "Mechatronics",
+  "detectedTitle": "Mechatronics",
+  "startPage": 66,
+  "endPage": 72,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explain the design and operational characteristics of a mechatronic system"
+    },
+    {
+      "id": "LO2",
+      "description": "Produce a mechatronic system design specification for a given application"
+    },
+    {
+      "id": "LO3",
+      "description": "Examine the operation and function of a mechatronics system using simulation and modelling software"
+    },
+    {
+      "id": "LO4",
+      "description": "Demonstrate fault finding skills and fault analysis on a mechatronic system."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P4"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P5",
+      "P6"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ]
+}

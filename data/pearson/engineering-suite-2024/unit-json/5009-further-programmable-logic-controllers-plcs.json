@@ -1,0 +1,77 @@
+{
+  "code": "5009",
+  "title": "Further Programmable Logic Controllers (PLCs)",
+  "detectedTitle": "Further Programmable Logic Controllers (PLCs)",
+  "startPage": 918,
+  "endPage": 923,
+  "pageCount": 6,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Discuss the selection of a specific PLC for a given industrial application"
+    },
+    {
+      "id": "LO2",
+      "description": "Evaluate how PLCs exchange information and process signals with other devices"
+    },
+    {
+      "id": "LO3",
+      "description": "Design a PLC programme to solve an industrial process problem for a given application"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse alternative strategies using other types of programmable control devices in industrial applications."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "M5",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M6",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

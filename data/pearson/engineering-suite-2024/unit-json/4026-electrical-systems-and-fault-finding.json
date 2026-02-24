@@ -1,0 +1,67 @@
+{
+  "code": "4026",
+  "title": "Electrical Systems and Fault Finding",
+  "detectedTitle": "Electrical Systems and Fault Finding",
+  "startPage": 211,
+  "endPage": 218,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Investigate the key constructional features and applications of electrical systems, including identification and resolution of potential faults"
+    },
+    {
+      "id": "LO2",
+      "description": "Examine the types, applications, and common fault-finding methodologies of electrical motors and generators"
+    },
+    {
+      "id": "LO3",
+      "description": "Analyse potential faults and fault diagnostics in the various types of lighting circuits available in the industry by assessing their practical application"
+    },
+    {
+      "id": "LO4",
+      "description": "Discuss the operating characteristics of electrical safety components including evaluation of their effectiveness through fault-finding techniques."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4",
+      "P5"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5"
+  ]
+}

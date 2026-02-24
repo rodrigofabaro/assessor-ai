@@ -1,0 +1,187 @@
+Unit 4024: Electro, Pneumatic and
+Hydraulic Systems
+Unit Code: F/651/0746
+Level: 4
+Credits: 15
+Introduction
+Hydraulics and pneumatics incorporate the importance of fluid power theory in
+modern industry. This is the technology that deals with the generation, control, and
+movement of mechanical elements or systems with the use of pressurised fluids in
+a confined system. In respect of hydraulics and pneumatics, both liquids and gases
+are considered fluids. Oil hydraulics employs pressurised liquid petroleum oils and
+synthetic oils, whilst pneumatic systems employ an everyday recognisable process
+of releasing compressed air to the atmosphere after performing the work.
+The aim of this module is to develop students’ knowledge and appreciation of the
+applications of fluid power systems in modern industry. Students will investigate and
+design pneumatic, hydraulic, electro-pneumatic and electro-hydraulic systems. This
+unit offers the opportunity for students to examine the characteristics of fluid power
+components and evaluate work-related practices and applications of these systems.
+On successful completion of this unit students will be able to learn about applications
+of hydraulic and pneumatic systems in the production industry, fundamental
+principles and practical techniques for obtaining solutions to problems, real-life
+applications of pneumatic and hydraulic systems, and the importance of structured
+maintenance techniques.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+180
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Calculate the parameters of pneumatic and hydraulic systems
+LO2 Illustrate the notation and symbols of pneumatic and hydraulic components
+LO3 Examine the applications of pneumatic and hydraulic systems
+LO4 Investigate the maintenance of pneumatic and hydraulic systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+181
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Calculate the parameters of pneumatic and hydraulic systems
+Pneumatic and hydraulic theory:
+Combined and ideal gas laws: Boyle’s Law, Charles’ Law and Gay-Lussac’s Law
+Fluid flow, calculation of pressure and velocity using Bernoulli’s Equation for
+Newtonian fluids
+System performance, volumetric operational and isothermal efficiency
+Dynamic and Kinematic Viscosity
+Methods of measuring viscosity including Stokes’ Law
+Navier Stokes Equations.
+LO2 Illustrate the notation and symbols of pneumatic and hydraulic
+components
+Performance of hydraulic and pneumatic components:
+The use and importance of International Standards, including relative symbols
+and devices
+Fluid power diagrams
+Pneumatic and hydraulic critical equipment and their purpose
+Circuit diagrams, component interaction and purpose
+Dynamics of modern system use.
+LO3 Examine the applications of pneumatic and hydraulic systems
+System applications:
+Calculation of appropriate capacities and specifications
+Applied functions of control elements
+Design and testing of hydraulic and pneumatic systems
+Fluid power in real-life examples
+Valued component choice
+Alternative actuating systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+182
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Investigate the maintenance of pneumatic and hydraulic systems
+Efficiency of systems:
+Efficient maintenance: accurate records and procedures to ensure efficiency
+Functional inspection, modern techniques to limit production problems,
+quality control
+Testing, efficient procedures to enable component longevity, recommendations
+Fault finding, diagnostic techniques, effects of malfunctions, rectification of faults
+Use relevant problem-solving tools where applicable e.g root cause analysis
+(RCA), process failure modes effects analysis (PFMEA), fishbone, practical
+problem solving (PPS) and advanced product quality planning (APQP)
+Job market and opportunities for efficiency and maintenance of pneumatic
+and hydraulic systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+183
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Calculate the parameters of pneumatic and hydraulic
+systems
+P1 Calculate the change in M1 Using Bernoulli’s Equation, D1 Develop a presentation
+volume and pressure in calculate values at stationary analysing fluid viscosity
+pneumatic systems. incompressible flow. using Stokes’ law and
+validate how this relates
+P2 Determine the change in
+to Navier–Stokes
+volume and pressure in
+equations.
+hydraulic systems.
+LO2 Illustrate the notation and symbols of pneumatic and
+hydraulic components
+P3 Show the purpose of M2 Assess the different D2 Stating any
+components on a given factors that impact on assumptions, compare the
+diagram. actuator choice for a given applications of practical
+application. hydraulic and pneumatic
+P4 Explain the use of logic
+systems.
+functions used within circuits.
+P5 Illustrate the use of
+advanced functions and their
+effect on circuit performance.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+184
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Examine the applications of pneumatic and hydraulic
+systems
+P6 Examine the design M3 Justify the measures taken D3 Propose the design
+and function of a hydraulic or to improve circuit design in modifications that
+pneumatic system employed respect of performance. can be introduced
+in a modern production to improve the
+environment. functionality and
+maintenance of
+P7 Define the purpose and
+pneumatic and hydraulic
+function of electrical control
+systems without creating
+elements in a given hydraulic
+reliability issues.
+or pneumatic system.
+LO4 Investigate the maintenance of pneumatic and hydraulic
+systems
+P8 Recognise system faults M4 Compare construction and D4 Evaluate the
+and potential hazards in operation of hydraulic and importance of
+pneumatic and hydraulic pneumatic systems with maintenance, inspection,
+systems. regards to legislation and testing and fault-finding in
+safety issues. respect of improved
+P9 Investigate procedures to
+system performance.
+ensure efficient maintenance
+and operation of pneumatic
+and hydraulic systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+185
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Esposito A. (2013) Fluid Power with Applications , 7th Ed. Pearson
+Parr E. A. (2011) Hydraulics and Pneumatics – A Technician’s and Engineer’s Guide .
+3rd Ed. Oxford: Butterworth-Heinemann.
+Mills D. (2015) Pneumatic Conveying Design Guide . 3rd Ed. Elsevier.
+Turner I.C. (2021) Engineering applications of pneumatics and hydraulic s. Routledge.
+Salam M.A. (2022) Fundamentals of Pneumatics and Hydraulics . Springer.
+Vacca A. and Franzoni G. (2021) Hydraulic fluid power: fundamentals, applications,
+and circuit design . John Wiley & Sons.
+Stryczek J. and Warzyńska U. (Editors) (2020) Advances in Hydraulic and Pneumatic
+Drives and Control 2020 . Springer Nature.
+Parambath J. (2020) Electro-Pneumatics and Automation .
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Experiments in Fluids
+International Journal of Fluid Power
+Journal of Hydraulic Engineering
+Journal of Hydraulic Research
+Links
+This unit links to the following related units:
+Unit 4011: Fluid Mechanics
+Unit 5023: Thermofluids.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+186
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,75 @@
+{
+  "code": "4007",
+  "title": "Machining and Processing of Engineering Materials",
+  "detectedTitle": "Machining and Processing of Engineering Materials",
+  "startPage": 73,
+  "endPage": 80,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explore the conventional machining, additive manufacture and forming processes and their application in the production of engineered components"
+    },
+    {
+      "id": "LO2",
+      "description": "Explain how component materials, metals and non-metals, affect the selection of the most appropriate machining or forming process"
+    },
+    {
+      "id": "LO3",
+      "description": "Examine the most appropriate machine tooling, jigs and fixtures to support the production of an engineered component"
+    },
+    {
+      "id": "LO4",
+      "description": "Discuss the most appropriate moulding and shaping process used to produce a range of metal and non-metal engineered components."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

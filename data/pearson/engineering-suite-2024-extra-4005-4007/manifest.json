@@ -1,0 +1,1396 @@
+{
+  "generatedAt": "2026-02-24T17:26:15.617Z",
+  "sourcePdfPath": "data/pearson/source/btec-hncd-unit-descriptor-engineering-suite-2024.pdf",
+  "sourceListPath": "data/pearson/unit-lists/engineering-extra-4005-4007.json",
+  "sourcePdfPageCount": 1443,
+  "detectedUnitCount": 176,
+  "selectedRequestedCount": 2,
+  "selectedExtractedCount": 2,
+  "missingRequestedUnits": [],
+  "selectedUnits": [
+    {
+      "code": "4005",
+      "requestedTitle": "Renewable Energy",
+      "detectedTitle": "Renewable Energy",
+      "title": "Renewable Energy",
+      "startPage": 59,
+      "endPage": 65,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024-extra-4005-4007/unit-pdfs/4005-renewable-energy.pdf",
+      "textPath": "data/pearson/engineering-suite-2024-extra-4005-4007/unit-text/4005-renewable-energy.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024-extra-4005-4007/unit-json/4005-renewable-energy.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explore potential renewable energy resources and technologies"
+        },
+        {
+          "id": "LO2",
+          "description": "Determine the optimum combination and efficiencies of renewable energy technologies for a particular location"
+        },
+        {
+          "id": "LO3",
+          "description": "Conduct a cost-benefit analysis to determine the most viable option between renewable and conventional energy sources"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse the socio-economic, legislative, and environmental factors in selecting appropriate renewable energy technologies."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ]
+    },
+    {
+      "code": "4007",
+      "requestedTitle": "Machining and Processing of Engineering Materials",
+      "detectedTitle": "Machining and Processing of Engineering Materials",
+      "title": "Machining and Processing of Engineering Materials",
+      "startPage": 73,
+      "endPage": 80,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024-extra-4005-4007/unit-pdfs/4007-machining-and-processing-of-engineering-materials.pdf",
+      "textPath": "data/pearson/engineering-suite-2024-extra-4005-4007/unit-text/4007-machining-and-processing-of-engineering-materials.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024-extra-4005-4007/unit-json/4007-machining-and-processing-of-engineering-materials.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explore the conventional machining, additive manufacture and forming processes and their application in the production of engineered components"
+        },
+        {
+          "id": "LO2",
+          "description": "Explain how component materials, metals and non-metals, affect the selection of the most appropriate machining or forming process"
+        },
+        {
+          "id": "LO3",
+          "description": "Examine the most appropriate machine tooling, jigs and fixtures to support the production of an engineered component"
+        },
+        {
+          "id": "LO4",
+          "description": "Discuss the most appropriate moulding and shaping process used to produce a range of metal and non-metal engineered components."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    }
+  ],
+  "allDetectedUnits": [
+    {
+      "code": "4001",
+      "title": "Engineering Design",
+      "startPage": 24,
+      "endPage": 32,
+      "pageCount": 9
+    },
+    {
+      "code": "4002",
+      "title": "Engineering Mathematics",
+      "startPage": 33,
+      "endPage": 40,
+      "pageCount": 8
+    },
+    {
+      "code": "4003",
+      "title": "Engineering Science I",
+      "startPage": 41,
+      "endPage": 49,
+      "pageCount": 9
+    },
+    {
+      "code": "4004",
+      "title": "Managing a Professional Engineering Project",
+      "startPage": 50,
+      "endPage": 58,
+      "pageCount": 9
+    },
+    {
+      "code": "4005",
+      "title": "Renewable Energy",
+      "startPage": 59,
+      "endPage": 65,
+      "pageCount": 7
+    },
+    {
+      "code": "4006",
+      "title": "Mechatronics",
+      "startPage": 66,
+      "endPage": 72,
+      "pageCount": 7
+    },
+    {
+      "code": "4007",
+      "title": "Machining and Processing of Engineering Materials",
+      "startPage": 73,
+      "endPage": 80,
+      "pageCount": 8
+    },
+    {
+      "code": "4008",
+      "title": "Mechanical Principles",
+      "startPage": 81,
+      "endPage": 87,
+      "pageCount": 7
+    },
+    {
+      "code": "4009",
+      "title": "Materials, Properties and Testing",
+      "startPage": 88,
+      "endPage": 94,
+      "pageCount": 7
+    },
+    {
+      "code": "4010",
+      "title": "Mechanical Workshop Practices",
+      "startPage": 95,
+      "endPage": 101,
+      "pageCount": 7
+    },
+    {
+      "code": "4011",
+      "title": "Fluid Mechanics",
+      "startPage": 102,
+      "endPage": 108,
+      "pageCount": 7
+    },
+    {
+      "code": "4012",
+      "title": "Engineering Management",
+      "startPage": 109,
+      "endPage": 114,
+      "pageCount": 6
+    },
+    {
+      "code": "4013",
+      "title": "Fundamentals of Thermodynamics and Heat Transfer",
+      "startPage": 115,
+      "endPage": 120,
+      "pageCount": 6
+    },
+    {
+      "code": "4014",
+      "title": "Production Engineering for Manufacture",
+      "startPage": 121,
+      "endPage": 129,
+      "pageCount": 9
+    },
+    {
+      "code": "4015",
+      "title": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+      "startPage": 130,
+      "endPage": 137,
+      "pageCount": 8
+    },
+    {
+      "code": "4016",
+      "title": "Instrumentation and Control Systems",
+      "startPage": 138,
+      "endPage": 144,
+      "pageCount": 7
+    },
+    {
+      "code": "4017",
+      "title": "Quality and Process Improvement",
+      "startPage": 145,
+      "endPage": 151,
+      "pageCount": 7
+    },
+    {
+      "code": "4018",
+      "title": "Maintenance Engineering",
+      "startPage": 152,
+      "endPage": 159,
+      "pageCount": 8
+    },
+    {
+      "code": "4019",
+      "title": "Electrical and Electronic Principles",
+      "startPage": 160,
+      "endPage": 166,
+      "pageCount": 7
+    },
+    {
+      "code": "4020",
+      "title": "Digital Principles",
+      "startPage": 167,
+      "endPage": 173,
+      "pageCount": 7
+    },
+    {
+      "code": "4021",
+      "title": "Electrical Machines",
+      "startPage": 174,
+      "endPage": 180,
+      "pageCount": 7
+    },
+    {
+      "code": "4022",
+      "title": "Electronic Circuits and Devices",
+      "startPage": 181,
+      "endPage": 186,
+      "pageCount": 6
+    },
+    {
+      "code": "4023",
+      "title": "Computer Aided Design and Manufacture (CAD/CAM)",
+      "startPage": 187,
+      "endPage": 195,
+      "pageCount": 9
+    },
+    {
+      "code": "4024",
+      "title": "Electro, Pneumatic and Hydraulic Systems",
+      "startPage": 196,
+      "endPage": 202,
+      "pageCount": 7
+    },
+    {
+      "code": "4025",
+      "title": "Operations and Plant Management",
+      "startPage": 203,
+      "endPage": 210,
+      "pageCount": 8
+    },
+    {
+      "code": "4026",
+      "title": "Electrical Systems and Fault Finding",
+      "startPage": 211,
+      "endPage": 218,
+      "pageCount": 8
+    },
+    {
+      "code": "4027",
+      "title": "CAD for Schematics in Maintenance Engineering",
+      "startPage": 219,
+      "endPage": 224,
+      "pageCount": 6
+    },
+    {
+      "code": "4028",
+      "title": "Materials Engineering with Polymers",
+      "startPage": 225,
+      "endPage": 233,
+      "pageCount": 9
+    },
+    {
+      "code": "4029",
+      "title": "Polymer Manufacturing Processes",
+      "startPage": 234,
+      "endPage": 242,
+      "pageCount": 9
+    },
+    {
+      "code": "4030",
+      "title": "Industry 4.0",
+      "startPage": 243,
+      "endPage": 250,
+      "pageCount": 8
+    },
+    {
+      "code": "4031",
+      "title": "Introduction to Professional Engineering Management",
+      "startPage": 251,
+      "endPage": 257,
+      "pageCount": 7
+    },
+    {
+      "code": "4032",
+      "title": "Introduction to Biomedical Engineering",
+      "startPage": 258,
+      "endPage": 266,
+      "pageCount": 9
+    },
+    {
+      "code": "4033",
+      "title": "Programmable Logic Controllers",
+      "startPage": 267,
+      "endPage": 274,
+      "pageCount": 8
+    },
+    {
+      "code": "4034",
+      "title": "Computer Aided Design (CAD) for Engineering",
+      "startPage": 275,
+      "endPage": 283,
+      "pageCount": 9
+    },
+    {
+      "code": "4035",
+      "title": "Welding Technology",
+      "startPage": 284,
+      "endPage": 290,
+      "pageCount": 7
+    },
+    {
+      "code": "4036",
+      "title": "Welding Inspection",
+      "startPage": 291,
+      "endPage": 297,
+      "pageCount": 7
+    },
+    {
+      "code": "4037",
+      "title": "Statistical Process Control",
+      "startPage": 298,
+      "endPage": 302,
+      "pageCount": 5
+    },
+    {
+      "code": "4038",
+      "title": "Telecommunication Principles",
+      "startPage": 303,
+      "endPage": 309,
+      "pageCount": 7
+    },
+    {
+      "code": "4039",
+      "title": "Semiconductor Manufacture",
+      "startPage": 310,
+      "endPage": 316,
+      "pageCount": 7
+    },
+    {
+      "code": "4040",
+      "title": "Semiconductor Production Environments",
+      "startPage": 317,
+      "endPage": 327,
+      "pageCount": 11
+    },
+    {
+      "code": "4041",
+      "title": "Aircraft Aerodynamics",
+      "startPage": 328,
+      "endPage": 336,
+      "pageCount": 9
+    },
+    {
+      "code": "4042",
+      "title": "Aircraft Electrical Power and Distribution Systems",
+      "startPage": 337,
+      "endPage": 343,
+      "pageCount": 7
+    },
+    {
+      "code": "4043",
+      "title": "Airframe Mechanical Systems",
+      "startPage": 344,
+      "endPage": 352,
+      "pageCount": 9
+    },
+    {
+      "code": "4044",
+      "title": "Composite Materials for Aerospace Applications",
+      "startPage": 353,
+      "endPage": 362,
+      "pageCount": 10
+    },
+    {
+      "code": "4045",
+      "title": "Turbine Rotary Wing Mechanical and Flight Systems",
+      "startPage": 363,
+      "endPage": 369,
+      "pageCount": 7
+    },
+    {
+      "code": "4046",
+      "title": "Fundamentals of Nuclear Power Engineering",
+      "startPage": 370,
+      "endPage": 377,
+      "pageCount": 8
+    },
+    {
+      "code": "4047",
+      "title": "Railway Operations",
+      "startPage": 378,
+      "endPage": 384,
+      "pageCount": 7
+    },
+    {
+      "code": "4048",
+      "title": "Track Design",
+      "startPage": 385,
+      "endPage": 390,
+      "pageCount": 6
+    },
+    {
+      "code": "4049",
+      "title": "Principles of Overhead Power",
+      "startPage": 391,
+      "endPage": 397,
+      "pageCount": 7
+    },
+    {
+      "code": "4050",
+      "title": "Principles of Electrification",
+      "startPage": 398,
+      "endPage": 407,
+      "pageCount": 10
+    },
+    {
+      "code": "4051",
+      "title": "Introduction to Signalling Systems",
+      "startPage": 408,
+      "endPage": 414,
+      "pageCount": 7
+    },
+    {
+      "code": "4052",
+      "title": "Railway Telecommunications",
+      "startPage": 415,
+      "endPage": 423,
+      "pageCount": 9
+    },
+    {
+      "code": "4053",
+      "title": "Traction and Rolling Stock Systems",
+      "startPage": 424,
+      "endPage": 431,
+      "pageCount": 8
+    },
+    {
+      "code": "4054",
+      "title": "Passenger Safety and Security",
+      "startPage": 432,
+      "endPage": 440,
+      "pageCount": 9
+    },
+    {
+      "code": "4055",
+      "title": "Management and Operations",
+      "startPage": 441,
+      "endPage": 447,
+      "pageCount": 7
+    },
+    {
+      "code": "4056",
+      "title": "Programming",
+      "startPage": 448,
+      "endPage": 452,
+      "pageCount": 5
+    },
+    {
+      "code": "4057",
+      "title": "Networking",
+      "startPage": 453,
+      "endPage": 459,
+      "pageCount": 7
+    },
+    {
+      "code": "4058",
+      "title": "Strategic Information Systems",
+      "startPage": 460,
+      "endPage": 465,
+      "pageCount": 6
+    },
+    {
+      "code": "4059",
+      "title": "Computer Systems Architecture",
+      "startPage": 466,
+      "endPage": 472,
+      "pageCount": 7
+    },
+    {
+      "code": "4060",
+      "title": "Surveying, Measuring and Setting Out",
+      "startPage": 473,
+      "endPage": 479,
+      "pageCount": 7
+    },
+    {
+      "code": "4061",
+      "title": "Programming for Engineers",
+      "startPage": 480,
+      "endPage": 489,
+      "pageCount": 10
+    },
+    {
+      "code": "4062",
+      "title": "Professional Engineering Practice",
+      "startPage": 490,
+      "endPage": 499,
+      "pageCount": 10
+    },
+    {
+      "code": "4063",
+      "title": "Engineering Mechanics and Materials",
+      "startPage": 500,
+      "endPage": 507,
+      "pageCount": 8
+    },
+    {
+      "code": "4064",
+      "title": "Analogue and Digital Electronics",
+      "startPage": 508,
+      "endPage": 514,
+      "pageCount": 7
+    },
+    {
+      "code": "4065",
+      "title": "Internet and Network Technologies",
+      "startPage": 515,
+      "endPage": 521,
+      "pageCount": 7
+    },
+    {
+      "code": "4066",
+      "title": "Data and Information",
+      "startPage": 522,
+      "endPage": 529,
+      "pageCount": 8
+    },
+    {
+      "code": "4067",
+      "title": "Digital Devices and Systems",
+      "startPage": 530,
+      "endPage": 537,
+      "pageCount": 8
+    },
+    {
+      "code": "4068",
+      "title": "Industrial Robots",
+      "startPage": 538,
+      "endPage": 544,
+      "pageCount": 7
+    },
+    {
+      "code": "4069",
+      "title": "Properties and Applications of Materials and Emerging Materials Pre-Production",
+      "startPage": 545,
+      "endPage": 551,
+      "pageCount": 7
+    },
+    {
+      "code": "4070",
+      "title": "Command and Control Systems",
+      "startPage": 552,
+      "endPage": 557,
+      "pageCount": 6
+    },
+    {
+      "code": "4071",
+      "title": "Introduction to Signalling Systems",
+      "startPage": 558,
+      "endPage": 564,
+      "pageCount": 7
+    },
+    {
+      "code": "4072",
+      "title": "Construction Technology",
+      "startPage": 565,
+      "endPage": 572,
+      "pageCount": 8
+    },
+    {
+      "code": "4073",
+      "title": "Sustainability and the Environment in the Manufacturing Industry",
+      "startPage": 573,
+      "endPage": 581,
+      "pageCount": 9
+    },
+    {
+      "code": "4074",
+      "title": "Workplace Study and Ergonomics",
+      "startPage": 582,
+      "endPage": 589,
+      "pageCount": 8
+    },
+    {
+      "code": "4075",
+      "title": "Business Improvement Techniques for Engineers",
+      "startPage": 590,
+      "endPage": 596,
+      "pageCount": 7
+    },
+    {
+      "code": "4076",
+      "title": "Manufacturing Processes",
+      "startPage": 597,
+      "endPage": 604,
+      "pageCount": 8
+    },
+    {
+      "code": "4077",
+      "title": "Lean Techniques for Manufacturing Operations",
+      "startPage": 605,
+      "endPage": 610,
+      "pageCount": 6
+    },
+    {
+      "code": "4078",
+      "title": "Manufacturing Planning and Scheduling Principles",
+      "startPage": 611,
+      "endPage": 618,
+      "pageCount": 8
+    },
+    {
+      "code": "4079",
+      "title": "Manufacturing Operations Mathematics",
+      "startPage": 619,
+      "endPage": 626,
+      "pageCount": 8
+    },
+    {
+      "code": "4080",
+      "title": "Material Handling Systems",
+      "startPage": 627,
+      "endPage": 633,
+      "pageCount": 7
+    },
+    {
+      "code": "4081",
+      "title": "Monitoring and Fault Diagnosis of Engineering Systems",
+      "startPage": 634,
+      "endPage": 641,
+      "pageCount": 8
+    },
+    {
+      "code": "4082",
+      "title": "Introduction to Plant Commissioning and Decommissioning",
+      "startPage": 642,
+      "endPage": 649,
+      "pageCount": 8
+    },
+    {
+      "code": "4083",
+      "title": "Creating and Managing Projects in Manufacturing Operations",
+      "startPage": 650,
+      "endPage": 657,
+      "pageCount": 8
+    },
+    {
+      "code": "4084",
+      "title": "Engineering Plant Operations and Maintenance",
+      "startPage": 658,
+      "endPage": 665,
+      "pageCount": 8
+    },
+    {
+      "code": "4085",
+      "title": "Mechatronic Systems in Manufacturing",
+      "startPage": 666,
+      "endPage": 674,
+      "pageCount": 9
+    },
+    {
+      "code": "4086",
+      "title": "Introduction to Manufacturing Systems Engineering",
+      "startPage": 675,
+      "endPage": 681,
+      "pageCount": 7
+    },
+    {
+      "code": "4087",
+      "title": "Space Environment and Applications",
+      "startPage": 682,
+      "endPage": 690,
+      "pageCount": 9
+    },
+    {
+      "code": "4088",
+      "title": "Space Technologies and Manufacturing",
+      "startPage": 691,
+      "endPage": 700,
+      "pageCount": 10
+    },
+    {
+      "code": "4089",
+      "title": "Net Zero Energy Technologies I: Systems and Demand",
+      "startPage": 701,
+      "endPage": 709,
+      "pageCount": 9
+    },
+    {
+      "code": "4090",
+      "title": "Engineering Science II",
+      "startPage": 710,
+      "endPage": 716,
+      "pageCount": 7
+    },
+    {
+      "code": "4091",
+      "title": "Automotive Fundamentals",
+      "startPage": 717,
+      "endPage": 727,
+      "pageCount": 11
+    },
+    {
+      "code": "4092",
+      "title": "Vehicle Dynamics and Performance",
+      "startPage": 728,
+      "endPage": 736,
+      "pageCount": 9
+    },
+    {
+      "code": "4093",
+      "title": "Race Car Design and Manufacturing",
+      "startPage": 737,
+      "endPage": 744,
+      "pageCount": 8
+    },
+    {
+      "code": "4094",
+      "title": "Motorsport Workshop Practices",
+      "startPage": 745,
+      "endPage": 753,
+      "pageCount": 9
+    },
+    {
+      "code": "4095",
+      "title": "Automotive Combustion",
+      "startPage": 754,
+      "endPage": 763,
+      "pageCount": 10
+    },
+    {
+      "code": "4096",
+      "title": "Automotive Workshop Practices",
+      "startPage": 764,
+      "endPage": 771,
+      "pageCount": 8
+    },
+    {
+      "code": "4097",
+      "title": "Electric Vehicle Battery Manufacture",
+      "startPage": 772,
+      "endPage": 780,
+      "pageCount": 9
+    },
+    {
+      "code": "4098",
+      "title": "Hybrid and Electric Vehicle Technologies",
+      "startPage": 781,
+      "endPage": 789,
+      "pageCount": 9
+    },
+    {
+      "code": "4099",
+      "title": "Industrial Digitalisation Technologies for Engineers",
+      "startPage": 790,
+      "endPage": 800,
+      "pageCount": 11
+    },
+    {
+      "code": "4100",
+      "title": "Lean Six Sigma for Engineers (leading to Green Belt)",
+      "startPage": 801,
+      "endPage": 810,
+      "pageCount": 10
+    },
+    {
+      "code": "4111",
+      "title": "Powertrain and Hybrid Vehicles",
+      "startPage": 811,
+      "endPage": 820,
+      "pageCount": 10
+    },
+    {
+      "code": "4112",
+      "title": "Vehicle Repair and Diagnostics",
+      "startPage": 821,
+      "endPage": 829,
+      "pageCount": 9
+    },
+    {
+      "code": "4113",
+      "title": "Heavy Vehicles I",
+      "startPage": 830,
+      "endPage": 837,
+      "pageCount": 8
+    },
+    {
+      "code": "4114",
+      "title": "Motorcycle Engineering",
+      "startPage": 838,
+      "endPage": 845,
+      "pageCount": 8
+    },
+    {
+      "code": "4115",
+      "title": "Vehicle Electrical and Electronics",
+      "startPage": 846,
+      "endPage": 855,
+      "pageCount": 10
+    },
+    {
+      "code": "5001",
+      "title": "Research Project",
+      "startPage": 856,
+      "endPage": 863,
+      "pageCount": 8
+    },
+    {
+      "code": "5002",
+      "title": "Professional Engineering Management",
+      "startPage": 864,
+      "endPage": 872,
+      "pageCount": 9
+    },
+    {
+      "code": "5003",
+      "title": "Advanced Mechanical Principles",
+      "startPage": 873,
+      "endPage": 879,
+      "pageCount": 7
+    },
+    {
+      "code": "5004",
+      "title": "Computational Modelling in Virtual Engineering",
+      "startPage": 880,
+      "endPage": 887,
+      "pageCount": 8
+    },
+    {
+      "code": "5005",
+      "title": "Further Thermodynamics",
+      "startPage": 888,
+      "endPage": 894,
+      "pageCount": 7
+    },
+    {
+      "code": "5006",
+      "title": "Further Engineering Mathematics",
+      "startPage": 895,
+      "endPage": 903,
+      "pageCount": 9
+    },
+    {
+      "code": "5007",
+      "title": "Commercial Programming Software",
+      "startPage": 904,
+      "endPage": 910,
+      "pageCount": 7
+    },
+    {
+      "code": "5008",
+      "title": "Distributed Control Systems",
+      "startPage": 911,
+      "endPage": 917,
+      "pageCount": 7
+    },
+    {
+      "code": "5009",
+      "title": "Further Programmable Logic Controllers (PLCs)",
+      "startPage": 918,
+      "endPage": 923,
+      "pageCount": 6
+    },
+    {
+      "code": "5010",
+      "title": "Further Electrical Machines and Drives",
+      "startPage": 924,
+      "endPage": 931,
+      "pageCount": 8
+    },
+    {
+      "code": "5011",
+      "title": "Industrial Power, Electronics and Storage",
+      "startPage": 932,
+      "endPage": 940,
+      "pageCount": 9
+    },
+    {
+      "code": "5012",
+      "title": "Industrial Systems",
+      "startPage": 941,
+      "endPage": 947,
+      "pageCount": 7
+    },
+    {
+      "code": "5013",
+      "title": "Embedded Systems",
+      "startPage": 948,
+      "endPage": 954,
+      "pageCount": 7
+    },
+    {
+      "code": "5014",
+      "title": "Analogue Electronic Systems",
+      "startPage": 955,
+      "endPage": 962,
+      "pageCount": 8
+    },
+    {
+      "code": "5015",
+      "title": "Manufacturing Systems Engineering",
+      "startPage": 963,
+      "endPage": 969,
+      "pageCount": 7
+    },
+    {
+      "code": "5016",
+      "title": "Lean Manufacturing",
+      "startPage": 970,
+      "endPage": 976,
+      "pageCount": 7
+    },
+    {
+      "code": "5017",
+      "title": "Advanced Manufacturing",
+      "startPage": 977,
+      "endPage": 984,
+      "pageCount": 8
+    },
+    {
+      "code": "5018",
+      "title": "Sustainability",
+      "startPage": 985,
+      "endPage": 991,
+      "pageCount": 7
+    },
+    {
+      "code": "5019",
+      "title": "Further Electrical, Electronic and Digital Principles",
+      "startPage": 992,
+      "endPage": 998,
+      "pageCount": 7
+    },
+    {
+      "code": "5020",
+      "title": "Utilisation of Electrical Power",
+      "startPage": 999,
+      "endPage": 1005,
+      "pageCount": 7
+    },
+    {
+      "code": "5021",
+      "title": "Further Control Systems Engineering",
+      "startPage": 1006,
+      "endPage": 1012,
+      "pageCount": 7
+    },
+    {
+      "code": "5022",
+      "title": "Industrial Services",
+      "startPage": 1013,
+      "endPage": 1019,
+      "pageCount": 7
+    },
+    {
+      "code": "5023",
+      "title": "Thermofluids",
+      "startPage": 1020,
+      "endPage": 1026,
+      "pageCount": 7
+    },
+    {
+      "code": "5024",
+      "title": "Emerging Semiconductor Technologies",
+      "startPage": 1027,
+      "endPage": 1034,
+      "pageCount": 8
+    },
+    {
+      "code": "5025",
+      "title": "Semiconductor Integrated Electronics",
+      "startPage": 1035,
+      "endPage": 1041,
+      "pageCount": 7
+    },
+    {
+      "code": "5026",
+      "title": "Aircraft Flight Control Systems",
+      "startPage": 1042,
+      "endPage": 1049,
+      "pageCount": 8
+    },
+    {
+      "code": "5027",
+      "title": "Aircraft Propulsion Principles and Technology",
+      "startPage": 1050,
+      "endPage": 1058,
+      "pageCount": 9
+    },
+    {
+      "code": "5028",
+      "title": "Aircraft Structural Integrity",
+      "startPage": 1059,
+      "endPage": 1068,
+      "pageCount": 10
+    },
+    {
+      "code": "5029",
+      "title": "Avionic Systems",
+      "startPage": 1069,
+      "endPage": 1078,
+      "pageCount": 10
+    },
+    {
+      "code": "5030",
+      "title": "Aircraft Gas Turbine Engine Design and Performance",
+      "startPage": 1079,
+      "endPage": 1089,
+      "pageCount": 11
+    },
+    {
+      "code": "5031",
+      "title": "Advanced Composite Materials for Aerospace Applications",
+      "startPage": 1090,
+      "endPage": 1098,
+      "pageCount": 9
+    },
+    {
+      "code": "5032",
+      "title": "Advanced Turbine Rotary Wing Aircraft Mechanical and Flight Systems",
+      "startPage": 1099,
+      "endPage": 1105,
+      "pageCount": 7
+    },
+    {
+      "code": "5033",
+      "title": "Nuclear Reactor Operations",
+      "startPage": 1106,
+      "endPage": 1113,
+      "pageCount": 8
+    },
+    {
+      "code": "5034",
+      "title": "Nuclear Reactor Chemistry",
+      "startPage": 1114,
+      "endPage": 1121,
+      "pageCount": 8
+    },
+    {
+      "code": "5035",
+      "title": "Nuclear Radiation Protection Technology",
+      "startPage": 1122,
+      "endPage": 1129,
+      "pageCount": 8
+    },
+    {
+      "code": "5036",
+      "title": "Nuclear Reactor Materials",
+      "startPage": 1130,
+      "endPage": 1136,
+      "pageCount": 7
+    },
+    {
+      "code": "5037",
+      "title": "Nuclear Fuel Cycle Technology",
+      "startPage": 1137,
+      "endPage": 1144,
+      "pageCount": 8
+    },
+    {
+      "code": "5038",
+      "title": "Nuclear Decommissioning and Radioactive Waste Management Technologies",
+      "startPage": 1145,
+      "endPage": 1152,
+      "pageCount": 8
+    },
+    {
+      "code": "5039",
+      "title": "Nuclear Criticality Control",
+      "startPage": 1153,
+      "endPage": 1159,
+      "pageCount": 7
+    },
+    {
+      "code": "5040",
+      "title": "Nuclear Safety Case Development",
+      "startPage": 1160,
+      "endPage": 1166,
+      "pageCount": 7
+    },
+    {
+      "code": "5041",
+      "title": "Engineering Project",
+      "startPage": 1167,
+      "endPage": 1177,
+      "pageCount": 11
+    },
+    {
+      "code": "5042",
+      "title": "Signals and Systems",
+      "startPage": 1178,
+      "endPage": 1184,
+      "pageCount": 7
+    },
+    {
+      "code": "5043",
+      "title": "Digital System Design",
+      "startPage": 1185,
+      "endPage": 1190,
+      "pageCount": 6
+    },
+    {
+      "code": "5044",
+      "title": "Digital Electronic Systems",
+      "startPage": 1191,
+      "endPage": 1197,
+      "pageCount": 7
+    },
+    {
+      "code": "5045",
+      "title": "Electrical Engineering and Sustainability",
+      "startPage": 1198,
+      "endPage": 1205,
+      "pageCount": 8
+    },
+    {
+      "code": "5046",
+      "title": "Analogue and Digital Communications",
+      "startPage": 1206,
+      "endPage": 1213,
+      "pageCount": 8
+    },
+    {
+      "code": "5047",
+      "title": "Computer Architecture and Interfacing",
+      "startPage": 1214,
+      "endPage": 1220,
+      "pageCount": 7
+    },
+    {
+      "code": "5048",
+      "title": "Sensors and Automation",
+      "startPage": 1221,
+      "endPage": 1228,
+      "pageCount": 8
+    },
+    {
+      "code": "5049",
+      "title": "Data Networks, Services and Security",
+      "startPage": 1229,
+      "endPage": 1238,
+      "pageCount": 10
+    },
+    {
+      "code": "5050",
+      "title": "Machine Learning Systems and Programming",
+      "startPage": 1239,
+      "endPage": 1248,
+      "pageCount": 10
+    },
+    {
+      "code": "5051",
+      "title": "Heating, Ventilation and Air Conditioning (HVAC)",
+      "startPage": 1249,
+      "endPage": 1255,
+      "pageCount": 7
+    },
+    {
+      "code": "5052",
+      "title": "Space Communications",
+      "startPage": 1256,
+      "endPage": 1264,
+      "pageCount": 9
+    },
+    {
+      "code": "5053",
+      "title": "Space Mission Design",
+      "startPage": 1265,
+      "endPage": 1274,
+      "pageCount": 10
+    },
+    {
+      "code": "5054",
+      "title": "Net Zero Energy Technologies II: Infrastructure and Pathways",
+      "startPage": 1275,
+      "endPage": 1283,
+      "pageCount": 9
+    },
+    {
+      "code": "5055",
+      "title": "Aerospace Propulsion Principles and Technology",
+      "startPage": 1284,
+      "endPage": 1293,
+      "pageCount": 10
+    },
+    {
+      "code": "5056",
+      "title": "Conceptual Aircraft Design",
+      "startPage": 1294,
+      "endPage": 1301,
+      "pageCount": 8
+    },
+    {
+      "code": "5057",
+      "title": "Medical Instrumentation",
+      "startPage": 1302,
+      "endPage": 1310,
+      "pageCount": 9
+    },
+    {
+      "code": "5058",
+      "title": "Automotive Structures and Materials",
+      "startPage": 1311,
+      "endPage": 1319,
+      "pageCount": 9
+    },
+    {
+      "code": "5059",
+      "title": "Automotive Aerodynamics",
+      "startPage": 1320,
+      "endPage": 1328,
+      "pageCount": 9
+    },
+    {
+      "code": "5060",
+      "title": "Motorsport Workshop Preparation and Inspection",
+      "startPage": 1329,
+      "endPage": 1336,
+      "pageCount": 8
+    },
+    {
+      "code": "5061",
+      "title": "Automotive Incident Investigation",
+      "startPage": 1337,
+      "endPage": 1346,
+      "pageCount": 10
+    },
+    {
+      "code": "5062",
+      "title": "Engine and Vehicle Design Performance",
+      "startPage": 1347,
+      "endPage": 1355,
+      "pageCount": 9
+    },
+    {
+      "code": "5063",
+      "title": "Further Hybrid and Electric Vehicle Technologies",
+      "startPage": 1356,
+      "endPage": 1366,
+      "pageCount": 11
+    },
+    {
+      "code": "5064",
+      "title": "Further Industrial Digitalisation Technologies for Engineers",
+      "startPage": 1367,
+      "endPage": 1377,
+      "pageCount": 11
+    },
+    {
+      "code": "5065",
+      "title": "Hydrogen in Automotive Engineering",
+      "startPage": 1378,
+      "endPage": 1385,
+      "pageCount": 8
+    },
+    {
+      "code": "5066",
+      "title": "Lean Six Sigma for Engineers (leading to Black Belt)",
+      "startPage": 1386,
+      "endPage": 1394,
+      "pageCount": 9
+    },
+    {
+      "code": "5067",
+      "title": "Vehicle Operations",
+      "startPage": 1395,
+      "endPage": 1404,
+      "pageCount": 10
+    },
+    {
+      "code": "5068",
+      "title": "Vehicle Parts Management",
+      "startPage": 1405,
+      "endPage": 1414,
+      "pageCount": 10
+    },
+    {
+      "code": "5069",
+      "title": "Vehicle Systems and Technology",
+      "startPage": 1415,
+      "endPage": 1423,
+      "pageCount": 9
+    },
+    {
+      "code": "5070",
+      "title": "Further Motorcycle Engineering",
+      "startPage": 1424,
+      "endPage": 1431,
+      "pageCount": 8
+    },
+    {
+      "code": "5071",
+      "title": "Heavy Vehicles II",
+      "startPage": 1432,
+      "endPage": 1443,
+      "pageCount": 12
+    }
+  ]
+}

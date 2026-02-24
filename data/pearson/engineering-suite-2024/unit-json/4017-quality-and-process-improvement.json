@@ -1,0 +1,71 @@
+{
+  "code": "4017",
+  "title": "Quality and Process Improvement",
+  "detectedTitle": "Quality and Process Improvement",
+  "startPage": 145,
+  "endPage": 151,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine the applications of statistical process control when applied in an industrial environment to improve efficiency"
+    },
+    {
+      "id": "LO2",
+      "description": "Analyse cost effective quality control tools"
+    },
+    {
+      "id": "LO3",
+      "description": "Determine the role of standards in improving efficiency, meeting customer requirements and opening up new opportunities for trade"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse the importance of Total Quality Management and continuous improvement in manufacturing and service environments."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

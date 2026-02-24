@@ -1,0 +1,75 @@
+{
+  "code": "4013",
+  "title": "Fundamentals of Thermodynamics and Heat Engines",
+  "detectedTitle": "Fundamentals of Thermodynamics and Heat Transfer",
+  "startPage": 115,
+  "endPage": 120,
+  "pageCount": 6,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Investigate fundamental thermodynamic systems and their properties"
+    },
+    {
+      "id": "LO2",
+      "description": "Apply the Steady Flow Energy Equation for analysis of thermodynamic systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Determine the performance of heat engines"
+    },
+    {
+      "id": "LO4",
+      "description": "Examine the principles of heat transfer applied to industrial applications."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

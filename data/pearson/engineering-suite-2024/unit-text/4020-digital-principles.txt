@@ -1,0 +1,184 @@
+Unit 4020: Digital Principles
+Unit Code: J/651/0739
+Level: 4
+Credits: 15
+Introduction
+While the broad field of electronics covers many aspects, it is digital electronics which
+now has the greatest impact. This is immediately evident in the mobile phone, laptop,
+and numerous other everyday devices and systems. Digital electronics allows us to
+process, store, and transmit data in digital form in robust ways, which minimises data
+degradation.
+The unit introduces digital principles and the two main branches of digital electronics,
+combinational and sequential. Thus, the student gains familiarity in the fundamental
+elements of digital circuits, notably different types of logic gates and bistables. The
+techniques by which such circuits are analysed, introduced, and applied, including
+Truth Tables, Boolean Algebra, Karnaugh Maps, and Timing Diagrams.
+The theory of digital electronics has little use unless the circuits can be built – at low
+cost, high circuit density, and in large quantity. Thus, the key digital technologies are
+introduced. These include the conventional TTL (Transistor-Transistor Logic) and
+CMOS (Complementary Metal Oxide Semiconductor). Importantly, the unit moves on
+to programmable logic, including the Field Programmable Gate Array (FPGA). Finally,
+some standard digital subsystems, which become important elements of major
+systems such as microprocessors, are introduced and evaluated.
+On successful completion of this unit students will have a good grasp of the principles
+of digital electronic circuits, and will be able to proceed with confidence to further
+study.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+151
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explain combinational logic circuits
+LO2 Interpret sequential logic circuits
+LO3 Describe the technologies used to implement digital electronic circuits
+LO4 Analyse a range of digital subsystems, hence establishing the building blocks for
+larger systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+152
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explain combinational logic circuits
+Concepts and applications:
+Digital principles, logic design and logic circuits, real-world applications,
+and history and future trends.
+Concepts of combinational logic:
+Logic circuits implemented with electro-mechanical switches and transistors.
+Circuits built from AND, OR, NAND, NOR, XOR gates to achieve logic functions,
+e.g. majority voting, simple logical controls, adders.
+Number systems, and binary arithmetic:
+Binary, Decimal, Hexadecimal number representation, converting between,
+applications and relative advantages. Addition and subtraction in binary,
+range of n -bit numbers.
+Analysis of logic circuits:
+Truth Tables, Boolean Algebra, de Morgan’s theorem, Karnaugh Maps
+Simplification and optimisation of circuits using these techniques.
+LO2 Interpret sequential logic circuits
+Sequential logic elements and circuits:
+SR latch built from NAND or NOR gates
+Clocked and edge-triggered bistables, D and JK types
+Simple sequential circuits, including shift registers and counters
+Timing Diagrams.
+Memory technologies:
+Memory terminology, overview of memory technologies including Static RAM,
+Dynamic RAM and Flash memory cells
+Relative advantages in terms of density, volatility and power consumption
+Typical applications, e.g., in memory stick, mobile phone, laptop.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+153
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Describe the technologies used to implement digital electronic circuits
+Logic values represented by voltages:
+The benefit of digital representation of information
+The concept of logic input and output values and thresholds.
+Digital technologies:
+Introduction to discrete logic families, CMOS and TTL, relative advantages in
+terms of speed, power consumption, density
+Programmable logic, FPGAs, relative advantages and applications
+Practical applications and the future of digital technologies.
+LO4 Analyse a range of digital subsystems, hence establishing the building
+blocks for larger systems
+User interface:
+Examples to include switches, light emitting diodes and simple displays
+Digital subsystems:
+Examples to be drawn from adders (half, full, n- bit), multiplexers and
+demultiplexers, coders and decoders, counters applied as timers, shift registers
+applied to serial data transmission, elements of the ALU (Arithmetic Logic Unit).
+Emphasis on how these can be applied, and how they might fit into a larger
+system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+154
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explain combinational logic circuits
+P1 Explain the operation of M1 Analyse the operation of D1 Design combinational
+combinational logic circuits, a combinational logic circuit logic circuits by making
+making use of Truth Table, making good use of Truth best use of Truth Table,
+Boolean Algebra and Table, Boolean Algebra and Boolean Algebra and
+Karnaugh Map. Karnaugh Map. Karnaugh Map.
+LO2 Interpret sequential logic circuits
+P2 Interpret the operation M2 Analyse simple sequential D2 Design sequential logic
+of a sequential logic circuit, logic circuits, making use of circuits, making use of
+making use of Timing Timing Diagrams. Timing Diagrams.
+Diagrams.
+LO3 Describe the technologies used to implement digital
+electronic circuits
+P3 Describe the technologies M3 Apply techniques using lab D3 Apply techniques
+used to implement electronic equipment to configure and using lab equipment
+circuits. test simple digital circuits. to configure, test and
+evaluate digital circuits,
+comparing and evaluating
+characteristics of different
+technologies.
+LO4 Analyse a range of digital subsystems, hence establishing
+the building blocks for larger systems
+P4 Analyse the principles of M4 Analyse a range of D4 Evaluate a range of
+a range of different logic different logic subsystems in different logic subsystems,
+subsystems. context of larger systems. comparing these with
+other techniques or
+subsystems available,
+indicating the place they
+might take in a larger
+system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+155
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Dally W.J. and Harting, R.C. (2012) Digital Design: A systems approach. Cambridge
+University Press
+Fadali M.S. and Visioli A. (2019) Digital Control Engineering. 3rd Ed. Academic Press
+Floyd T.L. (2017) Digital Fundamentals . Global Edition. 11th Ed. Pearson
+Hughes E., Hiley J., Brown K. and McKenzie-Smith, I. (2016)
+Electrical and Electronic Technology . 12th Ed. Pearson
+Kleitz W. (2013) Digital Electronics. 9th Ed. Pearson
+Kolawole M. O. (2021) Electronics: from Classical to Quantum. 1st Ed. CRC Press.
+Mano M. (2016) Digital Logic and Computer Design Paperback. 4th Ed. Pearson.
+Mazumder P. and Ebong i.e. (2023) Lectures on Digital Design Principles. 1st Ed.
+River Publishers
+Plonus M. (2020) Electronics and Communications for Scientists and Engineers .
+2nd Ed. Butterworth-Heinemann
+Twomey J. (2023) Applied Embedded Electronics. O’Reilly Media, Inc.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Electronics
+Electronic Letters
+e-Prime − Advances in Electrical Engineering, Electronics and Energy
+IEEE Digital Circuits and Systems
+IET Computers and Digital Techniques
+International Journal of Digital Electronics
+International Journal of Electronics
+International Journal of Electronics and Communications
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+156
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4019: Electrical and Electronic Principles
+Unit 4022: Electronic Circuits and Devices
+Unit 5019: Further Electrical, Electronic and Digital Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+157
+Issue 6 – October 2025 © Pearson Education Limited 2025

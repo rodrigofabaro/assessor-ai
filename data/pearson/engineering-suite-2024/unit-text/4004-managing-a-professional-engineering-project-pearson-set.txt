@@ -1,0 +1,284 @@
+Unit 4004: Managing a Professional
+Engineering Project
+Unit Code: L/651/0712
+Level: 4
+Credits: 15
+Introduction
+The responsibilities of the engineer go far beyond completing the task in hand.
+Reflecting on their role in a wider ethical, environmental, and sustainability context
+starts the process of becoming a professional engineer – a vital requirement for
+career progression.
+Engineers seldom work in isolation and most tasks they undertake require a range
+of expertise, designing, developing, manufacturing, constructing, operating, and
+maintaining the physical infrastructure and content of our world. The bringing
+together of these skills, expertise, and experience is often managed through the
+creation of a project.
+This unit introduces students to the techniques and best practices required to
+successfully create and manage an engineering/manufacturing project designed to
+identify a solution to an engineering need. While carrying out this project students will
+consider the role and function of engineering in our society, the professional duties
+and responsibilities expected of engineers together with the behaviours that
+accompany their actions.
+Among the topics covered in this unit are: roles, responsibilities, and behaviours of
+a professional engineer, planning a project, project management stages, devising
+solutions, theories and calculations, management using a Gantt chart, evaluation
+techniques, communication skills, and the creation and presentation of a project
+report.
+On successful completion of this unit, students will be able to conceive, plan, develop,
+and execute a successful engineering project, and produce and present a project
+report outlining and reflecting on the outcomes of each of the project processes and
+stages. As a result, they will develop skills such as critical thinking, analysis, reasoning,
+interpretation, decision-making, information literacy, and information and
+communication technology, and skills in professional and confident self-presentation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+34
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+This unit is assessed by a Pearson-set theme. The project brief will be set by the
+centre, based on a theme provided by Pearson (this will change annually). The theme
+and chosen project within the theme will enable students to explore and examine a
+relevant and current topical aspect of professional engineering.
+*Please refer to the accompanying Pearson-set Assignment Guide and the
+Theme Release document for further support and guidance on the delivery of
+the Pearson-set unit.
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Select a project that will provide a solution to an identified
+engineering/manufacturing problem.
+LO2 Conduct planned project activities to generate outcomes which provide a
+solution to the identified engineering/manufacturing problem.
+LO3 Produce a project report analysing the outcomes of each of the project
+processes and stages.
+LO4 Present the project report drawing conclusions on the outcomes of the project.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+35
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Select a project that will provide a solution to an identified
+engineering/manufacturing problem
+Engineering projects:
+Overview of project management
+Examples of realistic engineering/manufacturing-based problems
+Grand engineering/manufacturing challenges (e.g., regional, global, sector,
+society); relevant case studies
+Crucial considerations for the project
+How to identify the nature of the problem through vigorous research
+Feasibility study to identify constraints and produce an outline specification
+Project management techniques − Strengths, Weaknesses, Opportunities,
+Threats (SWOT), stakeholder matrices, risk mapping, radar chart, and summary
+risk profiles.
+Team-driven problem solving: positive, professional, respectful, trusting and
+ethical working relationships. Impact of human factors (i.e., organisational,
+environment and job factors) on individual/team behaviours and performance.
+Team support (e.g., coaching/mentoring, feedback, opportunities).
+Organisational vision and goals. Holistic stakeholder engagement.
+Develop an outline project brief and design specification:
+Knowledge theories, calculations and other relevant information that can
+support the development of a potential solution
+Project selection relevant to occupation/sector of interest/programme of study
+(e.g., mechanical, electrical, manufacturing, aeronautical, operations, space,
+marine, Industry 4.0, automation, computer systems etc.).
+Ethical frameworks:
+The Engineering Council and Royal Academy of Engineering’s Statement of
+Ethical Principles
+The National Society for Professional Engineers’ Code of Ethics.
+Professional, Statutory and Regulatory Bodies (PSRBs):
+Global, national, and regional influences on engineering/manufacturing, and the
+role of the engineer. For example: The Royal Academy of Engineering and the
+UK Engineering Council.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+36
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+The role and responsibilities of the PSRBs. For example, UK Engineering Council
+and the Professional Engineering Institutions (PEIs)
+Roles: Chartered Engineer, Incorporated Engineer, and Engineering Technician,
+other professional body membership roles, requirements for eligibility and
+responsibilities
+Standards and content of the standards. For example, the content of the
+UK Standard for Professional Engineering Competence (UKSPEC)
+Occupational standards and alignment with knowledge, skills, and behaviours
+of a chosen occupation.
+International regulatory regimes and agreements associated with professional
+engineering:
+European Federation of International Engineering Institutions.
+European Engineer (Eur Eng)
+European Network for Accreditation of Engineering Education
+European Society for Engineering Education
+International Council on Systems Engineering
+The Institute of Industrial and Systems Engineers (IISE)
+Washington Accord
+Dublin Accord
+Sydney Accord
+International Engineers Alliance
+Asia Pacific Economic Cooperation (APEC) Engineers Agreement.
+LO2 Conduct planned project activities to generate outcomes which provide a
+solution to the identified engineering/manufacturing problem
+Project execution phase:
+Continually monitoring development against the agreed project plan and
+adapting the project plan where appropriate
+Work plan and time management, using Gantt chart or similar. Prioritisation
+of workload/time management techniques to achieve personal and team
+objectives. Role of KPIs.
+Integrated quality control checks (including risk assessments and resolutions)
+Tracking costs and timescales
+Maintaining a project diary to monitor progress against milestones and
+timescales.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+37
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Engineering professional behaviour sources:
+Professional responsibility for health and safety (e.g., UK-SPEC)
+Professional standards of behaviour (e.g., UK-SPEC)
+Relevant government and organisational policies, legal requirements
+(e.g., employment law, equality law), implications, and compliance.
+Ethical frameworks:
+The Engineering Council and Royal Academy of Engineering’s Statement of
+Ethical Principles
+The National Society for Professional Engineers’ Code of Ethics.
+LO3 Produce a project report analysing the outcomes of each of the project
+processes and stages
+Convincing arguments:
+All findings/outcomes should be convincing and presented logically where the
+assumption is that the audience has little or no knowledge of the project
+process.
+Critical analysis and evaluation techniques:
+Most appropriate evaluation techniques to achieve a potential solution
+Use of data collection systems, data formats, and dashboards Secondary and
+primary data should be critiqued and considered with an objective mindset
+Objectivity results in more robust evaluations where an analysis justifies a
+judgement and decision making.
+LO4 Present the project report drawing conclusions on the outcomes of the
+project
+Presentation considerations:
+Media selection, what to include in the presentation and what outcomes to
+expect from it. Audience expectations and contributions
+Presentation specifics. Audience: project supervisors, fellow students and
+employers and others involved. Time allocation, structure of presentation
+Reflection on project outcomes and audience reactions
+Conclusion to report, recommendations for future work, lessons learned,
+changes to own work patterns.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+38
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Reflection for learning and practice:
+The difference between reflecting on performance and evaluating a project −
+the former considers the research process, information gathering and data
+collection, the latter the quality of the research argument and use of evidence.
+The cycle of reflection:
+To include reflection in action and reflection on action
+How to use reflection to inform future behaviour, particularly directed towards
+sustainable performance
+The importance of Continuing Professional Development (CPD) in refining
+ongoing professional practice. Reflecting on competencies gained. Keeping
+abreast of developments in engineering/manufacturing processes
+manufacturing and emerging technologies through reskilling/upskilling
+(e.g., digital competencies, sustainability goals).
+Reflective writing:
+Avoiding generalisation and focusing on personal development and the research
+journey critically and objectively.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+39
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Select a project that will provide a solution to an identified
+engineering/manufacturing problem
+P1 Select an appropriate M1 Undertake a feasibility D1 Illustrate the effect
+engineering/manufacturing- study to justify project of legislation and ethics
+based project, giving reasons selection. in developing the
+for the selection project plan.
+P2 Create a project plan for the
+engineering/manufacturing
+project.
+LO2 Conduct planned project activities to generate outcomes
+which provide a solution to the identified
+engineering/manufacturing problem
+P3 Conduct project activities, M2 Explore alternative D2 Critically evaluate
+recording progress against the methods to monitor and the success of the
+original project plan. meet project milestones, and project plan, making
+justify selection of chosen recommendations for
+method(s). improvement.
+LO3 Produce a project report analysing the outcomes of each of
+the project processes and stages LO3 and LO4
+P4 Produce a project report M3 Use appropriate critical D3 Critically analyse the
+covering each stage of the analysis and evaluation project outcomes,
+project and analysing project techniques to analyse project making
+outcomes. findings. recommendations for
+further development.
+LO4 Present the project report drawing conclusions on the
+outcomes of the project
+P5 Present the project activities M4 Analyse own behaviours
+and outcomes using appropriate and performance during the
+media to an audience. project activities and suggest
+areas for improvement
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+40
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Aucoin B.M. (2018) From Engineer to Manager: Mastering the Transition. Second Edition
+Hardcover – Unabridged. Artech House.
+Del Pont J.P. (2012) Process Engineering and Industrial Management. Wiley.
+Kerzner H. (2023) Project Management Metrics, KPIs, and Dashboards: A Guide to
+Measuring and Monitoring Project Performance . 4th Edition. Wiley.
+Kerzner H. (2022) Innovation Project Management: Methods, Case Studies, and Tools for
+Managing Innovation Projects . 2nd Edition. Wiley.
+Pugh P. S. (1990) Total Design: Integrated Methods for Successful Product Engineering .
+Prentice Hall.
+Striebig B., Ogundipe A. and Papadakis M. (2015) Engineering Applications in Sustainable
+Design and Development . Cengage Learning.
+Ulrich K. and Eppinger S. (2011) Product Design and Development . 5th Ed.
+McGraw-Hill Higher Education.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Engineering Management
+Engineering Management Journal
+Frontiers of Engineering Management
+IEEE Transactions on Engineering Management
+International Journal of Engineering and Technology
+Journal of Engineering Design
+Journal of Engineering, Design and Technology
+Journal of Engineering and Technology Management
+Journal of Manufacturing Technology Management
+Journal of Management & Organization
+Microelectronic Engineering
+Probability in the Engineering and Information Sciences
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+41
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Probabilistic Engineering Mechanics
+Results in Engineering
+Links
+This unit links to the following related units:
+Unit 5001: Research Project
+Unit 5002: Professional Engineering Management
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+42
+Issue 6 – October 2025 © Pearson Education Limited 2025

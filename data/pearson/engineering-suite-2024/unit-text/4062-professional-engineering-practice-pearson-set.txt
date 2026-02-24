@@ -1,0 +1,315 @@
+Unit 4062: Professional Engineering
+Practice
+Unit Code: M/651/0803
+Level: 4
+Credits: 15
+Introduction
+The work of the engineer is key to the development and progress of our society.
+The decisions they make in the course of their everyday work can be life-changing in
+positive ways or, if poorly made, can be life-threatening. Accordingly, the engineer
+must work to strict codes of professionalism in all aspects of their work.
+This unit outlines the background to the legislation, professional codes of practice
+and operational competencies that underpin the development of the professional
+engineer. It also considers the roles of problem-solving, communication, team
+working and professional responsibility.
+Elements of personal and professional development, reflective thinking, career
+planning and leadership are considered as well. The increasing necessity for a holistic
+approach to sustainability in design, manufacture, and reuse and recycling are
+emphasised.
+On successful completion of this unit, the student will be well prepared for further
+study at levels 5 and 6, working towards membership of an appropriate professional
+institution at Incorporated Engineer level.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+474
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit the student will be able to:
+LO1 Determine the roles, responsibilities and competences of the professional
+engineer
+LO2 Describe the regulatory, legislative and ethical frameworks that govern the
+work of the professional engineer
+LO3 Review the roles of communication, team working and leadership in the
+development of professional engineers
+LO4 Discuss how professional engineers can develop holistic approaches to the
+sustainability of manufacturing processes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+475
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Determine the roles, responsibilities and competences of the professional
+engineer
+Role of the professional engineer:
+Transforming ideas and materials into products and services: design, build, test
+and improve; consideration of the whole life cycle of the output of the engineer’s
+work, including sustainability and end-of-life provision of recycling and reuse.
+Responsibilities:
+The importance of proper risk identification, assessment and mitigation;
+appropriate safety factors; examples of discipline-specific failures due to poor
+engineering/lack of proper ‘what if’ procedures
+Understanding that human factors affect engineering processes
+Adherence to codes of conduct; acting with due care, skill and diligence by
+recognising appropriate behaviours and possible limitations; preventing
+avoidable dangers/adverse impact on the environment; enhancing operational
+competence
+The importance of considering the effects of certain behaviours and values:
+attitude, persuasion, coercion, rapport, authority
+Effects of external influences: stress, time pressure, fatigue, memory, capability,
+motivation, knowledge, experience, health, alcohol, drugs and criminal behaviour
+Personal and corporate privacy and security.
+Competences:
+Digital skills and industrial digitalisation technologies (IDTs); research skills −
+find, extract, organise, analyse, evaluate and use or present relevant information;
+project planning and management (i.e., change management, compliance in
+delivering outputs, responsible planning and work prioritisation, predictive
+maintenance); financial literacy (e.g.
+financial planning, data, reporting); individual and team approaches to solving
+problems and risk management through use of methods such as Fishbone,
+practical problem solving (PPS), root cause analysis (RCA), advanced Product
+Quality Planning (APQP) and process failure mode effects analysis (PFMEA);
+project management techniques (e.g. SWOT, stakeholder matrices, risk mapping,
+radar chart and summary risk profiles), time management, organisation and
+record-keeping; sketching, drawing, use and interpretation of computer-aided
+design (CAD)
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+476
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Professional engineering capabilities: installation, commissioning, shut-down,
+start-up and maintenance/service/support of a wide range of systems and
+devices; use of relevant manufacturing and production methods; ability to follow
+and apply latest trends in engineering and manufacturing (e.g., lean methods
+and tools used in manufacturing and engineering such as Kaizen, Six Sigma,
+8 wastes, 5S’s and Poka-Yoke), commitment to upskilling/reskilling, and
+continued professional development.
+Reflective practice: cycle of reflection in action and on action, refining ongoing
+professional practice (future behaviour), setting goals, reviewing again to achieve
+sustainable performance; evaluation of own and others’ work
+Avoidance of generalisation; focus on personal development in a critical and
+objective way.
+LO2 Describe the regulatory, legislative and ethical frameworks that govern the
+work of the professional engineer
+Regulatory and legislative frameworks:
+Global, European and national regulatory influences on engineering and the
+role/occupation of the engineer (e.g. the Royal Academy of Engineering and
+the Engineering Council in the UK); role and responsibilities of the Engineering
+Council and professional engineering institutions (PEIs), UK Standard for
+Professional Engineering Competence (UKSPEC), or international equivalents
+Relevant health and safety standards, codes and regulations; principles of
+functional machinery and/or process safety, including SIL (safety integrated level)
+and PL (performance level) terminology; appropriate sector legislation for quality
+control/assurance and management (e.g. electrical safety system legislation
+and directives, emissions, construction and use, environmental legislation,
+UN Sustainable Development Goals, British Standards Institution (BSI) and
+International Organization for Standardization (ISO) standards e.g. ISO 14090:
+2019 Adaptation to climate change)
+Responsibilities at various levels of engineering (e.g. Engineering Council
+Technical, Incorporated and Chartered Engineer professional registration levels,
+or international equivalent) including secure operations and application of
+appropriate processes, policies and legislation in the context of business goals,
+vision and values; responsible selection of tools/techniques in upgrading and
+maintaining systems; resilience in undertaking tasks and working securely within
+the business.
+Ethical frameworks:
+The Engineering Council and The Royal Academy of Engineering’s Statement of
+Ethical Principles; The National Society for Professional Engineers’ Code of Ethics.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+477
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Review the roles of communication, team working and leadership in the
+development of professional engineers
+Communication:
+Listening, non-verbal communication, clarity and brevity, friendliness, role of
+humour; confidence, empathy, open-mindedness, respect, feedback and picking
+the right medium for presentations
+Presentation skills, use of presentation software, summaries and presentation
+notes.
+Team working:
+Group expectations, dealing with reactions and disagreements, allowing and
+encouraging participation, acting on agreed outcomes; the negative effects of
+communication without cause; disillusioned colleagues, persuasion and
+negotiation
+Rewarding and motivating; peer assessment of work, mentoring at regular
+intervals to ensure correct working practices, getting and receiving feedback
+Ensuring inclusivity and equality of opportunity; respecting and encouraging
+diversity; avoiding stereotyping.
+Leadership:
+The role of the leader; vision, responsibility and accountability
+Decision-making, creative problem-solving, adaptability, delegation, trust and
+confidentiality
+Setting expectations and goals; effective stakeholder engagement and managing
+job roles and responsibilities; developing accessible, inclusive and diverse
+products and workplace culture; strategic resource allocation and prioritisation;
+managing performance and encouraging development.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+478
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Discuss how professional engineers can develop holistic approaches to the
+sustainability of manufacturing processes
+Design optimisation:
+Overview of manufacturing methods for design of products, Design for
+Manufacture (DFM), Design for Assembly (DFA) and Design for Disassembly
+(DFD) as more holistic optimisations of product design to reduce complexity;
+simplification of assembly and finishing processes by design; quality assurance
+by design to ensure operation, consistency and quantification of enhancement
+of manufacturing and process applications
+Concepts of the perfect design cycle, product stewardship, dematerialisation,
+modularity, longevity and design for disassembly
+Recyclability, repairability, reusability, re-manufacture; efficiency of active
+products (e.g. light bulbs, washing machines or vehicles)
+Advancements in design for Industry 4.0.
+Environmental legislation:
+Response to legislative change (e.g. termination of petrol and diesel vehicle
+production); consideration of diminishing supply of essential raw materials
+(e.g. oil, aluminium ore and rare earth elements) and development of
+man-made substitutes, to include cost, supply and political considerations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+479
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Determine the roles, responsibilities and
+competences of the professional engineer
+P1 Describe the importance M1 Assess the risk factors D1 Differentiate between
+of the identification of risk in that require mitigation reflection and evaluation
+the role of the professional from a given engineering with risk factor examples,
+engineer. project specification. using a given engineering
+project specification, and
+P2 Determine how
+your own experience.
+responsibilities and human
+behaviour can impinge on
+the work of professional
+engineers.
+LO2 Describe the regulatory, legislative and ethical
+frameworks that govern the work of the professional
+engineer
+P3 Outline the roles and M2 Analyse how engineers D2 Evaluate the effect of
+responsibilities of the use regulatory and regulatory, legislative and
+professional engineer (IEng) legislative frameworks and ethical frameworks on the
+within the Engineering how the UN Sustainable day-to-day work of the
+Councils framework (or Development Goals should professional engineer,
+international equivalent). be considered within a using specific examples.
+given design specification.
+P4 Describe the principal UK
+codes and regulations, (or
+international equivalents)
+that control the work of the
+professional engineer.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+480
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Review the roles of communication, team working
+and leadership in the development of professional
+engineers
+P5 Review the most M3 Analyse leadership D3 Evaluate the most
+important considerations styles and effective effective approaches to the
+for good team working and communication skills using coaching and mentoring of
+effective leadership in specific examples from an disillusioned colleagues or
+engineering. engineering organisational of a poorly performing team.
+context.
+P6 Outline the steps for
+managing effective group
+communications in
+engineering.
+LO4 Discuss how professional engineers can develop
+holistic approaches to the sustainability of manufacturing
+processes.
+P7 Discuss the rationale
+M4 Assess the effects D4 Analyse how the drive
+behind the development
+that fully committing to for sustainability can be
+of Design for Manufacture
+sustainable design and sustained given the
+(DFM) and Design for manufacture would have limitations on naturally
+Assembly (DFA) for a given design occurring materials such as
+methodologies. specification. oil, aluminium ore and rare
+earth elements.
+P8 Describe the concept of
+the Perfect Design Cycle and
+show how it incorporates
+Product Stewardship.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+481
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bainbridge A.F. (2021) Ethics for Engineers: A Brief Introduction . 1st Ed.
+Oxfordshire: Taylor & Francis Ltd.
+Challender J. (2022) Professional Ethics in Construction and Engineering . Wiley.
+Covello V.T. (2021) Communicating in Risk, Crisis, and High Stress Situations:
+Evidence-Based Strategies and Practice . Wiley.
+Dearden, H. (2013) Professional Engineering Practice: Reflections on the Role of the
+Professional Engineer . CreateSpace Independent Publishing Platform.
+El-Reedy M.A. (2021) Offshore Projects and Engineering Management. 1st Ed. Elsevier.
+Karten N. (2010) Presentation Skills for Technical Professionals . IT Governance Ltd.
+Kerzner H. (2022) Project Management: A Systems Approach to Planning, Scheduling,
+and Controlling. 13th Edition, Wiley.
+Kong K. (2019) Professional Discourse. Cambridge University Press.
+Lock D. (2013) Project Management . 10th Ed. Routledge.
+McRae M and Berliner J (2020) Engineering Made Simple: A Complete Guide in Ten Easy
+Lessons. 1st Ed. San Diego: Portable Press.
+Muzio D., Sundeep A. and Kirkpatrick I. (2020) Professional Occupations and
+Organizations. Cambridge University Press.
+Rausand M. and Stein Haugen S. (2020) Risk Assessment: Theory, Methods,
+and Applications. John Wiley & Sons, Inc.
+Temple T.J. and Ladyman M.K. (2022) Challenges in Risk Analysis for Science and
+Engineering . IOP Publishing Ltd.
+Wilbers S. (2022) Persuasive Communication for Science and Technology Leaders: Writing
+and Speaking with Confidence . Wiley.
+Wright I. (2012) Risk Evaluation (Engineering Design Book 1) . Kindle Edition.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+482
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Control Engineering Practice
+Engineering
+Engineering Management
+Engineering Management Journal
+European Journal of Engineering Education
+Frontiers of Engineering Management
+IEEE Transactions on Engineering Management
+Journal of Engineering and Technology Management
+Journal of Management & Organization
+Journal of Professional Issues in Engineering Education and Practice
+Results in Engineering
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit 4031: Introduction to Professional Engineering Management
+Unit 5002: Professional Engineering Management
+Unit 5041: Engineering Project.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+483
+Issue 6 – October 2025 © Pearson Education Limited 2025

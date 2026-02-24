@@ -1,0 +1,205 @@
+Unit 5015: Manufacturing Systems
+Engineering
+Unit Code: J/615/1516
+Level: 5
+Credits: 15
+Introduction
+Manufacturing systems engineering is concerned with the design and on-going
+operation and enhancement of the integrated elements within a manufacturing
+system, which is a very complex activity, even for simple products. The art of
+manufacturing systems engineering is essentially designing systems that can cope
+with that complexity effectively.
+The aim of this unit is to develop students’ understanding of that complexity within
+a modern manufacturing environment. Among the topics covered in this unit are:
+elements that make up a manufacturing system, including production engineering,
+plant and maintenance engineering, product design, logistics, production planning
+and control, forecast quality assurance, accounting and purchasing, all of which work
+together within the manufacturing system to create products that meet customers’
+requirements.
+On successful completion of this unit students will be able to explain the principles
+of a manufacturing system and consider how to design improvements. They will be
+introduced to all the elements that make up a modern manufacturing system, and
+they will learn how to optimise the operation of existing systems through discerning
+use of monitoring data. Some of the elements will be developed in greater depth;
+of particular importance will be looking at the systems of production planning and
+control, which are the day-to-day tools used to manage the manufacturing system
+effectively.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+947
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit a student will be able to:i
+LO1 Illustrate the principles of manufacturing systems engineering and explain their
+relevance to the design and enhancement of manufacturing systems
+LO2 Use a range of analysis tools, including value stream mapping, to determine the
+effectiveness and efficiency of a manufacturing system, and then develop an
+appropriate future state for that system
+LO3 Outline the impact of different production planning approaches on the
+effectiveness of a manufacturing system
+LO4 Define the responsibilities of manufacturing systems engineering and review
+how they enable successful organisations to remain competitive.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+948
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Illustrate the principles of manufacturing systems engineering and their
+relevance to the design and enhancement of manufacturing systems
+Manufacturing systems elements:
+Elements to be considered include quality, cost, delivery performance and
+optimising output
+Problem-solving and managing complexity, maintenance scheduling and
+planning, resource planning and productivity
+Effect of testing and data analysis on performance.
+LO2 Use a range of analysis tools, including value stream mapping, to
+determine the effectiveness and efficiency of a manufacturing system,
+and then develop an appropriate future state for that system
+Analysis tools:
+Introduction to value stream mapping, and the value of both current state
+mapping and future state mapping
+Bottle-neck analysis, by using process improvement tools and techniques
+e.g. value stream analysis, simulation, kanban
+Using key performance indicators to understand the performance of a
+manufacturing system e.g. overall equipment effectiveness, lead-time, cycle time,
+waiting time, yield, delivery performance, safety metrics
+Reviewing key performance indicators; methods for presenting metrics and
+performance e.g. balanced scorecards, performance dashboards, Andon boards,
+Gemba walks.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+949
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Outline the impact of different production planning approaches on the
+effectiveness of a manufacturing system
+Production planning approaches:
+Examples of production planning strategy: push vs pull factors, kanban systems,
+make to stock, make to order and engineer to order
+Production planning approaches such as batch and queue, pull/kanban, just-in-
+time, modular design, configuration at the final point, and master scheduling.
+Production planning management tools:
+Enterprise Resource Mapping (ERP) systems, Material Resource Planning (MRP 2)
+and Manufacturing Execution systems, ability to managing complexity and
+resourcing through information technology
+Industrial engineering issues: the importance of standard times and the impact
+on productivity and the costing of products. Standard work underpins the
+repeatability of process and quality control.
+LO4 Review the functions of manufacturing systems engineering and how they
+enable successful organisations to remain competitive.
+Effectiveness of manufacturing systems:
+Plant layout design, planning and control, productivity and continuous
+improvement, quality control and equipment effectiveness
+Return on investment and capital expenditure, control of the cost of planned
+maintenance
+Manufacturing information technology: the supply of data from the process to
+decision-makers e.g. failure modes for both product and system, maintenance
+and down time data, standard times for production, material control, energy
+usage.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+950
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Illustrate the principles of manufacturing systems
+engineering and their relevance to the design and
+enhancement of manufacturing systems
+P1 Illustrate the principles of M1 Evaluate the impact D1 Apply value stream
+manufacturing engineering. that manufacturing systems mapping to a production
+have on the success of a process to evaluate the
+P2 Explain the relevance
+manufacturing organisation. efficiency of that process by
+of manufacturing systems
+using the current state map
+engineering to the design of
+to suggest improvements.
+a manufacturing system.
+LO2 Use a range of analysis tools, including value stream
+mapping, to determine the effectiveness and efficiency of
+a manufacturing system, and then develop an appropriate
+future state for that system
+P3 Apply value stream M2 Identify optimisation D2 Review value stream
+mapping to visualise a opportunities through value mapping against other
+production process. stream mapping of a production planning
+production process. methodologies and justify
+its use as a production
+planning tool.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+951
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Outline the impact of different production planning
+approaches on the effectiveness of a manufacturing system
+P4 Identify the common M3 Evaluate the D3 Justify the most
+production planning effectiveness of production appropriate production
+approaches and state their planning methods. planning technique and its
+impact on manufacturing suitability for a particular
+M4 Explore the effectiveness
+systems. manufacturing approach,
+of common production
+such as make to stock, make
+P5 Define the types of planning techniques to
+to order, or engineer to
+manufacturing approach, identify which production
+order.
+such as make to stock, approach they complement.
+make to order and engineer
+to order.
+LO4 Review the functions of manufacturing systems
+engineering and how they enable successful organisations
+to remain competitive.
+P6 Define the core
+M5 Evaluate the impact that D4 Critically consider the
+responsibilities of a
+a manufacturing systems elements of an existing
+manufacturing systems
+engineering has on manufacturing system to
+engineer. successful manufacturing appraise why this is
+organisations. successful.
+P7 Identify the key
+contributing success factors
+of a manufacturing system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+952
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bicheno, J. and Holweg, M. (2009) The Lean Toolbox . 4th Ed. PICSIE Books.
+Chopra, S. and Meindl, P. (2015) Supply Chain Management: Strategy, Planning,
+and Operation (Global Edition). 6th Ed. Pearson.
+Groover P. M. (2019) Fundamentals of Modern Manufacturing: Materials, Processes,
+and Systems . 7th Ed. Wiley.
+Huang Y., Wang L., and Liang S. Y. (2019) Handbook of Manufacturing. World Scientific
+Publishing Company.
+Kalpakjian S. and Schmid S. (2022) Manufacturing Engineering and Technology . 8th Ed.
+Pearson.
+Slack, N. (2013) Operations Management . 7th Ed. Pearson.
+Womack, J., Jones, D. and Roos, D. (1990) The Machine That Changed the World .
+Free Press.
+Websites
+http://www.industryweek.com/ Industry Week
+Five Benefits of an MES
+(Article)
+Links
+This unit links to the following related units:
+Unit 5016: Lean Manufacturing
+Unit 5017: Advanced Manufacturing Technology
+Unit 5018: Sustainability.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+953
+Issue 6 – October 2025 © Pearson Education Limited 2025

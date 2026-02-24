@@ -1,0 +1,71 @@
+{
+  "code": "4061",
+  "title": "Programming for Engineers",
+  "detectedTitle": "Programming for Engineers",
+  "startPage": 480,
+  "endPage": 489,
+  "pageCount": 10,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Discuss key aspects of software evolution and development in the context of engineering applications"
+    },
+    {
+      "id": "LO2",
+      "description": "Design a programming solution for an engineering problem"
+    },
+    {
+      "id": "LO3",
+      "description": "Implement a programming solution for an engineering problem"
+    },
+    {
+      "id": "LO4",
+      "description": "Perform testing of the programming solution to meet defined requirements and to ensure high-quality outputs."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "M4",
+      "M5",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

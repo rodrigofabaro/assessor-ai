@@ -1,0 +1,240 @@
+Unit 5020: Utilisation of Electrical Power
+Unit Code: K/651/0884
+Level: 5
+Credits: 15
+Introduction
+The supply, processing and usage of electrical energy is a leading preoccupation
+around the world today, with significant technical, economic, environmental, and
+societal implications. Engineers must engage seriously with this issue and need to be
+aware of the real and practical impact of their decisions.
+The aim of this unit is to develop students’ understanding of electrical power systems
+and power distribution, giving consideration to the advantages and disadvantages of
+alternative power sources.
+Students will learn about the construction and characteristics of power transmission
+and distribution systems, including the interconnections of systems and their
+necessary protection. Students will also consider the economics of components,
+power systems and alternative energy sources, in line with emerging developments
+within the energy sector.
+On successful completion of this unit students will be able to explain the demands,
+sources and construction of electrical power generation and distribution systems,
+review the interconnections of power systems and their necessary protection, identify
+the requirement for engineering activity and describe new and emerging methods to
+optimise energy usage.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+983
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine the demands, sources, construction of electrical power generation
+and distribution systems
+LO2 Explore the interconnections of power systems, their protection, the critical
+processes, the effects of failure and the importance of electrical safety
+LO3 Evaluate the effectiveness of forms of engineering activity to promote
+sustainable development, with consideration of the economics of components,
+power systems and alternative energy sources
+LO4 Discuss new and emerging methods to optimise energy usage, conversion,
+and storage techniques.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+984
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine the demands, sources, construction of electrical power generation
+and distribution systems
+Demands of a power generation and transmission system:
+Total power demands of a country over a period of a working week, identifying
+average, minimum and maximum demands
+Overall annual energy consumption of domestic, industrial, transport and other
+systems, identifying and quantifying energy losses
+Extent of delivered energy that is in the form of electrical energy
+Comparison between the demands of a G20 industrial economy with that of a
+developing region economy; analysis of the trends of energy supply and demand
+data to predict future energy requirements and budgets; contribution to the
+energy supplied by each of the significant primary sources of energy of a defined
+country. Influence of long-term governmental policy on managing the energy
+budget; Discuss in groups the trends in electrical power generation and
+distribution systems.
+LO2 Explore the interconnections of power systems, their protection, the
+critical processes, the effects of failure and the importance of electrical
+safety
+Construction of power generation and transmission systems:
+Comparisons between the distribution of power using DC and single-phase and
+polyphase AC transmission systems, amplitude and phase of voltages and
+currents in three-phase systems with resistive and complex loads
+Power factor and power measurement techniques of AC systems, including
+identification of a range of loads and their respective power factors,
+consequences of loads with poor power factor and the advantages of applying
+power factor corrections; Calculation of power factor correction components
+recognition of the effects of perturbations and harmonics within AC systems and
+describing methods to measure and reduce harmonics; Protecting the power
+distribution network from the effects of overload or damage, and identification
+of the requirements of a robust protection system; Evaluation of the impedance
+of an AC transmission line, its power losses and its effect on the power delivered
+to a load
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+985
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Review safety procedures associated with power networks and techniques for
+the safe measurement of system parameters
+Analysis of a power network with multiple generators, transmission lines and
+loads using power systems simulation software.
+LO3 Evaluate the effectiveness of forms of engineering activity to promote
+sustainable development, with consideration of the economics of
+components, power systems and alternative energy sources
+Sources of electrical energy:
+Efficiency, costs, security, and environmental implications of energy production
+using coal, oil and natural gas; Scope of ‘renewable’ in relation to sources of
+energy
+Evaluation of the efficiency, costs, security, and environmental implications
+of energy production using renewable sources of mechanical kinetic energy,
+including wave, tidal, large- and small-scale hydro and wind
+Evaluate the efficiency, costs, security, and environmental implications of energy
+production using solar heating, solar photovoltaics, biomass, fuel cells and
+geothermal techniques. Current state of research into nuclear, fusion and fission
+energy and other novel forms of energy.
+LO4 Discuss new and emerging methods to optimise energy usage, conversion,
+and storage techniques
+Techniques for optimising electrical energy generation:
+Techniques for optimising the generation of electricity in power stations and
+small-scale generators by using varied and distributed generation systems and
+managing the generation of power
+Techniques for optimising energy usage and conversion:
+Technologies and techniques for improving the efficiency or reducing the energy
+consumption of equipment in common use, including lighting, heating, transport,
+and industrial processes.
+Energy storage techniques:
+The need for energy storage techniques as part of an energy management
+programme, short-term and long-term energy storage techniques and their
+connection to the power grid, including, hydro, battery, super capacitor,
+flywheel and thermal
+Emerging battery technologies and battery management techniques.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+986
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine the demands, sources, construction of electrical
+power generation and distribution systems
+P1 Examine the key aspects M1 Apply reliable data to D1 Critically evaluate
+of a country’s energy supply, quantify past and current government policies for
+demand, and losses to create energy trends and predict managing energy budgets
+a balanced energy budget for future trends, having first in the long term, making
+the example. established the reliability justified recommendations.
+of data from a variety of
+sources.
+LO2 Explore the interconnections of power systems, their
+protection, the critical processes, the effects of failure and the
+importance of electrical safety
+P2 Explore the key aspects of M2 Analyse and interpret the D2 Critically evaluate the
+three-phase power systems results of computer-based technologies for
+using distributed generators simulations of power maintaining a high-quality
+and loads and protection. networks. electrical supply to
+customers, and
+P3 Perform calculations and
+demonstrate the
+simulations on example
+advantages of applying
+systems, showing power
+these by computer
+losses and the advantages
+simulation or otherwise.
+of applying power factor
+correction.
+LO3 Evaluate the effectiveness of forms of engineering
+activity to promote sustainable development, with
+consideration of the economics of components, power
+systems and alternative energy sources
+P4 Evaluate the technology of M3 Critically evaluate the D3 Propose novel forms of
+renewable sources of energy, application of renewable energy generation using
+taking into account efficiency, energy sources to meet recently published
+costs, security and existing demands, taking into research, taking into
+environmental implications. account efficiency, costs, account efficiency, costs,
+security and environmental security and environmental
+implications. implications.
+LO4 Discuss new and emerging methods to optimise energy
+usage, conversion, and storage techniques
+P5 Discuss representative M4 Evaluate the D4 Conceptualise novel
+examples of existing and environmental effects of forms of energy
+emerging methods of energy applying known energy optimisation and efficiency
+optimisation. optimisation techniques. and their applications,
+using recent research
+publications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+987
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Alassouli H.M. (2021) Lecture Notes of Generation of Electrical Power Course .
+Alassouli H.M. (2018) Electrical Power Distribution: Lecture Notes for Electrical Power
+Distribution Course − Softcover. Createspace Independent Publishing Platform
+Meier A.V. (2006) Electric Power Systems: A Conceptual Introduction . 1st Ed.
+John Wiley & Sons.
+Glover J.D., Sarma M.S., and Overbye T.J. (2017) Power System Analysis and Design.
+6th Ed. Cengage Learning.
+Pabla A.S. (2014) Power System Engineering. 1st Ed. BS Publications.
+Gonen T. (2007) Electric Power Transmission System Engineering: Analysis and Design .
+2nd Ed. CRC Press.
+Gonen T. (2020) Electric Power Distribution Engineering . 3rd Ed. CRC Press.
+Mohan N. (2012) Electric Power Systems: A First Course. 1st Ed. John Wiley & Sons.
+Grainger J. and Stevenson Jr. W.D. (1994) Power System Analysis. 1st Ed. McGraw-Hill.
+Mohan N., Undeland T.M., and Robbins W.P. (2002) Power Electronics: Converters,
+Applications, and Design. 3rd Ed. John Wiley & Sons.
+Ram B. and Vishwakarma D.N. (2018) Power System Protection and Switchgear. 2nd Ed.
+McGraw-Hill Education.
+Del Toro V. (1992) Electric Machines and Power Systems: Volume I − Electric Machines .
+1st Ed. Schaum’s Outline Series.
+Cooper I. (Editor) (2022) Electrical Power Systems: Engineering Essentials (Hardback).
+Murphy & Moore Publishing.
+Gupta O.H., Sood V.K., and Malik O.P. (Editors) (2023 ) Recent Advances in Power Systems:
+Select Proceedings of EPREC-2021 − Lecture Notes in Electrical Engineering 812
+(Paperback). Springer Verlag.
+Silver M. (Editor) (2017) Electrical Power Transmission and Distribution (Hardback).
+NY Research Press.
+Taylor W.T. (2023) Electric Power Systems: A Practical Treatment of the Main Conditions,
+Problems, Facts and Principles in the Installation and Operation of Modern Electric Power
+Systems, for System Operators, General Electrical Engineers and Students (Hardback).
+Legare Street Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+988
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Electrical Power Systems Research
+Energy Storage
+Energy Storage Journal
+Electric Power Components and Systems
+Energy Procedia
+IEEE Industry Applications Magazine
+IEEE Transactions on Industrial Electronics
+IEEE Transactions on Industrial Informatics
+IEEE Transactions on Power Electronics
+International Journal of Electrical Power & Energy Systems
+Sustainable Cities and Society
+Links
+This unit links to the following related units:
+Unit 5008: Distributed Control Systems
+Unit 5011: Industrial Power, Electronics and Storage.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+989
+Issue 6 – October 2025 © Pearson Education Limited 2025

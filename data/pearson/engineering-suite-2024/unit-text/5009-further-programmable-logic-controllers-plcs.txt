@@ -1,0 +1,176 @@
+Unit 5009: Further Programmable Logic
+Controllers (PLCs)
+Unit Code: F/651/0863
+Level: 5
+Credits: 15
+Introduction
+Programmable Logic Controllers (PLCs) were invented by the American Richard (‘Dick’)
+Morley in 1969, to be used in the manufacture of cars. Prior to that date production
+lines had been controlled by a mass of hard-wired relays. Using programmable
+devices in their place meant that changes in production could be implemented
+much faster without the need to rewire control circuits.
+The aim of this unit is to further develop students’ skills in the use of PLCs and their
+specific applications within engineering and manufacturing. Among the topics
+included in this unit are: device interface methods, PLC signal processing and
+communications with other devices, PLC programming methodology and alternative
+programmable control devices.
+On successful completion of this unit students will be able to research the design,
+selection and use of PLCs as part of a larger system, programme a PLC to solve an
+industrial process problem for a given application and illustrate the alternative
+strategies for using other available types of programmable control devices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+902
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Discuss the selection of a specific PLC for a given industrial application
+LO2 Evaluate how PLCs exchange information and process signals with other
+devices
+LO3 Design a PLC programme to solve an industrial process problem for a given
+application
+LO4 Analyse alternative strategies using other types of programmable control
+devices in industrial applications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+903
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Discuss the selection of a specific PLC for a given industrial application
+PLC selection:
+Common PLC industrial applications
+Different PLC types, their features and PLC manufacturers
+External input and output devices: analogue and digital
+PLC operational characteristics: speed, current, voltages, memory
+Alternative PLC modules available: Relay, Triac, Transistor, Analogue to Digital.
+LO2 Evaluate how PLCs exchange information and process signals with other
+devices
+PLC signal processing and communications with other devices:
+Communication links and standards
+Networked bus systems
+Supervisory Control and Data Acquisition (SCADA) systems and Human Machine
+Interfaces (HMIs).
+LO3 Design a PLC programme to solve an industrial process problem for a given
+application
+PLC programming methodology:
+Fundamentals of logic–ladder diagrams and other programming structures
+PLC programming methods used of PLCs in accordance with IEC 61131
+Logic functions: AND, OR, NOT, EXOR
+Number systems used by PLCs: Binary, Hexadecimal, Octal, BCD
+System input and output allocation data
+Advanced functions: registers, Analogue to Digital (AtoD), performing
+calculations, high-speed counters and timers
+Program test and debug software functions
+Fault-finding of systems using PLC software remotely
+Software toolbox elements
+Virtual PLC simulations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+904
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Analyse alternative strategies for using other types of programmable
+control devices in industrial applications.
+Alternative programmable control devices:
+Programmable Logic Device (PLD)
+Peripheral Interface Controller (PIC)
+Microcontrollers
+Industrial computers.
+Programmable device interface methods:
+Relays and solid state relays
+Opto couplers
+Opto isolators
+Motor driver interface integrated circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+905
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Discuss the selection of a specific PLC for a given
+industrial application
+P1 Investigate the key M1 Justify the choice of a D1 Evaluate and justify the
+industrial application specific PLC suitable for a selection of a specific PLC for
+characteristics of a given given industrial application. an industrial application.
+industrial application.
+P2 Compare the operational
+features and characteristics
+of PLCs from several
+manufacturers.
+LO2 Evaluate how PLCs exchange information and process
+signals with other devices
+P3 Illustrate the main M2 Show how PLCs in D2 Provide a justified and
+differences between industry integrate with valid rationale for the
+communication links and HMIs and SCADA. convergence of PLCs/HMIs
+standards used within PLC and SCADA control systems.
+M3 Evaluate the use of
+systems.
+SCADA and HMIs in industry.
+P4 Review the advantages of
+using networked bus PLC
+systems.
+LO3 Design a PLC programme to solve an industrial process
+problem for a given application
+P5 Design a PLC programme M4 Demonstrate the use of D3 Critically evaluate a PLC
+to solve an industrial test and debug software to programme used to solve an
+application problem. correct PLC program faults. industrial application
+problem.
+P6 Demonstrate the use M5 Explore the practical
+of PLC programming and uses of PLC advanced
+simulation software in a functions.
+given application.
+LO4 Analyse alternative strategies for using other types of
+programmable control devices in industrial applications.
+P7 Review the different types M6 Review the problems D4 Critically evaluate the
+of programmable control faced by using alternative selection of an alternative
+devices available. devices in an industrial programmable device in a
+environment. given application.
+P8 Examine an industrial
+application to determine the
+required characteristics of a
+control device.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+906
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bolton, W. (2015) Programmable Logic Controllers . 5th Ed. Newes.
+Kamel, K. and Kamel, E. (2013) Programmable Logic Controllers: Industrial Control .
+McGraw-Hill Education.
+Morton, J. (2005) The PIC Microcontroller: Your Personal Introductory Course .
+3rd Ed. Newnes.
+Perez, E. (2012) Introduction to PLCs: A beginner’s guide to Programmable Logic
+Controllers . Elvin Perez Adrover.
+Petruzella F. (2023) Programmable Logic Controllers . 6th Ed. McGraw Hill.
+Rehg A. R. and SARTOR J. G. (2014) Programmable Logic Controllers. 2nd Ed. Pearson.
+Stewart G. R. (2021) Plc Programming for Beginners . SIEMENS.
+Websites
+http://www.seipub.org/ Science and Engineering Publishing
+Company
+International Journal of Information and
+Computer Science
+(Journal)
+http://www.airccse.org/ AIRCC Publishing Corporation
+International Journal of Computer
+Science, Engineering and Information
+Technology (IJCSEIT)
+(Journal)
+Links
+This unit links to the following related units:
+Unit 4006: Mechatronics
+Unit 4015: Automation, Robotics and Programmable Logic Controllers (PLCs)
+Unit 5007: Commercial Programming Software.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+907
+Issue 6 – October 2025 © Pearson Education Limited 2025

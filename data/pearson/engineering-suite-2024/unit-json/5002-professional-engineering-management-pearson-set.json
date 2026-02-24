@@ -1,0 +1,75 @@
+{
+  "code": "5002",
+  "title": "Professional Engineering Management (Pearson-set)",
+  "detectedTitle": "Professional Engineering Management",
+  "startPage": 864,
+  "endPage": 872,
+  "pageCount": 9,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Evaluate risk management theories and practices employed in engineering/manufacturing projects"
+    },
+    {
+      "id": "LO2",
+      "description": "Produce an engineering/manufacturing services delivery plan that meets the requirements of a sector-specific organisation"
+    },
+    {
+      "id": "LO3",
+      "description": "Develop effective leadership, individual and group communication skills"
+    },
+    {
+      "id": "LO4",
+      "description": "Demonstrate personal commitment to professional standards and obligations to society, the engineering profession, and the environment."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

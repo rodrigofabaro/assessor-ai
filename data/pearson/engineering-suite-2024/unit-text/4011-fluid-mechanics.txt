@@ -1,0 +1,192 @@
+Unit 4011: Fluid Mechanics
+Unit Code: T/651/0724
+Level: 4
+Credits: 15
+Introduction
+Fluid mechanics is an important subject to scientists and engineers of many
+disciplines, not just those working directly with fluid systems. Mechanical engineers
+need to understand the principles of hydraulic devices and turbines (wind and water);
+aeronautical engineers use these concepts to understand flight and design flying
+machines, while civil engineers typically concentrate on water supply, sewerage,
+and irrigation.
+This unit introduces students to the fluid mechanics principles and techniques used
+in mechanical engineering. In particular, the hydraulic devices and systems that
+incorporate the transmission of hydraulic pressure and forces exerted by a static
+fluid on immersed surfaces.
+Topics included in this unit are: pressure and force, submerged surfaces, fluid flow
+theory, aerodynamics, and hydraulic machinery.
+On successful completion of this unit students will be able to learn about the concept
+and measurement of viscosity in fluids, and the characteristics of Newtonian and non-
+Newtonian fluids; fluid flow phenomena, including energy conservation, estimation of
+head loss in pipes and viscous drag; and the operational characteristics of hydraulic
+machines, in particular the operating principles of various water turbines and pumps.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+86
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Determine the behavioural characteristics of static fluid systems
+LO2 Examine the operating principles and limitations of viscosity measuring devices
+LO3 Investigate dynamic fluid parameters of real fluid flow
+LO4 Explore the operating principles and efficiencies of hydraulic machines.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+87
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Determine the behavioural characteristics of static fluid systems
+Pressure and force:
+How Pascal’s laws define hydrostatic pressure
+Pressure with the use of manometers
+Transmission of force in hydraulic systems and devices.
+Submerged surfaces:
+Determining thrust on immersed surfaces
+Moments of area and parallel axis theorem
+Calculating centre of pressure with moments of area.
+LO2 Examine the operating principles and limitations of viscosity measuring
+devices
+Viscosity in fluids:
+Dimensional analysis (the Buckingham π theorem)
+Dynamic and kinematic viscosity definitions
+Characteristics of Newtonian fluids
+Effects of temperature on viscosity
+Classification of non-Newtonian fluids.
+Operating principles and limitations:
+Operating principles of viscometers
+Rheometers for Non Newtonian fluids
+Converting results acquired from viscometers into viscosity values.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+88
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Investigate dynamic fluid parameters of real fluid flow
+Fluid flow theory:
+Energy present within a flowing fluid and the formulation of Bernoulli’s Equation
+Classification of fluid flow using Reynolds numbers
+Calculations of flow within pipelines
+Head losses that occur within a fluid flowing in a pipeline
+Viscous drag resulting from fluid flow and the formulation of the drag equation.
+Aerodynamics:
+Application of prior theory of fluid flow to aerodynamics
+Principles of aerofoils and lift-induced drag
+Flow measuring devices and their operating principles.
+LO4 Explore the operating principles and efficiencies of hydraulic machines
+Hydraulic machinery:
+Operating principles of different types of water turbine
+Reciprocating and centrifugal pump theory
+Efficiencies of different types of hydraulic machinery
+Environmental concerns surrounding hydraulic machines.
+Use of relevant problem-solving tools within the context of a chosen
+scenario/sector e.g. root cause analysis (RCA), process failure modes effects
+analysis (PFMEA), fishbone, practical problem solving (PPS) and advanced
+product quality planning (APQP).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+89
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Determine the behavioural characteristics of static
+fluid systems
+P1 Determine force and M1 Carry out appropriate D1 Explain the use and
+centre of pressure on calculations on force and limitations of manometers
+submerged surfaces. centre of pressure on to measure pressure.
+submerged surfaces.
+P2 Examine the parameters
+of hydraulic devices that are
+used in the transmission of
+force.
+LO2 Examine the operating principles and limitations of
+viscosity measuring devices
+P3 Examine the operation M2 Explain, with examples, D2 Illustrate the results
+and constraints of different the effects of temperature of a viscosity test on a
+viscometers that quantify and shear forces on Newtonian fluid at various
+viscosity in fluids. Newtonian and non- temperatures with those
+Newtonian fluids. given on a data sheet and
+P4 Carry out appropriate
+explain discrepancies.
+calculations on the effect of
+changes in temperature and
+other constraints on the
+viscosity of a fluid.
+LO3 Investigate dynamic fluid parameters of real fluid flow
+P5 Determine parameters of a M3 Explain the effect of D3 Analyse the head
+flowing fluid using Bernoulli’s aerodynamic drag and lift losses accumulated by a
+Equation. on aerofoils. fluid when flowing in a
+pipeline for various
+P6 Investigate the flow of a
+applications.
+fluid using Reynold’s numbers
+and the significance of this
+information.
+LO4 Explore the operating principles and efficiencies of
+hydraulic machines
+P7 Determine the efficiency M4 Analyse the limitations D4 Critically analyse the
+of a water turbine. that exist within different arguments concerning
+types of water turbine. the ecological impact of
+P8 Calculate the input power
+hydroelectric power.
+requirements of centrifugal
+pumps.
+P9 Explore operating
+efficiencies and applications
+of two different hydraulic
+machines.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+90
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Cengel Y.A. and Cimbala J.M. (2018) Fluid Mechanics: Fundamentals and Applications.
+4th Ed: McGraw-Hill Education
+Elger D.F., Williams B.C. and Crowe C.T. (2022) Engineering fluid mechanics.
+John Wiley & Sons.
+Han J. and wright L. (2020) Experimental Methods in Heat Transfer and Fluid Mechanics.
+1st Edition. CRC Press.
+Hibbeler R.C. (2020) Fluid Mechanics in SI Units. 2nd edition. Pearson.
+Mott R.L. and Untener A. (2023) Applied Fluid Mechanics, Global Edition. 7th edition.
+Pearson.
+Rathakrishnan E. (2022) Encyclopaedia of Fluid Mechanics. 1st Edition. CRC Press.
+Rathakrishnan E. (2022) Fluid mechanics: An introduction. PHI Learning Pvt. Ltd.
+Rodrigues J.F. and Sequeira A. (2020) Mathematical Topics in Fluid Mechanics.
+CRC Press.
+Shivamoggi B.K. (2022) Introduction to Theoretical and Mathematical Fluid Dynamics.
+Wiley.
+Uddin N. (2023) Fluid Mechanics: A Problem-Solving Approach. 1st Edition. CRC Press.
+White F. and Xue H. (2020) Fluid Mechanics. 9th Edition. McGraw-Hill.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Annual Review of Fluid Mechanics
+Experiments in Fluids
+Fluid Dynamics
+Journal of Applied Fluid Mechanics
+Journal of Fluid Mechanics
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+91
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4024: Electro, Pneumatic and Hydraulic Systems
+Unit 5023: Thermofluids.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+92
+Issue 6 – October 2025 © Pearson Education Limited 2025

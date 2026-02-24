@@ -1,0 +1,222 @@
+Unit 4033: Programmable Logic
+Controllers
+Unit Code: T/651/0760
+Level: 4
+Credits: 15
+Introduction
+The programmable logic controller (PLC) has revolutionised the automation industry.
+Since Richard Morley’s Modicon invention at General Motors in the 1970s, the PLC has
+been the standard solution for industrial automation. Today PLCs can be found in
+everything from manufacturing equipment to vending machines, and PLC system
+development for automated systems is a highly specialised and demanding area of
+engineering.
+The aim of this unit is to enable students to understand the rationale behind the
+use of programmable logic controllers and their applications in industry. The unit
+combines practical skills and knowledge in developing PLC applications from real
+scenarios with theoretical principles, such as communication and networking
+protocols.
+On successful completion of this unit students will have developed an understanding
+of the evolution, types and applications of PLCs. They will know how to select
+and develop a PLC system, integrate features of functional safety based on their
+understanding of risk management, and evaluate the wide range of communication
+technologies available on modern PLCs.
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Describe the design, operation and selection of PLC systems
+LO2 Explore Functional Safety within PLC systems
+LO3 Develop a PLC program for an automated process system
+LO4 Review how PLCs exchange information and process signals with other devices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+251
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Describe the design, operation and selection of PLC systems
+PLC architecture and operation:
+central processing unit (CPU), data memory, program memory, speed, scan time,
+power supply, output current rating
+Input/output (I/O) interface: digital, analogue, relay, transistors, TRIACs,
+opto-coupling.
+PLC types and selection:
+Compact, modular and rack-mounted
+Distributed control systems and programmable automated controllers
+PLC manufacturers
+Latest PLC case studies.
+LO2 Explore Functional Safety within PLC systems
+Functional Safety standards:
+Evolution of Safety and Risk management
+IEC61508 (Electrical, Electronic and Programmable Equipment)
+IEC61131 (PLCs), IEC61131-3 (Languages)
+IEC61511 (Process Control) IEC62061 (Machinery)
+Hazard and risk assessment
+Hazard and operability analysis (HAZOP)
+Failure modes and effects analysis (FMEA)
+Fault tree analysis (FTA)
+Safety integrity levels, redundancy (back-up or failsafe).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+252
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Develop a PLC program for an automated process system
+Logic control circuits:
+AND, OR, NAND, NOR, XOR, combinational logic, latching circuits.
+Number systems:
+Binary, decimal, hexadecimal, octal number representation and conversion
+Memory: bits, bytes, nibbles, word, long/double
+Signed and unsigned values.
+PLC programming:
+Industrial Standard IEC61131; PLC software tools
+Ladder logic operation: rungs, input, process, output
+Variables: Boolean, integer, floating point
+Inputs, outputs, delay functions, timers, counters, latches, registers,
+comparison blocks, math operators, function blocks, simulation, debugging,
+hardware testing, fault finding
+Peer review of programming activities (e.g., design, code, test plan),
+program demonstration and profession discussion including good practice.
+Documentation:
+Requirements and specification, flow chart, functional chart, sequence table,
+input/output or allocation list, wiring diagram, test data.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+253
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Review how PLCs exchange information and process signals with other
+devices
+Digital communication basics:
+Digital versus analogue communication: analogue to digital conversion (ADC),
+digital to analogue conversion (DAC)
+Sampling rate, resolution, errors
+Noise: decoding, encoding, pulse code modulation (PCM)
+Elements of a digital communication system; digital communication medium.
+PLC communication and networking:
+Fieldbus, profibus, modbus, ethernet, profinet
+OSI model, RS232, RS485, USB, parallel, serial
+Controlled area network (CAN)
+Supervisory control and data acquisition (SCADA)
+Remote terminal unit (RTU)
+Human–machine interface (HMI).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+254
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Describe the design, operation and selection of PLC
+systems
+P1 Describe the architecture M1 Analyse the suitability D1 Justify the selection
+and operation of of programmable logic of a programmable logic
+programmable logic controllers (PLCs) with controller for a given
+controllers. programmable automation application.
+controllers (PACs) for given
+P2 Compare the design and
+applications.
+applications of Compact,
+modular and rack-mounted
+PLCs.
+P3 Describe the range of
+input/output devices and
+PLC interface techniques.
+LO2 Explore Functional Safety within PLC systems
+P4 Explore the requirement M2 Apply functional safety D2 Evaluate functional
+of functional safety within analysis on a PLC based safety and its integration
+industrial PLC systems. automated process system. into PLC systems to
+minimise hazards and risks.
+P5 Compare the range of
+IEC6113-3 languages and
+their applications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+255
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Develop a PLC program for an automated process
+system
+P6 Translate a digital logic M3 Apply methods of testing D3 Evaluate the PLC
+control circuit into an and debugging hardware program for an automated
+equivalent PLC program. and software in PLC systems. process system and make
+justifiable modifications.
+P7 Produce design and
+planning documentation
+associated with the
+preparation of a PLC
+program.
+P8 Design and develop
+a functionally safe PLC
+program for an automated
+process system.
+LO4 Review how PLCs exchange information and process
+signals with other devices.
+P9 Describe the M4 Assess the use and D4 Evaluate fieldbus and
+characteristics and integration of SCADA and Ethernet technologies for
+methods of digital data HMI’s with PLCs in industry. industrial manufacturing
+communication for PLCs. applications.
+P10 Review common
+communication
+technologies available
+on a range of PLCs.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+256
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bolton W. (2015) Programmable Logic Controllers . 6th Ed. Elsevier.
+Dawkins N. (ed.) (2014) Automation and Controls: A guide to Automation, Controls,
+PLCs and PLC Programming .
+Johnson Jr C.H. and Sanusi A.L. (2022) PLC Programming from Novice to Professional:
+Learn PLC Programming with Training Videos (Paperback). Ojula Technology Innovations.
+Manesis S. and Nikolakopoulos G. (2018) Introduction to Industrial Automation. 1st Ed.
+Routledge, Taylor and Francis Group.
+Perez A. E. (2012) Introduction to PLCs: A beginner’s guide to Programmable Logic
+Controllers .
+Petruzella F. (2023) Programmable Logic Controllers. 6th Ed. McGraw Hill.
+Stewart G.R. (2021) Siemens Plc Programming For Beginners: [Step-by-Step Instructions]
+How Can I Quickly and Easily Learn PLC Programming at Home? Independent publication.
+White M.T. (2023) Mastering PLC Programming: The software engineering survival guide to
+automation programming (Paperback) . Packt Publishing Limited.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Automation and Remote Control
+Automation
+Electrical, Electronics and Communications Engineering (Applied Sciences)
+IFAC Journal of Systems and Control
+IEEE Journal on Robotics and Automation
+IEEE Potentials (Programmable Logic Controllers)
+International Journal of Automation and Control (IJAAC)
+International Journal of Innovative Research in Technology & Science
+Journal of AI, Robotics and Workplace Automation
+Journal of Automation and Intelligence
+Programmable Logic Controllers (Special issue)
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+257
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4015: Automation, Robotics and Programmable Logic Controllers (PLCs)
+Unit 4016: Instrumentation and Control Systems
+Unit 4030: Industry 4.0
+Unit 4068: Industrial Robots
+Unit 5009: Further Programmable Logic Controllers (PLCs)
+Unit 5021: Further Control Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+258
+Issue 6 – October 2025 © Pearson Education Limited 2025

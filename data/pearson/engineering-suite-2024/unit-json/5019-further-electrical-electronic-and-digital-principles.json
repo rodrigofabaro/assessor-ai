@@ -1,0 +1,65 @@
+{
+  "code": "5019",
+  "title": "Further Electrical, Electronic and Digital Principles",
+  "detectedTitle": "Further Electrical, Electronic and Digital Principles",
+  "startPage": 992,
+  "endPage": 998,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Solve a range of electrical and electronic problems by applying appropriate circuit theorems and mathematical methods"
+    },
+    {
+      "id": "LO2",
+      "description": "Apply appropriate methods to analyse and solve three-phase network problems"
+    },
+    {
+      "id": "LO3",
+      "description": "Examine analogue and digital circuits using appropriate laboratory and simulation techniques"
+    },
+    {
+      "id": "LO4",
+      "description": "Explain the characteristics of non-linear circuits to predict their behaviour under a variety of conditions"
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ]
+}

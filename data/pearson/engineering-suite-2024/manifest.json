@@ -1,0 +1,5420 @@
+{
+  "generatedAt": "2026-02-24T17:02:25.262Z",
+  "sourcePdfPath": "data/pearson/source/btec-hncd-unit-descriptor-engineering-suite-2024.pdf",
+  "sourceListPath": "data/pearson/unit-lists/engineering-active-units-2024.json",
+  "sourcePdfPageCount": 1443,
+  "detectedUnitCount": 176,
+  "selectedRequestedCount": 53,
+  "selectedExtractedCount": 53,
+  "missingRequestedUnits": [],
+  "selectedUnits": [
+    {
+      "code": "4001",
+      "requestedTitle": "Engineering Design",
+      "detectedTitle": "Engineering Design",
+      "title": "Engineering Design",
+      "startPage": 24,
+      "endPage": 32,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4001-engineering-design.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4001-engineering-design.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4001-engineering-design.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Create a design specification for a given design brief that meets stakeholder’s requirements, along with a proposed design solution"
+        },
+        {
+          "id": "LO2",
+          "description": "Analyse possible technical solutions to implement the proposed design specification"
+        },
+        {
+          "id": "LO3",
+          "description": "Produce a design report considering all key aspects including manufacturability (or design for manufacturing and assembly) and environmental impact"
+        },
+        {
+          "id": "LO4",
+          "description": "Present the design solution to an audience, including evaluation of feedback and future improvements."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "4023",
+      "requestedTitle": "Computer Aided Design and Manufacture (CAD/CAM)",
+      "detectedTitle": "Computer Aided Design and Manufacture (CAD/CAM)",
+      "title": "Computer Aided Design and Manufacture (CAD/CAM)",
+      "startPage": 187,
+      "endPage": 195,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4023-computer-aided-design-and-manufacture-cad-cam.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4023-computer-aided-design-and-manufacture-cad-cam.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4023-computer-aided-design-and-manufacture-cad-cam.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Describe the key principles of manufacturing using a CAD/CAM system"
+        },
+        {
+          "id": "LO2",
+          "description": "Prepare 3D solid models of a component suitable for transfer into a CAM system"
+        },
+        {
+          "id": "LO3",
+          "description": "Use CAM software to generate manufacturing simulations of a component"
+        },
+        {
+          "id": "LO4",
+          "description": "Produce a dimensionally accurate component on a CNC/AM machine using a CAD/CAM system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "M5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M6",
+          "P7",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "5002",
+      "requestedTitle": "Professional Engineering Management (Pearson-set)",
+      "detectedTitle": "Professional Engineering Management",
+      "title": "Professional Engineering Management (Pearson-set)",
+      "startPage": 864,
+      "endPage": 872,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5002-professional-engineering-management-pearson-set.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5002-professional-engineering-management-pearson-set.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5002-professional-engineering-management-pearson-set.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Evaluate risk management theories and practices employed in engineering/manufacturing projects"
+        },
+        {
+          "id": "LO2",
+          "description": "Produce an engineering/manufacturing services delivery plan that meets the requirements of a sector-specific organisation"
+        },
+        {
+          "id": "LO3",
+          "description": "Develop effective leadership, individual and group communication skills"
+        },
+        {
+          "id": "LO4",
+          "description": "Demonstrate personal commitment to professional standards and obligations to society, the engineering profession, and the environment."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "5015",
+      "requestedTitle": "Manufacturing Systems Engineering",
+      "detectedTitle": "Manufacturing Systems Engineering",
+      "title": "Manufacturing Systems Engineering",
+      "startPage": 963,
+      "endPage": 969,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5015-manufacturing-systems-engineering.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5015-manufacturing-systems-engineering.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5015-manufacturing-systems-engineering.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Illustrate the principles of manufacturing systems engineering and explain their relevance to the design and enhancement of manufacturing systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Use a range of analysis tools, including value stream mapping, to determine the effectiveness and efficiency of a manufacturing system, and then develop an appropriate future state for that system"
+        },
+        {
+          "id": "LO3",
+          "description": "Outline the impact of different production planning approaches on the effectiveness of a manufacturing system"
+        },
+        {
+          "id": "LO4",
+          "description": "Define the responsibilities of manufacturing systems engineering and review how they enable successful organisations to remain competitive."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "M4",
+          "P4",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "4002",
+      "requestedTitle": "Engineering Maths",
+      "detectedTitle": "Engineering Mathematics",
+      "title": "Engineering Maths",
+      "startPage": 33,
+      "endPage": 40,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4002-engineering-maths.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4002-engineering-maths.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4002-engineering-maths.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Apply a variety of mathematical methods to a range of engineering and manufacturing sector problems"
+        },
+        {
+          "id": "LO2",
+          "description": "Investigate applications of statistical and probability techniques to interpret, organise, and present data"
+        },
+        {
+          "id": "LO3",
+          "description": "Use analytical and computational methods for solving engineering and manufacturing sector problems by relating sinusoidal wave and vector functions to their respective applications"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine how differential and integral calculus can be used to solve engineering and manufacturing sector problems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D2",
+          "M3",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D3",
+          "M4",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "4024",
+      "requestedTitle": "Electro, Pneumatic and Hydraulic Systems",
+      "detectedTitle": "Electro, Pneumatic and Hydraulic Systems",
+      "title": "Electro, Pneumatic and Hydraulic Systems",
+      "startPage": 196,
+      "endPage": 202,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4024-electro-pneumatic-and-hydraulic-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4024-electro-pneumatic-and-hydraulic-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4024-electro-pneumatic-and-hydraulic-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Calculate the parameters of pneumatic and hydraulic systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Illustrate the notation and symbols of pneumatic and hydraulic components"
+        },
+        {
+          "id": "LO3",
+          "description": "Examine the applications of pneumatic and hydraulic systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Investigate the maintenance of pneumatic and hydraulic systems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "5003",
+      "requestedTitle": "Advanced Mechanical Principles",
+      "detectedTitle": "Advanced Mechanical Principles",
+      "title": "Advanced Mechanical Principles",
+      "startPage": 873,
+      "endPage": 879,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5003-advanced-mechanical-principles.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5003-advanced-mechanical-principles.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5003-advanced-mechanical-principles.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Determine the behavioural characteristics of materials subjected to complex loading"
+        },
+        {
+          "id": "LO2",
+          "description": "Assess the strength of loaded beams and pressurised vessels"
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse the specifications of power transmission system elements"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine operational constraints of dynamic systems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P9",
+          "P10",
+          "P11"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11"
+      ]
+    },
+    {
+      "code": "5016",
+      "requestedTitle": "Lean Manufacturing",
+      "detectedTitle": "Lean Manufacturing",
+      "title": "Lean Manufacturing",
+      "startPage": 970,
+      "endPage": 976,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5016-lean-manufacturing.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5016-lean-manufacturing.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5016-lean-manufacturing.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine the common principles of lean manufacturing and how the implementation of a lean production system contributes to business success"
+        },
+        {
+          "id": "LO2",
+          "description": "Evaluate the lean approach applied to the modern manufacturing environment"
+        },
+        {
+          "id": "LO3",
+          "description": "Specify a range of the process improvement tools used within lean manufacturing"
+        },
+        {
+          "id": "LO4",
+          "description": "Demonstrate effective communication skills in order to lead the process of continuous improvement across an organisation."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "P2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P6"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ]
+    },
+    {
+      "code": "4003",
+      "requestedTitle": "Engineering Science",
+      "detectedTitle": "Engineering Science I",
+      "title": "Engineering Science",
+      "startPage": 41,
+      "endPage": 49,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4003-engineering-science.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4003-engineering-science.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4003-engineering-science.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine scientific data using both quantitative and qualitative methods"
+        },
+        {
+          "id": "LO2",
+          "description": "Apply the fundamentals of mechanical engineering systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Explore the characteristics and properties of engineering materials"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse applications of A.C./D.C. circuit theorems, electromagnetic principles, and properties."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P8",
+          "P9",
+          "P10"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10"
+      ]
+    },
+    {
+      "code": "4025",
+      "requestedTitle": "Operations and Plant Management",
+      "detectedTitle": "Operations and Plant Management",
+      "title": "Operations and Plant Management",
+      "startPage": 203,
+      "endPage": 210,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4025-operations-and-plant-management.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4025-operations-and-plant-management.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4025-operations-and-plant-management.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Analyse fundamental thermodynamic systems and their properties"
+        },
+        {
+          "id": "LO2",
+          "description": "Investigate power transmission systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Determine the parameters of static and dynamic fluid systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine the principles of heat transfer in industrial applications."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5",
+          "P6"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P7",
+          "P8",
+          "P9"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P10",
+          "P11"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11"
+      ]
+    },
+    {
+      "code": "5004",
+      "requestedTitle": "Virtual Engineering",
+      "detectedTitle": "Computational Modelling in Virtual Engineering",
+      "title": "Virtual Engineering",
+      "startPage": 880,
+      "endPage": 887,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5004-virtual-engineering.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5004-virtual-engineering.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5004-virtual-engineering.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explore the capabilities and limitations of computer-based models in meeting design fundamentals and their use in solving problems in engineering."
+        },
+        {
+          "id": "LO2",
+          "description": "Develop finite element model(s) in order to find and solve potential structural or performance issues."
+        },
+        {
+          "id": "LO3",
+          "description": "Perform CFD simulations to evaluate pressure and velocity distributions within an engineering setting."
+        },
+        {
+          "id": "LO4",
+          "description": "Discuss faults in the application of simulation techniques to evaluate the modelling method and data accuracy."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "P2",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P4",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "M6",
+          "P6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "5017",
+      "requestedTitle": "Advanced Manufacturing Technology",
+      "detectedTitle": "Advanced Manufacturing",
+      "title": "Advanced Manufacturing Technology",
+      "startPage": 977,
+      "endPage": 984,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5017-advanced-manufacturing-technology.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5017-advanced-manufacturing-technology.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5017-advanced-manufacturing-technology.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine a range of advanced manufacturing processes and their effective application"
+        },
+        {
+          "id": "LO2",
+          "description": "Contrast advanced manufacturing technologies to determine their appropriateness for an application or process."
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse an existing manufactured product and associated process to introduce proposals for possible improvements based on the introduction of advanced manufacturing technologies."
+        },
+        {
+          "id": "LO4",
+          "description": "Evaluate the concept of the next industrial revolution to determine the impact on both manufacturers and the consumer."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4",
+          "P5"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ]
+    },
+    {
+      "code": "4004",
+      "requestedTitle": "Managing a Professional Engineering Project (Pearson-set)",
+      "detectedTitle": "Managing a Professional Engineering Project",
+      "title": "Managing a Professional Engineering Project (Pearson-set)",
+      "startPage": 50,
+      "endPage": 58,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4004-managing-a-professional-engineering-project-pearson-set.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4004-managing-a-professional-engineering-project-pearson-set.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4004-managing-a-professional-engineering-project-pearson-set.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Select a project that will provide a solution to an identified engineering/manufacturing problem."
+        },
+        {
+          "id": "LO2",
+          "description": "Conduct planned project activities to generate outcomes which provide a solution to the identified engineering/manufacturing problem."
+        },
+        {
+          "id": "LO3",
+          "description": "Produce a project report analysing the outcomes of each of the project processes and stages."
+        },
+        {
+          "id": "LO4",
+          "description": "Present the project report drawing conclusions on the outcomes of the project."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P4"
+        ],
+        "LO4": [
+          "M4",
+          "P5"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ]
+    },
+    {
+      "code": "4026",
+      "requestedTitle": "Electrical Systems and Fault Finding",
+      "detectedTitle": "Electrical Systems and Fault Finding",
+      "title": "Electrical Systems and Fault Finding",
+      "startPage": 211,
+      "endPage": 218,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4026-electrical-systems-and-fault-finding.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4026-electrical-systems-and-fault-finding.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4026-electrical-systems-and-fault-finding.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Investigate the key constructional features and applications of electrical systems, including identification and resolution of potential faults"
+        },
+        {
+          "id": "LO2",
+          "description": "Examine the types, applications, and common fault-finding methodologies of electrical motors and generators"
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse potential faults and fault diagnostics in the various types of lighting circuits available in the industry by assessing their practical application"
+        },
+        {
+          "id": "LO4",
+          "description": "Discuss the operating characteristics of electrical safety components including evaluation of their effectiveness through fault-finding techniques."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4",
+          "P5"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ]
+    },
+    {
+      "code": "5005",
+      "requestedTitle": "Further Thermodynamics",
+      "detectedTitle": "Further Thermodynamics",
+      "title": "Further Thermodynamics",
+      "startPage": 888,
+      "endPage": 894,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5005-further-thermodynamics.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5005-further-thermodynamics.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5005-further-thermodynamics.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Evaluate the performance and operation of heat pumps and refrigeration systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Review the applications and efficiency of industrial compressors"
+        },
+        {
+          "id": "LO3",
+          "description": "Determine steam plant parameters and characteristics using charts and/or tables"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine the operation of gas turbines and assess their efficiency."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "P3",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "5018",
+      "requestedTitle": "Sustainability",
+      "detectedTitle": "Sustainability",
+      "title": "Sustainability",
+      "startPage": 985,
+      "endPage": 991,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5018-sustainability.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5018-sustainability.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5018-sustainability.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Determine the nature and scope of the technical challenges of ensuring sustainable development"
+        },
+        {
+          "id": "LO2",
+          "description": "Articulate the importance of collaborating with other disciplines in developing technical solutions to sustainability problems"
+        },
+        {
+          "id": "LO3",
+          "description": "Evaluate the use of alternative energy generation techniques in relation to their contribution to a low carbon economy"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse a variety of data sources to estimate the carbon footprint of a socio- technical scenario."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4",
+          "P5"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ]
+    },
+    {
+      "code": "4006",
+      "requestedTitle": "Mechatronics",
+      "detectedTitle": "Mechatronics",
+      "title": "Mechatronics",
+      "startPage": 66,
+      "endPage": 72,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4006-mechatronics.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4006-mechatronics.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4006-mechatronics.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explain the design and operational characteristics of a mechatronic system"
+        },
+        {
+          "id": "LO2",
+          "description": "Produce a mechatronic system design specification for a given application"
+        },
+        {
+          "id": "LO3",
+          "description": "Examine the operation and function of a mechatronics system using simulation and modelling software"
+        },
+        {
+          "id": "LO4",
+          "description": "Demonstrate fault finding skills and fault analysis on a mechatronic system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P4"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P5",
+          "P6"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ]
+    },
+    {
+      "code": "4030",
+      "requestedTitle": "Industry 4.0",
+      "detectedTitle": "Industry 4.0",
+      "title": "Industry 4.0",
+      "startPage": 243,
+      "endPage": 250,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4030-industry-4-0.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4030-industry-4-0.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4030-industry-4-0.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Discuss the key concepts and principles of Industry 4.0"
+        },
+        {
+          "id": "LO2",
+          "description": "Review the range of cyber-physical production systems (CPPS) shaping Industry 4.0 and their integration with the Industrial Internet of Things (IIoT)"
+        },
+        {
+          "id": "LO3",
+          "description": "Explore the implications and impacts of Industry 4.0 in engineering and manufacturing processes and technologies"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine the factors manufacturers need to consider when transitioning to Industry 4.0 and workforce Implications."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "M4",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M5",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M6",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5006",
+      "requestedTitle": "Further Mathematics",
+      "detectedTitle": "Further Engineering Mathematics",
+      "title": "Further Mathematics",
+      "startPage": 895,
+      "endPage": 903,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5006-further-mathematics.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5006-further-mathematics.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5006-further-mathematics.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Use applications of number theory in practical engineering/manufacturing situations"
+        },
+        {
+          "id": "LO2",
+          "description": "Solve systems of linear equations relevant to engineering//manufacturing sector applications using matrix methods"
+        },
+        {
+          "id": "LO3",
+          "description": "Approximate solutions of contextualised examples with graphical and numerical methods"
+        },
+        {
+          "id": "LO4",
+          "description": "Review models of engineering/manufacturing systems using ordinary differential equations."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P9",
+          "P10",
+          "P11"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11"
+      ]
+    },
+    {
+      "code": "5019",
+      "requestedTitle": "Further Electrical, Electronic and Digital Principles",
+      "detectedTitle": "Further Electrical, Electronic and Digital Principles",
+      "title": "Further Electrical, Electronic and Digital Principles",
+      "startPage": 992,
+      "endPage": 998,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5019-further-electrical-electronic-and-digital-principles.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5019-further-electrical-electronic-and-digital-principles.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5019-further-electrical-electronic-and-digital-principles.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Solve a range of electrical and electronic problems by applying appropriate circuit theorems and mathematical methods"
+        },
+        {
+          "id": "LO2",
+          "description": "Apply appropriate methods to analyse and solve three-phase network problems"
+        },
+        {
+          "id": "LO3",
+          "description": "Examine analogue and digital circuits using appropriate laboratory and simulation techniques"
+        },
+        {
+          "id": "LO4",
+          "description": "Explain the characteristics of non-linear circuits to predict their behaviour under a variety of conditions"
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ]
+    },
+    {
+      "code": "4008",
+      "requestedTitle": "Mechanical Principles",
+      "detectedTitle": "Mechanical Principles",
+      "title": "Mechanical Principles",
+      "startPage": 81,
+      "endPage": 87,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4008-mechanical-principles.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4008-mechanical-principles.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4008-mechanical-principles.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Solve problems within static mechanical systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Analyse dynamic mechanical systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Investigate elements of simple mechanical power transmission systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse natural and damped vibrations within translational and rotational mass-spring systems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "4068",
+      "requestedTitle": "Industrial Robots",
+      "detectedTitle": "Industrial Robots",
+      "title": "Industrial Robots",
+      "startPage": 538,
+      "endPage": 544,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4068-industrial-robots.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4068-industrial-robots.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4068-industrial-robots.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Describe the operational characteristics, selection criteria and applications of industrial robots within manufacturing industries"
+        },
+        {
+          "id": "LO2",
+          "description": "Explain the safety standards associated with industrial robots"
+        },
+        {
+          "id": "LO3",
+          "description": "Program an industrial robot for automated process application"
+        },
+        {
+          "id": "LO4",
+          "description": "Investigate the global economic scope of industrial robots and integration into smart factories."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D2",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D3",
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5007",
+      "requestedTitle": "Commercial Programming Software",
+      "detectedTitle": "Commercial Programming Software",
+      "title": "Commercial Programming Software",
+      "startPage": 904,
+      "endPage": 910,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5007-commercial-programming-software.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5007-commercial-programming-software.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5007-commercial-programming-software.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Research a range of software application tools to determine how they can support electronic engineering functions effectively"
+        },
+        {
+          "id": "LO2",
+          "description": "Explain how a software package can be used to simulate the behaviour of an electronic circuit function and compare the results to real components and circuits"
+        },
+        {
+          "id": "LO3",
+          "description": "Programme a microprocessor-based device to achieve a specified outcome or task using commercially available software"
+        },
+        {
+          "id": "LO4",
+          "description": "Evaluate an electronics software application tool to report on its ability to replicate the real world and the resource savings this can bring to an organisation."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "M5",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "5020",
+      "requestedTitle": "Utilisation of Electrical Power",
+      "detectedTitle": "Utilisation of Electrical Power",
+      "title": "Utilisation of Electrical Power",
+      "startPage": 999,
+      "endPage": 1005,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5020-utilisation-of-electrical-power.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5020-utilisation-of-electrical-power.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5020-utilisation-of-electrical-power.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine the demands, sources, construction of electrical power generation and distribution systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Explore the interconnections of power systems, their protection, the critical processes, the effects of failure and the importance of electrical safety"
+        },
+        {
+          "id": "LO3",
+          "description": "Evaluate the effectiveness of forms of engineering activity to promote sustainable development, with consideration of the economics of components, power systems and alternative energy sources"
+        },
+        {
+          "id": "LO4",
+          "description": "Discuss new and emerging methods to optimise energy usage, conversion, and storage techniques."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P4"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P5"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ]
+    },
+    {
+      "code": "4011",
+      "requestedTitle": "Fluid Mechanics",
+      "detectedTitle": "Fluid Mechanics",
+      "title": "Fluid Mechanics",
+      "startPage": 102,
+      "endPage": 108,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4011-fluid-mechanics.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4011-fluid-mechanics.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4011-fluid-mechanics.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Determine the behavioural characteristics of static fluid systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Examine the operating principles and limitations of viscosity measuring devices"
+        },
+        {
+          "id": "LO3",
+          "description": "Investigate dynamic fluid parameters of real fluid flow"
+        },
+        {
+          "id": "LO4",
+          "description": "Explore the operating principles and efficiencies of hydraulic machines."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P7",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "4033",
+      "requestedTitle": "Programmable Logic Controllers",
+      "detectedTitle": "Programmable Logic Controllers",
+      "title": "Programmable Logic Controllers",
+      "startPage": 267,
+      "endPage": 274,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4033-programmable-logic-controllers.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4033-programmable-logic-controllers.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4033-programmable-logic-controllers.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Describe the design, operation and selection of PLC systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Explore Functional Safety within PLC systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Develop a PLC program for an automated process system"
+        },
+        {
+          "id": "LO4",
+          "description": "Review how PLCs exchange information and process signals with other devices."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P9",
+          "P10"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10"
+      ]
+    },
+    {
+      "code": "5008",
+      "requestedTitle": "Distributed Control Systems",
+      "detectedTitle": "Distributed Control Systems",
+      "title": "Distributed Control Systems",
+      "startPage": 911,
+      "endPage": 917,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5008-distributed-control-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5008-distributed-control-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5008-distributed-control-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explore the impact of automated systems in modern control processes"
+        },
+        {
+          "id": "LO2",
+          "description": "Evaluate the basic concepts, architecture, operation and communication of Distributed Control Systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Suggest appropriate techniques to specify and implement a simple Distributed Control System"
+        },
+        {
+          "id": "LO4",
+          "description": "Develop programmes to use machine interfaces to monitor and control the behaviour of a complex system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "M4",
+          "P4",
+          "P5",
+          "P6"
+        ],
+        "LO3": [
+          "D3",
+          "M5",
+          "M6",
+          "P7",
+          "P8",
+          "P9"
+        ],
+        "LO4": [
+          "D4",
+          "M7",
+          "M8",
+          "P10",
+          "P11",
+          "P12"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11",
+        "P12"
+      ]
+    },
+    {
+      "code": "5021",
+      "requestedTitle": "Further Control Systems Engineering",
+      "detectedTitle": "Further Control Systems Engineering",
+      "title": "Further Control Systems Engineering",
+      "startPage": 1006,
+      "endPage": 1012,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5021-further-control-systems-engineering.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5021-further-control-systems-engineering.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5021-further-control-systems-engineering.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explain concepts and contemporary applications of control systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Analyse the elements of a high-level control system and its model development"
+        },
+        {
+          "id": "LO3",
+          "description": "Evaluate the structure and behaviour of high-level control systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine the application of control parameters to produce optimum performance of a control system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "4013",
+      "requestedTitle": "Fundamentals of Thermodynamics and Heat Engines",
+      "detectedTitle": "Fundamentals of Thermodynamics and Heat Transfer",
+      "title": "Fundamentals of Thermodynamics and Heat Engines",
+      "startPage": 115,
+      "endPage": 120,
+      "pageCount": 6,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4013-fundamentals-of-thermodynamics-and-heat-engines.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4013-fundamentals-of-thermodynamics-and-heat-engines.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4013-fundamentals-of-thermodynamics-and-heat-engines.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Investigate fundamental thermodynamic systems and their properties"
+        },
+        {
+          "id": "LO2",
+          "description": "Apply the Steady Flow Energy Equation for analysis of thermodynamic systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Determine the performance of heat engines"
+        },
+        {
+          "id": "LO4",
+          "description": "Examine the principles of heat transfer applied to industrial applications."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "4061",
+      "requestedTitle": "Programming for Engineers",
+      "detectedTitle": "Programming for Engineers",
+      "title": "Programming for Engineers",
+      "startPage": 480,
+      "endPage": 489,
+      "pageCount": 10,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4061-programming-for-engineers.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4061-programming-for-engineers.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4061-programming-for-engineers.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Discuss key aspects of software evolution and development in the context of engineering applications"
+        },
+        {
+          "id": "LO2",
+          "description": "Design a programming solution for an engineering problem"
+        },
+        {
+          "id": "LO3",
+          "description": "Implement a programming solution for an engineering problem"
+        },
+        {
+          "id": "LO4",
+          "description": "Perform testing of the programming solution to meet defined requirements and to ensure high-quality outputs."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "M4",
+          "M5",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5009",
+      "requestedTitle": "Further Programmable Logic Controllers (PLCs)",
+      "detectedTitle": "Further Programmable Logic Controllers (PLCs)",
+      "title": "Further Programmable Logic Controllers (PLCs)",
+      "startPage": 918,
+      "endPage": 923,
+      "pageCount": 6,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5009-further-programmable-logic-controllers-plcs.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5009-further-programmable-logic-controllers-plcs.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5009-further-programmable-logic-controllers-plcs.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Discuss the selection of a specific PLC for a given industrial application"
+        },
+        {
+          "id": "LO2",
+          "description": "Evaluate how PLCs exchange information and process signals with other devices"
+        },
+        {
+          "id": "LO3",
+          "description": "Design a PLC programme to solve an industrial process problem for a given application"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse alternative strategies using other types of programmable control devices in industrial applications."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "M5",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M6",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5022",
+      "requestedTitle": "Industrial Services",
+      "detectedTitle": "Industrial Services",
+      "title": "Industrial Services",
+      "startPage": 1013,
+      "endPage": 1019,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5022-industrial-services.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5022-industrial-services.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5022-industrial-services.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Apply the operating principles of electrical power and lighting systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Investigate the applications and efficiency of industrial compressors"
+        },
+        {
+          "id": "LO3",
+          "description": "Discuss provision of steam services for process and power use"
+        },
+        {
+          "id": "LO4",
+          "description": "Review industrial refrigeration and heat pump systems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5",
+          "P6"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P7",
+          "P8"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "M5",
+          "P9",
+          "P10"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10"
+      ]
+    },
+    {
+      "code": "4014",
+      "requestedTitle": "Production Engineering for Manufacture",
+      "detectedTitle": "Production Engineering for Manufacture",
+      "title": "Production Engineering for Manufacture",
+      "startPage": 121,
+      "endPage": 129,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4014-production-engineering-for-manufacture.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4014-production-engineering-for-manufacture.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4014-production-engineering-for-manufacture.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Illustrate the role and purpose of production engineering and its relationship with the other elements of a manufacturing system"
+        },
+        {
+          "id": "LO2",
+          "description": "Describe the most appropriate production processes and associated facility arrangements for manufacturing products of different material types"
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse how a production system can incorporate a number of different production processes for a given product or assembly"
+        },
+        {
+          "id": "LO4",
+          "description": "Explore the effectiveness of a production system in terms of its operation within the wider manufacturing system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "4062",
+      "requestedTitle": "Professional Engineering Practice (Pearson-set)",
+      "detectedTitle": "Professional Engineering Practice",
+      "title": "Professional Engineering Practice (Pearson-set)",
+      "startPage": 490,
+      "endPage": 499,
+      "pageCount": 10,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4062-professional-engineering-practice-pearson-set.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4062-professional-engineering-practice-pearson-set.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4062-professional-engineering-practice-pearson-set.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Determine the roles, responsibilities and competences of the professional engineer"
+        },
+        {
+          "id": "LO2",
+          "description": "Describe the regulatory, legislative and ethical frameworks that govern the work of the professional engineer"
+        },
+        {
+          "id": "LO3",
+          "description": "Review the roles of communication, team working and leadership in the development of professional engineers"
+        },
+        {
+          "id": "LO4",
+          "description": "Discuss how professional engineers can develop holistic approaches to the sustainability of manufacturing processes."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5010",
+      "requestedTitle": "Further Electrical Machines and Drives",
+      "detectedTitle": "Further Electrical Machines and Drives",
+      "title": "Further Electrical Machines and Drives",
+      "startPage": 924,
+      "endPage": 931,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5010-further-electrical-machines-and-drives.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5010-further-electrical-machines-and-drives.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5010-further-electrical-machines-and-drives.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Synthesise knowledge and skills on the principles of operation and the characteristics of electrical machines and their industrial applications"
+        },
+        {
+          "id": "LO2",
+          "description": "Examine the fundamentals of power electronics converters"
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse the operation and characteristics of DC drives and their industrial applications"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse the operation and characteristics of AC drives and their industrial applications"
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "M4",
+          "P4",
+          "P5",
+          "P6"
+        ],
+        "LO3": [
+          "D3",
+          "M5",
+          "M6",
+          "P7",
+          "P8",
+          "P9",
+          "P10"
+        ],
+        "LO4": [
+          "D4",
+          "M7",
+          "M8",
+          "P11",
+          "P12",
+          "P13"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11",
+        "P12",
+        "P13"
+      ]
+    },
+    {
+      "code": "5023",
+      "requestedTitle": "Thermofluids",
+      "detectedTitle": "Thermofluids",
+      "title": "Thermofluids",
+      "startPage": 1020,
+      "endPage": 1026,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5023-thermofluids.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5023-thermofluids.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5023-thermofluids.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Evaluate industrial thermodynamic systems and their properties"
+        },
+        {
+          "id": "LO2",
+          "description": "Examine the operation of practical steam and gas turbine plants"
+        },
+        {
+          "id": "LO3",
+          "description": "Illustrate the effects of viscosity in fluids"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse fluid systems and hydraulic machines."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5",
+          "P6"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P7",
+          "P8"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P9",
+          "P10",
+          "P11"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11"
+      ]
+    },
+    {
+      "code": "4015",
+      "requestedTitle": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+      "detectedTitle": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+      "title": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+      "startPage": 130,
+      "endPage": 137,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4015-automation-robotics-and-programmable-logic-controllers-plcs.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4015-automation-robotics-and-programmable-logic-controllers-plcs.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4015-automation-robotics-and-programmable-logic-controllers-plcs.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Describe the design and operational characteristics of a PLC system"
+        },
+        {
+          "id": "LO2",
+          "description": "Design a PLC program by considering function requirements, PLC information, programming and communication techniques"
+        },
+        {
+          "id": "LO3",
+          "description": "Program industrial robots using commands to perform a given task with the knowledge of the key elements and their functions"
+        },
+        {
+          "id": "LO4",
+          "description": "Investigate the design and safe operation of a robot within an industrial application."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "4063",
+      "requestedTitle": "Engineering Mechanics and Materials",
+      "detectedTitle": "Engineering Mechanics and Materials",
+      "title": "Engineering Mechanics and Materials",
+      "startPage": 500,
+      "endPage": 507,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4063-engineering-mechanics-and-materials.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4063-engineering-mechanics-and-materials.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4063-engineering-mechanics-and-materials.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Describe the fundamental structures of common engineering materials"
+        },
+        {
+          "id": "LO2",
+          "description": "Determine the most important properties of engineering materials"
+        },
+        {
+          "id": "LO3",
+          "description": "Assess the performance of engineering materials using key indicators, including materials constraints and established database resources"
+        },
+        {
+          "id": "LO4",
+          "description": "Calculate solutions to problems within static and dynamic mechanical systems, with consideration of constraints on performance."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5011",
+      "requestedTitle": "Industrial Power, Electronics and Storage",
+      "detectedTitle": "Industrial Power, Electronics and Storage",
+      "title": "Industrial Power, Electronics and Storage",
+      "startPage": 932,
+      "endPage": 940,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5011-industrial-power-electronics-and-storage.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5011-industrial-power-electronics-and-storage.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5011-industrial-power-electronics-and-storage.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Evaluate the energy demand to determine the technology and methods of energy production"
+        },
+        {
+          "id": "LO2",
+          "description": "Explore current energy efficiency measures, technologies, and policies specific to the building and transportation sectors"
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse the control techniques of power electronics for renewable energy systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Investigate the impacts of renewable resources to the grid and the various issues associated with integrating such resources to the grid."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ]
+    },
+    {
+      "code": "5051",
+      "requestedTitle": "Heating, Ventilation and Air Conditioning (HVAC)",
+      "detectedTitle": "Heating, Ventilation and Air Conditioning (HVAC)",
+      "title": "Heating, Ventilation and Air Conditioning (HVAC)",
+      "startPage": 1249,
+      "endPage": 1255,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5051-heating-ventilation-and-air-conditioning-hvac.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5051-heating-ventilation-and-air-conditioning-hvac.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5051-heating-ventilation-and-air-conditioning-hvac.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explain the operating principles of non-domestic ventilation systems"
+        },
+        {
+          "id": "LO2",
+          "description": "Explore the range of air conditioning systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Investigate the operational characteristics of non-domestic heating systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Describe the role Building Management Systems (BMS) have in controlling and monitoring HVAC systems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D2",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "4017",
+      "requestedTitle": "Quality and Process Improvement",
+      "detectedTitle": "Quality and Process Improvement",
+      "title": "Quality and Process Improvement",
+      "startPage": 145,
+      "endPage": 151,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4017-quality-and-process-improvement.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4017-quality-and-process-improvement.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4017-quality-and-process-improvement.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine the applications of statistical process control when applied in an industrial environment to improve efficiency"
+        },
+        {
+          "id": "LO2",
+          "description": "Analyse cost effective quality control tools"
+        },
+        {
+          "id": "LO3",
+          "description": "Determine the role of standards in improving efficiency, meeting customer requirements and opening up new opportunities for trade"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse the importance of Total Quality Management and continuous improvement in manufacturing and service environments."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "4064",
+      "requestedTitle": "Analogue and Digital Electronics",
+      "detectedTitle": "Analogue and Digital Electronics",
+      "title": "Analogue and Digital Electronics",
+      "startPage": 508,
+      "endPage": 514,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4064-analogue-and-digital-electronics.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4064-analogue-and-digital-electronics.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4064-analogue-and-digital-electronics.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Investigate logic functions"
+        },
+        {
+          "id": "LO2",
+          "description": "Produce tabular and Karnaugh map designs to implement logic systems"
+        },
+        {
+          "id": "LO3",
+          "description": "Examine the use of Class A and Class B amplifiers in modern systems"
+        },
+        {
+          "id": "LO4",
+          "description": "Investigate operational amplifier circuits and their application."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5012",
+      "requestedTitle": "Industrial Systems",
+      "detectedTitle": "Industrial Systems",
+      "title": "Industrial Systems",
+      "startPage": 941,
+      "endPage": 947,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5012-industrial-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5012-industrial-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5012-industrial-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Appraise the main elements of an electronically controlled industrial system"
+        },
+        {
+          "id": "LO2",
+          "description": "Review and specify the interface requirements between electronic, electrical, and mechanical transducers and controllers"
+        },
+        {
+          "id": "LO3",
+          "description": "Employ practical and computer-based methods to design and test a measurement system"
+        },
+        {
+          "id": "LO4",
+          "description": "Apply appropriate analytical techniques to predict the performance of a given system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "4019",
+      "requestedTitle": "Electrical and Electronic Principles",
+      "detectedTitle": "Electrical and Electronic Principles",
+      "title": "Electrical and Electronic Principles",
+      "startPage": 160,
+      "endPage": 166,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4019-electrical-and-electronic-principles.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4019-electrical-and-electronic-principles.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4019-electrical-and-electronic-principles.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Apply an understanding of fundamental electrical quantities to analyse circuits with constant voltages and currents"
+        },
+        {
+          "id": "LO2",
+          "description": "Analyse circuits with sinusoidal voltages and currents"
+        },
+        {
+          "id": "LO3",
+          "description": "Describe the basis of semiconductor action, and its application to simple electronic devices"
+        },
+        {
+          "id": "LO4",
+          "description": "Explain the difference between digital and analogue electronics, describing simple applications of each."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3",
+          "P4"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P5",
+          "P6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "4067",
+      "requestedTitle": "Digital Devices and Systems",
+      "detectedTitle": "Digital Devices and Systems",
+      "title": "Digital Devices and Systems",
+      "startPage": 530,
+      "endPage": 537,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4067-digital-devices-and-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4067-digital-devices-and-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4067-digital-devices-and-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Design combinational logic circuits for suitable applications"
+        },
+        {
+          "id": "LO2",
+          "description": "Design sequential logic circuits for suitable applications"
+        },
+        {
+          "id": "LO3",
+          "description": "Implement combinational and sequential logic circuits using a hardware description language (HDL) software package"
+        },
+        {
+          "id": "LO4",
+          "description": "Test combinational and sequential logic designs using a field-programmable gate array (FPGA) development board."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "D2",
+          "M1",
+          "M2",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO3": [
+          "D4",
+          "M4",
+          "P4"
+        ],
+        "LO4": [
+          "M5",
+          "M6",
+          "P5",
+          "P6"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ]
+    },
+    {
+      "code": "5013",
+      "requestedTitle": "Embedded Systems",
+      "detectedTitle": "Embedded Systems",
+      "title": "Embedded Systems",
+      "startPage": 948,
+      "endPage": 954,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5013-embedded-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5013-embedded-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5013-embedded-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine embedded system technology"
+        },
+        {
+          "id": "LO2",
+          "description": "Design an embedded system using available interfaces to perform a range of functions"
+        },
+        {
+          "id": "LO3",
+          "description": "Implement embedded system design by writing code in an appropriate programming language, to simulate, test and debug the system"
+        },
+        {
+          "id": "LO4",
+          "description": "Evaluate applications of embedded systems in the wider environment."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P4",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P6"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ]
+    },
+    {
+      "code": "4020",
+      "requestedTitle": "Digital Principles",
+      "detectedTitle": "Digital Principles",
+      "title": "Digital Principles",
+      "startPage": 167,
+      "endPage": 173,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4020-digital-principles.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4020-digital-principles.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4020-digital-principles.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explain combinational logic circuits"
+        },
+        {
+          "id": "LO2",
+          "description": "Interpret sequential logic circuits"
+        },
+        {
+          "id": "LO3",
+          "description": "Describe the technologies used to implement digital electronic circuits"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse a range of digital subsystems, hence establishing the building blocks for larger systems."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P2"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P3"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P4"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ]
+    },
+    {
+      "code": "4085",
+      "requestedTitle": "Mechatronic Systems in Manufacturing",
+      "detectedTitle": "Mechatronic Systems in Manufacturing",
+      "title": "Mechatronic Systems in Manufacturing",
+      "startPage": 666,
+      "endPage": 674,
+      "pageCount": 9,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4085-mechatronic-systems-in-manufacturing.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4085-mechatronic-systems-in-manufacturing.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4085-mechatronic-systems-in-manufacturing.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Explain the design and operational characteristics of a manufacturing mechatronic system"
+        },
+        {
+          "id": "LO2",
+          "description": "Investigate a range of mechatronic system components and technologies"
+        },
+        {
+          "id": "LO3",
+          "description": "Review the operation, selection and interfacing of programmable control devices within a manufacturing mechatronic system"
+        },
+        {
+          "id": "LO4",
+          "description": "Design a mechatronic system for a manufacturing application."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "M4",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P7",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
+      "code": "5014",
+      "requestedTitle": "Analogue Electronic Systems",
+      "detectedTitle": "Analogue Electronic Systems",
+      "title": "Analogue Electronic Systems",
+      "startPage": 955,
+      "endPage": 962,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5014-analogue-electronic-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5014-analogue-electronic-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5014-analogue-electronic-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Analyse single stage analogue amplifier circuits to predict and measure, by simulation, the gain, frequency response and input and output resistances"
+        },
+        {
+          "id": "LO2",
+          "description": "Develop functional subsystems through an understanding of the characteristics of operational amplifiers"
+        },
+        {
+          "id": "LO3",
+          "description": "Assess techniques for the conversion of signals between analogue and digital formats"
+        },
+        {
+          "id": "LO4",
+          "description": "Design electronic circuits using physical components."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P2",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P4",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P6",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "4021",
+      "requestedTitle": "Electrical Machines",
+      "detectedTitle": "Electrical Machines",
+      "title": "Electrical Machines",
+      "startPage": 174,
+      "endPage": 180,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4021-electrical-machines.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4021-electrical-machines.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4021-electrical-machines.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Investigate the different types and operation of electrical machines"
+        },
+        {
+          "id": "LO2",
+          "description": "Explore the operation and the various starting methods of induction machines"
+        },
+        {
+          "id": "LO3",
+          "description": "Explore the operation and the various starting methods of synchronous machines"
+        },
+        {
+          "id": "LO4",
+          "description": "Analyse the operating characteristics, construction and applications of electromagnetic transducers and actuators."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    },
+    {
+      "code": "5001",
+      "requestedTitle": null,
+      "detectedTitle": "Research Project",
+      "title": "Research Project",
+      "startPage": 856,
+      "endPage": 863,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5001-research-project.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5001-research-project.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5001-research-project.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 30,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Examine the preliminary stages involved in the creation of an engineering/manufacturing research project"
+        },
+        {
+          "id": "LO2",
+          "description": "Examine the analytical techniques used to work on all stages of the project and strategies required to overcome the challenges involved in a research project"
+        },
+        {
+          "id": "LO3",
+          "description": "Reflect on the impact the research experience could have in enhancing personal or group performance within an engineering/manufacturing context"
+        },
+        {
+          "id": "LO4",
+          "description": "Explore the communications approach used for the preparation and presentation of the research project’s outcomes."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "M3",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "4022",
+      "requestedTitle": "Electronic Circuits and Devices",
+      "detectedTitle": "Electronic Circuits and Devices",
+      "title": "Electronic Circuits and Devices",
+      "startPage": 181,
+      "endPage": 186,
+      "pageCount": 6,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4022-electronic-circuits-and-devices.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4022-electronic-circuits-and-devices.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4022-electronic-circuits-and-devices.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Determine the operational characteristics of amplifier circuits"
+        },
+        {
+          "id": "LO2",
+          "description": "Investigate the types and effects of feedback on an amplifier’s performance"
+        },
+        {
+          "id": "LO3",
+          "description": "Examine the operation and application of oscillators"
+        },
+        {
+          "id": "LO4",
+          "description": "Apply testing procedures to electronic devices and circuits."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "P5"
+        ],
+        "LO4": [
+          "D4",
+          "M4",
+          "P6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "5041",
+      "requestedTitle": null,
+      "detectedTitle": "Engineering Project",
+      "title": "Engineering Project",
+      "startPage": 1167,
+      "endPage": 1177,
+      "pageCount": 11,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/5041-engineering-project.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/5041-engineering-project.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/5041-engineering-project.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 5,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Propose an engineering-based project in line with national and international engineering regulatory and ethical frameworks"
+        },
+        {
+          "id": "LO2",
+          "description": "Create an engineering-based project using project management software, tools and techniques"
+        },
+        {
+          "id": "LO3",
+          "description": "Implement a project plan to include the production of a technical engineering report"
+        },
+        {
+          "id": "LO4",
+          "description": "Present the engineering-based project and reflect on the project outcomes."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3"
+        ],
+        "LO3": [
+          "D3",
+          "M3",
+          "M4",
+          "M5",
+          "P4",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D4",
+          "M6",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ]
+    }
+  ],
+  "allDetectedUnits": [
+    {
+      "code": "4001",
+      "title": "Engineering Design",
+      "startPage": 24,
+      "endPage": 32,
+      "pageCount": 9
+    },
+    {
+      "code": "4002",
+      "title": "Engineering Mathematics",
+      "startPage": 33,
+      "endPage": 40,
+      "pageCount": 8
+    },
+    {
+      "code": "4003",
+      "title": "Engineering Science I",
+      "startPage": 41,
+      "endPage": 49,
+      "pageCount": 9
+    },
+    {
+      "code": "4004",
+      "title": "Managing a Professional Engineering Project",
+      "startPage": 50,
+      "endPage": 58,
+      "pageCount": 9
+    },
+    {
+      "code": "4005",
+      "title": "Renewable Energy",
+      "startPage": 59,
+      "endPage": 65,
+      "pageCount": 7
+    },
+    {
+      "code": "4006",
+      "title": "Mechatronics",
+      "startPage": 66,
+      "endPage": 72,
+      "pageCount": 7
+    },
+    {
+      "code": "4007",
+      "title": "Machining and Processing of Engineering Materials",
+      "startPage": 73,
+      "endPage": 80,
+      "pageCount": 8
+    },
+    {
+      "code": "4008",
+      "title": "Mechanical Principles",
+      "startPage": 81,
+      "endPage": 87,
+      "pageCount": 7
+    },
+    {
+      "code": "4009",
+      "title": "Materials, Properties and Testing",
+      "startPage": 88,
+      "endPage": 94,
+      "pageCount": 7
+    },
+    {
+      "code": "4010",
+      "title": "Mechanical Workshop Practices",
+      "startPage": 95,
+      "endPage": 101,
+      "pageCount": 7
+    },
+    {
+      "code": "4011",
+      "title": "Fluid Mechanics",
+      "startPage": 102,
+      "endPage": 108,
+      "pageCount": 7
+    },
+    {
+      "code": "4012",
+      "title": "Engineering Management",
+      "startPage": 109,
+      "endPage": 114,
+      "pageCount": 6
+    },
+    {
+      "code": "4013",
+      "title": "Fundamentals of Thermodynamics and Heat Transfer",
+      "startPage": 115,
+      "endPage": 120,
+      "pageCount": 6
+    },
+    {
+      "code": "4014",
+      "title": "Production Engineering for Manufacture",
+      "startPage": 121,
+      "endPage": 129,
+      "pageCount": 9
+    },
+    {
+      "code": "4015",
+      "title": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+      "startPage": 130,
+      "endPage": 137,
+      "pageCount": 8
+    },
+    {
+      "code": "4016",
+      "title": "Instrumentation and Control Systems",
+      "startPage": 138,
+      "endPage": 144,
+      "pageCount": 7
+    },
+    {
+      "code": "4017",
+      "title": "Quality and Process Improvement",
+      "startPage": 145,
+      "endPage": 151,
+      "pageCount": 7
+    },
+    {
+      "code": "4018",
+      "title": "Maintenance Engineering",
+      "startPage": 152,
+      "endPage": 159,
+      "pageCount": 8
+    },
+    {
+      "code": "4019",
+      "title": "Electrical and Electronic Principles",
+      "startPage": 160,
+      "endPage": 166,
+      "pageCount": 7
+    },
+    {
+      "code": "4020",
+      "title": "Digital Principles",
+      "startPage": 167,
+      "endPage": 173,
+      "pageCount": 7
+    },
+    {
+      "code": "4021",
+      "title": "Electrical Machines",
+      "startPage": 174,
+      "endPage": 180,
+      "pageCount": 7
+    },
+    {
+      "code": "4022",
+      "title": "Electronic Circuits and Devices",
+      "startPage": 181,
+      "endPage": 186,
+      "pageCount": 6
+    },
+    {
+      "code": "4023",
+      "title": "Computer Aided Design and Manufacture (CAD/CAM)",
+      "startPage": 187,
+      "endPage": 195,
+      "pageCount": 9
+    },
+    {
+      "code": "4024",
+      "title": "Electro, Pneumatic and Hydraulic Systems",
+      "startPage": 196,
+      "endPage": 202,
+      "pageCount": 7
+    },
+    {
+      "code": "4025",
+      "title": "Operations and Plant Management",
+      "startPage": 203,
+      "endPage": 210,
+      "pageCount": 8
+    },
+    {
+      "code": "4026",
+      "title": "Electrical Systems and Fault Finding",
+      "startPage": 211,
+      "endPage": 218,
+      "pageCount": 8
+    },
+    {
+      "code": "4027",
+      "title": "CAD for Schematics in Maintenance Engineering",
+      "startPage": 219,
+      "endPage": 224,
+      "pageCount": 6
+    },
+    {
+      "code": "4028",
+      "title": "Materials Engineering with Polymers",
+      "startPage": 225,
+      "endPage": 233,
+      "pageCount": 9
+    },
+    {
+      "code": "4029",
+      "title": "Polymer Manufacturing Processes",
+      "startPage": 234,
+      "endPage": 242,
+      "pageCount": 9
+    },
+    {
+      "code": "4030",
+      "title": "Industry 4.0",
+      "startPage": 243,
+      "endPage": 250,
+      "pageCount": 8
+    },
+    {
+      "code": "4031",
+      "title": "Introduction to Professional Engineering Management",
+      "startPage": 251,
+      "endPage": 257,
+      "pageCount": 7
+    },
+    {
+      "code": "4032",
+      "title": "Introduction to Biomedical Engineering",
+      "startPage": 258,
+      "endPage": 266,
+      "pageCount": 9
+    },
+    {
+      "code": "4033",
+      "title": "Programmable Logic Controllers",
+      "startPage": 267,
+      "endPage": 274,
+      "pageCount": 8
+    },
+    {
+      "code": "4034",
+      "title": "Computer Aided Design (CAD) for Engineering",
+      "startPage": 275,
+      "endPage": 283,
+      "pageCount": 9
+    },
+    {
+      "code": "4035",
+      "title": "Welding Technology",
+      "startPage": 284,
+      "endPage": 290,
+      "pageCount": 7
+    },
+    {
+      "code": "4036",
+      "title": "Welding Inspection",
+      "startPage": 291,
+      "endPage": 297,
+      "pageCount": 7
+    },
+    {
+      "code": "4037",
+      "title": "Statistical Process Control",
+      "startPage": 298,
+      "endPage": 302,
+      "pageCount": 5
+    },
+    {
+      "code": "4038",
+      "title": "Telecommunication Principles",
+      "startPage": 303,
+      "endPage": 309,
+      "pageCount": 7
+    },
+    {
+      "code": "4039",
+      "title": "Semiconductor Manufacture",
+      "startPage": 310,
+      "endPage": 316,
+      "pageCount": 7
+    },
+    {
+      "code": "4040",
+      "title": "Semiconductor Production Environments",
+      "startPage": 317,
+      "endPage": 327,
+      "pageCount": 11
+    },
+    {
+      "code": "4041",
+      "title": "Aircraft Aerodynamics",
+      "startPage": 328,
+      "endPage": 336,
+      "pageCount": 9
+    },
+    {
+      "code": "4042",
+      "title": "Aircraft Electrical Power and Distribution Systems",
+      "startPage": 337,
+      "endPage": 343,
+      "pageCount": 7
+    },
+    {
+      "code": "4043",
+      "title": "Airframe Mechanical Systems",
+      "startPage": 344,
+      "endPage": 352,
+      "pageCount": 9
+    },
+    {
+      "code": "4044",
+      "title": "Composite Materials for Aerospace Applications",
+      "startPage": 353,
+      "endPage": 362,
+      "pageCount": 10
+    },
+    {
+      "code": "4045",
+      "title": "Turbine Rotary Wing Mechanical and Flight Systems",
+      "startPage": 363,
+      "endPage": 369,
+      "pageCount": 7
+    },
+    {
+      "code": "4046",
+      "title": "Fundamentals of Nuclear Power Engineering",
+      "startPage": 370,
+      "endPage": 377,
+      "pageCount": 8
+    },
+    {
+      "code": "4047",
+      "title": "Railway Operations",
+      "startPage": 378,
+      "endPage": 384,
+      "pageCount": 7
+    },
+    {
+      "code": "4048",
+      "title": "Track Design",
+      "startPage": 385,
+      "endPage": 390,
+      "pageCount": 6
+    },
+    {
+      "code": "4049",
+      "title": "Principles of Overhead Power",
+      "startPage": 391,
+      "endPage": 397,
+      "pageCount": 7
+    },
+    {
+      "code": "4050",
+      "title": "Principles of Electrification",
+      "startPage": 398,
+      "endPage": 407,
+      "pageCount": 10
+    },
+    {
+      "code": "4051",
+      "title": "Introduction to Signalling Systems",
+      "startPage": 408,
+      "endPage": 414,
+      "pageCount": 7
+    },
+    {
+      "code": "4052",
+      "title": "Railway Telecommunications",
+      "startPage": 415,
+      "endPage": 423,
+      "pageCount": 9
+    },
+    {
+      "code": "4053",
+      "title": "Traction and Rolling Stock Systems",
+      "startPage": 424,
+      "endPage": 431,
+      "pageCount": 8
+    },
+    {
+      "code": "4054",
+      "title": "Passenger Safety and Security",
+      "startPage": 432,
+      "endPage": 440,
+      "pageCount": 9
+    },
+    {
+      "code": "4055",
+      "title": "Management and Operations",
+      "startPage": 441,
+      "endPage": 447,
+      "pageCount": 7
+    },
+    {
+      "code": "4056",
+      "title": "Programming",
+      "startPage": 448,
+      "endPage": 452,
+      "pageCount": 5
+    },
+    {
+      "code": "4057",
+      "title": "Networking",
+      "startPage": 453,
+      "endPage": 459,
+      "pageCount": 7
+    },
+    {
+      "code": "4058",
+      "title": "Strategic Information Systems",
+      "startPage": 460,
+      "endPage": 465,
+      "pageCount": 6
+    },
+    {
+      "code": "4059",
+      "title": "Computer Systems Architecture",
+      "startPage": 466,
+      "endPage": 472,
+      "pageCount": 7
+    },
+    {
+      "code": "4060",
+      "title": "Surveying, Measuring and Setting Out",
+      "startPage": 473,
+      "endPage": 479,
+      "pageCount": 7
+    },
+    {
+      "code": "4061",
+      "title": "Programming for Engineers",
+      "startPage": 480,
+      "endPage": 489,
+      "pageCount": 10
+    },
+    {
+      "code": "4062",
+      "title": "Professional Engineering Practice",
+      "startPage": 490,
+      "endPage": 499,
+      "pageCount": 10
+    },
+    {
+      "code": "4063",
+      "title": "Engineering Mechanics and Materials",
+      "startPage": 500,
+      "endPage": 507,
+      "pageCount": 8
+    },
+    {
+      "code": "4064",
+      "title": "Analogue and Digital Electronics",
+      "startPage": 508,
+      "endPage": 514,
+      "pageCount": 7
+    },
+    {
+      "code": "4065",
+      "title": "Internet and Network Technologies",
+      "startPage": 515,
+      "endPage": 521,
+      "pageCount": 7
+    },
+    {
+      "code": "4066",
+      "title": "Data and Information",
+      "startPage": 522,
+      "endPage": 529,
+      "pageCount": 8
+    },
+    {
+      "code": "4067",
+      "title": "Digital Devices and Systems",
+      "startPage": 530,
+      "endPage": 537,
+      "pageCount": 8
+    },
+    {
+      "code": "4068",
+      "title": "Industrial Robots",
+      "startPage": 538,
+      "endPage": 544,
+      "pageCount": 7
+    },
+    {
+      "code": "4069",
+      "title": "Properties and Applications of Materials and Emerging Materials Pre-Production",
+      "startPage": 545,
+      "endPage": 551,
+      "pageCount": 7
+    },
+    {
+      "code": "4070",
+      "title": "Command and Control Systems",
+      "startPage": 552,
+      "endPage": 557,
+      "pageCount": 6
+    },
+    {
+      "code": "4071",
+      "title": "Introduction to Signalling Systems",
+      "startPage": 558,
+      "endPage": 564,
+      "pageCount": 7
+    },
+    {
+      "code": "4072",
+      "title": "Construction Technology",
+      "startPage": 565,
+      "endPage": 572,
+      "pageCount": 8
+    },
+    {
+      "code": "4073",
+      "title": "Sustainability and the Environment in the Manufacturing Industry",
+      "startPage": 573,
+      "endPage": 581,
+      "pageCount": 9
+    },
+    {
+      "code": "4074",
+      "title": "Workplace Study and Ergonomics",
+      "startPage": 582,
+      "endPage": 589,
+      "pageCount": 8
+    },
+    {
+      "code": "4075",
+      "title": "Business Improvement Techniques for Engineers",
+      "startPage": 590,
+      "endPage": 596,
+      "pageCount": 7
+    },
+    {
+      "code": "4076",
+      "title": "Manufacturing Processes",
+      "startPage": 597,
+      "endPage": 604,
+      "pageCount": 8
+    },
+    {
+      "code": "4077",
+      "title": "Lean Techniques for Manufacturing Operations",
+      "startPage": 605,
+      "endPage": 610,
+      "pageCount": 6
+    },
+    {
+      "code": "4078",
+      "title": "Manufacturing Planning and Scheduling Principles",
+      "startPage": 611,
+      "endPage": 618,
+      "pageCount": 8
+    },
+    {
+      "code": "4079",
+      "title": "Manufacturing Operations Mathematics",
+      "startPage": 619,
+      "endPage": 626,
+      "pageCount": 8
+    },
+    {
+      "code": "4080",
+      "title": "Material Handling Systems",
+      "startPage": 627,
+      "endPage": 633,
+      "pageCount": 7
+    },
+    {
+      "code": "4081",
+      "title": "Monitoring and Fault Diagnosis of Engineering Systems",
+      "startPage": 634,
+      "endPage": 641,
+      "pageCount": 8
+    },
+    {
+      "code": "4082",
+      "title": "Introduction to Plant Commissioning and Decommissioning",
+      "startPage": 642,
+      "endPage": 649,
+      "pageCount": 8
+    },
+    {
+      "code": "4083",
+      "title": "Creating and Managing Projects in Manufacturing Operations",
+      "startPage": 650,
+      "endPage": 657,
+      "pageCount": 8
+    },
+    {
+      "code": "4084",
+      "title": "Engineering Plant Operations and Maintenance",
+      "startPage": 658,
+      "endPage": 665,
+      "pageCount": 8
+    },
+    {
+      "code": "4085",
+      "title": "Mechatronic Systems in Manufacturing",
+      "startPage": 666,
+      "endPage": 674,
+      "pageCount": 9
+    },
+    {
+      "code": "4086",
+      "title": "Introduction to Manufacturing Systems Engineering",
+      "startPage": 675,
+      "endPage": 681,
+      "pageCount": 7
+    },
+    {
+      "code": "4087",
+      "title": "Space Environment and Applications",
+      "startPage": 682,
+      "endPage": 690,
+      "pageCount": 9
+    },
+    {
+      "code": "4088",
+      "title": "Space Technologies and Manufacturing",
+      "startPage": 691,
+      "endPage": 700,
+      "pageCount": 10
+    },
+    {
+      "code": "4089",
+      "title": "Net Zero Energy Technologies I: Systems and Demand",
+      "startPage": 701,
+      "endPage": 709,
+      "pageCount": 9
+    },
+    {
+      "code": "4090",
+      "title": "Engineering Science II",
+      "startPage": 710,
+      "endPage": 716,
+      "pageCount": 7
+    },
+    {
+      "code": "4091",
+      "title": "Automotive Fundamentals",
+      "startPage": 717,
+      "endPage": 727,
+      "pageCount": 11
+    },
+    {
+      "code": "4092",
+      "title": "Vehicle Dynamics and Performance",
+      "startPage": 728,
+      "endPage": 736,
+      "pageCount": 9
+    },
+    {
+      "code": "4093",
+      "title": "Race Car Design and Manufacturing",
+      "startPage": 737,
+      "endPage": 744,
+      "pageCount": 8
+    },
+    {
+      "code": "4094",
+      "title": "Motorsport Workshop Practices",
+      "startPage": 745,
+      "endPage": 753,
+      "pageCount": 9
+    },
+    {
+      "code": "4095",
+      "title": "Automotive Combustion",
+      "startPage": 754,
+      "endPage": 763,
+      "pageCount": 10
+    },
+    {
+      "code": "4096",
+      "title": "Automotive Workshop Practices",
+      "startPage": 764,
+      "endPage": 771,
+      "pageCount": 8
+    },
+    {
+      "code": "4097",
+      "title": "Electric Vehicle Battery Manufacture",
+      "startPage": 772,
+      "endPage": 780,
+      "pageCount": 9
+    },
+    {
+      "code": "4098",
+      "title": "Hybrid and Electric Vehicle Technologies",
+      "startPage": 781,
+      "endPage": 789,
+      "pageCount": 9
+    },
+    {
+      "code": "4099",
+      "title": "Industrial Digitalisation Technologies for Engineers",
+      "startPage": 790,
+      "endPage": 800,
+      "pageCount": 11
+    },
+    {
+      "code": "4100",
+      "title": "Lean Six Sigma for Engineers (leading to Green Belt)",
+      "startPage": 801,
+      "endPage": 810,
+      "pageCount": 10
+    },
+    {
+      "code": "4111",
+      "title": "Powertrain and Hybrid Vehicles",
+      "startPage": 811,
+      "endPage": 820,
+      "pageCount": 10
+    },
+    {
+      "code": "4112",
+      "title": "Vehicle Repair and Diagnostics",
+      "startPage": 821,
+      "endPage": 829,
+      "pageCount": 9
+    },
+    {
+      "code": "4113",
+      "title": "Heavy Vehicles I",
+      "startPage": 830,
+      "endPage": 837,
+      "pageCount": 8
+    },
+    {
+      "code": "4114",
+      "title": "Motorcycle Engineering",
+      "startPage": 838,
+      "endPage": 845,
+      "pageCount": 8
+    },
+    {
+      "code": "4115",
+      "title": "Vehicle Electrical and Electronics",
+      "startPage": 846,
+      "endPage": 855,
+      "pageCount": 10
+    },
+    {
+      "code": "5001",
+      "title": "Research Project",
+      "startPage": 856,
+      "endPage": 863,
+      "pageCount": 8
+    },
+    {
+      "code": "5002",
+      "title": "Professional Engineering Management",
+      "startPage": 864,
+      "endPage": 872,
+      "pageCount": 9
+    },
+    {
+      "code": "5003",
+      "title": "Advanced Mechanical Principles",
+      "startPage": 873,
+      "endPage": 879,
+      "pageCount": 7
+    },
+    {
+      "code": "5004",
+      "title": "Computational Modelling in Virtual Engineering",
+      "startPage": 880,
+      "endPage": 887,
+      "pageCount": 8
+    },
+    {
+      "code": "5005",
+      "title": "Further Thermodynamics",
+      "startPage": 888,
+      "endPage": 894,
+      "pageCount": 7
+    },
+    {
+      "code": "5006",
+      "title": "Further Engineering Mathematics",
+      "startPage": 895,
+      "endPage": 903,
+      "pageCount": 9
+    },
+    {
+      "code": "5007",
+      "title": "Commercial Programming Software",
+      "startPage": 904,
+      "endPage": 910,
+      "pageCount": 7
+    },
+    {
+      "code": "5008",
+      "title": "Distributed Control Systems",
+      "startPage": 911,
+      "endPage": 917,
+      "pageCount": 7
+    },
+    {
+      "code": "5009",
+      "title": "Further Programmable Logic Controllers (PLCs)",
+      "startPage": 918,
+      "endPage": 923,
+      "pageCount": 6
+    },
+    {
+      "code": "5010",
+      "title": "Further Electrical Machines and Drives",
+      "startPage": 924,
+      "endPage": 931,
+      "pageCount": 8
+    },
+    {
+      "code": "5011",
+      "title": "Industrial Power, Electronics and Storage",
+      "startPage": 932,
+      "endPage": 940,
+      "pageCount": 9
+    },
+    {
+      "code": "5012",
+      "title": "Industrial Systems",
+      "startPage": 941,
+      "endPage": 947,
+      "pageCount": 7
+    },
+    {
+      "code": "5013",
+      "title": "Embedded Systems",
+      "startPage": 948,
+      "endPage": 954,
+      "pageCount": 7
+    },
+    {
+      "code": "5014",
+      "title": "Analogue Electronic Systems",
+      "startPage": 955,
+      "endPage": 962,
+      "pageCount": 8
+    },
+    {
+      "code": "5015",
+      "title": "Manufacturing Systems Engineering",
+      "startPage": 963,
+      "endPage": 969,
+      "pageCount": 7
+    },
+    {
+      "code": "5016",
+      "title": "Lean Manufacturing",
+      "startPage": 970,
+      "endPage": 976,
+      "pageCount": 7
+    },
+    {
+      "code": "5017",
+      "title": "Advanced Manufacturing",
+      "startPage": 977,
+      "endPage": 984,
+      "pageCount": 8
+    },
+    {
+      "code": "5018",
+      "title": "Sustainability",
+      "startPage": 985,
+      "endPage": 991,
+      "pageCount": 7
+    },
+    {
+      "code": "5019",
+      "title": "Further Electrical, Electronic and Digital Principles",
+      "startPage": 992,
+      "endPage": 998,
+      "pageCount": 7
+    },
+    {
+      "code": "5020",
+      "title": "Utilisation of Electrical Power",
+      "startPage": 999,
+      "endPage": 1005,
+      "pageCount": 7
+    },
+    {
+      "code": "5021",
+      "title": "Further Control Systems Engineering",
+      "startPage": 1006,
+      "endPage": 1012,
+      "pageCount": 7
+    },
+    {
+      "code": "5022",
+      "title": "Industrial Services",
+      "startPage": 1013,
+      "endPage": 1019,
+      "pageCount": 7
+    },
+    {
+      "code": "5023",
+      "title": "Thermofluids",
+      "startPage": 1020,
+      "endPage": 1026,
+      "pageCount": 7
+    },
+    {
+      "code": "5024",
+      "title": "Emerging Semiconductor Technologies",
+      "startPage": 1027,
+      "endPage": 1034,
+      "pageCount": 8
+    },
+    {
+      "code": "5025",
+      "title": "Semiconductor Integrated Electronics",
+      "startPage": 1035,
+      "endPage": 1041,
+      "pageCount": 7
+    },
+    {
+      "code": "5026",
+      "title": "Aircraft Flight Control Systems",
+      "startPage": 1042,
+      "endPage": 1049,
+      "pageCount": 8
+    },
+    {
+      "code": "5027",
+      "title": "Aircraft Propulsion Principles and Technology",
+      "startPage": 1050,
+      "endPage": 1058,
+      "pageCount": 9
+    },
+    {
+      "code": "5028",
+      "title": "Aircraft Structural Integrity",
+      "startPage": 1059,
+      "endPage": 1068,
+      "pageCount": 10
+    },
+    {
+      "code": "5029",
+      "title": "Avionic Systems",
+      "startPage": 1069,
+      "endPage": 1078,
+      "pageCount": 10
+    },
+    {
+      "code": "5030",
+      "title": "Aircraft Gas Turbine Engine Design and Performance",
+      "startPage": 1079,
+      "endPage": 1089,
+      "pageCount": 11
+    },
+    {
+      "code": "5031",
+      "title": "Advanced Composite Materials for Aerospace Applications",
+      "startPage": 1090,
+      "endPage": 1098,
+      "pageCount": 9
+    },
+    {
+      "code": "5032",
+      "title": "Advanced Turbine Rotary Wing Aircraft Mechanical and Flight Systems",
+      "startPage": 1099,
+      "endPage": 1105,
+      "pageCount": 7
+    },
+    {
+      "code": "5033",
+      "title": "Nuclear Reactor Operations",
+      "startPage": 1106,
+      "endPage": 1113,
+      "pageCount": 8
+    },
+    {
+      "code": "5034",
+      "title": "Nuclear Reactor Chemistry",
+      "startPage": 1114,
+      "endPage": 1121,
+      "pageCount": 8
+    },
+    {
+      "code": "5035",
+      "title": "Nuclear Radiation Protection Technology",
+      "startPage": 1122,
+      "endPage": 1129,
+      "pageCount": 8
+    },
+    {
+      "code": "5036",
+      "title": "Nuclear Reactor Materials",
+      "startPage": 1130,
+      "endPage": 1136,
+      "pageCount": 7
+    },
+    {
+      "code": "5037",
+      "title": "Nuclear Fuel Cycle Technology",
+      "startPage": 1137,
+      "endPage": 1144,
+      "pageCount": 8
+    },
+    {
+      "code": "5038",
+      "title": "Nuclear Decommissioning and Radioactive Waste Management Technologies",
+      "startPage": 1145,
+      "endPage": 1152,
+      "pageCount": 8
+    },
+    {
+      "code": "5039",
+      "title": "Nuclear Criticality Control",
+      "startPage": 1153,
+      "endPage": 1159,
+      "pageCount": 7
+    },
+    {
+      "code": "5040",
+      "title": "Nuclear Safety Case Development",
+      "startPage": 1160,
+      "endPage": 1166,
+      "pageCount": 7
+    },
+    {
+      "code": "5041",
+      "title": "Engineering Project",
+      "startPage": 1167,
+      "endPage": 1177,
+      "pageCount": 11
+    },
+    {
+      "code": "5042",
+      "title": "Signals and Systems",
+      "startPage": 1178,
+      "endPage": 1184,
+      "pageCount": 7
+    },
+    {
+      "code": "5043",
+      "title": "Digital System Design",
+      "startPage": 1185,
+      "endPage": 1190,
+      "pageCount": 6
+    },
+    {
+      "code": "5044",
+      "title": "Digital Electronic Systems",
+      "startPage": 1191,
+      "endPage": 1197,
+      "pageCount": 7
+    },
+    {
+      "code": "5045",
+      "title": "Electrical Engineering and Sustainability",
+      "startPage": 1198,
+      "endPage": 1205,
+      "pageCount": 8
+    },
+    {
+      "code": "5046",
+      "title": "Analogue and Digital Communications",
+      "startPage": 1206,
+      "endPage": 1213,
+      "pageCount": 8
+    },
+    {
+      "code": "5047",
+      "title": "Computer Architecture and Interfacing",
+      "startPage": 1214,
+      "endPage": 1220,
+      "pageCount": 7
+    },
+    {
+      "code": "5048",
+      "title": "Sensors and Automation",
+      "startPage": 1221,
+      "endPage": 1228,
+      "pageCount": 8
+    },
+    {
+      "code": "5049",
+      "title": "Data Networks, Services and Security",
+      "startPage": 1229,
+      "endPage": 1238,
+      "pageCount": 10
+    },
+    {
+      "code": "5050",
+      "title": "Machine Learning Systems and Programming",
+      "startPage": 1239,
+      "endPage": 1248,
+      "pageCount": 10
+    },
+    {
+      "code": "5051",
+      "title": "Heating, Ventilation and Air Conditioning (HVAC)",
+      "startPage": 1249,
+      "endPage": 1255,
+      "pageCount": 7
+    },
+    {
+      "code": "5052",
+      "title": "Space Communications",
+      "startPage": 1256,
+      "endPage": 1264,
+      "pageCount": 9
+    },
+    {
+      "code": "5053",
+      "title": "Space Mission Design",
+      "startPage": 1265,
+      "endPage": 1274,
+      "pageCount": 10
+    },
+    {
+      "code": "5054",
+      "title": "Net Zero Energy Technologies II: Infrastructure and Pathways",
+      "startPage": 1275,
+      "endPage": 1283,
+      "pageCount": 9
+    },
+    {
+      "code": "5055",
+      "title": "Aerospace Propulsion Principles and Technology",
+      "startPage": 1284,
+      "endPage": 1293,
+      "pageCount": 10
+    },
+    {
+      "code": "5056",
+      "title": "Conceptual Aircraft Design",
+      "startPage": 1294,
+      "endPage": 1301,
+      "pageCount": 8
+    },
+    {
+      "code": "5057",
+      "title": "Medical Instrumentation",
+      "startPage": 1302,
+      "endPage": 1310,
+      "pageCount": 9
+    },
+    {
+      "code": "5058",
+      "title": "Automotive Structures and Materials",
+      "startPage": 1311,
+      "endPage": 1319,
+      "pageCount": 9
+    },
+    {
+      "code": "5059",
+      "title": "Automotive Aerodynamics",
+      "startPage": 1320,
+      "endPage": 1328,
+      "pageCount": 9
+    },
+    {
+      "code": "5060",
+      "title": "Motorsport Workshop Preparation and Inspection",
+      "startPage": 1329,
+      "endPage": 1336,
+      "pageCount": 8
+    },
+    {
+      "code": "5061",
+      "title": "Automotive Incident Investigation",
+      "startPage": 1337,
+      "endPage": 1346,
+      "pageCount": 10
+    },
+    {
+      "code": "5062",
+      "title": "Engine and Vehicle Design Performance",
+      "startPage": 1347,
+      "endPage": 1355,
+      "pageCount": 9
+    },
+    {
+      "code": "5063",
+      "title": "Further Hybrid and Electric Vehicle Technologies",
+      "startPage": 1356,
+      "endPage": 1366,
+      "pageCount": 11
+    },
+    {
+      "code": "5064",
+      "title": "Further Industrial Digitalisation Technologies for Engineers",
+      "startPage": 1367,
+      "endPage": 1377,
+      "pageCount": 11
+    },
+    {
+      "code": "5065",
+      "title": "Hydrogen in Automotive Engineering",
+      "startPage": 1378,
+      "endPage": 1385,
+      "pageCount": 8
+    },
+    {
+      "code": "5066",
+      "title": "Lean Six Sigma for Engineers (leading to Black Belt)",
+      "startPage": 1386,
+      "endPage": 1394,
+      "pageCount": 9
+    },
+    {
+      "code": "5067",
+      "title": "Vehicle Operations",
+      "startPage": 1395,
+      "endPage": 1404,
+      "pageCount": 10
+    },
+    {
+      "code": "5068",
+      "title": "Vehicle Parts Management",
+      "startPage": 1405,
+      "endPage": 1414,
+      "pageCount": 10
+    },
+    {
+      "code": "5069",
+      "title": "Vehicle Systems and Technology",
+      "startPage": 1415,
+      "endPage": 1423,
+      "pageCount": 9
+    },
+    {
+      "code": "5070",
+      "title": "Further Motorcycle Engineering",
+      "startPage": 1424,
+      "endPage": 1431,
+      "pageCount": 8
+    },
+    {
+      "code": "5071",
+      "title": "Heavy Vehicles II",
+      "startPage": 1432,
+      "endPage": 1443,
+      "pageCount": 12
+    }
+  ]
+}

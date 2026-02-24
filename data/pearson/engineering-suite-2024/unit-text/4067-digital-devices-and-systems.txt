@@ -1,0 +1,241 @@
+Unit 4067: Digital Devices and Systems
+Unit Code: L/650/2947
+Level: 4
+Credits: 15
+Introduction
+Most of the world is now dependent on infrastructure that uses digital technology.
+Digital electronics are used extensively in computing, data storage, communications,
+transport, navigation, financial systems, entertainment, and so on. It therefore follows
+that many industries, from gaming and complex graphics systems to Formula 1
+racing, rely heavily on complex digital technology, usually in either hardware or
+software programmable form. As systems and infrastructure become more complex,
+it is vital that computer technicians and engineers have knowledge and skills in digital
+hardware as well as in software.
+This unit introduces the fundamental principles of digital systems by way of simple
+functional building blocks using combinational and sequential logic. Using these
+blocks, it then looks at design techniques for building more complex functions. Most
+modern digital designs are now implemented with programmable technologies such
+as microcontrollers and/or programmable logic (e.g. field-programmable gate arrays
+(FPGAs), application-specific integrated circuits (ASICs), etc.) rather than using small-
+scale integrated circuits (SSIs) and medium-scale integrated circuits (MSIs). This unit
+focuses on the design of digital circuits in a hardware description language (HDL)
+environment, and physical implementation using a FPGA development board.
+Prior to studying this unit, students are expected to have knowledge of the binary
+number system.
+On successful completion of this unit, students will understand the concepts of digital
+systems and be able to identify the most common combinational and sequential
+digital building blocks. They will be able to use these blocks and traditional design
+techniques to build more complex digital functions. Students will be able to use an
+HDL and programmable logic to design and implement combinational and sequential
+circuits on a FPGA. This will provide students with the knowledge, understanding
+and skills to progress to further study in the use of this technology; to design and
+implement complex digital systems or to fulfil a technician role in industry.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+514
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit, students will be able to:
+LO1 Design combinational logic circuits for suitable applications
+LO2 Design sequential logic circuits for suitable applications
+LO3 Implement combinational and sequential logic circuits using a hardware
+description language (HDL) software package
+LO4 Test combinational and sequential logic designs using a field-programmable
+gate array (FPGA) development board.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+515
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Design combinational logic circuits for suitable applications
+Introduction to digital electronics:
+Analogue (continuous) signals, digital representation, and the requirement
+for conversion between these forms; examples of analogue and digital data
+(e.g. temperature, digital music player, digital photography)
+Need for processing, storing and communication of digital data (e.g. computers,
+mobile phones).
+Combinational logic gates:
+Symbols, truth tables, Boolean equations, and function of logic gates: AND, OR,
+NOT, XOR, NAND, and NOR
+Application of relevant numerical skills (Binary, dotted decimal notation) required
+to meet the defined specifications.
+Techniques used in combinational logic circuit design:
+Boolean algebra, De Morgan’s theorems, Karnaugh mapping
+Combinational logic circuits involving up to 4 inputs and a maximum of 10 gates
+before minimisation
+Optimisation of combinational logic circuits using the techniques listed above;
+circuits using basic logic gates to achieve more complex functions (e.g. adders,
+decoders, encoders, multiplexing and demultiplexing (MUX/DEMUX), parity
+checking, simple logic controls).
+Introduction to digital technologies:
+Use of complementary metal–oxide–semiconductor (CMOS) and transistor–
+transistor logic (TTL): speed, voltages, fan-out, power consumption, speed–power
+product, packing density
+Recent silicon technologies
+Concept of propagation delay and its implications; timing analysis of
+combinational circuits.
+Simple testing methodologies:
+Instrumentation (e.g. logic probe, oscilloscope, etc.)
+Simulation software (e.g. NI Multisim).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+516
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Design sequential logic circuits for suitable applications
+Sequential logic design:
+Sequential building blocks: latches; D, T and JK flip-flops
+Set-up and hold times – implication on maximum clock speed
+Asynchronous and synchronous systems (e.g. compare synchronous and
+asynchronous counters)
+Suitable sequential circuits built from D or JK flip-flops to include shift registers,
+synchronous counters, and sequence generators (up to and including 4 bits)
+State diagrams to describe counters and sequence generators.
+Testing sequential designs:
+Use of oscilloscope (e.g. measuring clock frequency, propagation delays)
+Use of simulator (e.g. NI Multisim).
+LO3 Implement combinational and sequential logic circuits for simple
+applications using a hardware description language (HDL) software
+package
+HDL:
+Languages (VHDL and Verilog) – choose one to use
+Structures: entity and architecture, and key words associated with the chosen
+language
+Behavioural architecture.
+Implementing combinational logic in HDL:
+Entry of schematic and HDL (e.g. VHDL, Verilog) into HDL development software
+(e.g. Quartus (Intel), ISE Design Suite (Xilinx))
+Compilation and debugging techniques
+Suitable combinational logic circuits (e.g. adders, decoders, comparators,
+encoders, seven-segment display encoding, MUX/DEMUX, parity checking,
+simple logic controls).
+Implementing sequential logic in HDL:
+Suitable sequential logic circuits (e.g. shift registers, counters and sequence
+generators) written in HDL using dataflow and/or behavioural architecture.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+517
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Test combinational and sequential logic designs using a field-
+programmable gate array (FPGA) development board.
+Field-programmable gate array (FPGA) technology:
+Introduction to structure and complexity of current FPGA technology.
+Simulation:
+Use of HDL development tools to simulate combinational and sequential
+designs.
+FPGA development boards:
+Structure of a typical development board
+Pin assignment, downloading, simulation, testing and verifying combinational
+and sequential designs
+Ensure use of tools and techniques for secure operations and in testing network
+designs.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+518
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Design combinational logic circuits for suitable
+applications
+P1 Explain the different M1 Analyse the different D1 Evaluate the different
+digital technologies used to digital technologies used to digital technologies used to
+implement digital circuits. implement digital circuits implement digital circuits.
+P2 Design suitable M2 Design suitable D2 Evaluate the design of
+combinational logic circuits, combinational logic circuits, suitable combinational logic
+making mostly accurate use making accurate use of circuits, by accurately
+of Boolean algebra and Boolean algebra, De optimising them.
+Karnaugh maps. Morgan’s theorems and
+Karnaugh maps.
+LO2 Design sequential logic circuits for suitable
+applications
+P3 Design suitable M3 Design suitable D3 Design optimised suitable
+sequential logic circuits, sequential logic circuits, sequential logic circuits, using
+using mostly accurate state using techniques appropriate techniques
+diagrams. accurately. accurately.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+519
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Implement combinational and sequential logic circuits
+for simple applications using a hardware description
+language (HDL) software package LO3 and LO4
+P4 Implement, using M4 Implement, using both D4 Evaluate the correct
+schematic entry, two schematic entry and HDL, operation and improved
+suitable combinational and two suitable combinational performance of at least two
+two suitable sequential logic and two suitable sequential suitable combinational and
+circuits. logic circuits. two sequential logic circuits,
+comparing the results from
+accurate HDL simulations
+and FPGA hardware
+functional tests.
+LO4 Test combinational and sequential logic designs using
+a field-programmable gate array (FPGA) development
+board.
+P5 Verify the correct
+M5 Verify the correct
+operation of two suitable
+operation and improved
+combinational and two
+performance of two
+suitable sequential logic suitable combinational and
+circuits using simulation two suitable sequential
+and safe functional tests logic circuits using
+on FPGA hardware. simulation and safe
+functional tests on
+P6 Explain, using the HDL
+FPGA hardware.
+simulation and FPGA
+hardware test results, M6 Analyse, using the HDL
+the correct operation of at simulation and FPGA
+least three logic circuits, hardware test results,
+combinational and the correct operation and
+sequential. improved performance of
+at least three logic circuits,
+combinational and
+sequential.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+520
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Floyd, T.L. (2015) Digital Fundamentals . 11th Ed. Pearson.
+Kleitz, W. (2014) Digital Electronics: A Practical Approach with VHDL . 9th Ed.
+Pearson New International Edition. Pearson Education.
+Mano, M.M. and Ciletti, M.D. (2022) Digital Design: With an Introduction to the Verilog
+HDL, VHDL and SystemVerilog . 6th Ed. Pearson.
+Short, K. (2014) VHDL for Engineers . Pearson New International Edition.
+Pearson Education.
+Websites
+http://www.intel.com Intel
+‘Intel® FPGA Academic Program’
+(General reference)
+http://www.xilinx.com Xilinx
+‘Xilinx University Program’
+(General reference)
+Links
+This unit links to the following related units:
+Unit 4019: Electrical and Electronic Principles
+Unit 4020: Digital Principles
+Unit 4022: Electronic Circuits and Devices
+Unit 4064: Analogue and Digital Electronics
+Unit 5019: Further Electrical, Electronic and Digital Principles
+Unit 5043: Digital System Design.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+521
+Issue 6 – October 2025 © Pearson Education Limited 2025

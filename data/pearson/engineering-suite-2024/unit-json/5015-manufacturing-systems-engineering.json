@@ -1,0 +1,73 @@
+{
+  "code": "5015",
+  "title": "Manufacturing Systems Engineering",
+  "detectedTitle": "Manufacturing Systems Engineering",
+  "startPage": 963,
+  "endPage": 969,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Illustrate the principles of manufacturing systems engineering and explain their relevance to the design and enhancement of manufacturing systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Use a range of analysis tools, including value stream mapping, to determine the effectiveness and efficiency of a manufacturing system, and then develop an appropriate future state for that system"
+    },
+    {
+      "id": "LO3",
+      "description": "Outline the impact of different production planning approaches on the effectiveness of a manufacturing system"
+    },
+    {
+      "id": "LO4",
+      "description": "Define the responsibilities of manufacturing systems engineering and review how they enable successful organisations to remain competitive."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "M4",
+      "P4",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P6",
+      "P7"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+  ]
+}

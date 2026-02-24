@@ -1,0 +1,218 @@
+Unit 5023: Thermofluids
+Unit Code: R/651/0887
+Level: 5
+Credits: 15
+Introduction
+In everyday life, you are never too far away from some system or device that relies on
+both fluid mechanics and thermodynamics. From the water circulating in your home
+central heating radiators to the hydraulic door closer to the back of a fire door, the
+presence of thermofluids is constantly around us.
+This unit aims to provide a rational understanding of functional thermodynamics and
+fluid mechanics in common industrial applications. The unit promotes a problem-
+based approach to solving realistic work-related quandaries such as steam plant
+efficiency and fluid flow capacities, and complements other units such as Units 4011,
+4013, and 5005 .
+Students will examine fundamental thermodynamic principles, steam and gas turbine
+systems, and viscosity in fluids, along with static and dynamic fluid systems. Each
+element of the unit will identify a variety of engineering challenges and assess how
+problems are overcome in real-life industrial situations.
+Students will develop their perceptions of industrial thermodynamic systems,
+particularly those involving steam and gas turbine power. In addition, they will
+consider the impact of energy transfer in engineering applications along with the
+characteristics of fluid flow in piping systems and numerous hydraulic devices,
+all of which are prevalent in typical manufacturing and process facilities.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1004
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Evaluate industrial thermodynamic systems and their properties
+LO2 Examine the operation of practical steam and gas turbine plants
+LO3 Illustrate the effects of viscosity in fluids
+LO4 Analyse fluid systems and hydraulic machines.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1005
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Evaluate industrial thermodynamic systems and their properties
+Thermodynamic systems:
+Power generation plant
+Application of the first law of thermodynamics
+Analysis of Non-Flow Energy Equation (NFEE) and Steady Flow Energy Equation
+(SFEE) systems
+Application of thermodynamic property tables
+Energy transfer systems employing polytropic processes (isothermal, adiabatic,
+and isentropic)
+Pressure/volume diagrams and the concept of work done: use of conventions
+The application of the Gas Laws and polytropic laws for vapours and gases
+Heat transfer theory and fundamentals
+One-dimensional conduction and thermal resistance
+Application of problem-solving tools in the context of thermodynamic system
+investigations e.g. root cause analysis (RCA), process failure modes effects
+analysis (PFMEA), fishbone, practical problem solving (PPS), advanced product
+quality planning (APQP)
+Health and safety within the context, including risk awareness and compliance.
+LO2 Examine the operation of practical steam and gas turbine plants
+Steam and gas turbine plant:
+Second Law of Thermodynamics and entropy
+Heat Engine, Heat pump, and Carnot cycle
+Entropy property and T-s diagram
+Principles of operation of steam and gas turbine plants
+Use of property diagrams to analyse plant
+Characteristics of steam/gas turbine plant as used in energy supply
+Energy-saving options adopted on steam plants operating on modified
+Rankine cycle
+Performance characteristics of steam and gas power plant
+Cycle efficiencies: turbine isentropic efficiencies and overall relative efficiency
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1006
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Use of various problem-solving tools in the context of steam and gas turbine
+plants, with industry scenarios and real-world case studies.
+LO3 Illustrate the effects of viscosity in fluids
+Viscosity in fluids:
+Viscosity: shear stress, shear rate, dynamic viscosity, kinematic viscosity
+Viscosity measurement: operating principles of viscosity measuring devices e.g.,
+falling sphere, U-tube, rotational and orifice viscometers (such as Redwood)
+Newtonian fluids and non-Newtonian fluids: pseudoplastic, Bingham plastic,
+Casson plastic, and dilatant fluids
+Latest trends and applications of viscous fluids.
+LO4 Analyse fluid systems and hydraulic machines
+Fluid systems:
+Characteristics of fluid flow: laminar and turbulent flow, Reynolds number
+Friction factors: relative roughness of pipe, use of Moody diagrams
+Head losses across various industrial pipe fittings and valves, use of Bernoulli’s
+Equation and Darcy’s Formula
+External incompressible flow and boundary layer
+Boundary layer development on a flat surface
+Separation and Wake
+Aerodynamic forces: lift and drag
+Hydraulic machines:
+Turbines: Pelton wheel, Kaplan turbine, Francis wheel
+Pumps: centrifugal, reciprocating.
+Analysis of systems:
+Dimensional analysis: verification of equations for torque, power, and flow rate
+Application of dimensional analysis to determine the characteristics of a scale
+model
+Use of Buckingham Pi Theorem
+Discussion of dimensionless numbers: Reynold, Mach, Froude, Prandtl,
+and Nusselt numbers.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1007
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Evaluate industrial thermodynamic systems and their
+properties
+P1 Evaluate the operation of M1 Analyse the rate of heat D1 Critically evaluate
+industrial thermodynamic transfer through a composite thermodynamic processes
+systems and their wall. by using non-flow energy
+properties. equation (NFEE) or steady
+flow energy equation
+P2 Describe the application
+(SFEE) systems with
+of the first law of
+thermodynamic property
+thermodynamics to
+tables.
+industrial systems.
+P3 Apply first law analysis
+for a process of ideal gas.
+LO2 Examine the operation of practical steam and gas
+turbine plants
+P4 Examine the principles of M2 Justify why the Rankine D2 Evaluate the
+operation of steam turbine cycle is preferred over the modifications made to the
+plant. Carnot cycle in steam basic Rankine cycle to
+production plants around improve the overall
+P5 Calculate overall steam
+the world. efficiency of steam
+turbine plant efficiencies
+power plants.
+by the use of charts
+and/or tables.
+P6 Discuss the principles of
+operation of gas turbine
+plants.
+LO3 Illustrate the effects of viscosity in fluids
+P7 Illustrate the properties M3 Evaluate the effects of D3 Compare the results
+of viscosity in fluids. shear force on Newtonian of a viscosity test on a
+and non-Newtonian fluids. Newtonian fluid with those
+P8 Explore three viscosity
+given on a data sheet and
+measurement techniques.
+explain any discrepancies.
+LO4 Analyse fluid systems and hydraulic machines
+P9 Analyse the M4 Review the significance D4 Evaluate the use of
+characteristics of fluid flow of the Reynolds number on dimensionless analysis using
+in industrial piping systems. fluid flow in a given system. the Buckingham Pi Theorem
+for a given industrial
+P10 Discuss the operational
+application.
+aspects of hydraulic
+machines.
+P11 Apply dimensional
+analysis to fluid flow.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1008
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Baskharone E. A. (2012) Thermal Science: Essentials of Thermodynamics, Fluid Mechanics,
+and Heat Transfer . McGraw Hill.
+Bejan A. (2016) Advanced Engineering Thermodynamics. John Wiley & Sons, Inc.
+Borgnakke C. and Sonntag R. (2022) Fundamental of Thermodynamics. 10h Ed. Wiley
+Cengel Y. (2020) Heat and Mass Transfer: Fundamentals and Applications . 6th Ed.
+McGraw Hill.
+Cengel Y. (2019) Thermodynamics: An Engineering Approach Si . 9th Ed. McGraw Hill.
+Cengel Y.A. and Cimbala J.M. (2013) Fluid Mechanics Fundamentals and Applications
+(Mechanical Engineering) Hardcover. McGraw-Hill.
+Massey B.S. and Ward-Smith J. (2011) Mechanics of Fluids. 9th Ed. Oxford: Spon Press.
+Revankar S., Sen S. and Sahu D. (Editors) (2021) Proceedings of International Conference
+on Thermofluids KIIT Thermo 2020 . Springer.
+Trachenko K. (2023) Theory of Liquids: From Excitations to Thermodynamics (Hardback).
+Cambridge University Press.
+White F. and Xu H. (2021) Fluid Mechanics. 9th Ed McGraw Hill.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Annual Review of Fluid Mechanics
+Experimental Thermal and Fluid Science
+International Journal of Thermofluids
+International Journal of Thermofluid Science and Technology
+ISME Journal of Thermofluids
+Journal of Fluid Mechanics
+International Journal of Heat and Fluid Flow
+Journal of Fluids Engineering
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1009
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4011: Fluid Mechanics
+Unit 4013: Fundamentals of Thermodynamics and Heat Engines
+Unit 4024: Electro, Pneumatic and Hydraulic Systems
+Unit 5005: Further Thermodynamics.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1010
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,67 @@
+{
+  "code": "5017",
+  "title": "Advanced Manufacturing Technology",
+  "detectedTitle": "Advanced Manufacturing",
+  "startPage": 977,
+  "endPage": 984,
+  "pageCount": 8,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine a range of advanced manufacturing processes and their effective application"
+    },
+    {
+      "id": "LO2",
+      "description": "Contrast advanced manufacturing technologies to determine their appropriateness for an application or process."
+    },
+    {
+      "id": "LO3",
+      "description": "Analyse an existing manufactured product and associated process to introduce proposals for possible improvements based on the introduction of advanced manufacturing technologies."
+    },
+    {
+      "id": "LO4",
+      "description": "Evaluate the concept of the next industrial revolution to determine the impact on both manufacturers and the consumer."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4",
+      "P5"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5"
+  ]
+}

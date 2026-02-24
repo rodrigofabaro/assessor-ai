@@ -1,0 +1,73 @@
+{
+  "code": "4021",
+  "title": "Electrical Machines",
+  "detectedTitle": "Electrical Machines",
+  "startPage": 174,
+  "endPage": 180,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Investigate the different types and operation of electrical machines"
+    },
+    {
+      "id": "LO2",
+      "description": "Explore the operation and the various starting methods of induction machines"
+    },
+    {
+      "id": "LO3",
+      "description": "Explore the operation and the various starting methods of synchronous machines"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse the operating characteristics, construction and applications of electromagnetic transducers and actuators."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "code": "4015",
+  "title": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+  "detectedTitle": "Automation, Robotics and Programmable Logic Controllers (PLCs)",
+  "startPage": 130,
+  "endPage": 137,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Describe the design and operational characteristics of a PLC system"
+    },
+    {
+      "id": "LO2",
+      "description": "Design a PLC program by considering function requirements, PLC information, programming and communication techniques"
+    },
+    {
+      "id": "LO3",
+      "description": "Program industrial robots using commands to perform a given task with the knowledge of the key elements and their functions"
+    },
+    {
+      "id": "LO4",
+      "description": "Investigate the design and safe operation of a robot within an industrial application."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

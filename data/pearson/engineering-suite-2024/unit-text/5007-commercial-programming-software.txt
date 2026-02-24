@@ -1,0 +1,193 @@
+Unit 5007: Commercial Programming
+Software
+Unit Code: A/651/0861
+Level: 5
+Credits: 15
+Introduction
+The use of Computer Aided Design (CAD) and simulation in the electronic and
+electrical engineering industry is ever growing. Commercial software packages enable
+an engineer to design, simulate, model and predict the outcome of a design before a
+product has been made. This enables time and cost savings in the development of a
+product whilst enabling the engineer to further develop their design.
+The aim of this unit is to introduce students to the availability and use of commercial
+software packages within electronics engineering, including design, simulation, simple
+microprocessor programming and evaluation of the tools available.
+On successful completion of this unit students will be able to research a range of
+software tools or applications to support engineering functions related to electronics,
+consider how a software package can be used to simulate the behaviour of an
+electronic circuits function, explain how to programme a microprocessor-based
+device to achieve a specified outcome/task, evaluate a specific electronics software
+tool/application, describe the types of commercial software available, compare the
+differences between a software simulation and a real-world circuit, and write simple
+commands to a microcontroller.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+888
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit a student will be able to:
+LO1 Research a range of software application tools to determine how they can
+support electronic engineering functions effectively
+LO2 Explain how a software package can be used to simulate the behaviour of an
+electronic circuit function and compare the results to real components and
+circuits
+LO3 Programme a microprocessor-based device to achieve a specified outcome
+or task using commercially available software
+LO4 Evaluate an electronics software application tool to report on its ability to
+replicate the real world and the resource savings this can bring to an
+organisation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+889
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Research a range of software application tools to determine how they can
+support electronic engineering functions effectively
+Exposition of computer packages or applications:
+Circuit design, simulation, testing and analysis
+Printed circuit board layouts
+Electronic design automation (EDA or ECAD)
+Microcontroller programming, such as Programmable Intelligent Computers
+(PICs). Microcontroller function simulation, monitoring and testing.
+LO2 Explain how a software package can be used to simulate the behaviour of
+an electronic circuit function and compare the results to real components
+or circuits
+Application of an industrial computer-aided design package:
+Simulation and analysis of electronic circuits.
+PCB design:
+Creation of schematic netlists of a given design and transfer to a PCB layout to
+make design created using computer-based tools.
+Build:
+Component identification and handling
+Develop soldering skills to be able to populate a printed circuit board.
+Test and comparison:
+Application of test equipment to measure voltage, current and resistance
+Systematic test, commission and fault finding methods
+Compare simulated values with tested values, comparison criteria to include;
+function, behaviour, accuracy, response times and errors.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+890
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Programme a microprocessor-based device to achieve a specified outcome
+or task using commercially available software
+Introduction to microprocessors:
+Introduction to: common languages, compilers and simulators in-circuit
+debugging
+Simple programming for exercises:
+Digital inputs, simple user feedback
+Simulation and debugging
+Motor, relay and sound outputs
+Communication.
+LO4 Review an electronics software application tool to report on its ability to
+replicate the real world and the resource savings this can bring to an
+organisation.
+Software application:
+Software applications with specific industry examples incorporating ease of use,
+functions available, performance, reliability, quality and costs
+Possible limiting factors in software systems, based on previous work
+undertaken in the unit
+Current trends in simulation, testing and microprocessor development.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+891
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Research a range of software application tools to
+determine how they can support electronic engineering
+functions effectively
+P1 Examine the functions of M1 Analyse the effectiveness D1 Evaluate the functions
+commercial programming of a range of commercial and benefits of a range of
+software. software in supporting commercial software used
+electronic engineering in developing electrical
+P2 Discuss the categories of
+functions. engineering.
+commercial electrical and
+electronic software.
+LO2 Explain how a software package can be used to
+simulate the behaviour of an electronic circuit function and
+compare the results to real components or circuits
+P3 Design a simple PCB M2 Design a complex PCB D2 Critically evaluate the
+layout using a software layout with a good level of functionality of simulation
+package. optimisation using a in comparison with real
+software package. components, using a
+P4 Investigate and compare
+complex PCB layout.
+results produced in M3 Evaluate functionality
+simulation to develop an of simulation to show
+analysis with the physical considered comparisons
+build. between testing and
+simulation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+892
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Programme a microprocessor-based device to achieve
+a specified outcome or task using commercially available
+software
+P5 Programme a M4 Make improvements to D3 Critically evaluate the
+microprocessor-based given examples to produce functionality of simulation by
+device to produce working complex working code. noting variations between
+code using appropriate testing and simulation.
+M5 Evaluate code through
+software.
+simulation and in the
+P6 Test and review code hardware, demonstrating
+used through simulation good competence of the
+and in the hardware. software.
+LO4 Review an electronics software application tool to
+report on its ability to replicate the real world and the
+resource savings this can bring to an organisation.
+P7 Evaluate an electronics
+M6 Analyse an electronics D4 Critically analyse current
+software application and its
+software application and its and emerging applications of
+ability to replicate the real
+ability to replicate the real commercial software, with
+world, supported by industry world, supported by specific clear application to industry
+specific examples and industry examples and examples, identifying trends
+illustrating the resource illustrating the resource and recognising technical
+savings implications offered savings implications this has. and economic factors that
+by this approach. influence developments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+893
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Blum J. (2013) Exploring Arduino . Wiley.
+Cilingiroglu U. (2019) Analog Integrated Circuit Design by Simulation: Techniques,
+Tools, and Methods. McGraw Hill.
+Petruzzellis T. (2005) Build your own electronics workshop . McGraw-Hill.
+Richardson M. and Wallace S. (2013) Getting started with Raspberry Pi . 1st Ed.
+Maker Media Inc.
+Robbins A. and Miller W.C. (2013) Circuit analysis: theory and practice .
+5th Ed. International Ed. Clifton Park, N.Y.: Delmar.
+Websites
+https://www.circuitlab.com/ Circuit Lab
+Online schematic editor and circuit
+simulator
+(Training)
+Links
+This unit links to the following related units:
+Unit 4023: Computer Aided Design and Manufacture (CAD/CAM)
+Unit 5004: Virtual Engineering
+Unit 5008: Distributed Control Systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+894
+Issue 6 – October 2025 © Pearson Education Limited 2025

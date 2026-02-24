@@ -1,0 +1,75 @@
+{
+  "code": "4008",
+  "title": "Mechanical Principles",
+  "detectedTitle": "Mechanical Principles",
+  "startPage": 81,
+  "endPage": 87,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Solve problems within static mechanical systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Analyse dynamic mechanical systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Investigate elements of simple mechanical power transmission systems"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse natural and damped vibrations within translational and rotational mass-spring systems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7",
+      "P8"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

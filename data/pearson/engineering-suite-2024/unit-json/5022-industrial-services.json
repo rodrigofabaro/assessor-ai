@@ -1,0 +1,79 @@
+{
+  "code": "5022",
+  "title": "Industrial Services",
+  "detectedTitle": "Industrial Services",
+  "startPage": 1013,
+  "endPage": 1019,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Apply the operating principles of electrical power and lighting systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Investigate the applications and efficiency of industrial compressors"
+    },
+    {
+      "id": "LO3",
+      "description": "Discuss provision of steam services for process and power use"
+    },
+    {
+      "id": "LO4",
+      "description": "Review industrial refrigeration and heat pump systems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5",
+      "P6"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P7",
+      "P8"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "M5",
+      "P9",
+      "P10"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10"
+  ]
+}

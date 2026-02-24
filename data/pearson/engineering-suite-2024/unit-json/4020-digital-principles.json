@@ -1,0 +1,65 @@
+{
+  "code": "4020",
+  "title": "Digital Principles",
+  "detectedTitle": "Digital Principles",
+  "startPage": 167,
+  "endPage": 173,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explain combinational logic circuits"
+    },
+    {
+      "id": "LO2",
+      "description": "Interpret sequential logic circuits"
+    },
+    {
+      "id": "LO3",
+      "description": "Describe the technologies used to implement digital electronic circuits"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse a range of digital subsystems, hence establishing the building blocks for larger systems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ]
+}

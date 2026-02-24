@@ -1,0 +1,193 @@
+Unit 4006: Mechatronics
+Unit Code: Y/651/0716
+Level: 4
+Credits: 15
+Introduction
+Auto-focus cameras, car cruise control and automated airport baggage handling
+systems are examples of mechatronic systems. Mechatronics is the combination
+of mechanical, electrical, and computer/controlled engineering working together
+in automated systems and ‘smart’ product design.
+Among the topics included in this unit are: consideration of component compatibility,
+constraints on size and cost, control devices used, British and/or European standards
+relevant to application, sensor types and interfacing, simulation and modelling
+software functions, system function and operation, advantages and disadvantages
+of software simulation, component data sheets, systems drawings, flowcharts,
+wiring and schematic diagrams.
+On successful completion of this unit students will be able to learn about the basic
+mechatronic system components and functions, designing a simple mechatronic
+system specification for a given application, appropriate simulation and modelling
+software to examine its operation and function, and solving faults on mechatronic
+systems using a range of techniques and methods.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+50
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explain the design and operational characteristics of a mechatronic system
+LO2 Produce a mechatronic system design specification for a given application
+LO3 Examine the operation and function of a mechatronics system using simulation
+and modelling software
+LO4 Demonstrate fault finding skills and fault analysis on a mechatronic system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+51
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explain the design and operational characteristics of a mechatronic system
+Origins and evolution:
+History and early development, evolution
+Industrial and consumer examples of mechatronic systems
+Extent of mechatronic systems use
+Current operational abilities and anticipated improvements.
+Systems characteristics:
+Design of systems in an integrated way
+Design systems to optimise performance
+Design systems using emerging technologies, Industry 4.0 and analyse impact
+on organisations
+Sensor and transducer types used
+Consideration of component compatibility
+Constraints on size and cost
+Control device requirements and examples of applications.
+LO2 Produce a mechatronic system design specification for a given application
+Systems specifications:
+British and/or European standards relevant to application
+Electrical system circuit diagrams, operation of the various components
+that make up mechatronic system, understanding technical documents
+Sensor types and interfacing
+Actuator technology availability and selection
+Selection and use of appropriate control software/devices.
+Consideration of the interaction of system variables
+System commissioning parameters.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+52
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Examine the operation and function of a mechatronics system using
+simulation and modelling software
+Operation and functions:
+Simulation and modelling software functions
+System function and operation
+Modes of operation simulation, loading and surges
+Advantages and disadvantage of software simulation.
+LO4 Demonstrate fault finding skills and fault analysis on a mechatronic system
+Locating and correcting system faults:
+Component data sheets, systems drawings, flowcharts, wiring and schematic
+diagrams, technical documentation (e.g. manuals), fault reports
+Within the context − effective use of data collection systems (e.g. databases),
+data management systems, data analytics and dashboards; documentation
+control processes and procedures (e.g., format, location, access, authorisation)
+Original system correct function and operation
+Instrumentation usage and faults: multimeter, flowmeter, temperature
+measurement, pressure meter etc. and the measurement data transmission
+Inspection and testing using methodical fault location techniques and methods,
+use of control software to aid fault location
+Identification, evaluation and verification of faults and their causes, rectification,
+final system testing and return to service
+Safety first culture in using equipment and resolving the faults − health and
+safety policies, procedures and regulations, compliance, risk assessment
+processes and procedures, risk mitigation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+53
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explain the design and operational characteristics of a
+mechatronic system
+P1 Explain the key M1 Analyse how the D1 Evaluate the
+requirements and components operate as part of mechatronic system
+components of a given an integrated mechatronic specification and propose
+mechatronics system system. an alternative solution.
+P2 Explain the types of M2 Analyse the methods
+actuators, sensors and of control used by the
+transducers used in a given mechatronic system.
+mechatronics system.
+LO2 Produce a mechatronic system design specification for a
+given application
+P3 Produce a design M3 Justify the sensor and D2 Evaluate the
+specification for a given actuator technologies selected operational capabilities
+mechatronic system with reference to available and limitations of the
+application including the alternatives. mechatronic system
+details of the sensor and design specification
+actuator technologies. produced.
+LO3 Examine the operation and function of a mechatronics
+system using simulation and modelling software
+P4 Examine the operation M4 Analyse the operation D3 Evaluate the
+and function of a given and function of a simulated/ advantages and
+mechatronics system modelled mechatronics disadvantages of the
+using industry standard system, with improvements simulation/modelling
+simulation/modelling to the system. software used, based
+software. on the results obtained,
+with recommended
+improvements.
+LO4 Demonstrate fault finding skills and fault analysis on a
+mechatronic system
+P5 Explain the safe use of M5 Apply and document the D4 Investigate the causes
+fault finding test equipment safe and correct use of fault- of faults in a given
+finding equipment and mechatronic system, with
+P6 Demonstrate fault finding
+techniques/methods on a suggested amendments to
+analysis by locating and
+given mechatronic system. the design specification to
+rectifying faults on a given
+improve system reliability.
+mechatronic system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+54
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Alciatore D.G. and Histand M.B. (2019) Introduction to Mechatronics and Measurement
+Systems. 5th Ed. McGraw-Hill.
+Bolton W. (2018) Mechatronics: Electronic Control Systems in Mechanical and Electrical
+Engineering . 7th Ed. Pearson Education Limited.
+Hami A.E. and Pougnet P. (2020) Embedded Mechatronic Systems 2: Analysis of Failures,
+Modeling, Simulation and Optimization . 2nd Ed. ISTE Press – Elsevier.
+Indri M. and Oboe R. (2022) Mechatronics and Robotics: New Trends and Challenges.
+1st Ed. CRC Press.
+Lyshevski S.E. (2020) Mechatronics and Control of Electromechanical Systems.
+1st Ed. CRC Press.
+Mahalik N.P. (2010) Mechatronics: Principles, Concepts and Applications .
+New Delhi: McGraw-Hill.
+Onwubolu G.C. (2005) Mechatronics: Principles and Applications . Oxford: Elsevier.
+Ramachandran K.P., Vijayaraghavan G.K. and Balasundaram M.S. (2008)
+Mechatronics: Integrated Mechanical Electronic Systems . India: Wiley.
+Singh S.B., Ranjan P. and Haghi A.K. (2022) Applied Mechatronics and Mechanics:
+System Integration and Design . 1st Ed. Apple Academic Press.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+IEEE/ASME Transactions on Mechatronics
+IET Robotics and Mechatronics Network
+International Journal of Advanced Mechatronic Systems
+Journal of Mechatronics and Robotics
+Journal of Mechatronics Engineering
+Mechatronics
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+55
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4015: Automation, Robotics and Programmable Logic Controllers (PLCs)
+Unit 5021: Further Control Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+56
+Issue 6 – October 2025 © Pearson Education Limited 2025

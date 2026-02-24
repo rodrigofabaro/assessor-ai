@@ -1,0 +1,197 @@
+Unit 4005: Renewable Energy
+Unit Code: R/651/0714
+Level: 4
+Credits: 15
+Introduction
+With the increasing concerns regarding climate change arising from increasing carbon
+dioxide levels and other adverse environmental impacts of industrial processes, there
+are widespread economic, ethical, legislative and social pressures on engineers to
+develop technologies and processes that have reduced carbon and environmental
+impact.
+This unit aims to familiarise students with both established and emerging renewable
+energy resources and technologies. It will delve into current and future storage and
+generation systems, critically exploring their capabilities and constraints.
+On successful completion of this unit, students will be able to determine the optimum
+combination of renewable energy technologies and evaluate their efficiencies,
+describe how to conduct a cost–benefit analysis to determine the most viable option
+between renewable and conventional energy sources, and consider the relevant
+political, socio-economic, and legal factors that influence the selection of appropriate
+energy technologies.
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explore potential renewable energy resources and technologies
+LO2 Determine the optimum combination and efficiencies of renewable energy
+technologies for a particular location
+LO3 Conduct a cost-benefit analysis to determine the most viable option between
+renewable and conventional energy sources
+LO4 Analyse the socio-economic, legislative, and environmental factors in selecting
+appropriate renewable energy technologies.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+43
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explore potential renewable energy resources and technologies
+Alternative energy resources, their respective merits, and drawbacks:
+Wind energy, ocean and tidal energy, biomass, geothermal energy, hydropower,
+solar photovoltaic, solar thermal energy, and waste-to-energy.
+Energy storage and generation technologies (e.g., batteries, hydrogen).
+LO2 Determine the optimum combination and efficiencies of renewable energy
+technologies for a particular location
+Energy demand and security of supply:
+Energy consumption changes, intensity and trends (domestic, industrial,
+transport, and services sectors)
+Factors affecting changes in energy consumption and demand
+Future demand planning based on trends and needs analysis
+Risk analysis for energy supplies for local areas and global regions
+Energy capacity margins analysis related to changes in demand
+Alternatives for locally used energy sources.
+Energy reduction and efficiency approaches:
+Energy systems available for a given location
+Energy legislation and standards
+Energy saving and reduction schemes, energy saving technologies available
+Energy efficiency approaches for domestic energy use
+Grants and government schemes, and the effects of such schemes on supply
+and demand.
+Grid Integration Requirements:
+Local Grid Code requirements and compliance for integration of the renewable
+energy assets
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+44
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Conduct a cost-benefit analysis to determine the most viable option
+between renewable and conventional energy sources
+Financial and environmental implications:
+Cost-benefit analysis using appropriate tools and techniques
+Socio-economic factors
+Financial implications of renewable and conventional energy.
+LO4 Analyse the socio-economic, legislative, and environmental factors in
+selecting appropriate renewable energy technologies.
+Set-up and operation of renewable technologies:
+Socio-economic factors (e.g. UN sustainability goals)
+Legislative and commercial considerations, including carbon taxes and national
+and international climate change legislation
+Environmental factors
+Evaluation planning tools such as PESTLE analysis
+Local environmental impact and considerations
+Waste impact, waste management strategies
+Contamination issues and society wellbeing.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+45
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explore potential renewable energy resources and
+technologies
+P1 Explore potential M1 Analyse storage D1 Evaluate a wide variety of
+renewable energy resources technologies and their renewable energy resources,
+suitable for your local area advantages and with innovative insights into
+and their working principles disadvantages in relation to their potential future usage.
+with the aid of diagrams. at least three different forms
+of renewable energy.
+LO2 Determine the optimum combination and efficiencies
+of renewable energy technologies for a particular location
+P2 Determine the most M2 Analyse the location’s D2 Propose an innovative,
+efficient combination of specific environmental and well-justified combination
+renewable energy geographical factors and of renewable energy
+technologies for a specified how they relate to the technologies for the specific
+location. efficiency of different location, taking into account
+renewable energy not only efficiency but also
+technologies. factors such as sustainability,
+cost-effectiveness and
+societal impact.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+46
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Conduct a cost-benefit analysis to determine the most
+viable option between renewable and conventional energy
+sources
+P3 Conduct cost-benefit M3 Effectively incorporate D3 Present a thorough
+analysis that considers the indirect costs and benefits and nuanced cost–benefit
+direct costs and benefits such as environmental analysis that considers both
+of both renewable and impacts and potential short-term and long-term
+conventional energy societal benefits and impacts, as well as
+sources. drawbacks into the contingencies and
+cost-benefit analysis. uncertainties, with a well-
+argued recommendation
+based on the analysis.
+LO4 Analyse the socio-economic, legislative, and
+environmental factors in selecting appropriate renewable
+energy technologies.
+P4 Analyse how socio- M4 Provide a detailed D4 Evaluate the impact of
+economic, legislative, and analysis of specific socio- socio-economic, legislative
+environmental factors economic, legislative, and and environmental factors
+influence the selection of environmental factors and on selecting renewable
+appropriate renewable their impact on selecting energy technologies, using
+energy technologies, for renewable energy relevant, real-world
+a given local context. technologies in a examples and forecasting
+global context. potential future trends.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+47
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Andrews, J. and Jelley, N. (2013) Energy Science: Principles, Technologies and Impacts .
+2nd Ed. Oxford University Press.
+Boyle G. (2012). Renewable Energy: Power for a Sustainable Future. 4th Ed. Oxford,
+UK: Oxford University Press.
+Kolhe M.L. (Editor) (2022) Renewable Energy Systems in Smart Grid: Select Proceedings of
+International Conference on Renewable and Clean Energy (ICRCE) 2022 − Lecture Notes in
+Electrical Engineering 938 (Paperback). Springer Verlag.
+Kularatna N. (2020) Energy Storage Devices for Renewable Energy. Elsevier .
+Manwell J.F., McGowan J.G., and Rogers A.L. (2009) Wind Energy Explained:
+Theory, Design and Application. 2nd Ed. Wiley.
+McCartney D. (Editor) (2023) Renewable Energy Sources: Engineering and Technology
+(Hardback). States Academic Press.
+Moore E.A. (2022) Explaining Renewable Energy (Paperback). Taylor & Francis Ltd.
+Nahhas A.M.A. and Ibhadode A.O.A. (Editors) (2023) Renewable Energy: Recent Advances
+(Hardback). IntechOpen.
+Nelson V.C. (2011). Introduction to Renewable Energy. 2nd Ed. CRC Press.
+Olabi A.G.(Editor) (2023) Renewable Energy − Volume 2: Wave, Geothermal, and
+Bioenergy: Definitions, Developments, Applications, Case Studies, and Modelling and
+Simulation (Paperback). Elsevier.
+Shere J. (2013) Renewable: The World-Changing Power of Alternative Energy.
+St. Martin’s Griffin.
+Smets A. Jäger K., Isabella O., Swaaij R.V., and Zeman M. (2016) Solar Energy:
+The Physics and Engineering of Photovoltaic Conversion, Technologies and Systems.
+UIT Cambridge Ltd.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Renewable Energy Focus Journal
+Journal of Renewable and Sustainable Energy
+Renewable and Sustainable Energy: An International Journal
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+48
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit 4089 Net Zero Energy Technologies I: Systems and Demand
+Unit 5011: Industrial Power, Electronics and Storage
+Unit 5018: Sustainability
+Unit 5054: Net Zero Energy Technologies II: Infrastructure and Pathways.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+49
+Issue 6 – October 2025 © Pearson Education Limited 2025

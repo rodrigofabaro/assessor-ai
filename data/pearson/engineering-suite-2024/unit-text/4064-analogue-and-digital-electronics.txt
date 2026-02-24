@@ -1,0 +1,213 @@
+Unit 4064: Analogue and Digital
+Electronics
+Unit Code: H/650/2944
+Level: 4
+Credits: 15
+Introduction
+Analogue and digital electronic systems are widely used for a variety of applications.
+These systems provide the building blocks for modern living; for example, smart
+devices/homes, Industry 4.0 and autonomous systems. Digital electronics are used
+to implement circuits such as the microcontroller-based systems found in mobile
+phones, computers, televisions, microwaves and many other devices. Analogue
+electronic circuits are commonly used alongside such systems. A smart speaker uses
+digital systems to perform ‘smart’ functions and analogue circuits are used to drive
+the voice interface and speaker response systems. This unit explores some of the
+specialist applications of these systems.
+The overall aim of the unit is to introduce students to the fundamental building blocks
+of analogue and digital systems. Engineers from the craft technician to the Chartered
+Engineer should have an understanding and working knowledge of these technologies
+because they underpin all of our electronic devices, both domestic and industrial.
+The unit’s learning outcomes promote the development of skills and knowledge in
+the areas of digital and analogue electronics: digital electronics – developing an
+understanding of the basic logic components and how they are constructed, tested
+and used in circuit design; analogue electronics – developing an understanding of
+common transistors and transistor circuit design. Transistor and operational amplifier
+systems are another focus of the unit; these types of circuits are essential for signal
+processing and reproduction.
+On successful completion of the unit, students will have developed skills and
+knowledge in analogue and digital electronics, which are the basis of all electronic
+systems and device, including the understanding and practice of the theory of logic
+circuits and how to construct and test such systems, and the understanding and
+measurement of analogue circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+492
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit, a student will be able to:
+LO1 Investigate logic functions
+LO2 Produce tabular and Karnaugh map designs to implement logic systems
+LO3 Examine the use of Class A and Class B amplifiers in modern systems
+LO4 Investigate operational amplifier circuits and their application.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+493
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Investigate logic functions
+Underlying theory:
+Logic function implementation: transistor–transistor logic (TTL)
+Logic functions: AND, OR, NOT, NAND, NOR and XOR
+Complementary metal–oxide–semiconductor (CMOS), emitter-coupled logic (ECL)
+and current developments
+Testing instruments: Pulser, Logic Probe.
+Testing digital gates by simulation:
+Test logic gates using simulation: AND, OR, NOT, NAND, NOR and XOR
+Data sheets and specifications: fan-out, speed, maximum and minimum ratings.
+Testing digital gates using TTL and CMOS devices:
+Test logic gates in laboratory experiments using TTL and CMOS devices: AND, OR,
+NOT, NAND, NOR and XOR.
+LO2 Produce tabular and Karnaugh map designs to implement logic systems
+Underlying theory:
+Boolean algebra minimisation and reduction techniques
+Minimisation using De Morgan’s theorems
+Minimisation using Karnaugh maps
+Minimisation using truth tables.
+Logic functions:
+Logic functions: AND, OR, NOT and, by extension, NOT AND (NAND), NOT OR
+(NOR) and Exclusive OR (XOR)
+Symbols representation, such as American National Standards Institute (ANSI)
+and British Standard European Norm (BSEN) Symbols representation using
+Boolean algebra, Karnaugh maps and truth tables
+De Morgan equivalents.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+494
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Digital design techniques:
+Use of reduction techniques on multivariable circuits, with a maximum of four
+input variables, to design to a specific requirement: tabular methods, Karnaugh
+maps, Boolean algebra
+Reduction and construction of logic circuits to a given design specification.
+LO3 Examine the use of Class A and Class B amplifiers in modern systems
+Underlying theory:
+Input and output impedance of Class A, B and C amplifier circuits using bipolar
+transistors and metal–oxide–semiconductor field-effect transistors (MOSFETs)
+Small-signal and h-parameter models.
+Design using bipolar transistors:
+Design techniques and requirements of a Class A bipolar transistor amplifier;
+determine input and output impedance, as well as bandwidth response
+Design techniques and requirements of a Class B bipolar transistor amplifier;
+determine input and output impedance as well as bandwidth response.
+Design using MOSFETs:
+Design techniques and requirements of a Class A MOSFET amplifier;
+determine input and output impedance as well as bandwidth response
+Design techniques and requirements of a Class B MOSFET amplifier;
+determine input and output impedance as well as bandwidth response.
+LO4 Investigate operational amplifier circuits and their application.
+Underlying theory:
+Operational amplifier design: differential pair, Miller effect, current mirror,
+long-tailed pair, Class AB amplifier, frequency response, symbol
+Operational amplifier parameters: slew rate, offset, common-mode input,
+gain–bandwidth product, open-loop gain
+Use of data sheets to ascertain design data
+Negative feedback model; operational amplifier circuit configurations:
+comparator, summing amplifier, inverting amplifier, non-inverting amplifier,
+differentiator, integrator, digital-to-analogue converter, oscillators.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+495
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Laboratory practice:
+Simulate standard circuits using alternating current (AC) signals: comparator,
+inverting amplifier, non-inverting amplifier, differentiator, integrator
+Simulate standard circuits using direct current (DC) signals: comparator,
+summing amplifier, inverting amplifier, non-inverting amplifier, digital-to-
+analogue converter (DAC), and analogue-to-digital converters (ADCs):
+simple-ramp ADC, successive-approximation ADC
+Construct trigger circuits using comparator designs for light, and for temperature
+Use modern diagnostic tools and equipment including Industry 4.0,
+cloud-based diagnostics incorporated into network devices and other
+software tools (e.g., PROFITrace).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+496
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Investigate logic functions
+P1 Investigate logic M1 Assess device D1 Analyse results after
+functions; AND, OR, NOT, performance in terms adapting and testing
+NAND, NOT and XOR. of device speed and De Morgan equivalent
+functionality. function against the speed
+P2 Test logic gates by
+performance of the original
+simulation and using TTL
+device.
+and CMOS devices and
+standard laboratory
+equipment, and present
+results.
+LO2 Produce tabular and Karnaugh map designs to
+implement logic systems
+P3 Produce logic circuits to M2 Analyse non-minimised D2 Evaluate the
+a given design specification and equivalent logic circuits performance, in terms
+using tabular techniques. to confirm function. of speed, cost and
+manufacturability, of
+P4 Produce logic circuits to
+minimised logic circuits to
+a given design specification
+a given design specification.
+using Karnaugh map
+techniques.
+LO3 Examine the use of Class A and Class B amplifiers in
+modern systems
+P5 Examine a Class A M3 Analyse Class A and D3 Evaluate amplifier circuits
+amplifier operation and Class B amplifiers using using bipolar and MOSFET
+functionality. small-signal analysis. devices.
+P6 Examine a Class B
+amplifier operation and
+functionality.
+LO4 Investigate operational amplifier circuits and their
+application.
+P7 Investigate the operation M4 Analyse the D4 Evaluate the performance
+of a standard operational performance of an of an operational amplifier
+amplifier circuit. operational amplifier circuit compared to its small-signal
+in terms of bandwidth, model.
+P8 Simulate a standard
+input impedance and
+operational amplifier circuit
+output impedance.
+to a given design
+specification.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+497
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Floyd, T.L. (2015) Digital Fundamentals . 11th Ed. Pearson.
+Horowitz, P. and Hill, W. (2015) The Art of Electronics . 3rd Ed. Cambridge University
+Press.
+Malvino, A.P., Bates, D.J. and Hoppe, P.E. (2020) Electronic Principles. 8th Ed.
+McGraw Hill Education.
+Storey, N. (2017) Electronics: A Systems Approach . 6th Ed. Pearson.
+Tokheim, R.L. and Hoppe, P.E. (2021) Digital Electronics Principles and Applications.
+9th Ed. McGraw Hill.
+Websites
+digital-library.theiet.org IET Digital Library
+‘IET Circuits, Devices and Systems
+journal’
+(Research)
+Links
+This unit links to the following related units:
+Unit 4022: Electronic Circuits and Devices
+Unit 4067: Digital Devices and Systems
+Unit 5014: Analogue Electronic Systems
+Unit 5044: Digital Electronic Systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+498
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,202 @@
+Unit 5003: Advanced Mechanical
+Principles
+Unit Code: K/651/0810
+Level: 5
+Credits: 15
+Introduction
+A mechanical engineer is required to have an advanced knowledge of most of the
+machinery used within the engineering industry, and should understand the physical
+laws that influence their operation.
+The aim of this unit is to continue covering the topics discussed in Unit 4008:
+Mechanical Principles and other higher-level topics such as:
+Poisson’s Ratio and typical values of common materials; the relationship between the
+elastic constants such as Bulk Modulus, Modulus of Elasticity, Modulus of Rigidity; the
+relationship between bending moment, slope, and deflection in beams; calculating
+the slope and deflection for loaded beams using Macaulay’s method; analysing the
+stresses in thin-walled pressure vessels; and stresses in thick-walled cylinders,
+flat and v-section belt drive theory.
+On successful completion of this unit students will be able to have more advanced
+knowledge of mechanical principles including behavioural characteristics of materials
+subjected to complex loading, the strength of loaded beams and pressurised vessels,
+specifications of power transmission system elements, and operational constraints of
+dynamic systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+857
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Determine the behavioural characteristics of materials subjected to
+complex loading
+LO2 Assess the strength of loaded beams and pressurised vessels
+LO3 Analyse the specifications of power transmission system elements
+LO4 Examine operational constraints of dynamic systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+858
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Determine the behavioural characteristics of materials subjected to
+complex loading
+Characteristics of materials:
+Definition of Poisson’s Ratio and typical values of metals, plastics and composite
+materials
+The relationship between the elastic constants such as Bulk Modulus,
+Modulus of Elasticity, Modulus of Rigidity and Poisson’s Ratio
+Characteristics of two-dimensional and three-dimensional loading
+Calculation of volumetric strain and volume changes
+Concept of principal stress and strain
+Failure criteria for ductile and brittle materials
+Use of problem-solving tools within the context such as Root Cause Analysis
+(RCA) Process Failure Modes Effects Analysis (PFMEA), Fishbone, and Practical
+Problem Solving (PPS) and Advanced Product Quality Planning (APQP).
+LO2 Assess the strength of loaded beams and pressurised vessels
+Strength:
+The relationship between bending moment, slope and deflection in beams
+Calculating the slope and deflection for loaded beams using Macaulay’s method
+Analysing the stresses in thin-walled pressure vessels and stresses in
+thick-walled cylinders
+Use of computer simulations to model the behaviour of beams.
+LO3 Analyse the specifications of power transmission system elements
+Specifications:
+Flat and v-section belt drive theory
+Operation of friction clutches with uniform pressure and uniform wear theories
+Bending and contact stress in geared systems
+Principles of both epicyclic and differential gearing, and the torque required to
+accelerate these systems
+Areas of failure when transmitting power mechanically.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+859
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Examine operational constraints of dynamic systems
+Operational constraints:
+Design of mechanical components to meet operating specifications,
+displacement and velocity
+Operating principles of flywheels to store mechanical energy
+Balancing of rotating mass systems
+Single degree of freedom (DOF) free and damped vibration.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+860
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Determine the behavioural characteristics of materials
+subjected to complex loading
+P1 Discuss the relationship M1 Assess the effects D1 Critique the behavioural
+between the elastic constants. of volumetric thermal characteristics of materials
+expansion and subjected to complex
+P2 Illustrate the effects of
+contraction on isotropic loading.
+two-dimensional and three-
+materials.
+dimensional loading on the
+dimensions of a given material.
+P3 Determine the volumetric
+strain and change in volume
+due to three-dimensional
+loading.
+LO2 Assess the strength of loaded beams and pressurised
+vessels
+P4 Evaluate the variation of M2 Refine the selection of D2 Justify the choice of a
+slope and deflection along a suitable size universal suitably sized universal
+a simply supported beam. beam from appropriate beam, using appropriate
+data tables which computer software to model
+P5 Assess the principal stresses
+conforms to given design the application by explaining
+that occur in a thin-walled
+specifications for slope any assumptions that could
+cylindrical pressure vessel
+and deflection. affect the selection.
+and a pressurised thick-walled
+cylinder.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+861
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Analyse the specifications of power transmission system
+elements
+P6 Discuss the initial tension M3 Critically analyse both D3 Evaluate the conditions
+requirements for the operation the uniform wear and needed for an epicyclic gear
+of a v-belt drive. uniform pressure theories train to become a
+of friction clutches for differential, showing how
+P7 Analyse the force
+their effectiveness in a differential works in this
+requirements to engage a
+theoretical calculations. application.
+friction clutch in a mechanical
+system.
+P8 Analyse the holding torque
+and power transmitted through
+epicyclic gear trains.
+LO4 Examine operational constraints of dynamic systems
+P9 Examine the profiles of both D4 Critically evaluate
+M4 Evaluate the effects
+radial plate and cylindrical cams different choices of
+of misalignment of shafts
+that will achieve a specified mechanical systems that
+and the use of problem-
+motion. solving tools to prevent induce specified motion,
+problems from occurring. including the advantages
+P10 Determine the mass of
+and disadvantages of each
+a flywheel needed to keep a
+application.
+machine speed within specified
+limits.
+P11 Investigate the balancing
+masses required to obtain
+dynamic equilibrium in a
+system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+862
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bird J. and Ross C. (2020) Mechanical Engineering Principles . 4th Ed. Routledge.
+Childs P.R.N. (2021) Mechanical Design: Theory and Applications. 3rd Ed.
+Butterworth-Heinemann.
+Hibbeler R.C. (2020) Engineering Mechanics: Dynamics and Statics. SI Edition.
+14th Ed. Pearson.
+Juvinall R.C. and Marshek K.M. (2020) Fundamentals of Machine Component Design.
+7th Ed. Wiley.
+Tooley M. and Dingle L. (2020) Engineering Science: For Foundation
+Degree and Higher National . 2nd Ed. Routledge.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Applied Mechanics Reviews
+Archive of Rational Mechanics and Analysis
+Computer Methods in Applied Mechanics and Engineering
+Frontiers in Mechanical Engineering
+International Journal of Engineering Science
+International Journal of Mechanical Sciences
+Journal of Machine Design
+Journal of Mechanical Engineering
+Journal of Mechanical Science and Technology
+Mechanics Based Design of Structures and Machines
+Mechanical Engineering Journal
+Links
+This unit links to the following related units:
+Unit 4008: Mechanical Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+863
+Issue 6 – October 2025 © Pearson Education Limited 2025

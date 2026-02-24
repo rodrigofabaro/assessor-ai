@@ -1,0 +1,228 @@
+Unit 4015: Automation, Robotics and
+Programmable Logic
+Controllers (PLCs)
+Unit Code: M/651/0731
+Level: 4
+Credits: 15
+Introduction
+The word automation was not used until the 1940s and it originated in the automotive
+manufacturing sector as a method designed to reduce labour costs and improve the
+quality, accuracy and precision of the finished products. We are all now very familiar
+with the sight of dancing robots, not only in the production of cars but in everything
+from washing machines to pharmaceuticals. As a result of this technology the
+products we purchase may have never been touched by human hands and we all
+benefit from a reduction in costs and improvement in quality.
+The aim of this unit is for students to investigate how Programmable Logic Controllers
+(PLCs) and industrial robots can be programmed to successfully implement
+automated engineering solutions.
+Among the topics included in this unit are: PLC system operational characteristics,
+different types of programming languages, types of robots and cell safety features.
+On successful completion of this unit students will be able to learn about
+programming PLCs and robotic manipulators to implement a set of activities, different
+types and uses of PLCs and robots available, writing PLC programs using a language
+of their choice, and program industrial robots with straightforward commands and
+safety factors.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+114
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Describe the design and operational characteristics of a PLC system
+LO2 Design a PLC program by considering function requirements, PLC information,
+programming and communication techniques
+LO3 Program industrial robots using commands to perform a given task with the
+knowledge of the key elements and their functions
+LO4 Investigate the design and safe operation of a robot within an industrial
+application.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+115
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Describe the design and operational characteristics of a PLC system
+System operational characteristics:
+Modular, unitary and rack mounted systems
+Characteristics, including speed, memory, scan time, voltage and current limits
+Input and output devices (digital, analogue)
+Interface requirements
+Communication standards (RS-232, RS-422, RS-485, Ethernet)
+Industrial communication networks at Supervisory (e.g. Ethernet), Cell (e.g.
+PROFINET/PROFIBUS) and Field (e.g. AS-Interface) levels; industrial networks
+configuration and commissioning; installation, application and operational
+aspects
+Industrial Communication Protocols (e.g., Profinet, EtherNet/IP, Powerlink)
+Internal architecture
+Different types of programming languages (IEC 61131-3)
+Programmable Logic Controllers (PLC), Variable Speed Drives (VSD), Human
+Machine Interface (HMI) and Supervisory Control and Data Acquisition (SCADA).
+LO2 Design a PLC program by considering function requirements, PLC
+information, programming and communication techniques
+Programming language:
+Signal types
+Number systems (binary, octal, hexadecimal)
+Allocation lists of inputs and outputs
+Communication techniques
+Network methods
+Logic functions (AND, OR, XOR)
+Associated elements (timers, counters, latches)
+PLC, HMI & SCADA configuration, and programming
+Modern context of PLC programming and Automation
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+116
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Test and debug methods:
+Systematic testing and debugging methods
+Proper application of appropriate testing and debugging methods
+LO3 Program industrial robots using commands to perform a given task with
+the knowledge of the key elements and their functions
+Element considerations:
+Types of robots
+Mobile robotics
+Sensors, tools and end effectors
+Programming methods
+Key functions/commands and application in designing and implementing
+robot tasks
+Robotics hardware and software tools, configuration, calibration, programming,
+and fault finding
+Robot manipulators (kinematics, design, dynamics and control, vision systems,
+user interfaces, instrumentation configuration and calibration); effective use of
+data collection tools/systems and data formats for inputs/outputs within the
+context.
+Impact of Industry 4.0:
+Automation, robots, PLCs, smart factories using Industry 4.0 based technologies
+(e.g., data and digital technologies/systems)
+Performance optimisation
+Documentation control processes and procedures such as format, location,
+access, authorisation
+Integration and impact on organisations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+117
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Investigate the design and safe operation of a robot within an industrial
+application
+Safety:
+Health and safety policies, procedures and regulations, potential hazards,
+risk assessment and mitigation
+Cell safety features
+Operating envelope
+Operational modes
+User interfaces
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+118
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Describe the design and operational characteristics of a
+PLC system
+P1 Describe the key differences M1 Explain the different D1 Analyse the internal
+of PLC types and configurations, types of PLC programming architecture of a typical PLC
+and their typical applications. languages available. to determine its operational
+applications.
+P2 Determine the types of PLC
+input and output devices
+available.
+P3 Describe the different types
+of communication links used
+with PLCs.
+LO2 Design a PLC program by considering function
+requirements, PLC information, programming and
+communication techniques
+P4 Design key elements that M2 Integrate methods D2 Create a fully functional
+have to be considered in the used for testing and PLC design for a given
+preparation of a PLC program. debugging PLC hardware industrial task, with
+and software. performance analysis.
+P5 Explain how communication
+connections are correctly used
+with the PLC.
+LO3 Program industrial robots using commands to perform a
+given task with the knowledge of the key elements and their
+functions
+P6 Using a selection of M3 Investigate a given D3 Produce a fully working
+commands, program an industrial robotic system robotic program for a given
+industrial robot to perform and make industry task, with an
+given task. recommendations for illustrated scope for further
+improvement. improvements to achieve
+P7 Explain the types of robot
+complex tasks.
+tools, sensors, and end
+effectors available and their
+applications.
+LO4 Investigate the design and safe operation of a robot
+within an industrial application
+P8 Investigate the safety M4 Analyse how the D4 Design a safe working
+systems used within an systems in place ensure plan for an industrial
+industrial robotic cell. safe operation of a given robotic cell in a given
+industrial robotic cell. production process,
+including a full risk
+assessment.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+119
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Auat F., Prieto P. and Fantoni G. (Editors) (2022) Rapid Roboting: Recent Advances on
+3D Printers and Robotics − Intelligent Systems, Control and Automation: Science and
+Engineering 82 (Hardback). Springer.
+Bolton W. (2015) Programmable Logic Controllers . 6th Ed. Elsevier.
+Bozek P., Krenický T. and Nikitin Y. (Editors) (2022) Automation and Robotics:
+Latest Achievements, Challenges and Prospects (Hardback). Mdpi AG.
+Dawkins N. (ed.) (2014) Automation and Controls: A guide to Automation, Controls,
+PLCs and PLC Programming .
+Johnson Jr C.H. and Sanusi A.L. (2022) PLC Programming from Novice to Professional:
+Learn PLC Programming with Training Videos (Paperback). Ojula Technology Innovations .
+Kumar K. and Babu B.S. (Editors) (2023 ) Industrial Automation and Robotics −
+Techniques and Applications . 1st Ed. CRC Press.
+Manesis S. and Nikolakopoulos G. (2018) Introduction to Industrial Automation. 1st Ed.
+Routledge, Taylor and Francis Group.
+Perez A. E. (2012) Introduction to PLCs: A beginner’s guide to Programmable Logic
+Controllers .
+Petruzella F. (2023) Programmable Logic Controllers. 6th Ed. McGraw Hill.
+Stewart G.R. (2021) Siemens Plc Programming For Beginners: (Step-by-Step Instructions)
+How Can I Quickly and Easily Learn PLC Programming At Home? Independent publication.
+White M.T. (2023) Mastering PLC Programming: The software engineering survival guide to
+automation programming (Paperback). Packt Publishing Limited.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+120
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Automation and Remote Control
+Automation
+IFAC Journal of Systems and Control
+IEEE Journal on Robotics and Automation
+International Journal of Automation and Control (IJAAC)
+Journal of AI, Robotics and Workplace Automation
+Journal of Automation and Intelligence
+Programmable Logic Controllers (Special issue)
+Robotics
+Links
+This unit links to the following related units:
+Unit 4006: Mechatronics
+Unit 5009: Further Programmable Logic Controllers (PLCs).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+121
+Issue 6 – October 2025 © Pearson Education Limited 2025

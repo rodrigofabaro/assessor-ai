@@ -1,0 +1,91 @@
+{
+  "code": "5010",
+  "title": "Further Electrical Machines and Drives",
+  "detectedTitle": "Further Electrical Machines and Drives",
+  "startPage": 924,
+  "endPage": 931,
+  "pageCount": 8,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Synthesise knowledge and skills on the principles of operation and the characteristics of electrical machines and their industrial applications"
+    },
+    {
+      "id": "LO2",
+      "description": "Examine the fundamentals of power electronics converters"
+    },
+    {
+      "id": "LO3",
+      "description": "Analyse the operation and characteristics of DC drives and their industrial applications"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse the operation and characteristics of AC drives and their industrial applications"
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "M4",
+      "P4",
+      "P5",
+      "P6"
+    ],
+    "LO3": [
+      "D3",
+      "M5",
+      "M6",
+      "P7",
+      "P8",
+      "P9",
+      "P10"
+    ],
+    "LO4": [
+      "D4",
+      "M7",
+      "M8",
+      "P11",
+      "P12",
+      "P13"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "M7",
+    "M8",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11",
+    "P12",
+    "P13"
+  ]
+}

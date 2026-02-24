@@ -1,0 +1,246 @@
+Unit 4002: Engineering Mathematics
+Unit Code: A/651/0708
+Level: 4
+Credits: 15
+Introduction
+The mathematics that is delivered in this unit is directly applicable to the engineering
+and manufacturing industry, and it will help to increase students’ knowledge of the
+broad underlying principles within this discipline.
+The aim of this unit is to develop students’ skills in the mathematical principles and
+theories that underpin the engineering curriculum. Students will be introduced to
+mathematical methods and statistical techniques in order to analyse and solve
+problems within an engineering and manufacturing context.
+On successful completion of this unit, students will be able to employ mathematical
+methods within a variety of contextualised examples, interpret data using statistical
+techniques, and use analytical and computational methods to evaluate and solve
+engineering and manufacturing sector problems.
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Apply a variety of mathematical methods to a range of engineering and
+manufacturing sector problems
+LO2 Investigate applications of statistical and probability techniques to interpret,
+organise, and present data
+LO3 Use analytical and computational methods for solving engineering and
+manufacturing sector problems by relating sinusoidal wave and vector
+functions to their respective applications
+LO4 Examine how differential and integral calculus can be used to solve engineering
+and manufacturing sector problems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+17
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Apply a variety of mathematical methods to a range of engineering and
+manufacturing sector problems
+Mathematical concepts:
+Dimensional analysis
+Arithmetic and geometric progressions
+Complex Numbers.
+Matrices
+Functions:
+Exponential, logarithmic, trigonometric, and hyperbolic functions.
+Engineering and manufacturing sector examples:
+Case studies with vocational scenarios, occupation/sector specific applications,
+modern industrial trends, needs and goals (e.g., sustainability, digitalisation).
+LO2 Investigate applications of statistical and probability techniques to
+interpret, organise, and present data
+Summary of data:
+Data collection methods
+Presentation of data − histograms; bar charts; line diagrams; cumulative
+frequency diagrams; scatter plots
+Grouped and ungrouped data
+Mean, mode, median, and standard deviation of data
+Pearson’s and Spearman’s correlation coefficient
+Linear regression, Classification methods, linear correlation coefficient and
+product moment correlation
+Coordinate systems and reference frames
+Effective data communication and representation methods/formats for
+stakeholder groups; accessible, inclusive, and diversity considerations and
+implications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+18
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Hypothesis Testing:
+Null hypothesis
+Alternate hypothesis
+Probability theory:
+Conditional and unconditional probability
+Binomial, Poisson, and normal distribution
+Confidence intervals
+Estimation of reliability and quality of engineering components and systems.
+LO3 Use analytical and computational methods for solving engineering and
+manufacturing sector problems by relating sinusoidal wave and vector
+functions to their respective applications
+Sinusoidal waves:
+Sine waves and their applications
+Trigonometric and hyperbolic identities.
+Vector functions:
+Vector notation and properties
+Representing engineering quantities in vector form
+Vectors in three dimensions.
+Mathematical software for engineering and manufacturing sector:
+Use of mathematical software packages (e.g. Mathcad, Microsoft Excel)
+Confirmation of analytical results.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+19
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Examine how differential and integral calculus can be used to solve
+engineering and manufacturing sector problems
+Differential calculus:
+Definitions and concepts
+Definition of a function and a derivative, graphical representation of a function,
+notation of derivatives, limits and continuity, derivatives; rates of change,
+increasing and decreasing functions and turning points
+Differentiation of functions
+Differentiation of functions including:
+• standard functions/results
+• using the chain, product, and quotient rules
+• second order and higher derivatives
+Types of function: polynomial, logarithmic, exponential, and trigonometric
+(sine, cosine, and tangent), inverse trigonometric and hyperbolic functions.
+Integral calculus:
+Definite and indefinite integration
+Integrating to determine the area
+Integration of functions including:
+• common/standard functions
+• using substitution
+• by parts
+Exponential growth and decay
+Types of function: algebraic including partial fractions and trigonometric
+(sine, cosine, and tangent) functions
+Engineering and manufacturing sector problems involving calculus:
+Including: stress and strain, torsion, tolerancing, torque settings, motion,
+dynamic systems, oscillating systems, force systems, heat energy and
+thermodynamic systems, fluid flow, AC theory, electrical signals, information
+systems, transmission systems, electrical machines, electronics
+Efficient problem-solving competencies in the chosen occupation/sector and
+effective written/verbal communication of solutions.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+20
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Apply a variety of mathematical methods to a range of
+engineering and manufacturing sector problems LO1 and LO2
+P1 Apply dimensional analysis M1 Use three D1 Present data as
+techniques to solve complex mathematical concepts meaningful information
+engineering/manufacturing to solve engineering/ using appropriate
+problems. manufacturing problems, methods that can be
+justifying your chosen understood by a non-
+P2 Generate answers from
+methods. technical audience.
+engineering arithmetic and
+geometric progressions.
+P3 Determine solutions of
+engineering equations using
+exponential, logarithmic,
+trigonometric, and hyperbolic
+functions.
+LO2 Investigate applications of statistical and probability
+techniques to interpret, organise, and present data
+P4 Investigate engineering data M2 Conduct an engineering
+by calculating mean, mode, hypothesis test and
+median, and standard deviation. interpret the results .
+P5 Calculate probabilities within
+Poisson, binomially and normally
+distributed engineering random
+variables.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+21
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Use analytical and computational methods for solving
+engineering and manufacturing sector problems by relating
+sinusoidal wave and vector functions to their respective
+applications
+P6 Solve engineering/ M3 Use compound angle D2 Apply engineering
+manufacturing problems relating identities to combine mathematical software
+to sinusoidal functions. individual sine waves into a to confirm the analytical
+single wave, and illustrate solutions for at least
+P7 Use appropriate methodology
+graphically. three engineering/
+to determine engineering
+manufacturing problems
+parameters of data represented
+involving sinusoidal and
+in vector form.
+vector functions.
+LO4 Examine how differential and integral calculus can be used
+to solve engineering and manufacturing sector problems
+P8 Examine rates of change for a M4 Solve a range of D3 Evaluate a range
+range of mathematical functions. complex engineering/ of engineering/
+manufacturing problems manufacturing problems
+P9 Use integral calculus to
+using both differential and that involve second-
+determine a range of
+integral calculus. order derivatives and
+mathematical functions.
+the concept of maxima
+and minima.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+22
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bird J. (2021) Higher Engineering Mathematics . 9th Ed. Routledge.
+Bird J. (2019) Science and Mathematics for Engineering . 6th Ed. Routledge.
+Glyn J. and Dyke P. (2020) Modern Engineering Mathematics. 6th edition. Pearson.
+Made Easy Editorial Board (2022) Engineering Mathematics for GATE 2023 and ESE 2023
+(Prelims) – Theory and Previous Year Solved Papers . India: Made Easy Publications
+Pvt Ltd.
+Rattan K.S., Klingbeil N.W., and Baudendistel C.M. (2021) Introductory Mathematics for
+Engineering Applications . 2nd Ed. Wiley.
+Ram M. (2021) Recent Advances in Mathematics for Engineering. CRC Press.
+Teodorescu P., Stanescu N., and Pandrea N. (2013) Numerical Analysis with Applications
+in Mechanics and Engineering. Wiley-IEEE Press.
+Ram M. (2020) Mathematics in Engineering Sciences: Novel Theories, Technologies,
+and Applications. 1st Edition. CRC Press.
+Sobot, R. (2022) Engineering Mathematics by Example . 1st Ed. Springer.
+Stroud, K.A. and Booth, D.J. (2020) Engineering Mathematics . 8th Ed. Bloomsbury
+Publishing
+Urbano M. (2019) Introductory Electrical Engineering with Math Explained in Accessible
+Language . Wiley.
+Vick B. (2020) Applied Engineering Mathematics. CRC Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+23
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Annals of Mathematics
+Computational Geometry
+Communications on Pure and Applied Mathematics
+International Journal of Engineering Mathematics
+Journal of Computational and Engineering Mathematics
+Journal of Engineering Mathematics
+Journal of Geometry and Physics
+Journal of Mathematical Physics
+Links
+This unit links to the following related units:
+Unit 5006: Further Engineering Mathematics
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+24
+Issue 6 – October 2025 © Pearson Education Limited 2025

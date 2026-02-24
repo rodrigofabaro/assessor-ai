@@ -1,0 +1,257 @@
+Unit 4085: Mechatronic Systems in
+Manufacturing
+Unit code K/617/3945
+Unit level 4
+Credit value 15
+Introduction
+Mechatronic systems are a fusion of different engineering disciplines including
+electrical, electronic and mechanical engineering, and control and computer
+systems engineering. This integration of technologies enables greater automation in
+manufacturing, leading to time saving, increased output and cost savings. Examples
+of mechatronic systems include integrated automated production lines; measuring,
+testing and calibration systems for quality control; and closed-loop control systems
+for process optimisation.
+Topics within this unit include the evolution, design and characteristics of mechatronic
+systems; sensors, transducers and actuators; closed-loop feedback systems;
+programmable control devices; interfacing; system integration design; and functional
+safety requirements.
+On successful completion of this unit students will be able to explain the design and
+operational characteristics of a mechatronic system, identify and apply a range of
+sensors, transducers and actuators, evaluate programmable control devices and
+design an integrated mechatronic system for a manufacturing specification.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+650
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explain the design and operational characteristics of a manufacturing
+mechatronic system
+LO2 Investigate a range of mechatronic system components and technologies
+LO3 Review the operation, selection and interfacing of programmable control
+devices within a manufacturing mechatronic system
+LO4 Design a mechatronic system for a manufacturing application.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+651
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explain the design and operational characteristics of a manufacturing
+mechatronic system
+Origins, evolution and applications:
+History and early development; evolution from purely mechanical to integrated
+mechatronic systems
+Industrial robots and alternative applications, e.g. vehicle driver assistance
+systems, medical applications, domestic goods, space exploration, sports and
+leisure systems.
+Elements of a mechatronic system:
+Physical system modelling; sensors and actuators; control and feedback signals;
+data acquisition and processing; computerised control; overview of open and
+closed-loop control systems.
+Mechatronic system integration:
+Conventional systems versus mechatronic systems for manufacturing and
+inspection stages; high-performance versus lower cost; interpreting system
+requirements; understanding system constraints; selection and placement of
+sensors; interface matching; reliability and safety.
+LO2 Investigate a range of mechatronic system components and technologies
+Analogue and digital signals:
+Continuous versus discrete signals; voltage (0-10 v) versus current (4-20 mA)
+Amplification and attenuation, sources of noise, filtering, Analog-to-Digital
+Converter (ADC) resolution, pulse width modulation.
+Sensors and transducers:
+Temperature, light level, force, pressure, speed, position, proximity, sound, flow,
+humidity, vibration, voltage, current
+Interpreting data sheets; selection criteria; calibration and testing.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+652
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Actuators:
+Types: linear, rotary, hydraulic, chain, pneumatics
+Applications: valves, motors, servomechanism (servo), micro-positioning motors
+Interpreting data sheets; selection criteria; mounting, force, torque, enclosure
+protection
+National Electrical Manufacturers Association (NEMA) and International
+Electrotechnical Commission (IEC).
+LO3 Review the operation, selection and interfacing of programmable control
+devices within a manufacturing mechatronic system
+Microcomputer system architecture:
+CPU, memory, data, program, input/output (I/O), data and address bus.
+Programmable logic controllers (PLCs):
+Selection criteria: size, functionality, flexibility, performance, connectivity,
+security, manufacturers
+Programming: IEC 61131-3 Languages, software tools
+Advantages and disadvantages of PLCs
+Interfacing to a mechatronic system.
+Microcontrollers:
+Selection criteria: processor, speed, memory, power, range of I/O
+Programming languages: C, C++, assembly and alternative third-party and
+open-source software
+Software tools: debuggers, emulators, simulators
+Advantages and disadvantages of microcontrollers
+Interfacing to a mechatronic system.
+Alternative programmable control devices:
+Programmable automation controller (PAC), industrial PC based robot
+controllers, remote telemetry units (RTU), field programmable gate array (FPGA).
+Functional Safety:
+International Engineering Consortium (IEC) standard IEC61508
+Hazard and risk assessment (HARA)
+Safety integrity levels (SILs) of programmable devices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+653
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Design a mechatronic system for a manufacturing application.
+Design methodologies:
+Identification of skill sets required by team members for a mechatronic
+system project
+Interpreting requirements to develop concept design and specification
+VDI 2206 (guideline for the design of mechatronic systems): general cycle of
+problem solving on the micro level; the V-shaped model on the macro level
+Process modules for repeating design steps; advanced design modelling and
+simulating system behaviour.
+Functional Safety:
+International safety standards: ISO 13849-1, IEC 61061,2006/42/EC, IEC 618005-2
+European Machinery Directive 2006/42/EC for safety-related parts of a control
+system (SRP/CS), integrating safety into the design process
+Hazard and risk assessment: hazard and operability study (HAZOP),
+failure modes and effects analysis (FMEA), fault tree analysis (FTA)
+Use of multi-function safety relays.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+654
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explain the design and operational characteristics of a
+manufacturing mechatronic system
+P1 Describe the key M1 Analyse how D1 Evaluate the operation
+elements of a mechatronic system integration has of a mechatronic system
+system. transformed conventional within a manufacturing
+manufacturing mechatronic environment characterizing
+P2 Explain the origins,
+systems. the different technologies
+evolution and benefits of
+and interfaces.
+mechatronic systems in
+manufacturing.
+LO2 Investigate a range of mechatronic system
+components and technologies
+P3 Identify the types of M2 Justify a range of D2 Evaluate types of signals
+sensors and transducers instrumentation devices for used in instrumentation
+used within a manufacturing a given mechatronic system devices and a range of
+mechatronic system. design specification. signal processing techniques
+used when integrating
+P4 Identify the types of
+mechatronic systems.
+actuators used within a
+manufacturing mechatronic
+system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+655
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Review the operation, selection and interfacing of
+programmable control devices within a manufacturing
+mechatronic system
+P5 Describe the M3 Analyse the operation D3 Evaluate a programmable
+characteristics of and interfacing of a range control device for a given
+programmable logic of programmable control mechatronic system
+controllers and applications devices used in application with
+within manufacturing manufacturing consideration to
+mechatronic systems. mechatronic systems. Functional Safety.
+P6 Describe the M4 Analyse the range of
+characteristics of embedded programming languages
+microcontrollers and and software tools
+applications within available for programmable
+manufacturing control devices used within
+mechatronic systems. manufacturing mechatronic
+systems.
+LO4 Design a mechatronic system for a manufacturing
+application.
+P7 Interpret a set of
+M5 Assess compliance, D4 Justify the selection
+requirements to a
+safety and risk of components and
+specification for a
+management issues technologies for the
+manufacturing present in the design development of a
+mechatronic system. solution. manufacturing
+mechatronic system.
+P8 Produce a block diagram
+to illustrate the design of a
+manufacturing mechatronic
+system, documenting
+appropriate design
+methodology.
+P9 Design a mechatronic
+system based on a given
+specification and block
+diagram.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+656
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Alciatore D. (2018 ) Introduction to Mechatronics and Measurement Systems . 5th Ed.
+McGraw Hill.
+Bolton, W. (2015) Mechatronics. 6th Ed: Electronic Control Systems in Mechanical and
+Electrical Engineering . Harlow: Pearson Education.
+Clarence, W. de S. (2010) Mechatronics: A Foundation Course . Boca Raton,
+Florida: CRC Press.
+Tacchini M. (2023) Functional Safety of Machinery: How to Apply ISO 13849-1
+and IEC 62061 . Wiley.
+Websites
+http://www.inderscience.com Inderscience Publishers
+International Journal of Mechatronics
+and Manufacturing Systems
+International Journal of Automation
+and Control
+International Journal of Mechatronics
+and Automation
+http://www.controleng.com Control Engineering
+Integrating safety into engineering into
+mechatronic design
+Top-down strategies for innovation in
+mechatronic machine engineering
+When to use multi-function safety relays
+(General reference)
+http://www.howtomechatronics.com How to Mechatronics
+‘How it works’
+(Briefings)
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+657
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+http://www.vdi.eu Association of German Engineers
+VDI-Standard VDI 2206:
+Design Methodology for Mechatronic
+Systems
+(General reference)
+Links
+This unit links to the following related units:
+Unit 4033: Programmable Logic Controllers (PLCs)
+Unit 4068: Industrial Robots
+Unit 4080: Material Handling Systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+658
+Issue 6 – October 2025 © Pearson Education Limited 2025

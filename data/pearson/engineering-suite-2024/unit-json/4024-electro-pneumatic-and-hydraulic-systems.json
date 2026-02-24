@@ -1,0 +1,75 @@
+{
+  "code": "4024",
+  "title": "Electro, Pneumatic and Hydraulic Systems",
+  "detectedTitle": "Electro, Pneumatic and Hydraulic Systems",
+  "startPage": 196,
+  "endPage": 202,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Calculate the parameters of pneumatic and hydraulic systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Illustrate the notation and symbols of pneumatic and hydraulic components"
+    },
+    {
+      "id": "LO3",
+      "description": "Examine the applications of pneumatic and hydraulic systems"
+    },
+    {
+      "id": "LO4",
+      "description": "Investigate the maintenance of pneumatic and hydraulic systems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

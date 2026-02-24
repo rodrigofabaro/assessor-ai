@@ -1,0 +1,69 @@
+{
+  "code": "5051",
+  "title": "Heating, Ventilation and Air Conditioning (HVAC)",
+  "detectedTitle": "Heating, Ventilation and Air Conditioning (HVAC)",
+  "startPage": 1249,
+  "endPage": 1255,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explain the operating principles of non-domestic ventilation systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Explore the range of air conditioning systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Investigate the operational characteristics of non-domestic heating systems"
+    },
+    {
+      "id": "LO4",
+      "description": "Describe the role Building Management Systems (BMS) have in controlling and monitoring HVAC systems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D2",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "M4",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

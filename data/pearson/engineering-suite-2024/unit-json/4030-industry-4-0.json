@@ -1,0 +1,77 @@
+{
+  "code": "4030",
+  "title": "Industry 4.0",
+  "detectedTitle": "Industry 4.0",
+  "startPage": 243,
+  "endPage": 250,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Discuss the key concepts and principles of Industry 4.0"
+    },
+    {
+      "id": "LO2",
+      "description": "Review the range of cyber-physical production systems (CPPS) shaping Industry 4.0 and their integration with the Industrial Internet of Things (IIoT)"
+    },
+    {
+      "id": "LO3",
+      "description": "Explore the implications and impacts of Industry 4.0 in engineering and manufacturing processes and technologies"
+    },
+    {
+      "id": "LO4",
+      "description": "Examine the factors manufacturers need to consider when transitioning to Industry 4.0 and workforce Implications."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "M4",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M5",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M6",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

@@ -1,0 +1,271 @@
+Unit 4003: Engineering Science I
+Unit Code: J/651/0710
+Level: 4
+Credits: 15
+Introduction
+Engineering is a discipline that uses scientific theory to design, develop, or maintain
+structures, machines, systems, and processes. Engineers are therefore required to
+have a broad knowledge of the science that is applicable to the industry around them.
+This unit introduces students to the fundamental laws and applications of the physical
+sciences within engineering and how to apply this knowledge to find solutions to a
+variety of engineering problems.
+Among the topics included in this unit are: international system of units, interpreting
+data, static and dynamic fundamentals, fluid mechanics and thermodynamics,
+material properties and failure, A.C./D.C. circuit theories, and electromagnetic
+principles and properties.
+On successful completion of this unit, students will be able to interpret and present
+qualitative and quantitative data using computer software, calculate unknown
+parameters within mechanical and electrical systems, explain a variety of material
+properties, and use electromagnetic theory in an applied context.
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine scientific data using both quantitative and qualitative methods
+LO2 Apply the fundamentals of mechanical engineering systems
+LO3 Explore the characteristics and properties of engineering materials
+LO4 Analyse applications of A.C./D.C. circuit theorems, electromagnetic principles,
+and properties.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+25
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine scientific data using both quantitative and qualitative methods
+Quantitative research methodologies and methods:
+Descriptive Research
+Survey Research
+Correlational Research
+Quasi-experimental Research Design
+Experimental Research
+Relevant methodologies and methods.
+Qualitative research methodologies and methods:
+Grounded theory
+Ethnographic
+Narrative research
+Historical
+Case studies
+Phenomenology
+Relevant methodologies and methods.
+The scientific method:
+Question
+Research
+Hypothesis
+Experiment
+Data Analysis
+Conclusion and Communication.
+Interpreting data:
+Investigation using the scientific method to gather appropriate data
+Test procedures for physical (destructive and non-destructive) tests and
+statistical tests that might be used in gathering information
+Summarising quantitative and qualitative data with appropriate graphical
+representations and appropriate use of an international system of units
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+26
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Exploring the usage of quantitative and qualitative data in engineering
+applications specific to occupation/sector (e.g., manufacturing, operations,
+space systems, aeronautical engineering, etc.)
+Using software to analyse data
+Using presentation software to present data to an audience.
+LO2 Apply the fundamentals of mechanical engineering systems
+Static and dynamic fundamentals:
+Units, scalars and vectors, two-dimensional force systems, and moment (torque)
+and couple
+Representing loaded components with space and free-body diagrams
+Equilibrium in two dimensions, distributed forces, the centre of mass,
+and centroids
+Calculating support reactions of beams subjected to concentrated and
+distributed loads
+Newton’s laws of motion, one-dimensional particle kinematics, one-dimensional
+particle kinetics, D’Alembert’s principle, and the principle of conservation of
+energy
+Application of fundamentals and industrial case studies.
+Fluid mechanics and thermodynamics:
+Fluid definition and properties
+Definition of pressure, hydrostatic pressure, and basic equations, manometry,
+application and calculations, Archimedes’ principle
+Flow characteristics and definitions, introduction to ideal fluid flow
+Continuity of volume and mass flow for an incompressible fluid
+Bernoulli’s equation
+Thermodynamic properties, temperature, the zeroth law of thermodynamic
+and pressure, system and control volume, processes, and cycles
+Energy and energy transfer, and heat and work transfer: definitions, units,
+and sign convention
+Ideal gas and equation of state, internal energy, enthalpy, and specific heats
+of ideal gas
+The first law of thermodynamics.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+27
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Explore the characteristics and properties of engineering materials
+Engineering materials:
+Material properties, classifications, and testing
+Atomic structure of materials and the structure of metals, polymers,
+and composites
+Phase diagrams and analysis
+Mechanical and electromagnetic properties of materials.
+Material failure:
+Destructive and non-destructive testing of materials
+The effects of static, dynamic, and impact loading on a material
+Degradation of materials and hysteresis.
+Material selection:
+Desired application
+Working conditions
+Manufacturability and assembly considerations
+Cost and availability
+Environmental impact and sustainability
+Chemical and Physical properties.
+LO4 Analyse applications of A.C./D.C. circuit theorems, electromagnetic
+principles, and properties
+D.C. circuit theory:
+Ohm law, Kirchhoff’s voltage and current laws
+Voltage, current, resistance, power, and energy in D.C. networks composed of
+resistors, capacitors, and inductors.
+Exploring circuit theorems (Thevenin, Norton, Mesh, Superposition, Maximum
+power transfer).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+28
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+A.C. circuit theory:
+Waveform characteristics in a single-phase A.C. circuit
+Odd and even harmonics
+VmaxSin ω t ± α )
+AC circuit analysis using Kirchhoff’s laws
+RLC circuits; Impedance, reactance, admittance, phasors, Q factor, bandwidth,
+and resonance in RLC circuits.
+Magnetism:
+Characteristics of magnetic fields and electromagnetic force
+The principles and applications of electromagnetic induction, self and mutual
+induction, solenoid, relay, transformer, motors, and generators
+Single and three-phase power, AC and DC motor and control.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+29
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine scientific data using both quantitative and
+qualitative methods
+P1 Examine at least three M1 Apply the scientific D1 Analyse scientific data
+quantitative research method within an employing both quantitative
+methods. engineering context that and qualitative methods,
+requires both quantitative and using appropriate
+P2 Examine at least three
+and qualitative research software and justified
+qualitative research
+methods. graphical representations.
+methods.
+LO2 Apply the fundamentals of mechanical engineering
+systems
+P3 Determine the support M2 Determine unknown D2 Analyse thermodynamic
+reactions of a beam carrying forces by applying systems with ideal gas by
+a combination of a d’Alembert’s principle using the first law of
+concentrated load and a to a free-body diagram. thermodynamics.
+uniformly distributed load.
+P4 Apply Archimedes and
+Bernoulli’s principles in
+contextual engineering
+applications.
+P5 Determine the ideal gas
+properties during a process.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+30
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Explore the characteristics and properties of engineering
+materials
+P6 Explore the structural M3 Review elastic and D3 Analyse metals and
+properties of metals and electromagnetic hysteresis non-metals for a given
+non-metals with reference in different materials. engineering application and
+to their material properties. fully justify the materials
+chosen.
+P7 Explain the types of
+degradation found in metals
+and non-metals.
+LO4 Analyse applications of A.C./D.C. circuit theorems,
+electromagnetic principles, and properties
+P8 Calculate currents, D4 Evaluate different circuit
+M4 Explain the principles
+voltages, and power in D.C. theorems used to solve DC
+and applications of
+circuits with more than one and AC circuit theory
+electromagnetic induction
+power source. in at least three electrical problems.
+devices and machines.
+P9 Use software to produce
+complex waveforms
+combining two or more
+sinusoidal waveforms.
+P10 Analyse problems on
+series and parallel RLC
+circuits with A.C. theory
+in creating solutions.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+31
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Ashby M.F., Shercliff H., and Cebon D. (2023) Introduction to Materials Science and
+Engineering: A Design-Led Approach. 1st Ed. Butterworth-Heinemann.
+Ashby M. F. and David R. H. J. (2012) Engineering materials 1: an introduction to
+th
+properties, applications, and design . 4 Ed. Elsevier.
+Bird J. (2012) Science for Engineering . 4th Ed. London: Routledge.
+Bolton W. (2006) Engineering Science . 5th Ed. London: Routledge.
+Callister Jr. W.D. and RETHWISCH D.G. (2019 ) Callister’s Materials Science and
+Engineering . 10th Ed. Global Edition. Wiley.
+Cengel Y. (2019) Thermodynamics: an engineering approach SI , 9th Ed. McGraw Hill.
+Cengel Y. (2017) Fluid Mechanics: Fundamentals and Applications . 4th Ed. McGraw Hill.
+th
+Hayt W. H. (2023) Engineering Circuit Analysis ISE. 10 Ed. McGraw Hill.
+th
+Hibbeler R. C. (2017) Engineering mechanics: Statics. 14 Ed. Pearson.
+th
+Hibbeler R. C. (2016) Engineering mechanics: dynamics. 14 Ed. Pearson.
+Schobeiri M. T. (2010). Fluid mechanics for engineers: a graduate textbook .
+Springer Science & Business Media.
+Tooley M. and Dingle L. (2012) Engineering Science: For Foundation
+Degree and Higher National . London: Routledge.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Applications in Engineering Science
+Engineering Reports
+International Journal of Engineering Science
+International Journal of Engineering Technology and Scientific Innovation
+International Journal of Mechanical Sciences
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+32
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 4009: Materials, Properties and Testing
+Unit 4002: Engineering Design
+Unit 4092: Engineering Science II
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+33
+Issue 6 – October 2025 © Pearson Education Limited 2025

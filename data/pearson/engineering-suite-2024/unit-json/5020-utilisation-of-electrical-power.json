@@ -1,0 +1,67 @@
+{
+  "code": "5020",
+  "title": "Utilisation of Electrical Power",
+  "detectedTitle": "Utilisation of Electrical Power",
+  "startPage": 999,
+  "endPage": 1005,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine the demands, sources, construction of electrical power generation and distribution systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Explore the interconnections of power systems, their protection, the critical processes, the effects of failure and the importance of electrical safety"
+    },
+    {
+      "id": "LO3",
+      "description": "Evaluate the effectiveness of forms of engineering activity to promote sustainable development, with consideration of the economics of components, power systems and alternative energy sources"
+    },
+    {
+      "id": "LO4",
+      "description": "Discuss new and emerging methods to optimise energy usage, conversion, and storage techniques."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P4"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P5"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5"
+  ]
+}

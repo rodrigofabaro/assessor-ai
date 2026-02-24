@@ -1,0 +1,234 @@
+Unit 5014: Analogue Electronic Systems
+Unit Code: M/651/0868
+Level: 5
+Credits: 15
+Introduction
+Analogue electronic systems are still widely used for a variety of very important
+applications and this unit explores some of the specialist applications of this
+technology.
+The aim of this unit is to further develop students’ understanding of the application
+of analogue devices in the design of electronic circuits. Students will investigate the
+design and testing of electronic systems based on a sound theoretical knowledge
+of the characteristics of electronic devices supported by Electronic Computer Aided
+Design (ECAD) tools, and then construct and test sample physical circuits. Students
+will be able to explain the characteristics of analogue and digital subsystems and the
+representation and processing of information within them.
+Upon completion of this unit students will be aware of techniques employed in the
+design and evaluation of analogue subsystems used in the development of complete
+electronic systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+939
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit a student will be able to:
+LO1 Analyse single stage analogue amplifier circuits to predict and measure, by
+simulation, the gain, frequency response and input and output resistances
+LO2 Develop functional subsystems through an understanding of the characteristics
+of operational amplifiers
+LO3 Assess techniques for the conversion of signals between analogue and digital
+formats
+LO4 Design electronic circuits using physical components.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+940
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Analyse single stage analogue amplifier circuits to predict and measure, by
+simulation, the gain, frequency response and input and output resistances
+Bipolar Junction Transistor models:
+The theory of operation of the Bipolar Junction Transistor (BJT), together with
+DC biasing conditions of BJT for linear amplifier applications
+Characteristics of common emitter, common collector and common base
+amplifier configurations
+DC h and small signal common emitter h-parameter model and the common
+FE
+emitter hydrid- π model of the BJT
+Show g =~ I /26mV for silicon BJT at room temperature.
+m C
+Bipolar Junction Transistor small signal amplifiers:
+Four-resistor BJT common-emitter amplifier analysis and its predicted DC and
+AC voltage gain
+ECAD tools to be used to determine the mid-band voltage gain and input and
+output resistances.
+The effect of input, output and emitter decoupling capacitors and tuned L-C
+collector load.
+Bipolar Junction Transistor large signal amplifiers:
+Class A, B, AB, C and D amplifiers and applications
+Use of ECAD to investigate the characteristics of a sample power amplifier circuit
+to include frequency response.
+Field Effect Transistor models:
+The theory of operation of the Field Effect Transistor (FET) and the Metal Oxide
+Semiconductor FET (MOSFET)
+Application of FETs and MOSFETs in switching circuits and linear amplifiers,
+including complementary MOSFET stages
+Apply FET AC equivalent circuit models
+Examples of specific applications of FET that have been developed for specialist
+applications
+Use of ECAD tools, to simulate and analyse the behaviour of switching and linear
+amplifier circuits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+941
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Develop functional subsystems through an understanding of the
+characteristics of operational amplifiers
+Operational amplifier:
+Components and characteristics
+Circuit configuration and operation
+Ideal operational amplifier model, specifications of practical operational
+amplifiers
+Characteristics of the operational amplifier with negative feedback applied.
+Operational amplifier applications:
+Description of a range of subsystems, including the voltage comparator, linear
+voltage regulator, switched mode voltage regulator, differentiator, integrator,
+active filters, Schmitt trigger and Schmitt oscillator
+Sub-system specifications and evaluations in time and frequency domains,
+as appropriate
+Use of ECAD tools to simulate and analyse the behaviour above listed circuits.
+LO3 Assess techniques for the conversion of signals between analogue and
+digital formats
+The characteristics of information represented electronically:
+Comparison of the implications of capturing, processing and storing information
+represented by analogue signals and by digital data, including amplitude range,
+frequency range, accuracy, resolution, linearity, drift, noise and signal-to-noise
+ratio.
+Digital to analogue convertors (DAC) and analogue to digital converters ADC):
+Evaluation and comparison of digital to analogue converters using calculations
+and simulation based on the binary weighted resistor, the R/2R ladder network
+techniques, successive approximation, segmented configuration, to also include
+an introduction to delta-sigma convertor
+Evaluate and compare of analogue to digital converters based on the single
+ramp, successive approximation and parallel comparator (flash) techniques,
+sigma-delta and delta-sigma
+Examples of commercially available converters and the implementation of
+analogue input and output ports to digital processing devices found within
+embedded systems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+942
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Design electronic circuits using physical components
+Sub-system design, implementation, and evaluation:
+Examples of electronic subsystems
+Development of specifications to achieve a predefined function Design the
+circuits to achieve this function including components selection (resistors,
+capacitors, inductors, transistors, diodes, op-amps, sensors, and connectors)
+as well as input and output signals to be used for circuit testing in simulation
+and bench testing
+Simulation of design using ECAD tools
+Implementation, integration, and evaluation aspects
+Building of circuits as designed, application of a range of appropriate bench tests
+to evaluate its operation, and comparing its actual operation to the design
+specifications and the simulation results.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+943
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Analyse single stage analogue amplifier circuits to
+predict and measure, by simulation, the gain, frequency
+response and input and output resistances
+P1 Analyse key aspects of M1 Discuss assumptions D1 Propose and implement
+single stage amplifier circuits and discrepancies between justified and operable
+through calculations and simulation results and recommendations for
+simulation to produce input circuit calculations. changes to the
+and output waveforms. specifications of the circuits
+and repeat the simulation
+to produce improved
+results.
+LO2 Develop functional subsystems through an
+understanding of the characteristics of operational amplifiers
+P2 Develop the key M2 Design operational D2 Communicate to
+components of an operational amplifier subsystems specialist audiences the
+amplifier configuration with simulated in time and use of manufacturers’ data
+negative feedback. frequency domains. sheets, including critical
+parameters for component
+P3 Determine the operation M3 Critically analyse
+selection in practical circuits
+of subsystems from the ideal simulation results with
+design.
+model of the operational reference to the expected
+amplifier and by simulation results.
+for a range of input signals.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+944
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Assess techniques for the conversion of signals between
+analogue and digital formats
+P4 Assess the limitations of M4 Evaluate the D3 Create a given range
+representing information in characteristics and the of DAC circuit simulations
+both analogue and digital limitations of specific to critically evaluate the
+form. converter topologies and implications of resolution
+their example applications. and conversion time on
+P5 Specify the technical
+accuracy and noise.
+characteristics of converters in
+terms of meeting a given set of
+requirements.
+LO4 Design electronic circuits using physical components
+P6 Design an electronic circuit
+M5 Critically analyse design D4 Present circuit designs
+supported by a written
+equations, simulation, and to specialist audiences,
+description.
+bench test results ensuring showing the variation
+discrepancies are recorded of circuit function in
+P7 Simulate a working
+and explained using simulations as a result
+electronic circuit using a set
+graphical representation. of design changes or
+of chosen components.
+component tolerances.
+P8 Construct and test the
+design on the bench with a
+justification of the testing
+method.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+945
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bird Jo. (2022) Bird’s Electrical Circuit Theory and Technology . 7th Ed. Routledge
+Bishop 0 (2021) Electronics: A First Course . 3rd Ed. Routledge.
+Bugg D.V. (2021) Electronics: Circuits, Amplifiers and Gates . 2nd Ed. CRC Press.
+Makarov S., Ludwig, R. and Bitar, SJ. (2019) Practical Electric Engineering. 2nd Ed.
+Springer
+Lathi B.P. and Zhi D. (2009) Modern Digital and Analog Communications Systems.
+Oxford Series in Electrical and Computer Engineering. 4th Ed. Oxford University Press.
+Storey N. (2013) Electronics: A Systems Approach . 5th Ed. Pearson.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Analogue Design Journal
+Analog Integrated Circuits and Signal Processing
+IEEE Transactions on Circuits and Systems II
+Links
+This unit links to the following related units:
+Unit 4019: Electrical and Electronic Principles
+Unit 4022: Electronic Circuits and Devices
+Unit 5019: Further Electrical, Electronic and Digital Principles.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+946
+Issue 6 – October 2025 © Pearson Education Limited 2025

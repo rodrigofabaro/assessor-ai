@@ -1,0 +1,67 @@
+{
+  "code": "5018",
+  "title": "Sustainability",
+  "detectedTitle": "Sustainability",
+  "startPage": 985,
+  "endPage": 991,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Determine the nature and scope of the technical challenges of ensuring sustainable development"
+    },
+    {
+      "id": "LO2",
+      "description": "Articulate the importance of collaborating with other disciplines in developing technical solutions to sustainability problems"
+    },
+    {
+      "id": "LO3",
+      "description": "Evaluate the use of alternative energy generation techniques in relation to their contribution to a low carbon economy"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse a variety of data sources to estimate the carbon footprint of a socio- technical scenario."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P2"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P3"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P4",
+      "P5"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5"
+  ]
+}

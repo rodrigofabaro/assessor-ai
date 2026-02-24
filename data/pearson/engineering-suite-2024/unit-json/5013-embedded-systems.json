@@ -1,0 +1,71 @@
+{
+  "code": "5013",
+  "title": "Embedded Systems",
+  "detectedTitle": "Embedded Systems",
+  "startPage": 948,
+  "endPage": 954,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine embedded system technology"
+    },
+    {
+      "id": "LO2",
+      "description": "Design an embedded system using available interfaces to perform a range of functions"
+    },
+    {
+      "id": "LO3",
+      "description": "Implement embedded system design by writing code in an appropriate programming language, to simulate, test and debug the system"
+    },
+    {
+      "id": "LO4",
+      "description": "Evaluate applications of embedded systems in the wider environment."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "M3",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P4",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P6"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "code": "4085",
+  "title": "Mechatronic Systems in Manufacturing",
+  "detectedTitle": "Mechatronic Systems in Manufacturing",
+  "startPage": 666,
+  "endPage": 674,
+  "pageCount": 9,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explain the design and operational characteristics of a manufacturing mechatronic system"
+    },
+    {
+      "id": "LO2",
+      "description": "Investigate a range of mechatronic system components and technologies"
+    },
+    {
+      "id": "LO3",
+      "description": "Review the operation, selection and interfacing of programmable control devices within a manufacturing mechatronic system"
+    },
+    {
+      "id": "LO4",
+      "description": "Design a mechatronic system for a manufacturing application."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "M4",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P7",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

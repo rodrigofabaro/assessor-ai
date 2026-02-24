@@ -1,0 +1,343 @@
+Unit 5041: Engineering Project
+Unit Code: M/650/2948
+Level: 5
+Credits: 15
+Introduction
+The work of the professional engineer very often consists of the specification,
+development, management and delivery of projects. It is essential that students
+following the path of becoming a professional engineer have a thorough grounding
+in all aspects of this important process.
+This unit will guide the student through the design, testing and evaluation of a project
+within their specialist area. The processes of documenting, managing and presenting
+the outcomes of the project will form part of the work, as will the selection and use of
+commercially available management, simulation and presentation development tools.
+Risk assessment, quality and cost issues, final analysis of outcomes, and the drawing
+of appropriate conclusions will also be covered. A final presentation will develop
+communication skills and include personal evaluation and reflection.
+On successful completion of this unit, the student will have the skills and knowledge
+to initiate, manage, complete and evaluate complex engineering projects on-time and
+within budget.
+Note to centre: This is essentially a practical unit with the completed project and all
+the attendant processes forming the assessed work; it is not expected that further
+work for assessment will be necessary. The Project Supervisor should guide students
+to ensure that the chosen project has enough scope to be sufficiently complex, such
+that the outcomes are at Level 5.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1151
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit, a student will be able to:
+LO1 Propose an engineering-based project in line with national and international
+engineering regulatory and ethical frameworks
+LO2 Create an engineering-based project using project management software,
+tools and techniques
+LO3 Implement a project plan to include the production of a technical engineering
+report
+LO4 Present the engineering-based project and reflect on the project outcomes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1152
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Propose an engineering-based project in line with national and
+international engineering regulatory and ethical frameworks
+Selection of a suitable project:
+Shortlisting of suitable projects based on considerations of cost, likely
+completion constraints and user needs
+Identification of the nature of the problems under consideration through
+primary and secondary research methods, using digital and non-digital sources
+and relevant technical, engineering, industry, regulatory, legislative and ethical
+standards and risk factors
+Feasibility study to identify constraints; scoping by defining objectives, purpose
+and deliverables; production of outline briefs; Feasibility study to identify
+constraints; scoping by defining objectives, purpose and deliverables; production
+of outline briefs; consideration of project related responsibilities at various
+levels including secure operations and application of appropriate processes,
+policies and legislation in the context of business goals, vision and values;
+tools/techniques for upgrading and maintaining systems within the project
+scope; resilience in undertaking project tasks and work securely within the
+business.
+Health and safety policies, procedures and regulations, compliance,
+risk assessment processes and procedures.
+Selection criteria and process:
+Development of selection criteria (e.g. time constraints, risk evaluation,
+cost, skills set, availability of materials, meeting the user needs)
+Selection and justification process – final selection.
+Project aims:
+Description of engineering-based project intentions and achievements,
+(e.g. design, test, construct, replicate, question existing)
+Refinement of aims to clearly define the purpose of the engineering-based
+project
+Development of specific aims that are clear, concise and provide a logical flow
+between each aim to establish an engineering-based project as a coherent
+whole.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1153
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Project objectives:
+Goals or steps to achieve engineering-based project aims (e.g. specific,
+measurable, achievable, realistic, time-constrained (SMART)).
+Difference between project aims and objectives:
+Aims – describe what is hoped to be achieved
+Objectives – detail how project aims are to be achieved.
+Project proposal development:
+Outline/summary of project (e.g. the problem the project intends to solve, the
+solution the project provides to the problem, the impact the project will have)
+Project background (e.g. what is already known about the problem, primary and
+secondary research undertaken/literature review)
+Project approach (e.g. project schedule (including important milestones), project
+team roles and responsibilities, risk mitigation, project deliverables, reporting
+tools)
+Defining project deliverables (e.g. end product or final objective, project timeline,
+SMART goals that align with deliverables)
+Resources (e.g. budget, cost breakdown, resource allocation plan)
+Conclusion (e.g. summary of problem and solution, project impact).
+LO2 Create an engineering-based project using project management software,
+tools and techniques
+Project management software, tools, methodologies and techniques:
+Review commercially available project management tools/software to select
+most suitable; consideration of requirements of the chosen project, difference
+between systems (e.g. Prince 2) and software (e.g. PMIS, Microsoft Project,
+PROMIST); task and tracking tools and techniques (e.g. Trello, Smartsheet, Excel);
+scheduling and time planning (Gantt chart or similar); network diagrams, types
+and applications; critical-path methods (PERT); budget management tools
+Methodologies (e.g. waterfall, Agile, Scrum, Kanban, Scrumban, eXtreme
+programming (XP), Adaptive Project Framework (APF), Lean)
+Project management techniques (e.g. SWOT, stakeholder matrices, risk mapping,
+radar chart and summary risk profiles).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1154
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Selection and application:
+Justification of selection by criteria, level of detail and usability, flexibility
+considerations and constraints; pre-population of planning tools and updating
+regime; evaluation and summary of usability on project completion.
+Production of project plan:
+Production of final project plan with clear lifecycle considerations (e.g. initiation,
+planning, execution, closure, review and reflection), roles and responsibilities,
+timeline goals (using Gantt chart or similar), budget management (if applicable),
+project evaluation criteria (e.g. decision matrix, Health, Environment & Safety
+(HES) decision matrix, analytic hierarchy process (AHP), cost-effectiveness,
+organisation-based information architecture (OBIA), meeting the user needs)
+Key performance indicators (KPIs)
+Other project planning and management considerations: change management,
+compliance in delivering outputs, responsible planning and work prioritisation,
+focus on products/processes that are accessible, inclusive and diverse; predictive
+maintenance, route-cause analysis and effective problem solving, individual and
+team approaches to solving problems and risk management); commitment to
+upskilling/reskilling (e.g. digital competencies, sustainability), and continued
+professional development.
+LO3 Implement the project plan to include the production of a technical
+engineering report
+Project execution phase:
+Conduct or simulate planned project activities to generate outcomes which
+provide a solution to the identified engineering problem
+Review a range of practical examples to solve potential structural or
+performance-based issues using simulation software or experimental
+approaches
+Continuous monitoring of project development against agreed project plan,
+adapting plan where necessary – specification and justification of changes
+Effective use of work plan and time management using chosen packages;
+assessing effectiveness and useability of monitoring package(s); tracking costs
+and timescales for spending; modification of risk assessment as project
+progresses
+Maintaining a project diary to monitor progress against milestones and
+timescales, including self-reflection on skills and personal development.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1155
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Project report:
+Possible report formats, logical presentation of work, use of evaluation
+techniques, critique of data/findings/analysis, presentation of final outcome in
+terms of original project brief, explanation of cost/time overruns; avoidance of
+generalisations
+Drafting and reviewing work; adherence to international, national, Engineering
+Council and ethical standards
+Recommendations for further work, limitations of chosen process, possible areas
+for improvement; reflection on process, selected software/process effectiveness;
+personal reflection – strengths and areas for development to attain sustainable
+high-performance levels.
+Termination of project:
+Cost performance analysis, audit tails, comparison of project outcomes against
+planned objectives, qualitative and quantitative analysis of process and
+outcomes; close-out reports
+Preparation of data and analysis for summary presentation
+Process of self-reflection on project and personal performance.
+LO4 Present the engineering-based project and reflection of the project
+outcomes.
+Presentation:
+Selection of presentation format, audience expectations and contributions, who
+to invite; what to include in presentation, logical presentation, avoiding ‘busy’
+slides and assumptions, time allocation, summaries and project evaluation,
+handling question and answer (Q&A) sessions; inclusion of reflective practice.
+Reflective practice:
+Reflection on the activities and experiences (e.g. lessons learnt, teamwork,
+safety awareness, self-organisation, managing people, sustainability, technical
+expertise, communication skills, challenges, difficulties, strengths/weaknesses,
+own work practices, identification of areas to improve)
+Tools (e.g. strengths/weaknesses/opportunities/threats (SWOT) analysis, 5R
+(reporting, responding, relating, reasoning & reconstructing) framework for
+reflection, Kolb’s reflective cycle, Driscoll’s model of reflection, Gibbs’ reflective
+cycle, Schon).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1156
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Feedback:
+Noting audience/third-party feedback and action plan to address issues;
+completion and closure of project reflective log; refining future professional
+practice and building further resilience within the project teams.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1157
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Propose an engineering-based project in line with
+national and international engineering regulatory and
+ethical frameworks
+P1 Propose an engineering- M1 Undertake a feasibility D1 Illustrate the effects of
+based project brief in study to justify engineering- relevant current legislation,
+line with national and based project proposal. ethics and risk in developing
+international engineering an engineering-based
+regulatory and ethical project proposal.
+frameworks
+P2 Develop engineering-
+based project proposal aims
+and objectives.
+LO2 Create an engineering-based project using project
+management software, tools and techniques
+P3 Create a project plan
+M2 Make full use of project D2 Make full use of project
+using project management
+management software to management software to
+software, tools and
+develop a comprehensive develop a comprehensive
+techniques. project plan. project plan with evaluation
+criteria.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1158
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Implement the project plan to include the production
+of a technical engineering report
+P4 Implement required M3 Implement a full D3 Critically analyse the
+project activities, recording range of project activities, project outcomes in the
+progress against original recording progress against project report against the
+project plan. original project plan. original project plan, making
+justified recommendations
+P5 Produce a coherent M4 Produce a structured
+for further improvements.
+technical engineering and detailed technical
+project report covering engineering project report
+each stage of the project. covering each stage of
+the project that includes
+P6 Conduct or simulate
+justified project outcomes.
+planned project activities to
+generate outcomes which M5 Review a range of
+provide a solution to the practical examples to solve
+identified engineering potential structural or
+problem. performance-based issues
+using simulation software or
+experimental approaches.
+LO4 Present the engineering-based project and reflection
+of the project outcomes.
+P7 Present the engineering- M6 Evaluate the end-to-end D4 Critically evaluate the
+based project using delivery of the engineering- end-to-end delivery of the
+appropriate media to a based project in terms of engineering-based project in
+technically literate audience, own performance and how terms of reflective practice
+and conduct a feedback third-party feedback might and produce an action plan
+session. be addressed. and recommendations for
+how third-party feedback
+P8 Reflect on project
+might be addressed.
+outcomes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1159
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Blokdyk G. (2022) Engineering Project Manager Critical Questions Skills Assessment
+(Paperback).
+Desai A. (2022) Engineering Project Management: A Quantitative Approach
+(Paperback). Cognella, Inc.
+Malheiro B. and Fuentes-Durá P. (Editors) (2022) Analyzing the European Project
+Semester to Improve Engineering Education − e-Book Collection. IGI Global.
+Ma Y. and Rong Y. (2021) Senior Design Projects in Mechanical Engineering:
+A Guidebook for Teaching and Learning (Hardback). Springer Nature Switzerland AG.
+Newton R. (2016) Project Management Step by Step . 2nd Ed. Pearson Education.
+Siegel N.G. (2019) Engineering Project Management. Wiley.
+Striebig B., Ogundipe A. and papadakis M. (2015) Engineering Applications in Sustainable
+Design and Development (S.I. Edition). Cengage Learning.
+Oberlender G.D. (2014) Project Management for Engineering and Construction . 3rd Ed.
+McGraw-Hill Education.
+Qiu M., Qiu H., and Zeng Y. (2022) Research and Technical Writing for Science and
+Engineering . CRC Press.
+Thiel D.V. (2014) Research Methods for Engineers. Cambridge University Press.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1160
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+American Journal of Engineering Research
+Arabian Journal for Science & Engineering
+Scientific Reports
+Engineering Reports
+Science Progress
+Cell Reports Physical Science
+Engineering Research Express
+European Journal of Engineering and Technology Research
+IETE journal of research
+Indian Journal of Engineering
+International Journal of Indian Research
+International Journal of Engineering Research in Africa
+International Journal of Engineering Research & Technology
+International Journal of Project Management
+Journal of Engineering in Industrial Research
+Journal of Engineering Research
+Journal of Engineering Research and Sciences (JENRS)
+Journal of Engineering Research and Reports
+London Journal of Engineering Research
+The Journal of Engineering Research [TJER] .
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit 4031: Introduction to Professional Engineering Management
+Unit 4062: Professional Engineering Practice
+Unit 5001: Research Project
+Unit 5002: Professional Engineering Management.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+1161
+Issue 6 – October 2025 © Pearson Education Limited 2025

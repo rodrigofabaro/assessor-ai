@@ -1,0 +1,71 @@
+{
+  "code": "5016",
+  "title": "Lean Manufacturing",
+  "detectedTitle": "Lean Manufacturing",
+  "startPage": 970,
+  "endPage": 976,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine the common principles of lean manufacturing and how the implementation of a lean production system contributes to business success"
+    },
+    {
+      "id": "LO2",
+      "description": "Evaluate the lean approach applied to the modern manufacturing environment"
+    },
+    {
+      "id": "LO3",
+      "description": "Specify a range of the process improvement tools used within lean manufacturing"
+    },
+    {
+      "id": "LO4",
+      "description": "Demonstrate effective communication skills in order to lead the process of continuous improvement across an organisation."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "M2",
+      "P1"
+    ],
+    "LO2": [
+      "D2",
+      "M3",
+      "P2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P5"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P6"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "code": "5021",
+  "title": "Further Control Systems Engineering",
+  "detectedTitle": "Further Control Systems Engineering",
+  "startPage": 1006,
+  "endPage": 1012,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Explain concepts and contemporary applications of control systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Analyse the elements of a high-level control system and its model development"
+    },
+    {
+      "id": "LO3",
+      "description": "Evaluate the structure and behaviour of high-level control systems"
+    },
+    {
+      "id": "LO4",
+      "description": "Examine the application of control parameters to produce optimum performance of a control system."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M4",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M5",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M4",
+    "M5",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

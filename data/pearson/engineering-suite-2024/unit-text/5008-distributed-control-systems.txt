@@ -1,0 +1,196 @@
+Unit 5008: Distributed Control Systems
+Unit Code: D/651/0862
+Level: 5
+Credits: 15
+Introduction
+With increased complexity and greater emphasis on cost control and environmental
+issues, the efficient control of manufacture and processing plant becomes ever more
+important. While small and medium scale industries require Programmable Logic
+Controller (PLC) and Supervisory Control and Data Acquisition (SCADA) technologies,
+large scale applications require Distributed Control Systems (DCS).
+This unit introduces students to the applications of Distributed Control Systems in
+industrial measurements and control engineering, the different types of industrial
+networking used in control and instrumentation, the analysis of the performance of
+a given control system, and how to suggest appropriate solutions using a variety of
+possible methods.
+On successful completion of this unit students will be able to explain the impact
+of automated systems in modern control processes, explain the basic concepts,
+architecture, operation and communication of distributed control systems,
+identify appropriate techniques to specify and implement a simple DCS and
+develop programmes to use machine interfaces to monitor and control the
+behaviour of a complex system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+895
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explore the impact of automated systems in modern control processes
+LO2 Evaluate the basic concepts, architecture, operation and communication of
+Distributed Control Systems
+LO3 Suggest appropriate techniques to specify and implement a simple Distributed
+Control System
+LO4 Develop programmes to use machine interfaces to monitor and control the
+behaviour of a complex system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+896
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explore the impact of automated systems in modern control processes
+Modern control processes:
+Introduction to computer-based control systems and typical distributed control
+systems
+An overview of DCS and SCADA systems
+Fundamentals of PLC
+Comparison of DCS, SCADA and PLCs
+Selection and justification of control strategies.
+LO2 Evaluate the basic concepts, architecture, operation and communication of
+Distributed Control Systems
+Distributed Control Systems:
+Evolution and description of commercial DCS, DCS elements
+Basic DCS controller configuration
+Introduction to basic communication principles and protocol for DCS,
+PLC and SCADA
+Hierarchical systems and distributed systems
+Introduction to simulation models and packages.
+LO3 Suggest appropriate techniques to specify and implement a simple
+Distributed Control System
+Techniques:
+Introduction to programmable controllers, programming of PLC and DCS
+systems
+Operator interface
+Alarm system management for DCS systems
+Distributed Control System reporting
+Configuration of hardware and software of PLC and DCS
+Programmable controller interfacing and troubleshooting
+Configuration of a typical DCS control using typical plant problems.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+897
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Develop programmes to use machine interfaces to monitor and control the
+behaviour of a complex system.
+Behaviours:
+Computation of control systems
+Control and supervision of Distributed Control Systems
+Human Machine Interfaces (HMIs) and alarms
+Network communication standards
+Application of field interfaces and networks
+Application of diagnostic and maintenance consideration
+Project implementation phases and life cycle
+Overview of future trends (e.g. digital control, intelligent systems and virtual
+instruments).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+898
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explore the impact of automated systems in modern
+control processes
+P1 Discuss the application of M1 Evaluate the use of D1 Critically evaluate and
+DCS, SCADA and PLC, and DCS from field devices to justify the selection of
+their respective fields of commercial data processing. control strategies and
+application. their function against the
+M2 Illustrate the control
+specifications of a DCS.
+P2 Investigate the modes, structures, and
+component parts and their diagnostic methods used
+respective functions, in a in controllers.
+modern control process.
+P3 Review the main
+building blocks (layout),
+communication paths and
+signal level(s) of a DCS.
+LO2 Evaluate the basic concepts, architecture, operation
+and communication of Distributed Control Systems
+P4 Evaluate the concept, M3 Critique the input output D2 Critically evaluate the
+architecture, operation and interface, fieldbus protocols performance of the operator
+communication of DCS, and physical layers of a interface in a DCS and its
+SCADA and PLC in their distributed control system. associated hardware.
+respective applications.
+M4 Critically examine the
+P5 Review the hierarchical application of local area
+systems in DCS. network communication and
+network types to distributed
+P6 Assess the use of Local
+control systems.
+Area Network, field bus
+types, and protocols.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+899
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Suggest appropriate techniques to specify and
+implement a simple Distributed Control System
+P7 Review the application M5 Develop a high level D3 Analyse the interfacing,
+and implementation of the programme for a typical structure and performance
+DCS systems. plant problem. of a good alarm system.
+P8 Determine appropriate M6 Explore the hardware
+techniques for the and software configuration
+application of DCS in of a typical plant problem,
+different environments. making use of various
+operator display
+P9 Design and implement a
+configurations.
+simple DCS to satisfy
+predefined parameters.
+LO4 Develop programmes to use machine interfaces to
+monitor and control the behaviour of a complex system.
+P10 Explain the importance
+M7 Show how the D4 Analyse and justify the
+of the control principles and
+configuration control choice of hardware, software
+supervision of a DCS.
+procedures ensure data and communication systems
+integrity. and strategy in terms of
+P11 Apply HMI to different
+architecture, system
+process control applications
+M8 Explore the
+requirements, system
+and understand the alarm requirements for
+integration and toolkits
+reporting. in-built diagnostics and
+available.
+maintenance diagnostic
+P12 Demonstrate the role
+routines.
+of the operator interface,
+associated hardware,
+diagnostics and
+maintenance for a DCS.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+900
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bailey, D. and Wright, E. (2003) Practical SCADA for Industry . Newnes.
+Bolton W. (2021) Instrumentation and Control Systems. 3rd Ed. Elsevier.
+Boyer, S. (2004) SCADA-Supervisory Control and Data Acquisition System .
+3rd Ed. The Automation Systems and Automation Society (ISA) publication.
+Ghosh A. (2015) Distributed Systems: An Algorithmic Approach . 2nd Ed. CRC Press.
+Sharma, K. (2011) Overview of Industrial Process Automation . Elsevier.
+Links
+This unit links to the following related units:
+Unit 5007: Commercial Programming Software
+Unit 5021: Further Control Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+901
+Issue 6 – October 2025 © Pearson Education Limited 2025

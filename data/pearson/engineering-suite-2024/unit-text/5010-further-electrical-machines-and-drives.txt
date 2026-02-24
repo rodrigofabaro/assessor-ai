@@ -1,0 +1,265 @@
+Unit 5010: Further Electrical Machines
+and Drives
+Unit Code: H/651/0864
+Level: 5
+Credits: 15
+Introduction
+Electric machines are used to convert electrical power to mechanical power or vice-
+versa. They are an indispensable part of engineering processes and are the workhorse
+in both commercial and industrial applications.
+The aim of this unit is to continue developing the skills in the use and application of
+electrical machines, particularly direct current (DC) and alternating current (AC) drives.
+Among the topics included in this unit are: an introduction to electrical machines and
+drives, and their characteristics, starting and braking, loading conditions, ratings, and
+their control.
+On successful completion of this unit students will be able to learn about the
+operation of different motors used in industry, different types of industrial drives
+used in various disciplines, assessing the importance of electrical machines and their
+drives for a given industrial application, and analysing their performances and suggest
+appropriate solutions using a variety of possible methods.
+Prior learning: It is recommended to complete Unit 4021 Electrical Machines before
+studying this unit.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+908
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Synthesise knowledge and skills on the principles of operation and the
+characteristics of electrical machines and their industrial applications
+LO2 Examine the fundamentals of power electronics converters
+LO3 Analyse the operation and characteristics of DC drives and their industrial
+applications
+LO4 Analyse the operation and characteristics of AC drives and their industrial
+applications
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+909
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Synthesise knowledge and skills on the principles of operation and the
+characteristics of electrical machines and their industrial applications
+Principles of operation and characteristics of electrical machines and their industrial
+applications:
+Electrical machines, concepts of electrical machines and their classification
+Principles of operation of DC machines and their characteristics
+Principles of operation of three-phase induction machines and their
+characteristics
+Principles of operation of synchronous machines and their characteristics
+Introduction to special machines
+Four-quadrant torque-speed operation, inertia, and friction characteristic of
+electrical machines.
+Simulation using Matlab/Simulink or similar commercially available software
+Methods and practices for operations and control: Administrative controls;
+operational controls; geometry, location, access; hazards and control measures
+in practice: commissioning, decommissioning, monitoring and repair of electrical
+machines; storage and transport; sustainability factors in industrial applications;
+associated documentation control processes (including access, authorisation,
+location, format) and standard operating procedures (SoPs); relevant use of data
+collection systems, data input/output formats within the context of industrial use
+of electrical machines.
+Electrical machines and Industry 4.0: Use and benefits from increased
+connectivity, performance optimisation, integration and impact on organisations.
+Example applications such as data driven condition monitoring and multidrive
+systems.
+LO2 Examine the fundamentals of power electronics converters
+Fundamentals of power electronics converters used in power processing units for
+electric drives:
+Electronic switches (transistors); MOSFETs, IGBTs and how they are driven
+including practical considerations
+Concepts of electrical drives and their classification
+DC to DC converters, AC to DC converters (Rectifiers), DC to AC converters
+(Inverters), AC to AC converters (Cyclo-converters)
+Simulation using Matlab/Simulink or similar commercially available software.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+910
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Analyse the operation and characteristics of DC drives and their industrial
+applications
+Operation and characteristics of DC drives and their industrial applications:
+DC drives and their application to emerging areas such as smart grids and
+renewable energy sources
+Operating modes of DC drives; single-phase drives, three-phase drives,
+Pulse Width Modulation (PWM), two/four quadrant operation drives
+Application; closed loop control of DC drives
+Simulation using Matlab/Simulink or similar commercially available software
+Practical experience in using equipment, where available
+Safety first culture in industrial application design − health and safety policies,
+procedures and regulations, compliance, individual/team responsibilities, risk
+assessment and risk mitigation.
+LO4 Analyse the operation and characteristics of AC drives and their industrial
+applications
+Operation and characteristics of AC drives and their industrial applications:
+AC drives and their industrial applications such as process control, smart grids
+and renewable energy sources
+Induction motor drives: voltage, and frequency control (V/f with RL
+compensation), and closed loop speed control
+Synchronous motor drives: closed loop speed control (Field Oriented Control,
+FOC) of synchronous motor drives
+Simulation using Matlab/Simulink or similar commercially available software
+Practical experience in using equipment, where available.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+911
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Synthesise knowledge and skills on the principles of
+operation and the characteristics of electrical machines and
+their industrial applications
+P1 Evaluate different types of M1 Utilise Matlab and D1 Critically evaluate the
+electrical machines and their Simulink or similar software performance of a given
+industrial applications. for modelling and electrical machine for a
+simulation of a given specific application using
+P2 Illustrate the principle of
+electrical machine. Matlab, Simulink or similar
+operation of electrical machines
+software.
+with the aid of circuit diagrams M2 Analyse the
+and waveforms. characteristics of a given
+electrical machine from
+P3 Synthesise knowledge
+its equivalent circuits.
+and skills on the construction,
+operation and characteristics
+of a given electrical machine.
+LO2 Examine the fundamentals of power electronics
+converters
+P4 Illustrate, with the aid of a M3 Demonstrate how D2 Critically evaluate the
+circuit diagram and waveforms, Matlab and Simulink performance of a MOSFET
+the operation of a MOSFET (or similar software) are half-bridge DC/AC
+half-bridge switch. used for modelling and converter using Matlab/
+simulation of a MOSFET Simulink software, using
+P5 Illustrate, with the aid of a
+half-bridge switch. different MOSFETs.
+circuit diagram and waveforms,
+the operation of a full-wave M4 Evaluate the key
+rectifier with smoothing. performance characteristics
+of a MOSFET half-bridge
+P6 Examine with the aid of
+switch.
+a circuit diagram, how an
+H-bridge converts DC to AC.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+912
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Analyse the operation and characteristics of DC drives
+and their industrial applications
+P7 Discuss the operating modes M5 Develop an open loop D3 Critically analyse the
+of DC drives and control block diagram (using impact of a given DC drive
+parameters. Matlab Simulink or similar on the operation and
+software) of a DC motor performance of a specific
+P8 Analyse the importance
+and derive the relationship industrial process control
+of DC drives in industrial
+between the input and the system.
+applications.
+output of the system.
+P9 Conceptualise with the aid of
+M6 Investigate the
+diagrams how an H-bridge can
+parameters influencing the
+be used to drive a DC machine
+output characteristics of a
+at different speeds and
+DC machine, driven by an
+directions.
+H-Bridge when load is
+P10 Illustrate, with the aid of
+applied.
+diagrams the implementation of
+closed loop control of DC drives.
+LO4 Analyse the operation and characteristics of AC drives and
+their industrial applications
+P11 Analyse the operating
+M7 Develop an open loop D4 Critically analyse the
+modes of AC drives, their
+block diagram of an impact of a given AC drive
+control parameters, and
+induction motor (using on the operation and
+their importance in industrial Matlab Simulink or similar performance of a specific
+applications. software) and derive the industrial process control
+relationship between the system.
+P12 Illustrate, with the aid
+input and the output of
+of circuit diagrams and
+the system.
+waveforms, the principles
+of operation of three-phase M8 Investigate how AC
+AC drives. drive circuits are used
+to control the speed of
+P13 Propose, with the aid of
+induction and synchronous
+diagrams, how an H-Bridge can
+motors.
+be used to drive a single-phase
+AC machine.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+913
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Alassouli, H.M. (2021) Lecture Notes for Electrical Machines Course . Self-published.
+Bose B.K. (2001) Modern Power Electronics and AC Drives Hardcover . Printice Hall.
+Boldea I. and Tutelea L.N. (2021) Electrical Machines: Steady State and Performance
+with MATLAB . 2nd Ed. CRC Press.
+Boldea I. and tutelea L.N. (2021) Electrical Machines: Two Volume Se t. 2nd Ed.
+CRC Press.
+El-Sharkawi M.A. (2018) Fundamentals of electric drives . 2nd Ed., CL Engineering.
+Fucha E.F. and Masoum M.A.S. (2023) Power Quality in Power Systems, Electrical
+Machines, and Power-Electronic Drives . 3rd Ed. Academic Press
+Franchi C.M. (2022) Electrical Machine Drives – Fundamental Basics and Practice .
+CRC Press.
+Gieras J.F. (2020) Electrical Machines: Fundamentals of Electromechanical Energy
+Conversion . CRC Press.
+Hughes, A. (2013) Electric Motors and Drives: Fundamentals, Types and Applications.
+4th Ed. Newnes.
+Rashid M.H. (2012) Power Electronics: Circuits, Devices and Applications . 4th Ed.
+Prentice Hall.
+Rashid, M.H. (2001) Power Electronics Handbooks . 1st Ed. Academic Press.
+Wildi T. (2014) Electrical Machines, Drives and Power Systems . 6th Ed.
+Pearson New International Edition.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+914
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+CES Transactions on Electrical Machines and Systems
+Electrical Machines and Control 1007-449X
+Electrical Machines and Drives – A Section of Machines
+Electrical Machines and Electromechanics
+Electrical Machines & Power Systems
+Fundamentals of Electrical Drives
+International Journal of Electrical Machines and Drives
+International Journal of Electrical Power and Energy Systems
+Journal of Electrical Engineering and Technology
+Modern Electrical Drives: Trends, Problems, and Challenges
+Links
+This unit links to the following related units:
+Unit 4021: Electrical Machines.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+915
+Issue 6 – October 2025 © Pearson Education Limited 2025

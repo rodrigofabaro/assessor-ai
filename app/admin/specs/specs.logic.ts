@@ -32,6 +32,10 @@ export function useSpecsAdmin() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const extracted = (vm.selectedDoc?.extractedJson || null) as any;
+  const isPearsonSuiteBulkImport =
+    String((vm.selectedDoc?.sourceMeta as any)?.importSource || "") === "pearson-engineering-suite-2024";
+  const pearsonCriteriaDescriptionsVerified = Boolean((vm.selectedDoc?.sourceMeta as any)?.criteriaDescriptionsVerified);
+  const hidePearsonCriteriaDescriptions = isPearsonSuiteBulkImport && !pearsonCriteriaDescriptionsVerified;
   const learningOutcomes = useMemo(() => {
     const los = Array.isArray(extracted?.learningOutcomes) ? extracted.learningOutcomes : [];
     return los.map((lo: any) => {
@@ -47,13 +51,15 @@ export function useSpecsAdmin() {
               ...c,
               acCode,
               gradeBand: c?.gradeBand || null,
-              description: String(c?.description || "").trim(),
+              // Temporary safety guard for bulk-imported Pearson suite specs:
+              // the legacy criteria parser can corrupt 3-column Pearson AC tables.
+              description: hidePearsonCriteriaDescriptions ? "" : String(c?.description || "").trim(),
             };
           })
           .filter(Boolean),
       };
     });
-  }, [extracted]);
+  }, [extracted, hidePearsonCriteriaDescriptions]);
 
   const counts = useMemo(
     () => ({ total: vm.documents.length, shown: vm.filteredDocuments.length }),
@@ -148,6 +154,8 @@ export function useSpecsAdmin() {
     toasts,
     counts,
     learningOutcomes,
+    isPearsonSuiteBulkImport,
+    pearsonCriteriaDescriptionsVerified,
     uploadFiles,
     archiveSelected,
   };

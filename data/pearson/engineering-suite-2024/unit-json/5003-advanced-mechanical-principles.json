@@ -1,0 +1,79 @@
+{
+  "code": "5003",
+  "title": "Advanced Mechanical Principles",
+  "detectedTitle": "Advanced Mechanical Principles",
+  "startPage": 873,
+  "endPage": 879,
+  "pageCount": 7,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Determine the behavioural characteristics of materials subjected to complex loading"
+    },
+    {
+      "id": "LO2",
+      "description": "Assess the strength of loaded beams and pressurised vessels"
+    },
+    {
+      "id": "LO3",
+      "description": "Analyse the specifications of power transmission system elements"
+    },
+    {
+      "id": "LO4",
+      "description": "Examine operational constraints of dynamic systems."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7",
+      "P8"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P9",
+      "P10",
+      "P11"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11"
+  ]
+}

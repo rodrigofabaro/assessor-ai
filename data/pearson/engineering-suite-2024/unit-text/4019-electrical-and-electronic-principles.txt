@@ -1,0 +1,230 @@
+Unit 4019: Electrical and Electronic
+Principles
+Unit Code: F/651/0737
+Level: 4
+Credits: 15
+Introduction
+Electrical engineering is mainly concerned with the movement of energy and power in
+electrical form, and its generation and consumption. Electronics is mainly concerned
+with the manipulation of information, which may be acquired, stored, processed or
+transmitted in electrical form. Both depend on the same set of physical principles,
+though their applications differ widely. A study of electrical or electronic engineering
+depends very much on these underlying principles; these form the foundation for
+any qualification in the field, and are the basis of this unit.
+The physical principles themselves build initially from our understanding of the atom,
+the concept of electrical charge, electric fields, and the behaviour of the electron in
+different types of material. This understanding is readily applied to electric circuits of
+different types, and the basic circuit laws and electrical components emerge. Another
+set of principles is built around semiconductor devices, which become the basis of
+modern electronics. An introduction to semiconductor theory leads to a survey of
+the key electronic components, primarily different types of diodes and transistors.
+Electronics is very broadly divided into analogue and digital applications. The final
+section of the unit introduces the fundamentals of these, using simple applications.
+Thus, under analogue electronics, the amplifier and its characteristics are introduced.
+Under digital electronics, voltages are applied as logic values, and simple circuits
+made from logic gates are considered.
+On successful completion of this unit students will have a good and wide-ranging
+grasp of the underlying principles of electrical and electronic circuits and devices,
+and will be able to proceed with confidence to further study.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+144
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Apply an understanding of fundamental electrical quantities to analyse circuits
+with constant voltages and currents
+LO2 Analyse circuits with sinusoidal voltages and currents
+LO3 Describe the basis of semiconductor action, and its application to simple
+electronic devices
+LO4 Explain the difference between digital and analogue electronics, describing
+simple applications of each.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+145
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Apply an understanding of fundamental electrical quantities to analyse
+circuits with constant voltages and currents
+Fundamental electrical quantities and concepts:
+Charge, current, electric field, energy in an electrical context, potential, potential
+difference, resistance, electromotive force, conductors, insulators, and electrical
+power
+Modern applications examples of electrical systems.
+Circuit laws:
+Voltage sources, Ohm’s law, resistors in series and parallel, the potential divider
+Kirchhoff’s laws, Thevenin’s theorem, Norton’s theorem, superposition.
+Energy and power:
+Transfer into the circuit through, for example, battery, solar panel or generator,
+and out of the circuit as heat or mechanical. Maximum power transfer theorem
+Power analysis and test methods.
+LO2 Analyse circuits with sinusoidal voltages and currents
+Fundamental quantities of periodic waveforms:
+Frequency, period, peak value, phase angle, waveforms, the importance of
+sinusoids.
+Mathematical techniques:
+Trigonometric representation of a sinusoid. Rotating phasors and the phasor
+diagram. Complex notation applied to represent magnitude and phase.
+Reactive components:
+Principles of the inductor and capacitor. Basic equations, emphasising
+understanding of rates of change (of voltage with capacitor, current with
+inductor). Current and voltage phase relationships with steady sinusoidal
+quantities, representation on phasor diagram; Inductor and capacitor
+applications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+146
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Circuits with sinusoidal sources:
+Current and voltage in series and parallel RL, RC, LC and RLC circuits.
+Transient and Steady State analysis of RL, RC, LC and RLC circuits
+Reactance, impedance, resonance, bandwidth, quality factor
+Time and frequency response of filters
+Mains voltage single-phase systems. Active power, reactive power,
+complex Power, root-mean-square power quantities, power factor
+Introduction to DC and AC generators/motors, introduction to three phase
+power systems.
+Ideal transformer and rectification:
+The ideal transformer, half-wave and full-wave rectification. Use of smoothing
+capacitor, ripple voltage.
+LO3 Describe the basis of semiconductor action, and its application to simple
+electronic devices
+Semiconductor material:
+Characteristics of semiconductors; impact of doping, p-type and n-type
+semiconductor materials, the p-n junction in forward and reverse bias.
+Simple semiconductor devices:
+Characteristics and simple operation of junction diode, Zener diode, light
+emitting diode, bipolar transistor, Junction Field Effect Transistor (FET) and
+Metal Oxide Semiconductor FET (MOSFET). The bipolar transistor as switch
+and amplifier.
+Simple semiconductor applications:
+Diodes: AC-DC rectification, light emitting diode, voltage regulation
+Transistors: switches and signal amplifiers
+Modern applications examples of electronic devices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+147
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Explain the difference between digital and analogue electronics, describing
+simple applications of each
+Analogue concepts:
+Analogue quantities, examples of electrical representation of, for example, audio,
+temperature, speed, or acceleration
+The voltage amplifier; gain, frequency response, input and output resistance,
+effect of source and load resistance (with source and amplifier output modelled
+as Thevenin equivalent)
+Introduction to operational amplifiers.
+Digital concepts:
+Logic circuits implemented with switches or relays
+Use of voltages to represent logic 0 and 1, binary counting
+Logic Gates (AND, OR, NAND, NOR) to create simple combinational
+logic functions
+Truth Tables.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+148
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Apply an understanding of fundamental electrical
+quantities to analyse circuits with constant voltages and
+currents
+P1 Apply the principles of M1 Apply the principles of D1 Examine the operation
+circuit theory to simple circuit theory to a range of of a range of circuits with
+circuits with constant sources, circuits with constant constant sources, including
+to explain the operation of sources, to explain the power analysis, using
+that circuit. operation of that circuit. relevant circuit theories.
+LO2 Analyse circuits with sinusoidal voltages and currents
+P2 Analyse RLC circuits, using D2 Evaluate the operation
+M2 Analyse RLC circuits,
+the principles of circuit theory and behaviour of series and
+using the principles of circuit
+with sinusoidal sources. parallel RLC combined
+theory and mathematical
+circuits, including
+techniques used with
+resonance and using the
+sinusoidal sources.
+principles of circuit theory
+with sinusoidal sources.
+LO3 Describe the basis of semiconductor action, and its
+application to simple electronic devices
+P3 Describe the behaviour of M3 Analyse the operation D3 Discuss the
+a p-n, pnp, npn junctions in of a range of discrete performance of a range
+terms of semiconductor semiconductor devices of semiconductor devices
+behaviour. in terms of simple in terms of simple
+semiconductor theory. semiconductor theory
+P4 Demonstrate the action
+and their applications.
+of a range of semiconductor
+devices in both analytical and
+practical settings.
+LO4 Explain the difference between digital and analogue
+electronics, describing simple applications of each
+P5 Explain the difference D4 Evaluate the use of
+M4 Critique the benefits
+between digital and analogue analogue and digital devices
+and drawbacks of using
+electronics. and circuits in specific
+analogue and digital
+applications.
+electronic devices using
+P6 Explain the operation and
+examples.
+characteristics of amplifiers
+in analytical and practical
+settings.
+P7 Examine the operation of
+logic circuits in analytical and
+practical settings.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+149
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Boylestad R.L., Nashelsky, L. (2013) Electronic devices and circuit theory . Pearson.
+Boylestad R.L. (2023) Introductory Circuit Analysis. Global Edition. 14th Ed. Pearson.
+Bird J. (2013) Electrical Circuit Theory and Technology . Routledge.
+Hughes E., Hiley, J., Brown, K. and McKenzie-Smith, I. (2016) Electrical and Electronic
+Technology . 12th Ed. Pearson.
+th
+Floyd T.L. (2017) Digital fundamentals. 11 Ed. Global Edition. Pearson.
+Mohindru P. and Mohindru P. (2022) Electronic Circuit Analysis using LTSpice XVII
+Simulator: A Practical Guide for Beginners. 1st Ed. CRC Press.
+Singh K. (2011) Engineering Mathematics through Applications . 2nd Ed. Palgrave.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Advances in Electrical Engineering, Electronics and Energy
+Electronic Letters
+Electronics World Magazine
+Everyday Practical Electronics Magazine
+IEEE Transactions on Circuits and Systems
+IEEE Transactions on Industrial Electronics and Power Electronics
+Industrial Economics Society
+Journal of Electrical and Electronic Engineering
+New Electronics Digital Magazine
+Links
+This unit links to the following related units:
+Unit 4020: Digital Principles
+Unit 4022: Electronic Circuits and Devices
+Unit 5019: Further Electrical, Electronic and Digital Principles .
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+150
+Issue 6 – October 2025 © Pearson Education Limited 2025

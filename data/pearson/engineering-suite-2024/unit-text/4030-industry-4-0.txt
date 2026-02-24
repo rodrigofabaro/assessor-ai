@@ -1,0 +1,241 @@
+Unit 4030: Industry 4.0
+Unit Code: F/651/0755
+Level: 4
+Credits: 15
+Introduction
+Industry 4.0 is the term that has been adopted to describe the ‘fourth’ industrial
+revolution currently underway, at present, in the manufacturing and commercial
+sectors of our society. It is a revolution based on the integration of cyber-physical
+systems, Internet of Things, Big data, 3D printing, advanced robotics, simulation,
+augmented reality, cloud computing and cyber security. Industry 4.0 is changing the
+way the world’s most successful companies produce the products that their global
+customers demand. For the engineering and manufacturing sector, this integration
+has been enabled by successfully combining high performance computing, the
+internet and the development of advanced manufacturing technologies and highly
+flexible and adaptive manufacturing processes.
+The aim of this unit is to provide holistic understanding of industry 4.0 and current
+trends of the production, assembly and other key aspects modern manufacturing.
+Students are first introduced to the background and fundamental and historical
+concepts of the fourth industrial revolution and principles, technologies, and
+strategies driving it. Students will then explore cutting-edge technologies, such as
+the Industrial Internet of Things (IIoT), cyber-physical production systems (CPPS) and
+artificial intelligence, and learn how these innovations are transforming traditional
+manufacturing processes and business models. Students are expected to reflect on
+successful case studies of transitioning to Industry 4.0 and communicate the industry
+4.0 concepts, technologies, and implications.
+On successful completion of this unit students will be able to investigate and
+evaluate industrial revolutions along with the characteristics and real-world
+challenges. As potential managers, students will also be able to
+assess the transformation of supply chains, business models, and workforce dynamics
+in the context of Industry 4.0 and associated benefits.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+227
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Discuss the key concepts and principles of Industry 4.0
+LO2 Review the range of cyber-physical production systems (CPPS) shaping
+Industry 4.0 and their integration with the Industrial Internet of Things (IIoT)
+LO3 Explore the implications and impacts of Industry 4.0 in engineering and
+manufacturing processes and technologies
+LO4 Examine the factors manufacturers need to consider when transitioning
+to Industry 4.0 and workforce Implications.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+228
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Discuss the key concepts and principles of Industry 4.0
+Industrial revolution:
+Industry 4.0 historical context: changes from Industry 1.0 to Industry 4.0 and
+future trends (e.g. Industry 5.0); analogous terms (e.g., Space 4.0, Agriculture 4.0,
+Maritime 4.0, Mining 4.0, Medical 4.0 etc.)
+Fundamental concepts and characterisations
+Design for service (DFS), Design for Assembly (DfA) and Design for Manufacturing
+(DfM) in the age of industry 4.Design Failure Mode and Effect Analysis (DFMEA)
+Technology drivers: IoT, IIoT, Artificial Intelligence (AI), cloud computing and
+automation; integration of digital technologies, data and automation
+Areas of impact and applications: For example, − workforce, skills, efficiency,
+change management; applications in energy, automotive, health and pharma,
+Agrifood, transportation, social mobility, business, science and technology,
+communications, geography etc.
+Case studies: Example smart factory − connectivity, scalability, autonomy, agility,
+efficiency, voice-controlled user interfaces.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+229
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Review the range of cyber-physical production systems (CPPS) shaping
+Industry 4.0 and their integration with the Industrial Internet of Things
+(IIoT)
+Definitions, characteristics, and architecture
+Interconnected systems enabled by the IoT and cloud computing
+Components of CPPS: sensors/smart sensors, actuators and communication
+protocols including wireless protocols e.g. WiFi, Bluetooth, Zigbee, MQTT,
+cellular, data, Z-Wave, near-field communication (NFC)
+Data in Industry 4.0: data collection systems, data formats and storage, database
+solutions, data visualisation, forecasting, quality control, data-driven decision-
+making; data analytics – big data, types including streaming, spatial, time series,
+prescriptive, predictive, and decisive analytics.
+Cloud computing and Industry 4.0: Types (SaaS, IaaS, PaaS); uses with IoT/IIoT;
+developments such as industrial edge computing, communication protocols and
+data protection.
+Flow diagram of data/information transfer in the cloud
+Blockchain technology applications for Industry 4.0
+Threats, vulnerabilities, and risk mitigation
+Data protection, privacy and compliance.
+LO3 Explore the implications and impacts of Industry 4.0 in engineering and
+manufacturing processes and technologies
+Robotics and automation in modern manufacturing:
+Collaborative, programmable robots and autonomous systems
+AI driven decision making and optimisation
+Importance of 3D Printing in Industry 4.0
+Concept and applications of Digital Twins for manufacturing
+Applications of Augmented and Virtual Reality in manufacturing,
+relevant development/usage platforms (e.g., HoloLens, Metaverse)
+Data-Driven Manufacturing
+Process mining – types, tools, sector wide examples.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+230
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Examine the factors manufacturers need to consider when transitioning to
+Industry 4.0 and workforce Implications
+Standardisation of technologies:
+Application interfaces, Integration points and Automation technologies.
+Transforming Operational Processes:
+Digital Transformation, Merge OT with IT, Worker Mobility, Intelligent Machine
+Applications.
+Transforming Business Models:
+New Digital Business, Industrial Analytics, Identify and procure suitable resources
+including finance, supplies, tools and equipment; role of stakeholders; Supplier,
+manufacturer, and customer integration.
+Transform the Workforce:
+Support and training for the workforce, safe and professional working practices,
+ethical and social considerations, legislative requirements, functional safety
+standards and application (IEC 61508, IEC 61511, IEC 62061, ISO 10218, IEC
+61784, EN 50159, IEC 62280, IEC 62443), environment and sustainability
+considerations.
+Safety first culture within the context:
+Health and safety policies, procedures and regulations, compliance,
+risk assessment and mitigation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+231
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Discuss the key concepts and principles of Industry 4.0
+P1 Discuss the key milestones M1 Analyse two different use D1 Evaluate the
+of industrial revolutions cases for the main technology application areas, wider
+leading to the Industry 4.0. drivers of Industry 4.0. impact and threats of
+Industry 4.0.
+P2 Describe any two example M2 Explore the implications
+areas of impacts for Industry of DFMEA in the context of
+4.0 in a chosen sector of Industry 4.0.
+engineering and
+manufacturing.
+LO2 Review the range of cyber-physical production systems
+(CPPS) shaping Industry 4.0 and their integration with the
+Industrial Internet of Things (IIoT)
+P3 Review the relationship M3 Analyse the principles and D2 Evaluate a case study
+between cyber-physical benefits of cloud computing design of cyber-physical
+production systems (CPPS) and its role with suppliers, systems architecture with
+and the Internet of Things manufacturers, and customers complete process flow
+(IoT). within Industry 4.0 for an for Industry 4.0 based
+example case study. manufacturing systems.
+P4 Explore a program plan
+for the IOT and a range of M4 Investigate the risk
+wireless communication mitigation strategies for the
+protocols available for the treats and vulnerabilities of
+smart factory. cyber physical systems within a
+case study.
+LO3 Explore the implications and impacts of Industry 4.0 in
+engineering and manufacturing processes and technologies
+P5 Examine the process flow M5 Explore the role of robotics D3 Demonstrate the
+for the design of data-driven and automation in modern application and benefits
+manufacturing. production and of digital twinning for
+manufacturing. Industry 4.0
+P6 Explore Process mining
+manufacturing.
+within a given engineering/
+manufacturing sector.
+LO4 Examine the factors manufacturers need to consider when
+transitioning to Industry 4.0 and workforce Implications
+P7 Examine the key principles M6 Analyse the potential skills D4 Critique the digital
+of operational process required by the Industry 4.0 business models within
+transformation to workforce to enable effective Industry 4.0 for agile
+Industry 4.0. transition. transition.
+P8 Explore the safety
+requirements and standards
+for transition to Industry 4.0.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+232
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+André J. (2019) Industry 4.0: Paradoxes and Conflicts. Wiley.
+Bali V., Bhatnagar V., Aggarwal D., Bali S., and Diván M. J. (2021) Cyber-Physical, IoT,
+and Autonomous Systems in Industry 4.0. CRC Press.
+Barkai, J. (2016) The Outcome Economy: How the Industrial Internet of Things
+is Transforming Everyday Business . CreateSpace Independent Publishing Platform.
+Elanqovan U. (2023) Industry 5.0 The Future of the Industrial Economy. 1st Ed. CRC Press.
+Frenz W. (2022) Handbook Industry 4.0. Springer.
+Hassoun A. (2024) Food Industry 4.0. 1st Ed. Elsevier.
+Kandasamy J., Muduli K., Kommula V. P., and Meena P. L. (2023) Smart Manufacturing
+Technologies For Industry 4.0 Integration, Benefits, and Operational Activities. CRC PRESS.
+Massaro A. (2021) Electronics in Advanced Research Industries: Industry 4.0 to Industry 5.0
+Advances. Wiley.
+Mavropoulos A. and Nilsen A.W. (2020) Industry 4.0 and Circular Economy: Towards a
+Wasteless Future or a Wasteful Planet? Wiley.
+Sharifzadeh M. (2022) Industry 4.0 Vision for the Supply of Energy and Materials: Enabling
+Technologies and Emerging Applications. Wiley.
+Sullivan M. and Kern J. (2021) The Digital Transformation of Logistics: Demystifying
+Impacts of the Fourth Industrial Revolution. Wiley.
+Tromp J.G., Le D. and Le C.V. (2020) Emerging Extended Reality Technologies for Industry
+4.0: Early Experiences with Conception, Design, Implementation, Evaluation and
+Deployment. Wiley.
+Vasant P., Munapo E., Thomas J.J., and Weber G. (2022) Artificial Intelligence in Industry
+4.0 and 5G Technology. Wiley.
+Windpassinger, N. (2017) Digitize or Die: Transform your Organisation, Embrace the
+Digital Evolution, Rise above the Competition . New York: IoT Hub.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+233
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Manufacturing Letters
+Cogent Engineering
+Complex and Intelligent systems
+Industry 4.0 Clustering of Concepts and Characteristics
+New Frontiers in Industry 4.0
+Procedia Manufacturing
+Links
+This unit links to the following related units:
+Unit 4068: Industrial Robots
+Unit 4085: Mechatronic Systems in Manufacturing
+Unit 5017: Advanced Manufacturing Technology
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+234
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,77 @@
+{
+  "code": "5041",
+  "title": "Engineering Project",
+  "detectedTitle": "Engineering Project",
+  "startPage": 1167,
+  "endPage": 1177,
+  "pageCount": 11,
+  "level": 5,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Propose an engineering-based project in line with national and international engineering regulatory and ethical frameworks"
+    },
+    {
+      "id": "LO2",
+      "description": "Create an engineering-based project using project management software, tools and techniques"
+    },
+    {
+      "id": "LO3",
+      "description": "Implement a project plan to include the production of a technical engineering report"
+    },
+    {
+      "id": "LO4",
+      "description": "Present the engineering-based project and reflect on the project outcomes."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "M4",
+      "M5",
+      "P4",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M6",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

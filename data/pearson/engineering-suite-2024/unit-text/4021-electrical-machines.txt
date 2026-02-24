@@ -1,0 +1,220 @@
+Unit 4021: Electrical Machines
+Unit Code: M/651/0740
+Level: 4
+Credits: 15
+Introduction
+Electrical machines are used to convert electrical energy to and from mechanical
+energy. These are found in manufacturing, transport, consumer appliances, medical
+and other sectors. People will come across them every day in their home and at work.
+Electric machines are bidirectional electromechanical energy conversion devices that
+can be looked in two ways; as a motor which converts electrical energy to mechanical
+energy; or as a generator which converts mechanical energy to electrical energy.
+Transducers and actuators are also energy converters and can be found in a wide
+range of industrial and domestic applications.
+This unit introduces students to the construction, modelling and characteristics of a
+range of electromagnetic machines and their practical application.. Among the topics
+included in this unit are: principles underlying the operation and construction of
+brushed DC, induction, and synchronous machines (motors and generators),
+electromagnetic transducers and actuators; and operating characteristics of electrical
+machines such as voltage, current, speed, torque, power rating, electromagnetic
+interference (EMI) and efficiency.
+On successful completion of this unit, students will be able to gain knowledge and
+understanding of the operating characteristics of different types of electrical
+machines and their practical applications in the industry.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+158
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Investigate the different types and operation of electrical machines
+LO2 Explore the operation and the various starting methods of induction machines
+LO3 Explore the operation and the various starting methods of synchronous
+machines
+LO4 Analyse the operating characteristics, construction and applications of
+electromagnetic transducers and actuators.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+159
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Investigate the different types and operation of electrical machines
+Constructional features:
+Construction, application and characteristics and operation of machine types
+such as: DC brushed, single phase induction, three phase induction, universal,
+types of synchronous (BLDC/BLAC, wound rotor)
+Stator, rotor, windings, commutator/slip rings, bearings, case, cooling.
+Typical applications of a range of electrical machines (generators/motors),
+possible modes of operation (torque, speed, position), and how they are chosen
+for a specific application (based on key performance parameters: torque-speed
+characteristic, losses, efficiency, size, cost, etc.).
+Brushed and brushless DC machines:
+Brushed versus brushless; advancements and case studies.
+Brushed DC machine equivalent circuit model, analysis of the circuit,
+testing/characterising.
+LO2 Explore the operation and the various starting methods of induction
+machines.
+Methods and applications:
+Characteristics and testing (characterisation) of induction machines (locked rotor
+and no-load tests)
+Equivalent circuit model of one phase with magnetising branch approximation.
+Starting methods
+Direct On-Line (DOL)
+Star/Delta
+Variable Frequency Drives (VFD)
+Operation, key characteristics, and parameters:
+Voltages, power, speed, torque, inertia, EMI, efficiency, and safety
+(including health and safety policies, procedures and regulations,
+compliance, risk assessment process and procedures)
+Protection devices.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+160
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Explore the operation and the various starting methods of synchronous
+machines
+Operation and characteristics of synchronous machines:
+Characteristics and testing of synchronous machines (too much load can cause
+them to lose sync and torque)
+Focus on two types: Permanent Magnet Synchronous Machines (PMSM –
+Brushless AC) and the wound rotor for larger applications (grid power
+generation)
+Starting methods (Closed loop control of PMSM with a VFD)
+Practical applications
+Equivalent circuit model
+Voltages, power, speed, torque, inertia, EMI, efficiency
+Cooling and protection.
+LO4 Analyse the operating characteristics, construction and applications of
+electromagnetic transducers and actuators.
+Operating characteristics:
+Construction, application, characteristics and testing of electromagnetic
+transducers and actuators
+Transducer types (active, passive, sensor), actuator types (solenoids, linear,
+rotary including stepper motors)
+Practical applications
+Voltage and current requirements, hysteresis, and speed of operation.
+Torque/force
+Insulation Protection (IP) rating
+Contact types
+Back Electromotive Force (EMF), EMI and efficiency.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+161
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Investigate the different types and operation of electrical
+machines.
+P1 Examine the types of M1 Illustrate the operation D1 Assess the
+electrical machine used in of the brushed DC machine, appropriateness of
+industry. considering the equivalent different types of electrical
+circuit. machine for an actual
+P2 Discuss suitable
+operational requirement.
+applications for electrical
+machines in industry.
+P3 Investigate key
+parameters of a brushed
+DC machine.
+LO2 Explore the operation and the various starting methods of
+induction machines
+P4 Explore the operating M2 Demonstrate the D2 Critically evaluate the
+principles of the three-phase characterisation of the three- efficiency of available
+induction machine. phase induction machine, induction machines and
+considering the equivalent make a recommendation
+P5 Analyse the different
+circuit. for a specific operational
+methods of starting three-
+requirement.
+and single-phase induction
+machines.
+LO3 Explore the operation and the various starting methods of
+synchronous machines
+P6 Explain the operating M3 Justify the use of a wound- D3 Assess the
+principles of a permanent rotor synchronous machine in performance and
+magnet synchronous a specific application. efficiency of permanent-
+machine. magnet synchronous
+machines and make a
+P7 Explore a synchronous
+recommendation for
+machine for a specific
+a specific operational
+application, considering their
+requirement.
+operating characteristics.
+LO4 Analyse the operating characteristics, construction and
+applications of electromagnetic transducers and actuators
+P8 Analyse the operation, M4 Justify the selection of D4 Critically analyse the
+types and uses of suitable transducers for practical application of
+electromotive transducers specific industrial transducers and actuators
+and actuators, by examining applications. in an industrial situation
+features that support their and make
+suitability for specific recommendations to
+applications. improve their operating
+effectiveness.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+162
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Boldea I. and Tutelea L.N. (2021) Electrical Machines: Steady State and Performance with
+MATLAB . 2nd Ed. CRC Press
+Boldea I. and Tutelea L.N. (2021) Electrical Machines: Two Volume Set. 2nd Ed. CRC Press
+Chapman S.J. (2011) Electric Machinery Fundamentals . 5th Ed. McGraw-Hill
+De Silva, C.W. (2015) Sensors and Actuators: Engineering System Instrumentation .
+2nd Ed. CRC Press
+Fucha E.F. and Masoum M.A.S. (2023) Power Quality in Power Systems, Electrical
+Machines, and Power-Electronic Drives . 3rd Ed. Academic Press
+Gibbons P.(Editor) (2023) Electrical Machines: Analysis and Applications (Hardback).
+Clanrye International.
+Gieras J.F. (2020) Electrical Machines: Fundamentals of Electromechanical Energy
+Conversion . CRC Press
+Guru B.S. and Hiziroglu H.R. (2001) Electric Machinery and Transformers . 3rd Ed.
+Oxford university Press
+Hughes, A. (2013) Electric Motors and Drives: Fundamentals, Types and Applications .
+4th Ed. Newnes
+Krishnan R. (2001) Electric Motor Drives: Modeling, Analysis, and Control Paperback –
+Illustrated. Pearson.
+Alassouli H.M. (2021) Lecture Notes for Electrical Machines Course . Self-published.
+Sarma M.S. (1997) Electrical Machines: Steady-State Theory and Dynamic Performance .
+2nd Ed. CL Engineering
+Sehgal R., Gupta N., Tomar A., Sharma M.D. and Kumaran V. (2022) Smart Electrical
+and Mechanical Systems. 1st Ed. Academic Press
+Wildi T. (2014) Electrical Machines, Drives and Power Systems . 6th Ed. Pearson
+New International Edition.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+163
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+CES Transactions on Electrical Machines and Systems
+Electrical Machines and Control 1007-449X
+Electrical machines and Electromechanics
+Electrical Machines & Power Systems
+International Journal of Electrical Machines & Drives
+International Journal of Electrical Power & Energy Systems
+Journal of Electrical Engineering & Technology
+Links
+This unit links to the following related units:
+Unit 5010: Further Electrical Machines and Drives.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+164
+Issue 6 – October 2025 © Pearson Education Limited 2025

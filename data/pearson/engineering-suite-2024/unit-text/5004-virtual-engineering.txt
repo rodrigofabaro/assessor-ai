@@ -1,0 +1,241 @@
+Unit 5004: Computational Modelling in
+Virtual Engineering
+Unit Code: L/651/0858
+Level: 5
+Credits: 15
+Introduction
+The work of an engineer increasingly involves the use of powerful software modelling
+tools (virtual modelling). These tools allow us to predict potential manufacturing
+difficulties, suggest how a product or component is likely to behave in service, and
+undertake rapid and low-cost design iteration and optimisation, to reduce costs,
+pre-empt failure and enhance performance.
+This unit introduces students to the application of relevant Computer Aided Design
+(CAD) and analysis engineering tools in contemporary engineering. They will learn
+about standards, regulations, and legal compliance within the context of engineering.
+Topics included in this unit are: dimensioning and tolerances, standardisation and
+regulatory compliance (BS, ASTM, ISO, etc.), material properties and selection,
+manufacturing processes, 2D, 3D, CAD, solid modelling, one-dimensional and
+multi-dimensional problems, meshing and boundary conditions, and the finite
+element and volume methods.
+On successful completion of this unit students will learn about computational fluid
+dynamics (CFD) simulations, finite element models, faults in the application of
+simulation techniques and the modelling method and data accuracy.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+864
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Explore the capabilities and limitations of computer-based models in meeting
+design fundamentals and their use in solving problems in engineering.
+LO2 Develop finite element model(s) in order to find and solve potential structural
+or performance issues.
+LO3 Perform CFD simulations to evaluate pressure and velocity distributions within
+an engineering setting.
+LO4 Discuss faults in the application of simulation techniques to evaluate the
+modelling method and data accuracy.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+865
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Explore the capabilities and limitations of computer-based models in
+meeting design fundamentals and their use in solving problems in
+engineering
+Engineering design fundamentals:
+Dimensioning and tolerances
+Standardisation and regulatory compliance (BS, ASTM, ISO, etc.)
+How to manufacture and what to manufacture:
+Material properties and selection
+Manufacturing processes: capability, cost issues and selection
+Relevance of Industry 4.0 tools/trends in support of solving engineering
+problems and facilitate seamless systems integration.
+Design tools:
+2D and 3D CAD
+Solid modelling
+File types, export and compatibility
+Case studies involving use of various computer-based models for Engineering
+problem solving.
+Interpretation and presentation of results through a series of guided exercises:
+Results obtained, comparison of data, benefits and limitations; exploit uses of
+databases, data formats and data analytics
+Generalisation of provided information, recommendations on current and future
+applications
+Use of documentation within the context e.g. job cards/build records, 2D and
+3D drawing/models, bill of materials (BOM), cost analysis reports, compliance
+reports, standard operating instructions (SOIs), standard process instructions
+(SPIs), engineering query notifications (EQNs), drawing query notifications
+(DQNs).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+866
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO2 Develop finite element model(s) in order to find and solve potential
+structural or performance issues
+Fundamentals of FEM (Finite Element Modelling):
+Meshing, nodes and element types
+Types of boundary conditions
+FEM and FEA; applications, advantages, and limitations.
+Finite element formulation:
+One-dimensional problems, Multi-dimensional problems, Beams.
+Finite element method:
+Define the problem: simplify an engineering problem into a problem that can be
+solved using FEA
+Develop models: define material properties and boundary conditions; choose
+appropriate functions, formulate equations, solve equations, visualise and
+explain the results.
+LO3 Perform CFD simulations to evaluate pressure and velocity distributions
+within an engineering setting
+Fundamentals of CFD (Computational Fluid Dynamics):
+CFD and the finite volume method background
+Meshing and boundary conditions
+Applications, advantages and limitations of CFD.
+CFD simulation and analysis:
+Apply CFD to simple design/aerodynamics problems: define the problem,
+provide initial boundary conditions for the problem, set-up a physical model,
+define material properties and operating conditions
+Interpretation of CFD results
+Examine the solution of CFD simulations using graphical and numerical tools;
+suggest and make revision of the models.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+867
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Discuss faults in the application of simulation techniques to evaluate the
+modelling method and data accuracy
+Simulation results:
+Extracting relevant information from simulation-based exercises
+Interpretation and presentation of results of CFD simulations
+Validation and verification of computational modelling
+Discuss in groups industry case studies involving simulation techniques in the
+context of data accuracy and faults.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+868
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Explore the capabilities and limitations of computer-
+based models in meeting design fundamentals and their use in
+solving problems in engineering
+P1 Explore the capabilities M1 Analyse the capabilities D1 Evaluate the
+and limitations of any two and limitations of a range of application of computer-
+computer-based models computer-based models. based models to an
+used within an industrial industrial environment
+M2 Analyse the processes and
+environment to solve that would improve
+applications used in solving
+problems in engineering. efficiency and problem-
+problems in engineering.
+solving, with
+recommendations.
+LO2 Develop finite element model(s) in order to find and solve
+potential structural or performance issues
+P2 Analyse the role of finite M3 Critically analyse the finite D2 Justify
+element analysis in modelling element model that help to recommendations for
+products and systems. find and solve potential recognising and solving
+structural or performance- potential structural or
+P3 Develop a finite element
+based issues. performance-based issues
+model to analyse a given
+for a range of practical
+practical example to solving
+examples, supported by
+potential structural or
+the outcomes of finite
+performance-based issues.
+element product and
+systems models for
+a range of practical
+examples.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+869
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Perform CFD simulations to evaluate pressure and
+velocity distributions within an engineering setting
+P4 Demonstrate the M4 Evaluate the application D3 Provide supported
+importance of CFD and limitations of CFD in an and appropriate
+simulations to evaluate engineering context. recommendations for
+pressure and velocity improving efficiency and
+distributions in the the generation of suitable
+engineering setting. meshes for CFD
+simulations.
+P5 Perform CFD simulation
+to evaluate pressure and
+velocity distributions within
+an engineering setting.
+LO4 Discuss faults in the application of simulation techniques
+to evaluate the modelling method and data accuracy
+P6 Discuss potential faults in
+M5 Trace potential faults in D4 Critically evaluate the
+the application of simulation
+the application of simulation application of simulation
+techniques.
+techniques. techniques as part of the
+decision-making process
+P7 Discuss the use of
+M6 Assess the results of
+in an engineering
+modelling methods and
+modelling with respect to
+situation.
+data accuracy in computer outcomes and data accuracy
+simulations. and make recommendations
+for improvements.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+870
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Chandrupatla T. and Belegundu A. (2021) Introduction to finite elements in engineering.
+Cambridge University Press.
+Ciarlet P. and Luneville E. (2023) The Finite Element Method: From Theory to Practice.
+Wiley-ISTE.
+Kurowski P.M. (2022) Finite element analysis for design engineers. SAE International.
+Muftu S. (2022) Finite Element Method: Physics and Solution Methods. 1st Ed.
+Academic Press.
+Okada H. and atluri S.N. (2020) Computational and Experimental Simulations in
+Engineering: Proceedings of ICCES2019. Springer Link.
+Rao S.S. (2017) The Finite Element Method in Engineering. 6th Ed.
+Butterworth-Heinemann.
+Tu J., Yeoh G.H., Liu C. and Tao Y. (2023) Computational fluid dynamics: a practical
+approach. Elsevier.
+Volkov K. (2020) Computational Models in Engineering. IntechOpen.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Computational Engineering and Physical Modeling
+Finite Elements in Analysis and Design
+International Journal for Computational Methods in Engineering Science and
+Mechanics
+Progress in Computational Fluid Dynamics
+Novel Computational Modelling (Applied Engineering Journal)
+Virtual Engineering Journals
+Virtual Engineering New Finding Journal
+Links
+This unit links to the following related units:
+Unit 4001: Engineering Design
+Unit 5017: Advanced Manufacturing Technology.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+871
+Issue 6 – October 2025 © Pearson Education Limited 2025

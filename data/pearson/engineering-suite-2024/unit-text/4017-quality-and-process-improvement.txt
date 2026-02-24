@@ -1,0 +1,225 @@
+Unit 4017: Quality and Process
+Improvement
+Unit Code: Y/651/0734
+Level: 4
+Credits: 15
+Introduction
+Quality has always been the key to business success and survivability, but it requires
+organisations to allocate a lot of effort and resources to achieve it. The key to
+providing quality services and designing top quality products lies in the strength and
+effectiveness of the processes used in their development; processes which must be
+constantly reviewed to ensure they operate as efficiently, economically and as safely
+as possible.
+This unit introduces students to the importance of quality assurance processes in a
+manufacturing or service environment and the principles and theories that underpin
+them. Topics included in this unit are: tools and techniques used to support quality
+control, attributes and variables, testing processes, costing modules, the importance
+of qualifying the costs related to quality, international standards for management
+(ISO 9000, 14000, 18000), European Foundation for Quality Management (EFQM),
+principles, tools and techniques of Total Quality Management (TQM) and
+implementation of Six Sigma.
+On successful completion of this unit students will be able to illustrate the processes
+and applications of statistical process, explain the quality control tools used to apply
+costing techniques, identify the standards expected in the engineering environment
+to improve efficiency and examine how the concept of Total Quality Management
+and continuous improvement underpins modern manufacturing and service
+environments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+129
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine the applications of statistical process control when applied in an
+industrial environment to improve efficiency
+LO2 Analyse cost effective quality control tools
+LO3 Determine the role of standards in improving efficiency, meeting customer
+requirements and opening up new opportunities for trade
+LO4 Analyse the importance of Total Quality Management and continuous
+improvement in manufacturing and service environments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+130
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine the applications of statistical process control when applied in an
+industrial environment to improve efficiency
+Quality control:
+The tools and techniques used to support quality control
+Attributes and variables
+Testing processes
+Quality tools and techniques, including statistical process control (SPC),
+measurement of variables (such as dimensions, weight, signal, temperature,
+time,) testing (such as non-destructive and destructive).
+Designing quality into new products and processes using Quality Function
+Deployment (QFD), and enhance quality in managing and monitoring supplier
+performance
+Quality assurance: Principles and levels of quality assurance, systems, and
+operational consideration. Importance of accurate record keeping and
+monitoring of activities.
+LO2 Analyse cost effective quality control tools
+Quality costing:
+Costing modules (including budgeting, forecasting and control of direct and
+indirect costs, fixed and variable costs including actual, accrued and committed
+costs), analysis and interpretation of data and information
+The importance of qualifying the costs related to quality Documentation such as
+Parts Per Million (PPM) quality adherence, cost analysis and test data
+How costs can be used to improve business performance including achieving
+sustainability objectives.
+LO3 Determine the role of standards in improving efficiency, meeting customer
+requirements and opening up new opportunities for trade
+Standards for efficiency:
+The history of standards
+The role of standards and their importance in enabling and supporting trade,
+business and industry; ethical usage of standards and implications
+Standards for measurement
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+131
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+International Standards for management: purpose and internal governance
+arrangements to ensure compliance; relevant standards (ISO 9000, ISO 9001,
+ISO 14000, ISO 14001, ISO 18000, AS9100, TS16949 etc.)
+European Foundation for Quality Management (EFQM) as an aid to developing
+strategic competitive advantage
+Organisation context: Importance and use of organisations approved Standard
+Operating Procedures (SOP’s), documentation recording systems and quality
+control, risk assessment, and the potential implications on safety, quality and
+delivery if they are not adhered to.
+LO4 Analyse the importance of Total Quality Management and continuous
+improvement in manufacturing and service environments
+Overview and function of quality:
+The importance of quality to industry: how it underpins the ability to improve
+efficiency, meet customer requirements and improve competitiveness, cost of
+poor quality.
+Principles, tools and techniques of Total Quality Management (TQM)
+Advancements in TQM, KPIs and TQM.
+Tools for improving quality and delivery. Advanced Product Quality Planning
+(APQP). Types of faults/defects recorded and analysed to improve future
+performance. Route Cause Analysis (RCA), Failure Mode and Effects Analysis
+(FMEA), Fishbone, Practical Problem Solving (PPS), Process Failure Mode and
+Effects Analysis (PFMEA). Tools for data collection and analysis, e.g., automatic
+test equipment, visual automatic inspection system, data acquisition equipment,
+software to analyse the data and inform operators in real time. Tools and
+techniques associated with lean manufacturing and process improvement such
+as Six Sigma, Kaizan, 8 Wastes. Workplace organisation such as 5S’s (sort, set in
+order, shine, standardise and sustain), continuous flow, Poke Yoke (error
+proofing), 5 Whys (Root Cause Analysis), kanban (pull System), just-in-time (JIT),
+lean simulation activities, value stream mapping, total Preventive Maintenance
+Plan-do-check-act (PDCA), Single Minute Exchange of Die (SMED), A3 Reporting.
+Other lean operational and quality enhancement practices (e.g., visual
+management, waste reduction and shop floor problem solving).
+Selecting the most appropriate tool/technique to solve a problem (including
+problem analysis models such as Is/Is Not).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+132
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine the applications of statistical process control
+when applied in an industrial environment to improve
+efficiency
+P1 Review the tools and M1 Explain the role and D1 Suggest justified
+techniques used to support effectiveness of the quality recommendations for the
+quality control. tools and techniques used application of statistical
+within an industrial process control in an
+P2 Examine the processes
+environment. industrial environment
+and applications of statistical
+to improve efficiency.
+process control in a
+production environment.
+LO2 Analyse cost effective quality control tools
+P3 Analyse the effective use M2 Determine with D2 Develop a process
+of quality control tools and justification the quality for the application of an
+techniques. control tools and techniques extensive range of quality
+that could be used to improve control tools and
+P4 Compare costing
+business performance. techniques, with
+techniques used within
+emphasis on costing.
+industrial environments.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+133
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Determine the role of standards in improving efficiency,
+meeting customer requirements and opening up new
+opportunities for trade
+P5 Determine required M3 Discuss the importance D3 Illustrate a plan
+standards to improve of standards applied in the for the application of
+efficiency, meet customer engineering environment. international standards
+requirements and open up that would improve
+new opportunities for trade. efficiency, meet customer
+requirements and open
+up new opportunities for
+trade.
+LO4 Analyse the importance of Total Quality Management and
+continuous improvement in manufacturing and service
+environments
+P6 Contrast the principles, M4 Discuss how the D4 Evaluate how the
+tools and techniques of Total appropriate application of appropriate application of
+Quality Management and Total Quality Management total quality management
+continuous improvement. and continuous improvement and continuous
+in tools and techniques affect improvement in tools and
+P7 Analyse how the concept
+quality performance in the techniques affect quality
+of Total Quality Management
+manufacturing and service performance in the
+and continuous improvement
+environments. manufacturing and service
+could help in delivering high
+environments.
+quality performance within
+businesses.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+134
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Amsden R.T. (2019). SPC simplified: Practical steps to quality . Routledge.
+Begum S., Rajendran C., Prakash Sai L., Ganesh K. and Mohapatra S. (2021) Total
+Quality Management in Higher Education: Study of Engineering Institutions. 1st Edition.
+Routledge India.
+Cachon G. and Terwiesch C. (2023) Operations Management. 3rd Edition. McGraw-Hill
+Cottmon R.J. (2020) Total Engineering Quality Management. 1st Edition. CRC Press.
+Goetsch D.L. and Davis S. (2021) Quality Management for Organizational Excellence:
+Introduction to Total Quality. 9th edition. Pearson.
+Lim J.S. (2020) Quality Management in Engineering: A Scientific and Systematic Approach .
+1st Edition. CRC Press.
+Mathur S. (2021 ) Book Review of Total Quality Management in Education .
+Management Dynamics .
+Montgomery D.C. (2019) Introduction to statistical quality control . John Wiley & sons.
+Stevenson W.J (2021) Operations Management. 14th Edition. McGraw-Hill.
+Slack, N., Chambers, S. and Johnston, R. (2016) Operations Management .
+8th Ed. Essex: Pearson Education Limited.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Journal of Quality in Maintenance Engineering
+The TQM Journal
+Quality Management Journal
+Links
+This unit links to the following related units:
+Unit 5016: Lean Manufacturing
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+135
+Issue 6 – October 2025 © Pearson Education Limited 2025

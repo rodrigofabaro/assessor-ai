@@ -110,7 +110,9 @@ function CriteriaColumn({
               </div>
 
               <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
-                {stripEquationTokens(c.description)}
+                {stripEquationTokens(c.description) || (
+                  <span className="text-zinc-500 italic">Description hidden pending parser review. Refer to source PDF.</span>
+                )}
               </div>
             </div>
           ))
@@ -158,7 +160,9 @@ export function LoCriteriaGrid({ learningOutcomes }: { learningOutcomes: any[] }
                       <div key={c.id || c.acCode || c.code} className="rounded-xl border border-amber-200 bg-white p-3">
                         <div className="text-sm font-semibold text-amber-900">{c.acCode || c.code || "—"}</div>
                         <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words leading-6">
-                          {stripEquationTokens(c.description)}
+                          {stripEquationTokens(c.description) || (
+                            <span className="text-zinc-500 italic">Description hidden pending parser review. Refer to source PDF.</span>
+                          )}
                         </div>
                       </div>
                     ))}

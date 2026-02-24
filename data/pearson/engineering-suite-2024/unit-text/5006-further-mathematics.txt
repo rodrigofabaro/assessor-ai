@@ -1,0 +1,272 @@
+Unit 5006: Further Engineering
+Mathematics
+Unit Code: Y/651/0860
+Level: 5
+Credits: 15
+Introduction
+The understanding of more advanced mathematics is important within an engineering
+and manufacturing sector curriculum to support and broaden abilities within the
+applied subjects at the core of all engineering programmes. Students are introduced
+to additional topics that will be relevant to them as they progress to the next level of
+their studies, advancing their knowledge of the underpinning mathematics gained in
+Unit 4002: Engineering Mathematics .
+The unit will prepare students to analyse and model engineering/manufacturing
+situations using mathematical techniques. Among the topics included in this unit
+are: number theory, complex numbers, matrix theory, linear equations, numerical
+integration, numerical differentiation, and graphical representations of curves
+for estimation within an engineering/manufacturing context. Finally, students will
+expand their knowledge of calculus to discover how to model and solve engineering/
+manufacturing problems using first and second-order differential equations.
+On successful completion of this unit, students will be able to use applications of
+number theory in practical engineering situations, solve systems of linear equations
+relevant to engineering/manufacturing applications using matrix methods,
+approximate solutions of contextualised examples with graphical and numerical
+methods, and review models of engineering and manufacturing systems using
+ordinary differential equations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+879
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Use applications of number theory in practical engineering/manufacturing
+situations
+LO2 Solve systems of linear equations relevant to engineering//manufacturing
+sector applications using matrix methods
+LO3 Approximate solutions of contextualised examples with graphical and
+numerical methods
+LO4 Review models of engineering/manufacturing systems using ordinary
+differential equations.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+880
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Use applications of number theory in practical engineering/manufacturing
+situations
+Number theory:
+Bases of a number (Denary, Binary, Octal, Duodecimal, Hexadecimal)
+and converting between bases
+Types of numbers (Natural, Integer, Rational, Real, Complex)
+The modulus, argument, and conjugate of complex numbers
+Polar and exponential forms of complex numbers
+The use of de Moivre’s Theorem in engineering/manufacturing
+Complex number applications e.g., electric circuit analysis, information,
+and energy control systems
+Application of advanced numerical skills (Binary, dotted decimal notation)
+required to meet the defined specifications
+Problem-solving and ensuring quality solutions to practical
+engineering/manufacturing situations relevant to the occupation/sector
+(e.g., operations, manufacturing, space, aeronautical, automation, electrical,
+electronics, mechanical, etc.); attention to detail and responsive to feedback;
+communication and presentation of solutions (including written, verbal,
+electronic format) to stakeholders, discussions, and negotiations.
+LO2 Solve systems of linear equations relevant to engineering/manufacturing
+applications using matrix methods
+Matrix methods:
+Introduction to matrices and matrix notation
+The process for addition, subtraction, and multiplication of matrices
+Introducing the determinant of a matrix and calculating the determinant
+for a 2x2 and 3x3 matrix
+Using the inverse of a square matrix to solve linear equations
+Cramers Rule
+Gaussian elimination to solve systems of linear equations (up to 3x3)
+Eigenvalues and Eigenvectors.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+881
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Approximate solutions of contextualised examples with graphical and
+numerical methods
+Graphical and numerical methods:
+Standard curves of common functions, including quadratic, cubic, logarithm,
+and exponential curves
+Systematic curve sketching knowing the equation of the curve
+Using sketches to approximate solutions of equations
+Numerical analysis using the bisection method and the Newton–Raphson
+method
+Numerical integration using the mid-ordinate rule, the trapezium rule,
+and Simpson’s rule
+Examples of engineering scenarios using numerical methods for first-order and
+second-order differential equations; partial differential equations; homogeneous
+and non-homogeneous equations.
+LO4 Review models of engineering/manufacturing systems using ordinary
+differential equations
+Differential equations:
+Formation and solutions of first-order differential equations (e.g., separation of
+variables)
+Applications of first-order differential equations e.g., RC and RL electric circuits,
+Newton’s laws of cooling, charge and discharge of electrical capacitors, and
+complex stresses and strains
+Formation and solutions of second-order differential equations
+Applications of second-order differential equations e.g., mass-spring-damper
+systems, information and energy control systems, heat transfer, automatic
+control systems and beam theory and RLC circuits
+Introduction to Laplace transforms for solving linear ordinary differential
+equations
+Applications involving Laplace transforms and inverse Laplace transforms.
+For example, electric circuit theory, load frequency control, harmonic vibrations
+of beams, reactor dynamics, and engine governors.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+882
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Continuous Professional Development (CPD) within the context:
+Improve competencies in developing/using mathematical models of advanced
+engineering and manufacturing systems relevant to chosen occupation/sector
+through upskilling/reskilling opportunities (e.g., energy sustainability
+systems/models, climate change mathematical models for renewable
+technologies, advanced mathematics for Industry 4.0 technologies,
+applied mathematics for digitalisation, etc.).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+883
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Use applications of number theory in practical
+engineering/manufacturing situations
+P1 Use addition and M1 Solve problems using D1 Test the correctness of
+multiplication methods for de Moivre’s Theorem. a trigonometric identity
+numbers that are expressed using de Moivre’s
+in different base systems. Theorem.
+P2 Solve
+engineering/manufacturing
+problems using complex
+number theory.
+P3 Perform arithmetic
+operations using the polar
+and exponential forms of
+complex numbers.
+LO2 Solve systems of linear equations relevant to engineering/
+manufacturing applications using matrix methods
+P4 Calculate the determinant M2 Determine the solution to D2 Validate solutions for
+of a set of given linear a set of given engineering the given engineering
+equations using a 3x3 matrix. linear equations using the linear equations using
+Inverse Matrix Method for a appropriate computer
+P5 Solve a system of three
+3x3 matrix. software.
+linear equations using
+Gaussian elimination.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+884
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Approximate solutions of contextualised examples with
+graphical and numerical methods
+P6 Approximate solutions of M3 Solve engineering D3 Critically evaluate
+sketched functions using a problems and formulate the use of numerical
+graphical estimation method. mathematical models using estimation methods,
+graphical and numerical commenting on their
+P7 Calculate the roots of an
+integration. applicability and the
+equation using two different
+accuracy of the methods.
+iterative techniques
+P8 Determine the numerical
+integral of engineering
+functions using two different
+methods.
+LO4 Review models of engineering/manufacturing systems
+using ordinary differential equations
+P9 Review and solve first-
+M4 Demonstrate how D4 Critically evaluate first-
+order differential equations
+different models of order and second-order
+related to engineering/
+engineering systems using differential equations
+manufacturing systems. first-order differential when generating the
+equations can be used to solutions to engineering/
+P10 Formulate and solve
+solve engineering/ manufacturing situations,
+second-order homogeneous
+manufacturing problems. using models of
+and non-homogeneous
+engineering systems.
+differential equations related
+to engineering/manufacturing
+systems.
+P11 Calculate solutions to
+linear ordinary differential
+equations using Laplace
+transforms.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+885
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Arfken G. B., Weber H. J., and harris F. E. (2011) Mathematical methods for physicists:
+a comprehensive guide . Academic press.
+Bird J. (2021) Higher Engineering Mathematics . 9th Ed. Routledge.
+Bird J. (2019) Science and Mathematics for Engineering . 6th Ed. Routledge.
+Botelho F.S. (2021) Functional Analysis, Calculus of Variations and Numerical Methods
+for Models in Physics and Engineering . 1st Edition. CRC Press.
+Chapra S. (2022) Applied Numerical Methods with MATLAB for Engineers and Scientists.
+5th Edition. McGraw-Hill.
+Chapra S. and Clough D. (2021) Applied Numerical Methods with Python for Engineers
+and Scientists. 1st Edition. McGraw-Hill.
+Chapra S. and Canale R. (2020) Numerical Methods for Engineers. 8th Edition.
+McGraw-Hill.
+Croft A., Davison R., Hargreaves M., and Flint J. (2017) Engineering Mathematics.
+5th edition. Pearson Education.
+Duffy D.G (2022) Advanced Engineering Mathematics: A Second Course with MatLab.
+1st Edition. CRC Press.
+Glyn J. and Dyke P. (2020) Modern Engineering Mathematics. 6th edition. Pearson.
+Islam N., Singh S.B., Ranjan P., and Haghi A.K. (2021) Mathematics Applied to
+Engineering in Action: Advanced Theories, Methods, and Models. 1st Edition. CRC Press.
+Made Easy Editorial Board (2022) Engineering Mathematics for GATE 2023 and ESE 2023
+(Prelims) – Theory and Previous Year Solved Papers. India: Made EASY Publications
+Pvt Ltd.
+Ram M. (2021) Recent Advances in Mathematics for Engineering. CRC Press.
+Teodorescu P., Stanescu N., and Pandrea N. (2013) Numerical Analysis with Applications
+in Mechanics and Engineering. Wiley-IEEE Press.
+Ram M. (2020) Mathematics in Engineering Sciences: Novel Theories, Technologies,
+and Applications. 1st Edition. CRC Press.
+Vick B. (2020) Applied Engineering Mathematics. CRC Press.
+Singh K. (2011) Engineering Mathematics Trough Applications . Basingstoke,
+Palgrave Macmillan.
+Stroud K.A. and Booth D.J. (2013) Engineering Mathematics . 7th Ed: Basingstoke,
+Palgrave Macmillan.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+886
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Annals of Mathematics
+Computational Geometry
+The Quarterly Journal of Mathematics
+Journal of Geometry and Physics
+Communications on Pure and Applied Mathematics
+International Journal of Engineering Mathematics
+Journal of Engineering Mathematics
+Journal of Mathematical Physics
+Journal of Computational and Engineering Mathematics
+Links
+This unit links to the following related unit:
+Unit 4002: Engineering Mathematics
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+887
+Issue 6 – October 2025 © Pearson Education Limited 2025

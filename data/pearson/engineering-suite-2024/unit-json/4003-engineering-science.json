@@ -1,0 +1,77 @@
+{
+  "code": "4003",
+  "title": "Engineering Science",
+  "detectedTitle": "Engineering Science I",
+  "startPage": 41,
+  "endPage": 49,
+  "pageCount": 9,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Examine scientific data using both quantitative and qualitative methods"
+    },
+    {
+      "id": "LO2",
+      "description": "Apply the fundamentals of mechanical engineering systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Explore the characteristics and properties of engineering materials"
+    },
+    {
+      "id": "LO4",
+      "description": "Analyse applications of A.C./D.C. circuit theorems, electromagnetic principles, and properties."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P8",
+      "P9",
+      "P10"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "code": "4033",
+  "title": "Programmable Logic Controllers",
+  "detectedTitle": "Programmable Logic Controllers",
+  "startPage": 267,
+  "endPage": 274,
+  "pageCount": 8,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Describe the design, operation and selection of PLC systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Explore Functional Safety within PLC systems"
+    },
+    {
+      "id": "LO3",
+      "description": "Develop a PLC program for an automated process system"
+    },
+    {
+      "id": "LO4",
+      "description": "Review how PLCs exchange information and process signals with other devices."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P4",
+      "P5"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P6",
+      "P7",
+      "P8"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P9",
+      "P10"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10"
+  ]
+}

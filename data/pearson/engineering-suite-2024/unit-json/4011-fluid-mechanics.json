@@ -1,0 +1,75 @@
+{
+  "code": "4011",
+  "title": "Fluid Mechanics",
+  "detectedTitle": "Fluid Mechanics",
+  "startPage": 102,
+  "endPage": 108,
+  "pageCount": 7,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Determine the behavioural characteristics of static fluid systems"
+    },
+    {
+      "id": "LO2",
+      "description": "Examine the operating principles and limitations of viscosity measuring devices"
+    },
+    {
+      "id": "LO3",
+      "description": "Investigate dynamic fluid parameters of real fluid flow"
+    },
+    {
+      "id": "LO4",
+      "description": "Explore the operating principles and efficiencies of hydraulic machines."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "D3",
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D4",
+      "M4",
+      "P7",
+      "P8",
+      "P9"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ]
+}

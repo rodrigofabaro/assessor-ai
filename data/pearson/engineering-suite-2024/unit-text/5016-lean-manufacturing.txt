@@ -1,0 +1,219 @@
+Unit 5016: Lean Manufacturing
+Unit Code: M/651/0877
+Level: 5
+Credits: 15
+Introduction
+Lean manufacturing is a systematic approach to minimising waste in a manufacturing
+system, by focusing on the activities that add the most value through the eyes of the
+customer. The basis of lean manufacturing originated in the car industry and was
+developed by Toyota in Japan. Lean is now used extensively worldwide, in all types
+and size of organisation, to improve international competitiveness. It is therefore
+crucial for manufacturing engineers to be able to design and operate manufacturing
+systems that employ lean successfully.
+The aim of this unit is to introduce students to the principles and processes of lean
+manufacturing, so that they can become an effective and committed practitioner of
+lean in whatever industry sector they are employed in. To do this, the unit will explore
+the tools and techniques that are applied by organisations practicing lean. The
+students will consider both the benefits and challenges of using lean manufacturing,
+and become sufficiently knowledgeable about the most important process tools and
+techniques to be able to operate and use them.
+Among the topics included in this unit are: scoping and defining lean manufacturing,
+the benefits and challenges of adopting Lean thinking, , common tools and techniques
+associated with lean manufacturing and process improvement, and the most
+appropriate improvement tool(s) to tackle a problem.
+On successful completion of this unit students will be able to learn about the common
+principles of lean manufacturing. a range of the process improvement tools used
+within lean manufacturing, and effective communication skills in order to lead the
+process of continuous improvement across an organisation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+954
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Examine the common principles of lean manufacturing and how the
+implementation of a lean production system contributes to business success
+LO2 Evaluate the lean approach applied to the modern manufacturing environment
+LO3 Specify a range of the process improvement tools used within lean
+manufacturing
+LO4 Demonstrate effective communication skills in order to lead the process of
+continuous improvement across an organisation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+955
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Examine the common principles of lean manufacturing and how the
+implementation of a lean production system contributes to business
+success
+Scoping and defining lean manufacturing:
+The common principles of lean manufacturing philosophy
+Origins of lean, Toyota production system.
+Defining lean and its importance to the customer
+Identifying and eliminating material and process waste that adds no value
+from the customer’s perspective
+Standardization, line balancing and Takt time.
+Benefits and challenges of adopting lean:
+Why an organisation would consider adopting a lean philosophy
+Productivity, quality, customer satisfaction, delivery performance
+The benefits of a lean organisation to the customer, the employees,
+and the shareholders
+Outline the benefits of lean in terms of cost, quality, delivery, customer
+satisfaction, management complexity and cost to serve
+Challenges of implementation: change management, managing expectation,
+empowerment, motivation, ‘burning platform’, investment, supply chain.
+LO2 Evaluate the lean approach applied to the modern manufacturing
+environment.
+Lean Production Systems:
+Toyota lean production system and other modern lean production systems for
+manufacturing
+Research lean manufacturing and identify its fundamental elements and the
+motivation behind creation
+Compare Lean thinking with the recognised theory and production systems
+publicised by other global manufacturers: how do they differ and how they are
+similar?
+How the common principles are now being adopted outside manufacturing
+Consider the core principles of lean thinking to support Industry 4.0.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+956
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Specify a range of the process improvement tools used within lean
+manufacturing
+Common tools and techniques associated with lean manufacturing and process
+improvement:
+Six Sigma, 8 Wastes, Workplace organisation such as 5S’s (sort, set in order,
+shine, standardise and sustain), Kaizen, continuous flow, kanban (pull System),
+just-in-time (JIT), lean simulation activities, value stream mapping, Poke Yoke
+(error proofing), 5 Whys (Root Cause Analysis), Total Preventive Maintenance
+(TPM), Total Quality Management (TQM)
+Plan-do-check-act (PDCA), Single Minute Exchange of Die (SMED), A3 Reporting,
+Visual Management.
+Selecting the most appropriate improvement tool to tackle a problem:
+Tools for improving quality and delivery. Types of faults/defects recorded and
+analysed to improve future performance, Failure Mode and Effects Analysis
+(FMEA), Fishbone, Practical Problem Solving (PPS), Process Failure Mode and
+Effects Analysis (PFMEA)
+Equipment needed to perform data collection and analysis, e.g., automatic test
+equipment, visual automatic inspection system, data acquisition equipment,
+software programmes to analyse the data and inform operators in real time,
+analysis and interpretation of data for documentation such as Parts Per Million
+(PPM and quality adherence.
+Use of Industry 4.0 tools/technologies and integration (e.g. automation, robots,
+PLCs, digital systems and manufacturing engineering systems).
+LO4 Demonstrate effective communication skills in order to lead the process of
+continuous improvement across an organisation
+Communication:
+Facilitate a small group in the application and use of one of the lean tools
+(e.g., 5 Whys technique, A3 Report)
+Evaluate factors that influence engagement within a group, facilitation skills
+development, address continuous improvement and change management
+processes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+957
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Examine the common principles of lean manufacturing
+and how the implementation of a lean production system
+contributes to business success
+P1 Examine how lean M1 Analyse the benefits of D1 Critically evaluate
+manufacturing principles adopting lean manufacturing. the advantages and
+can improve business disadvantages of
+M2 Analyse the key challenges
+performance. implementing a lean
+encountered when
+production system.
+implementing lean
+manufacturing.
+LO2 Evaluate the lean approach applied to the modern
+manufacturing environment
+P2 Evaluate the key principle M3 Assess key barriers to D2 Evaluate lean elements
+of lean thinking that will the implementation of lean that are critical in making
+support the next industrial thinking into the modern the approach successful in
+revolution. manufacturing environment. supporting Industry 4.0.
+P3 Research and assess
+alternatives to lean
+production system
+approaches.
+P4 Examine the origins of
+lean and specify its early
+applications.
+LO3 Specify a range of the process improvement tools used
+within lean manufacturing
+P5 Specify which tools are M4 Evaluate how the most D3 Develop a justified
+commonly associated with common lean tools can be recommendation for a
+lean manufacturing and applied to eliminate waste lean tool to be applied in
+what contexts they would in a manufacturing process. addressing a specified
+be applied in. process improvement.
+LO4 Demonstrate effective communication skills in order to
+lead the process of continuous improvement across an
+organisation
+P6 Demonstrate skills in M5 Evaluate the impact of this D4 Critically evaluate the
+developing a communication communication approach, importance of the higher
+approach to manage change including an evaluation of order skills required to
+in an organisation. impact on employees and successfully deploy
+personal effectiveness. change for continuous
+improvement in an
+organisation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+958
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Ajay, Singh H., Parveen and Almangour B. (Editors) (2023) Handbook of Smart
+Manufacturing − Forecasting the Future of Industry 4.0. 1st Ed. CRC Press.
+Blackwell D., George M.L. and Rajan D. (2019) Lean Six Sigma in the Age of Artificial
+Intelligence: Harnessing the Power of the Fourth Industrial Revolution. 1st Ed. McGraw-Hill.
+Cudney E.A., Furterer S. and Dietrich D. (Editors) (2021) Lean Systems − Applications and
+Case Studies in Manufacturing, Service, and Healthcare. CRC Press.
+Díaz-Reza J.R., García-Alcaraz J.L. and García A.S.M. (2022) Best Practices in Lean
+Manufacturing: A Relational Analysis. Springer.
+Dillon A.P. (2019) A study of the Toyota production system: From an Industrial Engineering
+Viewpoint. Routledge.
+Pink S. (2022) Emerging Technologies/Life at the Edge of the Future. 1st Ed. Routledge.
+Silva F. and Ferreira P.L. (2019) Lean Manufacturing: Implementation, Opportunities and
+Challenges . Nova Science Publishers.
+Tarantino A. (2022) Smart Manufacturing: The Lean Six Sigma Way. Wiley.
+Vinodh S. (2023 ) Lean Manufacturing: Fundamentals, Tools, Approaches, and Industry 4.0
+Integration. 1st Ed. CRC Press.
+Womack, J., Jones, D. and Roos, D. (1990) The Machine That Changed the World .
+Free Press.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+International Journal of Engineering Business Management
+International Journal of Lean Six Sigma
+International Journal of Technology (Lean Manufacturing Articles)
+Journal of Intelligent Manufacturing
+Journal of Manufacturing Processes
+Quality Magazine: Lean Manufacturing
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+959
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 5015: Manufacturing Systems Engineering
+Unit 5017: Advanced Manufacturing Technology
+Unit 5018: Sustainability.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+960
+Issue 6 – October 2025 © Pearson Education Limited 2025
