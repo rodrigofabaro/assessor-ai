@@ -1,6 +1,6 @@
 # Help Center Index
 
-Last updated: 2026-02-21
+Last updated: 2026-02-24
 
 This folder contains route-by-route operator help.
 
@@ -14,6 +14,7 @@ This folder contains route-by-route operator help.
 - `docs/help/admin-specs.md` - spec extraction and import workflow
 - `docs/help/admin-library.md` - library controls and criterion exclusion toggles
 - `docs/help/admin-reference.md` - reference inbox and extract/lock lifecycle
+- `docs/operations/pearson-spec-master-workflow.md` - scripted Pearson engineering suite extract/import/repair/lock runbook
 - `docs/help/admin-settings.md` - AI/grading/app policy controls, audit-safe save flow, and Turnitin config
 - `docs/help/admin-qa.md` - QA analytics plus Turnitin send/status/report workflow
 

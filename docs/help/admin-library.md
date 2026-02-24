@@ -1,10 +1,12 @@
 # Admin Library (`/admin/library`)
 
-Last updated: 2026-02-19
+Last updated: 2026-02-24
 
 ## Purpose
 
 Inspect and control grading scope at brief/criteria level.
+
+This includes locked unit specs imported from the Pearson engineering suite "spec master" dataset.
 
 ## Key Controls
 
@@ -24,3 +26,4 @@ Inspect and control grading scope at brief/criteria level.
 - excluding criteria changes grade outcomes
 - excluding all criteria blocks grading (`GRADE_NO_ACTIVE_CRITERIA`)
 - always record reason in ops notes before exclusion changes
+- do not trust imported Pearson criterion descriptions in `/admin/specs` until the Pearson repair step has run (`criteriaDescriptionsVerified`)
