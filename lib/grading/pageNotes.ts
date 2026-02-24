@@ -242,17 +242,6 @@ function summarizeReason(v: string) {
   return compactLine(firstSentence, 130);
 }
 
-function wordCount(v: string) {
-  const s = sanitizeStudentNoteText(v);
-  if (!s) return 0;
-  return s.split(/\s+/).filter(Boolean).length;
-}
-
-function countHits(text: string, pattern: RegExp) {
-  const hits = text.match(pattern);
-  return Array.isArray(hits) ? hits.length : 0;
-}
-
 function hasSpecificEvidenceSignal(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
   if (!corpus.trim()) return false;
@@ -579,7 +568,7 @@ function buildSupportiveFluentNoteItems(input: {
   return [{ kind: (entry.decision === "ACHIEVED" ? "praise" : "action") as PageNoteItemKind, text: paragraph }];
 }
 
-function bandImpactLine(entry: PageCriterionEntry) {
+function bandImpactLine() {
   return "";
 }
 
@@ -715,7 +704,7 @@ function buildStructuredNoteItems(input: {
   const improvement = gapLine(entry);
   const actions = actionLines(entry);
   const visualLine = visualPresentationLine(entry) || visualDevelopmentSuggestionLine(entry);
-  const criterionLink = bandImpactLine(entry);
+  const criterionLink = bandImpactLine();
   const linkAction =
     actions.find((line) => /\b(connect|explains?|show[s]?|demonstrates?|supports?)\b.*\b(requirement|criterion|evidence)\b/i.test(line)) ||
     "";
