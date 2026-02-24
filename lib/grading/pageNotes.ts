@@ -254,6 +254,33 @@ function hasSpecificEvidenceSignal(entry: PageCriterionEntry) {
   );
 }
 
+function hasProjectMonitoringSignals(corpus: string) {
+  return /\b(gantt|milestone|critical path|cpm|rag(?:\s+status)?|tracker|tracking|project plan|project planning|schedule|scheduling)\b/i.test(
+    corpus || ""
+  );
+}
+
+function hasProjectSelectionSignals(corpus: string) {
+  return /\b(aim|objective|rationale|project selection|scope)\b/i.test(corpus || "");
+}
+
+function hasEvaluationSignals(corpus: string) {
+  return /\b(compare|comparison|evaluation|evaluate|efficien|performance|cost|reliab|trade[- ]off|judgement|recommendation)\b/i.test(
+    corpus || ""
+  );
+}
+
+function hasMathsMethodSignals(corpus: string) {
+  return /\b(sin|cos|tan|phasor|vector|determinant|equation|formula|magnitude|component|current|voltage|frequency|wave(?:form)?|rl)\b/i.test(
+    corpus || ""
+  );
+}
+
+function hasSoftwareConfirmationSignals(corpus: string) {
+  return /\b(software|geogebra|desmos|graph|plot|screenshot|cursor|marker|overlay)\b/i.test(corpus || "") &&
+    /\b(calculation|analytical|equation|value|result|confirmation|compare|comparison)\b/i.test(corpus || "");
+}
+
 function extractObservedEvidenceLine(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
   if (!corpus.trim()) return "";
@@ -328,26 +355,31 @@ function strengthLine(entry: PageCriterionEntry) {
   if (code === "P6") {
     if (/\bphasor|rl|triangle\b/i.test(corpus)) return "You show the correct phasor triangle method here.";
     if (/\bsin|cos|current|time|wave\b/i.test(corpus)) return "Your sinusoidal rearrangement steps are clear here.";
-    return "Your pass-level sinusoidal method is clear on this page.";
+    if (hasMathsMethodSignals(corpus)) return "Your pass-level sinusoidal method is clear on this page.";
+    return extractObservedEvidenceLine(entry) || "";
   }
   if (code === "P7") {
     if (/\bdeterminant|cross product\b/i.test(corpus)) return "You set up the determinant method clearly here.";
     if (/\bcomponent|horizontal|vertical|cos|sin\b/i.test(corpus))
       return "You use the correct method for resolving vector components here.";
-    return "Your vector method is presented clearly on this page.";
+    if (hasMathsMethodSignals(corpus)) return "Your vector method is presented clearly on this page.";
+    return extractObservedEvidenceLine(entry) || "";
   }
   if (code === "M3") {
     if (/\bgraph|plot|waveform|overlay|figure\b/i.test(corpus))
       return "You show the combined-wave method with useful graphical evidence here.";
-    return "Your compound-angle/single-wave method is clear here.";
+    if (hasMathsMethodSignals(corpus)) return "Your compound-angle/single-wave method is clear here.";
+    return extractObservedEvidenceLine(entry) || "";
   }
   if (code === "D2") {
     if (/\bsoftware|geogebra|desmos|graph|plot|screenshot\b/i.test(corpus))
       return "Good start here: you included software output alongside your calculations.";
-    return "Good start here: you attempted software-based confirmation.";
+    if (hasSoftwareConfirmationSignals(corpus) || hasMathsMethodSignals(corpus))
+      return "Good start here: you attempted software-based confirmation.";
+    return extractObservedEvidenceLine(entry) || "";
   }
   if (code === "D1") {
-    if (/\bcompare|evaluation|efficien|performance|cost|reliab|trade[- ]off\b/i.test(corpus)) {
+    if (hasEvaluationSignals(corpus)) {
       return "You have started to evaluate the evidence here rather than only describing it.";
     }
     return extractObservedEvidenceLine(entry) || "";
@@ -361,7 +393,7 @@ function strengthLine(entry: PageCriterionEntry) {
     return observed;
   }
   if (code === "P1") {
-    if (/\b(aim|objective|rationale|project selection|scope)\b/i.test(corpus)) {
+    if (hasProjectSelectionSignals(corpus)) {
       return "Your project selection and aims are clearly stated here.";
     }
     return "";
@@ -376,23 +408,23 @@ function gapLine(entry: PageCriterionEntry) {
   const rationale = summarizeReason(entry.rationale);
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
 
-  if (code === "M2" && entry.decision !== "ACHIEVED") {
+  if (code === "M2" && entry.decision !== "ACHIEVED" && hasProjectMonitoringSignals(corpus)) {
     if (/\bgantt\b/i.test(corpus) && /\b(milestone|monitor|tracking|progress|critical path|cpm)\b/i.test(corpus)) {
       return "To meet M2, add one alternative milestone monitoring method beyond the Gantt chart and show how you would use it to check progress and respond to delays.";
     }
     return "To meet M2, show one alternative milestone monitoring method and explain clearly why it is suitable for tracking progress.";
   }
 
-  if (code === "D2" && entry.decision !== "ACHIEVED") {
+  if (code === "D2" && entry.decision !== "ACHIEVED" && (hasSoftwareConfirmationSignals(corpus) || hasMathsMethodSignals(corpus))) {
     return "To evidence D2, make the software-to-calculation confirmation explicit across at least three distinct problems.";
   }
-  if (code === "D1" && entry.decision !== "ACHIEVED") {
+  if (code === "D1" && entry.decision !== "ACHIEVED" && hasEvaluationSignals(corpus)) {
     return "To strengthen D1, move from description to critical evaluation by judging one clear example against performance criteria.";
   }
   if (code === "P7" && /\bmagnitude|component|horizontal|vertical\b/i.test(corpus)) {
     return "Present magnitudes as positive values, then note direction separately.";
   }
-  if (code === "M3" && entry.decision !== "ACHIEVED") {
+  if (code === "M3" && entry.decision !== "ACHIEVED" && hasMathsMethodSignals(corpus)) {
     return "Make the link between the graph and your analytical combined-wave result more explicit.";
   }
   if (entry.decision === "ACHIEVED") {
@@ -456,42 +488,43 @@ function visualDevelopmentSuggestionLine(entry: PageCriterionEntry) {
 
 function actionLines(entry: PageCriterionEntry): string[] {
   const code = entry.code;
-  if (code === "M2") {
+  const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+  if (code === "M2" && hasProjectMonitoringSignals(corpus)) {
     return [
       "Show one method beyond Gantt (for example a milestone checklist with RAG status, CPM/critical path output, or a milestone tracker).",
       "Add a short explanation of what the method shows and how it helps you manage delays or slippage.",
       "Label any chart/table/image clearly so the evidence is quick to verify.",
     ];
   }
-  if (code === "D1") {
+  if (code === "D1" && hasEvaluationSignals(corpus)) {
     return [
       "Choose one clear focus example and evaluate it using relevant performance criteria and trade-offs.",
       "Add one sentence that states your judgement clearly and explains why the evidence supports D1.",
       "A comparison table or labelled diagram could strengthen the evaluation and make your reasoning easier to follow.",
     ];
   }
-  if (code === "D2") {
+  if (code === "D2" && (hasSoftwareConfirmationSignals(corpus) || hasMathsMethodSignals(corpus))) {
     return [
       "Add a one-line confirmation linking software output to your analytical value.",
       "Add label/cursor/marker values and reference the exact graph/figure/page used as evidence.",
       "Show this confirmation across at least three distinct problems.",
     ];
   }
-  if (code === "M3") {
+  if (code === "M3" && hasMathsMethodSignals(corpus)) {
     return [
       "Overlay or compare plots so equivalence is visible.",
       "Label axes/markers and point to the exact figure/page used in your explanation.",
       "Add one sentence explaining how the graph supports your analytical form.",
     ];
   }
-  if (code === "P7") {
+  if (code === "P7" && hasMathsMethodSignals(corpus)) {
     return [
       "State magnitudes explicitly using absolute values.",
       "Show direction separately and label final components clearly.",
       "State units and use consistent rounding in your final line.",
     ];
   }
-  if (code === "P6") {
+  if (code === "P6" && hasMathsMethodSignals(corpus)) {
     return [
       "Show your branch/selection logic clearly before the final answer.",
       "Add one quick substitution check against the original expression.",
@@ -541,8 +574,8 @@ function buildSupportiveFluentNoteItems(input: {
       sanitizeStudentNoteText(v)
     );
 
-  // Unit 4 M2 special pattern to match the user's expected style more closely.
-  if (code === "M2" && entry.decision !== "ACHIEVED") {
+  // Project-planning M2 pattern: use only when the page evidence is clearly milestone-monitoring related.
+  if (code === "M2" && entry.decision !== "ACHIEVED" && hasProjectMonitoringSignals(`${entry.context} ${entry.rationale}`)) {
     const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
     const hasGantt = /\bgantt\b/i.test(corpus);
     const lead = hasGantt

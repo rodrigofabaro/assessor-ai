@@ -21,6 +21,7 @@ import {
 } from "@/lib/grading/pageNotes";
 import { resolvePageNoteBannedKeywords, type PageNoteGenerationContext } from "@/lib/grading/pageNoteSectionMaps";
 import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
+import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -3609,6 +3610,22 @@ export async function POST(
     if (feedbackClaimLint.changed) {
       systemNotes.push(
         `Overall feedback wording lint softened ${feedbackClaimLint.changedLines} contradictory claim line(s) for unachieved criteria.`
+      );
+    }
+    const feedbackPearsonLint = lintOverallFeedbackPearsonPolicy({
+      text: feedbackText,
+      criterionChecks: decision.criterionChecks as any,
+      overallGrade,
+      context: {
+        unitCode: String(brief.unit?.unitCode || ""),
+        assignmentCode: String(brief.assignmentCode || ""),
+        assignmentTitle: String(brief.title || ""),
+      },
+    });
+    feedbackText = feedbackPearsonLint.text;
+    if (feedbackPearsonLint.changed) {
+      systemNotes.push(
+        `Pearson feedback style lint normalized ${feedbackPearsonLint.changedLines} line adjustment(s) (grade tone/work-focus/spill guard).`
       );
     }
     const submissionPageCount = Math.max(

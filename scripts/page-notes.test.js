@@ -55,6 +55,7 @@ function run() {
   const { buildPageNotesFromCriterionChecks } = loadTsModule("lib/grading/pageNotes.ts");
   const { criterionAllowedInResolvedSection, resolvePageNoteSectionCriteriaMap } = loadTsModule("lib/grading/pageNoteSectionMaps.ts");
   const { lintOverallFeedbackClaims } = loadTsModule("lib/grading/feedbackClaimLint.ts");
+  const { lintOverallFeedbackPearsonPolicy } = loadTsModule("lib/grading/feedbackPearsonPolicyLint.ts");
   const rows = [
     {
       code: "P6",
@@ -283,6 +284,131 @@ function run() {
   assert(linted.changed === true, "feedback claim lint should change contradictory unachieved-criterion claims");
   assert(!/\bM2 achieved\b/i.test(linted.text), "linted feedback should not claim an unachieved criterion was achieved");
   assert(/\bM2 discussed\b/i.test(linted.text), "linted feedback should soften the wording instead");
+
+  const nonProjectM2 = buildPageNotesFromCriterionChecks(
+    [
+      {
+        code: "M2",
+        decision: "NOT_ACHIEVED",
+        rationale: "M2 not achieved: evaluation of stakeholder communication methods is brief and lacks justification.",
+        evidence: [{ page: 6, quote: "Stakeholder communication approach and team updates discussed" }],
+      },
+    ],
+    {
+      tone: "supportive",
+      maxPages: 5,
+      maxLinesPerPage: 10,
+      includeCriterionCode: true,
+      context: {
+        unitCode: "5010",
+        assignmentCode: "A2",
+        assignmentTitle: "Professional Practice Reflection",
+        criteriaSet: ["M2"],
+      },
+    }
+  );
+  const nonProjectM2Text = nonProjectM2.flatMap((n) => (Array.isArray(n.items) ? n.items.map((i) => i.text) : n.lines)).join(" ");
+  assert(
+    !/\b(gantt|critical path|cpm|milestone tracker|rag status)\b/i.test(nonProjectM2Text),
+    "non-project M2 notes should not leak project-monitoring wording"
+  );
+  assert(
+    /\b(stakeholder communication methods|justification|improve this page)\b/i.test(nonProjectM2Text),
+    "non-project M2 notes should stay grounded in the actual rationale"
+  );
+
+  const nonMathD2 = buildPageNotesFromCriterionChecks(
+    [
+      {
+        code: "D2",
+        decision: "NOT_ACHIEVED",
+        rationale: "D2 not achieved: critical evaluation of implementation choices is present but not fully justified.",
+        evidence: [{ page: 14, quote: "Implementation choices and trade-offs are briefly discussed." }],
+      },
+    ],
+    {
+      tone: "supportive",
+      maxPages: 5,
+      maxLinesPerPage: 10,
+      includeCriterionCode: true,
+      context: {
+        unitCode: "6001",
+        assignmentCode: "A1",
+        assignmentTitle: "Implementation Review",
+        criteriaSet: ["D2"],
+      },
+    }
+  );
+  const nonMathD2Text = nonMathD2.flatMap((n) => (Array.isArray(n.items) ? n.items.map((i) => i.text) : n.lines)).join(" ");
+  assert(
+    !/\b(software-to-calculation|analytical value|geogebra|desmos)\b/i.test(nonMathD2Text),
+    "non-maths D2 notes should not leak software-calculation confirmation wording"
+  );
+
+  const passBandLint = lintOverallFeedbackClaims({
+    text: [
+      "You have achieved Merit-level critical analysis across the report.",
+      "Criteria still to evidence clearly: D2.",
+      "Final grade: PASS",
+    ].join("\n"),
+    criterionChecks: [
+      { code: "P1", decision: "ACHIEVED" },
+      { code: "M1", decision: "ACHIEVED" },
+      { code: "D2", decision: "NOT_ACHIEVED" },
+    ],
+    overallGrade: "PASS",
+  });
+  assert(passBandLint.changed, "PASS feedback lint should soften higher-band overclaims when D criteria remain open");
+  assert(
+    !/\bachieved Merit-level critical analysis\b/i.test(passBandLint.text),
+    "PASS feedback lint should remove strong higher-band achievement wording in the narrative"
+  );
+  assert(
+    /Criteria still to evidence clearly: D2\./i.test(passBandLint.text) && /Final grade: PASS/i.test(passBandLint.text),
+    "feedback lint should preserve deterministic outcome lines"
+  );
+
+  const pearsonStyleLint = lintOverallFeedbackPearsonPolicy({
+    text: [
+      "Hello Callum,",
+      "You are an outstanding student and this is an exceptional submission.",
+      "Talk about the result and say why it matters for D2.",
+      "Simulink confirms the answer clearly.",
+      "Final grade: PASS",
+    ].join("\n"),
+    overallGrade: "PASS",
+    criterionChecks: [
+      {
+        code: "D2",
+        decision: "NOT_ACHIEVED",
+        rationale: "Critical evaluation is not yet fully justified.",
+        evidence: [{ quote: "Implementation choices and outcomes are discussed." }],
+      },
+    ],
+    context: {
+      unitCode: "6001",
+      assignmentCode: "A1",
+      assignmentTitle: "Implementation Review",
+    },
+  });
+  assert(pearsonStyleLint.changed, "Pearson policy lint should adjust tone/work-focus/spill phrasing");
+  assert(
+    !/\b(outstanding|exceptional)\b/i.test(pearsonStyleLint.text),
+    "PASS feedback should avoid overclaiming tone adjectives"
+  );
+  assert(
+    !/\bYou are an outstanding student\b/i.test(pearsonStyleLint.text),
+    "feedback should be softened away from person-judgement phrasing"
+  );
+  assert(
+    /\bexplain\b/i.test(pearsonStyleLint.text) && /\bjustify why\b/i.test(pearsonStyleLint.text),
+    "colloquial advice should be normalized toward assessment command verbs"
+  );
+  assert(
+    !/\bSimulink\b/i.test(pearsonStyleLint.text),
+    "out-of-context template spill terms should be removed from feedback"
+  );
+  assert(/Final grade: PASS/i.test(pearsonStyleLint.text), "deterministic lines must remain unchanged");
 
   console.log("page notes tests passed.");
 }
