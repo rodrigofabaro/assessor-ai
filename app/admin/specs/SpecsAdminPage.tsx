@@ -1,16 +1,52 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import LibraryView from "../library/LibraryView";
 import { ui } from "@/components/ui/uiClasses";
 import { TinyIcon } from "@/components/ui/TinyIcon";
 import { useSpecsAdmin } from "./specs.logic";
-import { SpecList, SpecViewer, UnitEditorPanel } from "./specs.ui";
+import {
+  SpecList,
+  SpecViewer,
+  UnitEditorPanel,
+  SpecCatalogList,
+  SpecMasterHealthBar,
+  SpecVersionComparePanel,
+  type SpecCatalogRow,
+} from "./specs.ui";
+import activeUnitsJson from "@/data/pearson/unit-lists/engineering-active-units-2024.json";
+import extraUnitsJson from "@/data/pearson/unit-lists/engineering-extra-4005-4007.json";
 
 function toneCls(tone: "success" | "error" | "warn"): string {
   if (tone === "success") return "border-emerald-200 bg-emerald-50 text-emerald-900";
   if (tone === "warn") return "border-amber-200 bg-amber-50 text-amber-900";
   return "border-rose-200 bg-rose-50 text-rose-900";
+}
+
+function normalizeSpace(v: unknown) {
+  return String(v || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeUnitFamilyTitle(v: unknown) {
+  return normalizeSpace(v)
+    .toLowerCase()
+    .replace(/\bpearson\s*set\b/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/&/g, " and ")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function numericUnitCode(unitCode: string): number {
+  const n = Number(String(unitCode || "").match(/\d{1,4}/)?.[0] || NaN);
+  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+}
+
+function getSpecRowMetrics(doc: any) {
+  const los = Array.isArray(doc?.extractedJson?.learningOutcomes) ? doc.extractedJson.learningOutcomes : [];
+  const loCount = los.length;
+  const criteriaCount = los.reduce((sum: number, lo: any) => sum + (Array.isArray(lo?.criteria) ? lo.criteria.length : 0), 0);
+  return { loCount, criteriaCount };
 }
 
 export default function SpecsAdminPage() {
@@ -38,6 +74,18 @@ export default function SpecsAdminPage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [quickFilter, setQuickFilter] = useState<"ALL" | "NEEDS_REVIEW" | "LOCKED" | "FAILED">("ALL");
+  const [catalogQuickFilter, setCatalogQuickFilter] = useState<
+    "ALL" | "ACTIVE_SET" | "FAVORITES" | "UNVERIFIED" | "PEARSON_IMPORT" | "PEARSON_SET_ONLY" | "ARCHIVED" | "FAILED"
+  >("ALL");
+  const [catalogExactCode, setCatalogExactCode] = useState(true);
+  const [catalogNumericSort, setCatalogNumericSort] = useState(true);
+  const [favoriteUnitCodes, setFavoriteUnitCodes] = useState<string[]>([]);
+  const [catalogValidationReport, setCatalogValidationReport] = useState<null | {
+    blockers: string[];
+    warnings: string[];
+    info: string[];
+  }>(null);
+  const [compareDocId, setCompareDocId] = useState("");
   const [headerBusy, setHeaderBusy] = useState<null | "refresh" | "extract" | "lock">(null);
   const [rowBusy, setRowBusy] = useState<Record<string, "extract" | "lock" | undefined>>({});
   const [hydratedFromUrl, setHydratedFromUrl] = useState(false);
@@ -97,6 +145,290 @@ export default function SpecsAdminPage() {
     });
   }, [vm.filteredDocuments, quickFilter]);
 
+  const expectedActiveCodes = useMemo(() => {
+    const combined = [
+      ...((activeUnitsJson as any)?.units || []),
+      ...((extraUnitsJson as any)?.units || []),
+    ];
+    return Array.from(
+      new Set(
+        combined
+          .map((u: any) => String(u?.code || "").trim())
+          .filter((c: string) => /^\d{4}$/.test(c))
+      )
+    ).sort();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("specs.favoriteUnitCodes.v1");
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) setFavoriteUnitCodes(parsed.map((v) => String(v)).filter(Boolean));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("specs.favoriteUnitCodes.v1", JSON.stringify(favoriteUnitCodes));
+    } catch {
+      // ignore
+    }
+  }, [favoriteUnitCodes]);
+
+  const catalogRowsAll = useMemo<SpecCatalogRow[]>(() => {
+    const docs = (vm.documents || []).filter((d: any) => d.type === "SPEC");
+    const codeCounts = new Map<string, number>();
+    const codeIssueCounts = new Map<string, number>();
+    const familyCounts = new Map<string, number>();
+    const familyCodeSets = new Map<string, Set<string>>();
+    for (const d of docs) {
+      const unitCode = String((d.sourceMeta as any)?.unitCode || d.extractedJson?.unit?.unitCode || "").trim();
+      const unitTitle = String((d.sourceMeta as any)?.unitTitle || d.extractedJson?.unit?.unitTitle || "").trim();
+      const issueLabel = normalizeSpace(
+        (d.sourceMeta as any)?.specVersionLabel ||
+          (d.sourceMeta as any)?.specIssue ||
+          d.extractedJson?.unit?.specVersionLabel ||
+          d.extractedJson?.unit?.specIssue ||
+          ""
+      ).toLowerCase();
+      const familyKey = normalizeUnitFamilyTitle(unitTitle || d.title || unitCode);
+      if (!unitCode) continue;
+      codeCounts.set(unitCode, (codeCounts.get(unitCode) || 0) + 1);
+      const key = `${unitCode}::${issueLabel || "no-issue"}`;
+      codeIssueCounts.set(key, (codeIssueCounts.get(key) || 0) + 1);
+      familyCounts.set(familyKey, (familyCounts.get(familyKey) || 0) + 1);
+      if (!familyCodeSets.has(familyKey)) familyCodeSets.set(familyKey, new Set<string>());
+      familyCodeSets.get(familyKey)!.add(unitCode);
+    }
+    return docs.map((doc: any) => {
+      const unitCode = String((doc.sourceMeta as any)?.unitCode || doc.extractedJson?.unit?.unitCode || "").trim();
+      const unitTitle = String((doc.sourceMeta as any)?.unitTitle || doc.extractedJson?.unit?.unitTitle || "").trim();
+      const issueLabel = String(
+        (doc.sourceMeta as any)?.specVersionLabel ||
+          (doc.sourceMeta as any)?.specIssue ||
+          doc.extractedJson?.unit?.specVersionLabel ||
+          doc.extractedJson?.unit?.specIssue ||
+          ""
+      ).trim();
+      const importSource = String((doc.sourceMeta as any)?.importSource || "");
+      const versionFamilyKey = normalizeUnitFamilyTitle(unitTitle || doc.title || unitCode);
+      const isPearsonImport = importSource === "pearson-engineering-suite-2024";
+      const pearsonCriteriaVerified = !isPearsonImport || !!(doc.sourceMeta as any)?.criteriaDescriptionsVerified;
+      const { loCount, criteriaCount } = getSpecRowMetrics(doc);
+      const titleHay = `${doc.title || ""} ${unitTitle}`.toLowerCase();
+      const isPearsonSet = /\bpearson[- ]set\b/i.test(titleHay);
+      const archived = !!(doc.sourceMeta as any)?.archived;
+      const isFavorite = !!unitCode && favoriteUnitCodes.includes(unitCode);
+      const isActiveSet = isPearsonImport && !!unitCode && expectedActiveCodes.includes(unitCode);
+      return {
+        doc,
+        unitCode,
+        unitTitle,
+        issueLabel,
+        loCount,
+        criteriaCount,
+        importSource,
+        isPearsonImport,
+        pearsonCriteriaVerified,
+        isPearsonSet,
+        archived,
+        versionCountForCode: unitCode ? codeCounts.get(unitCode) || 0 : 0,
+        sameIssueVersionCountForCode: unitCode
+          ? codeIssueCounts.get(`${unitCode}::${normalizeSpace(issueLabel).toLowerCase() || "no-issue"}`) || 0
+          : 0,
+        versionFamilyCount: versionFamilyKey ? familyCounts.get(versionFamilyKey) || 0 : 0,
+        versionFamilyDistinctCodeCount: versionFamilyKey ? (familyCodeSets.get(versionFamilyKey)?.size || 0) : 0,
+        versionFamilyKey,
+        isFavorite,
+        isActiveSet,
+      };
+    });
+  }, [vm.documents, favoriteUnitCodes, expectedActiveCodes]);
+
+  const catalogQuickCounts = useMemo(() => {
+    const base = catalogRowsAll;
+    const count = (fn: (r: SpecCatalogRow) => boolean) => base.filter(fn).length;
+    return {
+      ALL: count((r) => !!r.doc.lockedAt || String(r.doc.status || "").toUpperCase() === "LOCKED"),
+      ACTIVE_SET: count((r) => r.isActiveSet && (!!r.doc.lockedAt || String(r.doc.status).toUpperCase() === "LOCKED")),
+      FAVORITES: count((r) => r.isFavorite),
+      UNVERIFIED: count((r) => r.isPearsonImport && !r.pearsonCriteriaVerified),
+      PEARSON_IMPORT: count((r) => r.isPearsonImport),
+      PEARSON_SET_ONLY: count((r) => r.isPearsonSet),
+      ARCHIVED: count((r) => r.archived),
+      FAILED: count((r) => String(r.doc.status || "").toUpperCase() === "FAILED"),
+    };
+  }, [catalogRowsAll]);
+
+  const catalogHealth = useMemo(() => {
+    const locked = catalogRowsAll.filter((r) => !!r.doc.lockedAt || String(r.doc.status || "").toUpperCase() === "LOCKED");
+    const pearsonLocked = locked.filter((r) => r.isPearsonImport);
+    const activeLockedCodes = new Set(locked.filter((r) => r.isActiveSet).map((r) => r.unitCode));
+    const multiVersionFamilies = Array.from(
+      new Set(
+        locked
+          .filter((r) => r.versionFamilyCount > 1)
+          .map((r) => r.unitTitle || r.unitCode)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+    const sameIssueConflictKeys = Array.from(
+      new Set(
+        locked
+          .filter((r) => r.unitCode && r.sameIssueVersionCountForCode > 1)
+          .map((r) => `${r.unitCode}${r.issueLabel ? ` (${r.issueLabel})` : ""}`)
+      )
+    ).sort();
+    return {
+      lockedCount: locked.length,
+      activeSetCount: activeLockedCodes.size,
+      expectedActiveSetCount: expectedActiveCodes.length,
+      missingActiveSetCount: Math.max(0, expectedActiveCodes.length - activeLockedCodes.size),
+      unverifiedPearsonCount: pearsonLocked.filter((r) => !r.pearsonCriteriaVerified).length,
+      multiVersionFamilyCount: multiVersionFamilies.length,
+      multiVersionFamilies,
+      sameIssueConflictCount: sameIssueConflictKeys.length,
+      sameIssueConflictKeys,
+      archivedCount: locked.filter((r) => r.archived).length,
+    };
+  }, [catalogRowsAll, expectedActiveCodes]);
+
+  const catalogRowsFiltered = useMemo(() => {
+    const q = String(filters.q || "").trim();
+    const qLower = q.toLowerCase();
+    const exactCodeQuery = /^\d{1,4}$/.test(q) ? q : "";
+    let list = [...catalogRowsAll];
+    list = list.filter((r) => {
+      switch (catalogQuickFilter) {
+        case "ALL":
+          return !!r.doc.lockedAt || String(r.doc.status || "").toUpperCase() === "LOCKED";
+        case "ACTIVE_SET":
+          return r.isActiveSet && (!!r.doc.lockedAt || String(r.doc.status || "").toUpperCase() === "LOCKED");
+        case "FAVORITES":
+          return r.isFavorite;
+        case "UNVERIFIED":
+          return r.isPearsonImport && !r.pearsonCriteriaVerified;
+        case "PEARSON_IMPORT":
+          return r.isPearsonImport;
+        case "PEARSON_SET_ONLY":
+          return r.isPearsonSet;
+        case "ARCHIVED":
+          return r.archived;
+        case "FAILED":
+          return String(r.doc.status || "").toUpperCase() === "FAILED";
+        default:
+          return true;
+      }
+    });
+    if (q) {
+      list = list.filter((r) => {
+        if (onlyString(catalogExactCode) && exactCodeQuery) {
+          return r.unitCode === exactCodeQuery;
+        }
+        const hay = `${r.unitCode} ${r.unitTitle} ${r.doc.title || ""} ${r.issueLabel} ${r.importSource}`.toLowerCase();
+        return hay.includes(qLower);
+      });
+    }
+    list.sort((a, b) => {
+      if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+      if (a.isActiveSet !== b.isActiveSet) return a.isActiveSet ? -1 : 1;
+      if (catalogNumericSort) {
+        const codeCmp = numericUnitCode(a.unitCode) - numericUnitCode(b.unitCode);
+        if (codeCmp !== 0) return codeCmp;
+      }
+      return (
+        String(a.unitCode || "").localeCompare(String(b.unitCode || "")) ||
+        String(a.unitTitle || "").localeCompare(String(b.unitTitle || "")) ||
+        String(a.issueLabel || "").localeCompare(String(b.issueLabel || ""))
+      );
+    });
+    return list;
+  }, [catalogRowsAll, catalogQuickFilter, filters.q, catalogExactCode, catalogNumericSort]);
+
+  const selectedCatalogRow = useMemo(
+    () => catalogRowsAll.find((r) => r.doc.id === selectedDocId) || null,
+    [catalogRowsAll, selectedDocId]
+  );
+
+  const compareCandidates = useMemo(() => {
+    if (!selectedCatalogRow) return [];
+    return catalogRowsAll.filter((r) => r.versionFamilyKey === selectedCatalogRow.versionFamilyKey && r.doc.id !== selectedCatalogRow.doc.id);
+  }, [catalogRowsAll, selectedCatalogRow]);
+
+  useEffect(() => {
+    if (!compareCandidates.find((c) => c.doc.id === compareDocId)) {
+      setCompareDocId("");
+    }
+  }, [compareCandidates, compareDocId]);
+
+  function onlyString(v: boolean) {
+    return !!v;
+  }
+
+  const toggleFavoriteUnitCode = useCallback((unitCode: string) => {
+    if (!unitCode) return;
+    setFavoriteUnitCodes((prev) =>
+      prev.includes(unitCode) ? prev.filter((c) => c !== unitCode) : [...prev, unitCode]
+    );
+  }, []);
+
+  const runCatalogValidation = useCallback(() => {
+    const blockers: string[] = [];
+    const warnings: string[] = [];
+    const info: string[] = [];
+    if (catalogHealth.missingActiveSetCount > 0) blockers.push(`Missing ${catalogHealth.missingActiveSetCount} active-set unit(s) from locked catalog.`);
+    if (catalogHealth.unverifiedPearsonCount > 0) blockers.push(`${catalogHealth.unverifiedPearsonCount} Pearson spec(s) have unverified criterion descriptions.`);
+    if (catalogHealth.sameIssueConflictCount > 0) warnings.push(`Same-code + same-issue conflicts detected: ${catalogHealth.sameIssueConflictKeys.join(", ")}.`);
+    const emptyRows = catalogRowsAll.filter((r) => (r.doc.lockedAt || String(r.doc.status).toUpperCase() === "LOCKED") && (r.loCount === 0 || r.criteriaCount === 0));
+    if (emptyRows.length) blockers.push(`${emptyRows.length} locked spec(s) have empty LO/AC counts.`);
+    info.push(`Locked specs: ${catalogHealth.lockedCount}`);
+    info.push(`Expected active set: ${catalogHealth.expectedActiveSetCount}`);
+    if (catalogHealth.multiVersionFamilyCount > 0) info.push(`Multi-version unit families: ${catalogHealth.multiVersionFamilies.join(", ")}.`);
+    setCatalogValidationReport({ blockers, warnings, info });
+  }, [catalogHealth, catalogRowsAll]);
+
+  const exportCatalogRegistry = useCallback(() => {
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      rows: catalogRowsAll.map((r) => ({
+        documentId: r.doc.id,
+        status: r.doc.status,
+        lockedAt: r.doc.lockedAt || null,
+        unitCode: r.unitCode || null,
+        unitTitle: r.unitTitle || null,
+        issueLabel: r.issueLabel || null,
+        loCount: r.loCount,
+        criteriaCount: r.criteriaCount,
+        importSource: r.importSource || null,
+        pearsonCriteriaVerified: r.pearsonCriteriaVerified,
+        isPearsonSet: r.isPearsonSet,
+        archived: r.archived,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `spec-library-registry-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [catalogRowsAll]);
+
+  const copyPearsonRepairCommand = useCallback(async () => {
+    const cmd = "node scripts/repair-pearson-imported-spec-criteria.cjs && node scripts/lock-imported-pearson-specs.cjs";
+    try {
+      await navigator.clipboard.writeText(cmd);
+      window.alert("Copied Pearson repair command.");
+    } catch {
+      window.prompt("Copy Pearson repair command:", cmd);
+    }
+  }, []);
+
   const handleExtract = useCallback(async (docId?: string) => {
     const id = docId || selectedDocId;
     if (!id) return;
@@ -137,11 +469,18 @@ export default function SpecsAdminPage() {
   }, [refreshAll]);
 
   const nextAction = useMemo(() => {
+    if (tab === "library") {
+      if (catalogHealth.unverifiedPearsonCount > 0) return `Repair ${catalogHealth.unverifiedPearsonCount} Pearson spec${catalogHealth.unverifiedPearsonCount === 1 ? "" : "s"} with unverified criteria text.`;
+      if (catalogHealth.missingActiveSetCount > 0) return `Import and lock ${catalogHealth.missingActiveSetCount} missing active-set spec${catalogHealth.missingActiveSetCount === 1 ? "" : "s"}.`;
+      if (catalogHealth.sameIssueConflictCount > 0) return "Review same-code/same-issue conflicts and keep only the intended version active.";
+      if (catalogHealth.multiVersionFamilyCount > 0) return "Multiple versions exist for some unit families (including code changes across frameworks). Use version compare to confirm the intended grading version.";
+      return "Catalog is healthy. Use filters to review active units and version changes.";
+    }
     if (failedDocs > 0) return "Resolve failed specs first to restore extraction health.";
     if (needsReviewDocs > 0) return `Review and lock ${needsReviewDocs} extracted spec${needsReviewDocs === 1 ? "" : "s"}.`;
     if (totalDocs === 0) return "Upload your first spec to start building the reference register.";
     return "Workspace is healthy. Continue reviewing and locking new uploads.";
-  }, [failedDocs, needsReviewDocs, totalDocs]);
+  }, [failedDocs, needsReviewDocs, totalDocs, tab, catalogHealth]);
 
   const nextFocusDocId = useMemo(() => {
     const failed = visibleDocuments.find((d: any) => String(d.status || "").toUpperCase() === "FAILED");
@@ -171,7 +510,13 @@ export default function SpecsAdminPage() {
           status: (status ?? filters.status) as any,
         });
       }
-      if (quick === "ALL" || quick === "NEEDS_REVIEW" || quick === "LOCKED" || quick === "FAILED") setQuickFilter(quick);
+      if (tab === "extract" && (quick === "ALL" || quick === "NEEDS_REVIEW" || quick === "LOCKED" || quick === "FAILED")) setQuickFilter(quick);
+      if (
+        tab === "library" &&
+        (quick === "ALL" || quick === "ACTIVE_SET" || quick === "FAVORITES" || quick === "UNVERIFIED" || quick === "PEARSON_IMPORT" || quick === "PEARSON_SET_ONLY" || quick === "ARCHIVED" || quick === "FAILED")
+      ) {
+        setCatalogQuickFilter(quick as any);
+      }
       setHydratedFromUrl(true);
       return;
     }
@@ -179,10 +524,10 @@ export default function SpecsAdminPage() {
     params.set("tab", tab);
     if (filters.q) params.set("q", filters.q); else params.delete("q");
     if (filters.status) params.set("status", filters.status); else params.delete("status");
-    params.set("quick", quickFilter);
+    params.set("quick", tab === "library" ? catalogQuickFilter : quickFilter);
     const next = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, "", next);
-  }, [filters, hydratedFromUrl, quickFilter, setFilters, setTab, tab]);
+  }, [filters, hydratedFromUrl, quickFilter, catalogQuickFilter, setFilters, setTab, tab]);
 
   // Keyboard flow: / search, j/k move, e extract, l lock.
   useEffect(() => {
@@ -272,23 +617,35 @@ export default function SpecsAdminPage() {
             >
               {headerBusy === "refresh" ? "Refreshing..." : "Refresh"}
             </button>
-            <button
-              type="button"
-              onClick={() => setUploadOpen((prev) => !prev)}
-              disabled={uploading}
-              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-            >
-              {uploadOpen ? "Hide upload" : "Upload specs"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleExtract()}
-              disabled={!canExtract}
-              title={!vm.selectedDoc ? "Select a specification first." : isLocked ? "Selected specification is locked." : ""}
-              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-            >
-              {headerBusy === "extract" ? "Extracting..." : "Extract selected"}
-            </button>
+            {tab === "extract" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setUploadOpen((prev) => !prev)}
+                  disabled={uploading}
+                  className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+                >
+                  {uploadOpen ? "Hide upload" : "Upload specs"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleExtract()}
+                  disabled={!canExtract}
+                  title={!vm.selectedDoc ? "Select a specification first." : isLocked ? "Selected specification is locked." : ""}
+                  className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+                >
+                  {headerBusy === "extract" ? "Extracting..." : "Extract selected"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTab("extract")}
+                className={ui.btnPrimary}
+              >
+                Open extraction inbox
+              </button>
+            )}
             <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
               <TinyIcon name="status" className="mr-1 h-3 w-3" />
               {uploading ? uploadStatus : vm.busy ? `Processing: ${vm.busy}` : "Ready"}
@@ -338,7 +695,7 @@ export default function SpecsAdminPage() {
               (tab === "library" ? "bg-cyan-700 text-white" : "text-zinc-700 hover:bg-zinc-100")
             }
           >
-            Library
+            Library Catalog
           </button>
           <button
             type="button"
@@ -348,11 +705,12 @@ export default function SpecsAdminPage() {
               (tab === "extract" ? "bg-cyan-700 text-white" : "text-zinc-700 hover:bg-zinc-100")
             }
           >
-            Extract
+            Extraction Inbox
           </button>
         </div>
       </section>
 
+      {tab === "extract" ? (
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -429,9 +787,100 @@ export default function SpecsAdminPage() {
           </div>
         )}
       </section>
+      ) : (
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-semibold text-zinc-900">Catalog mode</div>
+            <div className="mt-1 text-xs text-zinc-600">Upload/extract controls are hidden to keep the specs master easy to review.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTab("extract")}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            Go to extraction inbox
+          </button>
+        </div>
+      </section>
+      )}
 
       {tab === "library" ? (
-        <LibraryView showHeader={false} />
+        <section className="grid min-w-0 gap-4">
+          <SpecMasterHealthBar
+            health={catalogHealth}
+            onValidate={runCatalogValidation}
+            onExport={exportCatalogRegistry}
+            onCopyRepairCommand={copyPearsonRepairCommand}
+          />
+
+          {catalogValidationReport ? (
+            <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-zinc-900">Library integrity audit</div>
+                <button
+                  type="button"
+                  onClick={() => setCatalogValidationReport(null)}
+                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+                  <div className="text-xs font-semibold uppercase tracking-wide">Blockers ({catalogValidationReport.blockers.length})</div>
+                  {catalogValidationReport.blockers.length ? (
+                    <ul className="mt-2 list-disc pl-4 text-xs">
+                      {catalogValidationReport.blockers.map((x, i) => <li key={`b-${i}`}>{x}</li>)}
+                    </ul>
+                  ) : <div className="mt-2 text-xs">None</div>}
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <div className="text-xs font-semibold uppercase tracking-wide">Warnings ({catalogValidationReport.warnings.length})</div>
+                  {catalogValidationReport.warnings.length ? (
+                    <ul className="mt-2 list-disc pl-4 text-xs">
+                      {catalogValidationReport.warnings.map((x, i) => <li key={`w-${i}`}>{x}</li>)}
+                    </ul>
+                  ) : <div className="mt-2 text-xs">None</div>}
+                </div>
+                <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+                  <div className="text-xs font-semibold uppercase tracking-wide">Info</div>
+                  <ul className="mt-2 list-disc pl-4 text-xs">
+                    {catalogValidationReport.info.map((x, i) => <li key={`i-${i}`}>{x}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </article>
+          ) : null}
+
+          <section className="grid min-w-0 gap-4 xl:grid-cols-[420px_1fr]">
+            <SpecCatalogList
+              rows={catalogRowsFiltered}
+              selectedDocId={selectedDocId}
+              onSelect={setSelectedDocId}
+              q={filters.q}
+              onQueryChange={(next) => setFilters({ ...filters, q: next })}
+              quickFilter={catalogQuickFilter}
+              onQuickFilterChange={setCatalogQuickFilter}
+              quickCounts={catalogQuickCounts as any}
+              onlyExactCode={catalogExactCode}
+              setOnlyExactCode={setCatalogExactCode}
+              onlyNumericSort={catalogNumericSort}
+              setOnlyNumericSort={setCatalogNumericSort}
+              onToggleFavorite={toggleFavoriteUnitCode}
+            />
+            <div className="grid min-w-0 gap-4">
+              <UnitEditorPanel selectedDoc={vm.selectedDoc} learningOutcomes={learningOutcomes} />
+              <SpecVersionComparePanel
+                selected={selectedCatalogRow}
+                candidates={compareCandidates}
+                compareId={compareDocId}
+                onSelectCompareId={setCompareDocId}
+              />
+              <SpecViewer selectedDoc={vm.selectedDoc} learningOutcomes={learningOutcomes} />
+            </div>
+          </section>
+        </section>
       ) : (
         <section className="grid min-w-0 gap-4">
           <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">

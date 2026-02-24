@@ -16,6 +16,23 @@ type Props = {
     blockers?: string[];
     warnings?: string[];
     metrics?: Record<string, any>;
+    audit?: {
+      ok?: boolean;
+      blockerCount?: number;
+      warningCount?: number;
+      infoCount?: number;
+      findings?: Array<{
+        level?: "BLOCKER" | "WARNING" | "INFO";
+        code?: string;
+        message?: string;
+        loCode?: string;
+        acCode?: string;
+        similarity?: number;
+        briefValue?: string | null;
+        specValue?: string | null;
+      }>;
+      metrics?: Record<string, any>;
+    } | null;
   } | null;
 };
 
@@ -252,6 +269,64 @@ export default function BriefMappingPanel({
                   <li key={`qh-w-${i}`}>{item}</li>
                 ))}
               </ul>
+            ) : null}
+            {qualityGate.audit ? (
+              <details className="mt-2 rounded-lg border border-zinc-200/70 bg-white/70 p-2" open={!!qualityGate.audit?.blockerCount}>
+                <summary className="cursor-pointer font-semibold text-zinc-800">
+                  Brief vs Spec Audit{" "}
+                  <span className="font-normal">
+                    ({Number(qualityGate.audit?.blockerCount || 0)} blocker, {Number(qualityGate.audit?.warningCount || 0)} warning,{" "}
+                    {Number(qualityGate.audit?.infoCount || 0)} info)
+                  </span>
+                </summary>
+                {qualityGate.audit.metrics ? (
+                  <div className="mt-1 text-[11px] text-zinc-700">
+                    spec LOs: {String((qualityGate.audit.metrics as any)?.specLoCount ?? "—")} · brief LOs:{" "}
+                    {String((qualityGate.audit.metrics as any)?.briefLoCount ?? "—")} · parsed AC text:{" "}
+                    {String((qualityGate.audit.metrics as any)?.briefCriteriaTextParsedCount ?? "—")}
+                  </div>
+                ) : null}
+                {Array.isArray(qualityGate.audit.findings) && qualityGate.audit.findings.length ? (
+                  <div className="mt-2 grid gap-2">
+                    {qualityGate.audit.findings.map((f, i) => {
+                      const level = String(f?.level || "INFO").toUpperCase();
+                      const tone =
+                        level === "BLOCKER"
+                          ? "border-rose-200 bg-rose-50 text-rose-900"
+                          : level === "WARNING"
+                            ? "border-amber-200 bg-amber-50 text-amber-900"
+                            : "border-sky-200 bg-sky-50 text-sky-900";
+                      return (
+                        <div key={`audit-${i}`} className={cx("rounded-lg border p-2", tone)}>
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
+                            <span>{level}</span>
+                            {f?.acCode ? <span>{f.acCode}</span> : null}
+                            {f?.loCode ? <span>{f.loCode}</span> : null}
+                            {typeof f?.similarity === "number" ? <span>sim {f.similarity}</span> : null}
+                          </div>
+                          <div className="mt-1 text-xs leading-relaxed">{String(f?.message || "")}</div>
+                          {f?.briefValue || f?.specValue ? (
+                            <div className="mt-1 grid gap-1 text-[11px]">
+                              {f?.briefValue ? (
+                                <div>
+                                  <span className="font-semibold">Brief:</span> {String(f.briefValue)}
+                                </div>
+                              ) : null}
+                              {f?.specValue ? (
+                                <div>
+                                  <span className="font-semibold">Spec:</span> {String(f.specValue)}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[11px] text-zinc-700">No audit findings.</div>
+                )}
+              </details>
             ) : null}
           </div>
         ) : null}

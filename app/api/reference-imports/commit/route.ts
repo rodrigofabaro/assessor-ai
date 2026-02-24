@@ -184,13 +184,16 @@ export async function POST(req: Request) {
         select: {
           acCode: true,
           gradeBand: true,
-          learningOutcome: { select: { loCode: true } },
+          description: true,
+          learningOutcome: { select: { loCode: true, description: true } },
         },
       });
       const mappedUnitCriteria = unitCriteria.map((c) => ({
         acCode: c.acCode,
         gradeBand: c.gradeBand as GradeBand,
         loCode: c.learningOutcome?.loCode || "",
+        description: c.description || "",
+        loDescription: c.learningOutcome?.description || "",
       }));
       const pickedCodes = selectBriefMappingCodes(brief as any, mappedUnitCriteria);
       const codes = pickedCodes.selectedCodes;
@@ -201,6 +204,9 @@ export async function POST(req: Request) {
         selectedCodes: codes,
         rawText: deriveBriefGateText(brief),
         unitCriteria: mappedUnitCriteria,
+        selectedUnitCode: unit.unitCode,
+        selectedUnitTitle: unit.unitTitle,
+        briefDraft: brief,
       });
       if (!qualityGate.ok && !allowQualityGateBypass) {
         return NextResponse.json(
@@ -210,6 +216,7 @@ export async function POST(req: Request) {
             blockers: qualityGate.blockers,
             warnings: qualityGate.warnings,
             metrics: qualityGate.metrics,
+            audit: (qualityGate as any).audit || null,
             suggestion: "Re-extract the brief, then verify criteria mapping (or retry with allowQualityGateBypass=true after manual review).",
           },
           { status: 422 }

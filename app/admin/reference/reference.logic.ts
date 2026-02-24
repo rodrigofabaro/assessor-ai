@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
+import { evaluateBriefLockQuality } from "@/lib/briefs/lockQualityGate";
+import { selectBriefMappingCodes } from "@/lib/briefs/mappingCodes";
 
 export type ReferenceDocument = {
   id: string;
@@ -99,6 +101,7 @@ type MappingHealth = {
   blockers?: string[];
   warnings?: string[];
   metrics?: Record<string, any>;
+  audit?: any;
 } | null;
 
 const FILTERS_KEY = "assessorai.reference.inboxFilters.v1";
@@ -109,6 +112,32 @@ function isPdfFile(file: File): boolean {
 
 function stripExtension(name: string) {
   return name.replace(/\.[^/.]+$/, "");
+}
+
+function deriveBriefGateTextClient(brief: any) {
+  const raw = String(brief?.rawText || "").trim();
+  if (raw) return raw;
+  const chunks: string[] = [];
+  const title = String(brief?.title || "").trim();
+  if (title) chunks.push(title);
+  const header = brief?.header || {};
+  for (const key of ["unitNumberAndTitle", "assignmentTitle", "qualification", "assessor", "internalVerifier", "academicYear"]) {
+    const value = String(header?.[key] || "").trim();
+    if (value) chunks.push(value);
+  }
+  for (const s of Array.isArray(brief?.scenarios) ? brief.scenarios : []) {
+    const text = String(s?.text || "").trim();
+    if (text) chunks.push(text);
+  }
+  for (const task of Array.isArray(brief?.tasks) ? brief.tasks : []) {
+    const text = String(task?.text || "").trim();
+    if (text) chunks.push(text);
+    for (const part of Array.isArray(task?.parts) ? task.parts : []) {
+      const pText = String(part?.text || "").trim();
+      if (pText) chunks.push(pText);
+    }
+  }
+  return chunks.join("\n\n").trim();
 }
 
 function summarizeCleanupCandidates(extractedJson: any, taskNumbers?: number[] | null) {
@@ -336,6 +365,57 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     const unitId = briefUnitId || "";
     return allCriteria.filter((c) => c.learningOutcome.unitId === unitId);
   }, [allCriteria, briefUnitId]);
+
+  useEffect(() => {
+    if (!selectedDoc || selectedDoc.type !== "BRIEF") {
+      return;
+    }
+    const manualDraft = (() => {
+      const v = (selectedDoc.sourceMeta as any)?.manualDraft;
+      return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+    })();
+    let liveDraft: any = null;
+    if (showRawJson && rawJson.trim()) {
+      try {
+        liveDraft = JSON.parse(rawJson);
+      } catch {
+        liveDraft = null;
+      }
+    }
+    const draft = liveDraft || manualDraft || selectedDoc.extractedJson;
+    if (!draft || draft.kind !== "BRIEF") {
+      setMappingHealth(null);
+      return;
+    }
+
+    const selectedUnit = units.find((u) => u.id === briefUnitId) || null;
+    const unitCriteria = (criteriaForSelectedUnit || []).map((c) => ({
+      acCode: c.acCode,
+      gradeBand: c.gradeBand,
+      loCode: c.learningOutcome?.loCode || "",
+      description: c.description || "",
+      loDescription: c.learningOutcome?.description || "",
+    }));
+    const pickedCodes = selectBriefMappingCodes(draft as any, unitCriteria as any);
+    const gate = evaluateBriefLockQuality({
+      assignmentCode: String(assignmentCodeInput || draft.assignmentCode || "").trim().toUpperCase(),
+      title: String(draft.title || selectedDoc.title || "").trim(),
+      hasUnitSignal: Boolean(briefUnitId || draft.unitCodeGuess || draft?.header?.unitNumberAndTitle),
+      selectedCodes: pickedCodes.selectedCodes,
+      rawText: deriveBriefGateTextClient(draft),
+      unitCriteria: unitCriteria as any,
+      selectedUnitCode: selectedUnit?.unitCode || null,
+      selectedUnitTitle: selectedUnit?.unitTitle || null,
+      briefDraft: draft,
+    });
+    setMappingHealth({
+      ok: !!gate.ok,
+      blockers: gate.blockers || [],
+      warnings: gate.warnings || [],
+      metrics: gate.metrics || {},
+      audit: (gate as any).audit || null,
+    });
+  }, [selectedDoc, showRawJson, rawJson, units, briefUnitId, criteriaForSelectedUnit, assignmentCodeInput]);
 
   const [editUnitCode, setEditUnitCode] = useState("");
   const [editUnitTitle, setEditUnitTitle] = useState("");
@@ -894,6 +974,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
             blockers: Array.isArray(data?.blockers) ? data.blockers : [],
             warnings: Array.isArray(data?.warnings) ? data.warnings : [],
             metrics: data?.metrics || {},
+            audit: data?.audit || data?.qualityGate?.audit || null,
           });
         }
         if (res.status === 409 && data?.error === "BRIEF_ALREADY_LOCKED") {
@@ -923,6 +1004,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
           blockers: Array.isArray(data.qualityGate.blockers) ? data.qualityGate.blockers : [],
           warnings: Array.isArray(data.qualityGate.warnings) ? data.qualityGate.warnings : [],
           metrics: data.qualityGate.metrics || {},
+          audit: data.qualityGate.audit || null,
         });
       }
       if (data?.document) applyUpdatedDocument(data.document);
@@ -959,6 +1041,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
             blockers: Array.isArray(data?.blockers) ? data.blockers : [],
             warnings: Array.isArray(data?.warnings) ? data.warnings : [],
             metrics: data?.metrics || {},
+            audit: data?.audit || data?.qualityGate?.audit || null,
           });
         }
         const message = data?.message || data?.error || `Lock failed (${res.status}).`;
@@ -972,6 +1055,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
           blockers: Array.isArray(data.qualityGate.blockers) ? data.qualityGate.blockers : [],
           warnings: Array.isArray(data.qualityGate.warnings) ? data.qualityGate.warnings : [],
           metrics: data.qualityGate.metrics || {},
+          audit: data.qualityGate.audit || null,
         });
       }
       if (data?.document) applyUpdatedDocument(data.document);

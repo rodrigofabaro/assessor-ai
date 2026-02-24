@@ -14,6 +14,61 @@ Specs define the criteria universe used by briefs and grading.
 4. commit import
 5. lock authoritative version
 
+## Page Modes (Operator UX)
+
+`/admin/specs` now has two distinct modes:
+
+- `Library Catalog` (default)
+  - use this for reviewing the locked specs register ("spec master")
+  - includes health summary, version-family filters, and spec version compare
+- `Extraction Inbox`
+  - use this for upload, extract/re-extract, and lock actions on incoming spec PDFs
+
+This separation reduces clutter when you are only auditing the catalog.
+
+## Library Catalog Features (Spec Master)
+
+- `Spec Master Health` summary bar
+  - locked specs
+  - active set coverage
+  - unverified Pearson criteria descriptions
+  - multi-version families
+  - version conflicts (`same code + same issue`)
+- quick filters
+  - `Active set`, `Favorites`, `Unverified`, `Pearson batch`, `Pearson-set`, `Archived`
+- exact unit-code search (supports shorter historical codes too, e.g. `44`)
+- numeric unit-code sorting
+- favorites/pinning (local browser preference)
+- LO/AC count visibility per row
+
+## Version Families (Important)
+
+The catalog distinguishes:
+
+- `Multi-version family` (expected / informational)
+  - same unit across different issue dates/versions
+  - may also include framework renumbering (same unit title, different unit code)
+  - example: a newer code and an older historical code for the same unit title
+- `Same-issue conflict` (warning)
+  - same unit code and same issue label duplicated
+  - requires operator review
+
+Do not treat all repeated unit codes as errors. Version history is normal.
+
+## Spec Version Compare
+
+Use the compare panel in `Library Catalog` to compare units within the same version family.
+
+The panel now reports:
+
+- LO added/removed
+- LO text changed
+- criteria added/removed
+- criteria moved to different LO
+- criteria text changed
+
+Use this to confirm what changed between Issue 5 vs Issue 6 (or across framework renumbering).
+
 ## Pearson Engineering Suite (Bulk "Spec Master")
 
 For Pearson HN Engineering 2024 suite imports, use the scripted flow instead of manual upload-per-unit.
@@ -53,6 +108,7 @@ After a successful repair, criteria descriptions display normally.
 - footer noise not polluting LO/criteria text
 - issue label and unit code detected correctly
 - Pearson imported specs: `criteriaDescriptionsVerified = true` before trusting criterion descriptions in UI
+- if multiple versions exist, confirm the intended grading version via `Spec version compare`
 
 ## Rule
 

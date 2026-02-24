@@ -82,6 +82,16 @@ Do not run `repair` and `lock` in parallel for the same new batch.
 - Imported Pearson docs use `sourceMeta.importSource = pearson-engineering-suite-2024`
 - Criteria descriptions are hidden until `sourceMeta.criteriaDescriptionsVerified = true`
 - After repair, criteria descriptions display normally
+- `Library Catalog` is the preferred review mode for the locked spec master
+- `Extraction Inbox` is for upload/extract/lock operations
+
+### Version families vs conflicts
+
+In the catalog:
+
+- `Multi-version family` means multiple versions of the same unit (normal)
+  - can include same unit title with different unit codes across frameworks/time periods
+- `Same-issue conflict` means duplicate records for the same unit code + same issue label (needs review)
 
 ### `/admin/library`
 
@@ -101,6 +111,7 @@ Check:
 - LO list complete and ordered
 - criterion codes complete by LO
 - criterion descriptions read cleanly (no mixed `Pass/Merit/Distinction` text)
+- if multiple versions exist, use spec version compare to confirm the intended issue/framework version
 
 ## Known Status Metadata
 

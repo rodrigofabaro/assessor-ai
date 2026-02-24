@@ -1,9 +1,12 @@
 import type { GradeBand } from "@/lib/referenceParser";
+import { evaluateBriefSpecAudit, type BriefSpecAuditResult } from "@/lib/briefs/briefSpecAudit";
 
 type UnitCriterionLite = {
   acCode: string;
   gradeBand: GradeBand;
   loCode: string;
+  description?: string | null;
+  loDescription?: string | null;
 };
 
 type BriefGateInput = {
@@ -13,6 +16,9 @@ type BriefGateInput = {
   selectedCodes: string[];
   rawText: string;
   unitCriteria: UnitCriterionLite[];
+  selectedUnitCode?: string | null;
+  selectedUnitTitle?: string | null;
+  briefDraft?: any;
 };
 
 export type BriefGateResult = {
@@ -26,6 +32,7 @@ export type BriefGateResult = {
     meritCount: number;
     distinctionCount: number;
   };
+  audit?: BriefSpecAuditResult;
 };
 
 export function evaluateBriefLockQuality(input: BriefGateInput): BriefGateResult {
@@ -83,6 +90,20 @@ export function evaluateBriefLockQuality(input: BriefGateInput): BriefGateResult
     }
   }
 
+  const audit = evaluateBriefSpecAudit({
+    briefDraft: input.briefDraft || null,
+    selectedUnitCode: input.selectedUnitCode || null,
+    selectedUnitTitle: input.selectedUnitTitle || null,
+    unitCriteria,
+    selectedCodes,
+  });
+  if (audit.blockerCount > 0) {
+    blockers.push(`Brief vs spec audit failed (${audit.blockerCount} blocker${audit.blockerCount === 1 ? "" : "s"}).`);
+  }
+  if (audit.warningCount > 0) {
+    warnings.push(`Brief vs spec audit found ${audit.warningCount} warning${audit.warningCount === 1 ? "" : "s"}.`);
+  }
+
   return {
     ok: blockers.length === 0,
     blockers,
@@ -94,6 +115,6 @@ export function evaluateBriefLockQuality(input: BriefGateInput): BriefGateResult
       meritCount,
       distinctionCount,
     },
+    audit,
   };
 }
-
