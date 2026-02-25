@@ -20,6 +20,7 @@ const ADMIN_ITEMS: AdminItem[] = [
   { label: "Briefs", href: "/admin/briefs", accent: "emerald" },
   { label: "Library", href: "/admin/library", accent: "teal" },
   { label: "QA", href: "/admin/qa", accent: "indigo" },
+  { label: "IV - AD", href: "/admin/iv-ad", accent: "blue" },
   { label: "Specs", href: "/admin/specs", accent: "cyan" },
   { label: "Students", href: "/admin/students", accent: "violet" },
   { label: "Users", href: "/admin/users", accent: "fuchsia" },
@@ -60,6 +61,7 @@ function accentClasses(accent: string) {
 function accentFromPath(pathname: string): string {
   if (pathname === "/admin" || pathname.startsWith("/admin/overview")) return "sky";
   if (pathname.startsWith("/admin/qa")) return "indigo";
+  if (pathname.startsWith("/admin/iv-ad")) return "blue";
   if (pathname.startsWith("/admin/audit")) return "amber";
   if (pathname.startsWith("/admin/specs")) return "cyan";
   if (pathname.startsWith("/admin/briefs")) return "emerald";

@@ -103,6 +103,17 @@ function asPercent(value: unknown): number | null {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+function turnitinPercentBadgeValue(turnitin: SubmissionResearchRow["turnitin"], key: "overallMatchPercentage" | "aiWritingPercentage") {
+  const status = String(turnitin?.status || "").trim().toUpperCase();
+  const pct = asPercent(turnitin?.[key]);
+  const isComplete = status === "COMPLETE";
+  if (pct === null) return { text: "—", tone: "empty" as const };
+  if (!isComplete && pct === 0 && (status === "PROCESSING" || status === "CREATED" || status === "UPLOADING")) {
+    return { text: "Pending", tone: "pending" as const };
+  }
+  return { text: `${pct}%`, tone: "value" as const };
+}
+
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const body = [headers, ...rows].map((r) => r.map(esc).join(",")).join("\n");
@@ -618,6 +629,8 @@ export default function AdminQaPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Status</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">QA Flags</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Report %</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">AI %</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Turnitin</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Graded</th>
@@ -625,7 +638,7 @@ export default function AdminQaPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
+                <tr><td colSpan={12} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="text-sm">
@@ -651,30 +664,53 @@ export default function AdminQaPage() {
                       )}
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      {(() => {
+                        const badge = turnitinPercentBadgeValue(r.turnitin, "overallMatchPercentage");
+                        return (
+                          <span
+                            className={
+                              "inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                              (badge.tone === "empty"
+                                ? "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                : badge.tone === "pending"
+                                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                                  : "border-sky-200 bg-sky-50 text-sky-900")
+                            }
+                            title="Turnitin similarity report percentage"
+                          >
+                            {badge.text}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      {(() => {
+                        const badge = turnitinPercentBadgeValue(r.turnitin, "aiWritingPercentage");
+                        return (
+                          <span
+                            className={
+                              "inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                              (badge.tone === "empty"
+                                ? "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                : badge.tone === "pending"
+                                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                                  : "border-violet-200 bg-violet-50 text-violet-900")
+                            }
+                            title="Turnitin AI writing percentage"
+                          >
+                            {badge.text}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
                       <div className="space-y-1">
                         <div className="text-[11px]">
                           <span className="font-semibold text-zinc-800">
                             Report: {r.turnitin?.status ? String(r.turnitin.status) : "Not sent"}
                           </span>
                         </div>
-                        <div className="text-[11px] text-zinc-600">
-                          <span className="font-semibold text-zinc-800">
-                            {(() => {
-                              const pct = asPercent(r.turnitin?.overallMatchPercentage);
-                              return pct === null ? "—" : `${pct}%`;
-                            })()}
-                          </span>{" "}
-                          Similarity
-                        </div>
-                        <div className="text-[11px] text-zinc-600">
-                          <span className="font-semibold text-zinc-800">
-                            {(() => {
-                              const pct = asPercent(r.turnitin?.aiWritingPercentage);
-                              return pct === null ? "—" : `${pct}%`;
-                            })()}
-                          </span>{" "}
-                          AI writing
-                        </div>
+                        <div className="text-[11px] text-zinc-600">Use "Check status" to refresh report percentages.</div>
                         <div className="flex flex-wrap items-center gap-1.5">
                           {(() => {
                             const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
