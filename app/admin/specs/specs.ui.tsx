@@ -39,6 +39,82 @@ export function StatusPill({ status }: { status: ReferenceDocument["status"] }) 
   return <span className={"inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " + b.cls}>{b.text}</span>;
 }
 
+function GitStyleDiffLine({
+  kind,
+  label,
+  value,
+}: {
+  kind: "add" | "remove";
+  label: string;
+  value: string;
+}) {
+  const add = kind === "add";
+  return (
+    <div
+      className={
+        "mt-1 flex items-start gap-2 rounded-md border px-2 py-1.5 " +
+        (add ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-rose-200 bg-rose-50 text-rose-950")
+      }
+    >
+      <span
+        className={
+          "mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold leading-none " +
+          (add ? "bg-emerald-200 text-emerald-900" : "bg-rose-200 text-rose-900")
+        }
+        aria-hidden="true"
+      >
+        {add ? "+" : "-"}
+      </span>
+      <div className="min-w-0">
+        <span className="font-semibold">{label}:</span>{" "}
+        <span className="break-words whitespace-pre-wrap">{value || "—"}</span>
+      </div>
+    </div>
+  );
+}
+
+function DiffStatLine({
+  kind,
+  label,
+  count,
+  details,
+}: {
+  kind: "add" | "remove" | "move" | "edit";
+  label: string;
+  count: number;
+  details?: string;
+}) {
+  const tone =
+    kind === "add"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+      : kind === "remove"
+        ? "border-rose-200 bg-rose-50 text-rose-950"
+        : kind === "move"
+          ? "border-amber-200 bg-amber-50 text-amber-950"
+          : "border-sky-200 bg-sky-50 text-sky-950";
+  const badgeTone =
+    kind === "add"
+      ? "bg-emerald-200 text-emerald-900"
+      : kind === "remove"
+        ? "bg-rose-200 text-rose-900"
+        : kind === "move"
+          ? "bg-amber-200 text-amber-900"
+          : "bg-sky-200 text-sky-900";
+  const marker = kind === "add" ? "+" : kind === "remove" ? "-" : kind === "move" ? "↔" : "~";
+
+  return (
+    <li className={`flex items-start gap-2 rounded-md border px-2 py-1 ${tone}`}>
+      <span className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold leading-none ${badgeTone}`} aria-hidden="true">
+        {marker}
+      </span>
+      <span className="min-w-0 break-words">
+        {label}: <span className="font-semibold">{count}</span>
+        {details ? <span>{details}</span> : null}
+      </span>
+    </li>
+  );
+}
+
 export type SpecCatalogRow = {
   doc: ReferenceDocument;
   unitCode: string;
@@ -409,19 +485,52 @@ export function SpecVersionComparePanel({
               <div className="mt-2 grid gap-3 md:grid-cols-2">
                 <div className="rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
                   <div className="font-semibold text-zinc-900">Learning outcomes</div>
-                  <ul className="mt-2 list-disc pl-4 space-y-1">
-                    <li>Added: <span className="font-semibold">{diff.loAdded.length}</span>{diff.loAdded.length ? ` (${diff.loAdded.join(", ")})` : ""}</li>
-                    <li>Removed: <span className="font-semibold">{diff.loRemoved.length}</span>{diff.loRemoved.length ? ` (${diff.loRemoved.join(", ")})` : ""}</li>
-                    <li>Text changed: <span className="font-semibold">{diff.loTextChanged.length}</span>{diff.loTextChanged.length ? ` (${diff.loTextChanged.slice(0, 8).join(", ")}${diff.loTextChanged.length > 8 ? "..." : ""})` : ""}</li>
+                  <ul className="mt-2 space-y-1">
+                    <DiffStatLine kind="add" label="Added" count={diff.loAdded.length} details={diff.loAdded.length ? ` (${diff.loAdded.join(", ")})` : ""} />
+                    <DiffStatLine kind="remove" label="Removed" count={diff.loRemoved.length} details={diff.loRemoved.length ? ` (${diff.loRemoved.join(", ")})` : ""} />
+                    <DiffStatLine
+                      kind="edit"
+                      label="Text changed"
+                      count={diff.loTextChanged.length}
+                      details={
+                        diff.loTextChanged.length
+                          ? ` (${diff.loTextChanged.slice(0, 8).join(", ")}${diff.loTextChanged.length > 8 ? "..." : ""})`
+                          : ""
+                      }
+                    />
                   </ul>
                 </div>
                 <div className="rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
                   <div className="font-semibold text-zinc-900">Assessment criteria</div>
-                  <ul className="mt-2 list-disc pl-4 space-y-1">
-                    <li>Added: <span className="font-semibold">{diff.acAdded.length}</span>{diff.acAdded.length ? ` (${diff.acAdded.slice(0, 10).join(", ")}${diff.acAdded.length > 10 ? "..." : ""})` : ""}</li>
-                    <li>Removed: <span className="font-semibold">{diff.acRemoved.length}</span>{diff.acRemoved.length ? ` (${diff.acRemoved.slice(0, 10).join(", ")}${diff.acRemoved.length > 10 ? "..." : ""})` : ""}</li>
-                    <li>Moved LO: <span className="font-semibold">{diff.acLoChanged.length}</span>{diff.acLoChanged.length ? ` (${diff.acLoChanged.slice(0, 10).join(", ")}${diff.acLoChanged.length > 10 ? "..." : ""})` : ""}</li>
-                    <li>Text changed: <span className="font-semibold">{diff.acTextChanged.length}</span>{diff.acTextChanged.length ? ` (${diff.acTextChanged.slice(0, 10).join(", ")}${diff.acTextChanged.length > 10 ? "..." : ""})` : ""}</li>
+                  <ul className="mt-2 space-y-1">
+                    <DiffStatLine
+                      kind="add"
+                      label="Added"
+                      count={diff.acAdded.length}
+                      details={diff.acAdded.length ? ` (${diff.acAdded.slice(0, 10).join(", ")}${diff.acAdded.length > 10 ? "..." : ""})` : ""}
+                    />
+                    <DiffStatLine
+                      kind="remove"
+                      label="Removed"
+                      count={diff.acRemoved.length}
+                      details={diff.acRemoved.length ? ` (${diff.acRemoved.slice(0, 10).join(", ")}${diff.acRemoved.length > 10 ? "..." : ""})` : ""}
+                    />
+                    <DiffStatLine
+                      kind="move"
+                      label="Moved LO"
+                      count={diff.acLoChanged.length}
+                      details={diff.acLoChanged.length ? ` (${diff.acLoChanged.slice(0, 10).join(", ")}${diff.acLoChanged.length > 10 ? "..." : ""})` : ""}
+                    />
+                    <DiffStatLine
+                      kind="edit"
+                      label="Text changed"
+                      count={diff.acTextChanged.length}
+                      details={
+                        diff.acTextChanged.length
+                          ? ` (${diff.acTextChanged.slice(0, 10).join(", ")}${diff.acTextChanged.length > 10 ? "..." : ""})`
+                          : ""
+                      }
+                    />
                   </ul>
                 </div>
               </div>
@@ -430,6 +539,10 @@ export function SpecVersionComparePanel({
                 <details className="mt-3 rounded-lg border border-zinc-200 bg-white p-3">
                   <summary className="cursor-pointer text-xs font-semibold text-zinc-900">Show change details</summary>
                   <div className="mt-2 grid gap-3">
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600">
+                      Git-style view: <span className="font-semibold text-rose-700">- Compare version</span> /{" "}
+                      <span className="font-semibold text-emerald-700">+ Current version</span>
+                    </div>
                     {diff.loTextSamples.length ? (
                       <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs">
                         <div className="font-semibold text-zinc-900">LO text changes</div>
@@ -437,8 +550,8 @@ export function SpecVersionComparePanel({
                           {diff.loTextSamples.map((row) => (
                             <div key={`lo-${row.code}`} className="rounded-md border border-zinc-200 bg-white p-2">
                               <div className="font-semibold text-zinc-900">{row.code}</div>
-                              <div className="mt-1 text-zinc-700"><span className="font-semibold">Current:</span> {row.current}</div>
-                              <div className="mt-1 text-zinc-700"><span className="font-semibold">Compare:</span> {row.compare}</div>
+                              <GitStyleDiffLine kind="remove" label="Compare" value={row.compare} />
+                              <GitStyleDiffLine kind="add" label="Current" value={row.current} />
                             </div>
                           ))}
                         </div>
@@ -452,8 +565,8 @@ export function SpecVersionComparePanel({
                           {diff.acLoMoveSamples.map((row) => (
                             <div key={`move-${row.code}`} className="rounded-md border border-zinc-200 bg-white p-2">
                               <div className="font-semibold text-zinc-900">{row.code}</div>
-                              <div className="mt-1 text-zinc-700">Current: {row.currentLo}</div>
-                              <div className="mt-1 text-zinc-700">Compare: {row.compareLo}</div>
+                              <GitStyleDiffLine kind="remove" label="Compare LO" value={row.compareLo} />
+                              <GitStyleDiffLine kind="add" label="Current LO" value={row.currentLo} />
                             </div>
                           ))}
                         </div>
@@ -467,8 +580,8 @@ export function SpecVersionComparePanel({
                           {diff.acTextSamples.map((row) => (
                             <div key={`ac-${row.code}`} className="rounded-md border border-zinc-200 bg-white p-2">
                               <div className="font-semibold text-zinc-900">{row.code} ({row.loCode})</div>
-                              <div className="mt-1 text-zinc-700"><span className="font-semibold">Current:</span> {row.current}</div>
-                              <div className="mt-1 text-zinc-700"><span className="font-semibold">Compare:</span> {row.compare}</div>
+                              <GitStyleDiffLine kind="remove" label="Compare" value={row.compare} />
+                              <GitStyleDiffLine kind="add" label="Current" value={row.current} />
                             </div>
                           ))}
                         </div>
