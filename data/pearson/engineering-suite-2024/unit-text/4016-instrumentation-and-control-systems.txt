@@ -1,0 +1,204 @@
+Unit 4016: Instrumentation and Control
+Systems
+Unit Code: T/651/0733
+Level: 4
+Credits: 15
+Introduction
+Instrumentation and control can also be described as measurement automation,
+which is a very important area of engineering. It is responsible for the safe control of a
+wide range of processes from power stations to manufacturing facilities and even the
+cruise control in cars.
+This unit introduces students to the important principles, components, and practices
+of instrumentation in controlling of a system, together with the terminology,
+techniques and components that are used in such a system.
+Among the topics included in this unit are: instrumentation systems, instrumentation
+signal terminology, signal conversion and conditioning, process control systems,
+process controller terminology, system terminology and concepts, system tuning
+techniques and application of predicted values to a control system.
+On successful completion of this unit students will be able to learn about the
+measurement of system parameters to a successful process control performance,
+when and how such measurements are carried out, and developing skills in applying
+predicted values in order to ensure stability within a control system for a range of
+input wave forms.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+122
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Describe operation of instrumentation devices including parameters used in
+process control
+LO2 Investigate process control systems and controllers
+LO3 Analyse the control concepts used within an industrial process
+LO4 Apply predicted values to ensure stability within a control system.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+123
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Describe operation of instrumentation devices including parameters used
+in process control
+Instrumentation systems:
+Sensors and transducers used in instrumentation including resistive, inductive,
+capacitive, ultrasonic, pressure, semiconductor, thermocouple and optical
+Investigate key design aspects of instrumentation systems using latest industry
+case studies.
+Instrumentation signal terminology:
+The importance of instrumentation signal terminology, error, drift, repeatability,
+including the difference between accuracy and precision, reliability, linearity,
+sensitivity, resolution, range, and hysteresis.
+Signal conversion and conditioning:
+Conversion and conditioning of signals, including analogue, digital, optical,
+microprocessor, wireless and industry standard signal ranges.
+LO2 Investigate process control systems and controllers
+Process control systems:
+The need for process control systems, including quality, safety, consistency,
+optimisation, efficiency, cost and environmental considerations
+Investigate key design aspects of instrumentation systems using latest industry
+case studies.
+Process controller terminology:
+Defining set point, process value, output, error, gain, deviation, range, on-off
+control, two step control and three term control PID (proportional, integral and
+derivative).
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+124
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Analyse the control concepts used within an industrial process
+System terminology and concepts:
+Recognise system terminology and concepts, including distance velocity lags,
+capacity, resistance, static and dynamic gain, feedback types, open and closed
+loop, feed forward control and stability (underdamped, overdamped and
+critically damped system).
+System tuning techniques:
+Familiarise with system tuning techniques, including Zeigler-Nichols, continuous
+cycling, reaction curves, decay methods and overshoot tuning.
+LO4 Apply predicted values to ensure stability within a control system
+Predicted values:
+Investigate block diagram representation of a simplified feedback system (plant
+and controller) and a closed-loop control system (reference input, controller,
+plant, feedback, error).
+Investigate transfer function representation for a first and second order
+closed-loop system.
+Apply predicted values to a given open and closed loop control system using
+simulation, to investigate system response to a range of input signal types,
+evaluate stability of the system using its key parameters (settling time, rise time,
+peak time, peak value, overshoot, steady state error) and propose possible
+improvements.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+125
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Describe operation of instrumentation devices including
+parameters used in process control
+P1 Describe operation of M1 Explore industrial D1 Critically review the
+the key types of sensor and applications for sensors industrial application of
+transducers used in process and transducers. an instrumentation and
+control. control process system,
+M2 Analyse the accuracy of
+using research evidence.
+P2 Define the signal the sensors and transducers
+terminology used in process used in a particular
+control. application.
+P3 Explain the different
+methods and standards used
+in signal conversion and
+conditioning.
+LO2 Investigate process control systems and controllers
+P4 Investigate the importance D2 Propose
+M3 Analyse a typical industrial
+of process control systems. recommendations for
+application for a process
+improvements to process
+control system.
+P5 Explore the process
+control systems and
+controller terminology used
+controllers.
+in industrial applications.
+LO3 Analyse the control concepts used within an industrial
+process
+P6 Examine the control M4 Analyse how the D3 Critically review the
+terminology and concepts simulated control system reasoning behind system
+used in process control responds to a range of signal response as different
+systems. inputs, in the context of a signals are applied,
+given industrial process. in the context of a given
+P7 Analyse system tuning
+industrial process.
+methods and techniques
+employed to improve
+performance.
+LO4 Apply predicted values to ensure stability within a control
+system
+P8 Demonstrate the correct D4 Argue why the system
+M5 Show how the virtual
+use of an instrumentation responds in a certain way
+control system responds to a
+and control virtual as the signals are applied,
+range of signal inputs with
+including stability aspects
+simulation. technical narrative.
+and possible
+P9 Apply tuning techniques in
+improvements.
+a typical industrial application
+using simulation.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+126
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bolton W. (2021) Instrumentation and Control Systems . 3rd Ed. Elsevier.
+Dabney J.B. and Harman T.L. (2003) Mastering Simulink . Prentice Hall.
+Dorf R.C. and Bishop R.H. (2022) Modern Control Systems . 14th Ed. Pearson.
+Essic J. (2018) Hands-On Introduction to LabVIEW for Scientists and Engineers .
+4th Ed. Oxford University Press.
+Iqbal K. (2020) A First Course in Control System Design. 2nd Ed. River Publishers.
+Kondratenko Y.P, Kuntsevich V.M., Chikrii A.A. and Gubarev V.F. (2021)
+Advanced Control Systems – Theory and Applications. 1st Ed. River Publishers.
+Moore H. (2019) MATLAB for Engineers. 5th Ed. Pearson.
+Nagrath I.J. (2022) Control Systems Engineering. 7th Ed. New Age International
+Publishers.
+Nise N.S. (2011) Control Systems Engineering . 6th Ed. John Wiley & Sons.
+Sarangapani J. and Xu H. (2021) Optimal Networked Control Systems with MATLAB.
+CRC Press.
+Cappelli M. (2023) Instrumentation and Control Systems for Nuclear Power Plants .
+1st Ed. Woodhead Publishing.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+IEEE Transactions on Instrumentation and Measurement
+Journal of Advanced Research in Instrumentation and Control Engineering
+Journal of Control and Instrumentation
+Journal of Instrumentation
+Journal of Process Control
+Transactions of the Institute of Measurement and Control
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+127
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Links
+This unit links to the following related units:
+Unit 5007: Commercial Programming Software
+Unit 5021: Further Control Systems Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+128
+Issue 6 – October 2025 © Pearson Education Limited 2025

@@ -1,0 +1,247 @@
+Unit 4018: Maintenance Engineering
+Unit Code: D/651/0736
+Level: 4
+Credits: 15
+Introduction
+Plant and equipment are one of the biggest assets for any business, costing huge
+sums of money to replace when things go wrong. Without regular maintenance
+business owners could see an increase in costly breakdowns, often incurring
+downtime and significant loss of earnings. Inspection and maintenance are therefore
+vital to detect and prevent any potential equipment issues or faults that would
+prevent operation at optimum efficiency. Good maintenance proves itself on a
+day-to-day basis.
+This unit introduces students to the importance of equipment maintenance
+programmes, the benefits that well-maintained equipment brings to an organisation
+and the risk factors it faces if maintenance programmes and processes are not
+considered or implemented. Topics included in this unit are: statutory regulations,
+organisational safety requirements, maintenance strategies, safe working and
+maintenance techniques.
+On successful completion of this unit students will be able to learn about the
+importance of compliance with statutory regulations associated with asset
+maintenance, maintenance techniques adopted by the industry, safe working
+practices whilst performing maintenance tasks in an industrial environment
+and inspection and maintenance techniques.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+136
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Analyse the impact of relevant statutory regulations and organisational safety
+requirements on the industrial workplace
+LO2 Differentiate between the merits and use of different types of maintenance
+strategies in an industrial workplace
+LO3 Illustrate competence in working safely by correctly determining the hazards
+and risks associated with maintenance techniques
+LO4 Apply effective inspection and maintenance techniques relative to a particular
+specialisation such as mechanical or electrical.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+137
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential Content
+LO1 Analyse the impact of relevant statutory regulations and organisational
+safety requirements on the industrial workplace
+Regional and global statutory regulations:
+The responsibility of employers and employees with regard to statutory
+regulations in the workplace, including: HASWA 1974, MHSWR 1999, PUWER
+1998, COSHH, LOLER 1998, Working at Height Regulations, Manual Handling
+Operations Regulations 1992, PPE at Work Regulations 1992, Confined Spaces
+Regulations 1997, Electricity at Work Regulations 1989, Control of Noise, at Work
+Regulations 2005, RIDDOR 1995, CDM Regulations 2015, ACoP HSE Guidance
+Notes and Safety Signs
+Case studies: Occupational Safety and Health Administration (OSHA),
+risk categories, risk assessment and prevention procedures and tools;
+country/region specific health and safety executive regulations.
+Organisational safety requirements:
+The responsibility of the employee with regard to organisational safety
+requirements such as the role of the HSE and the power of inspectors,
+right of inspection, improvement notices and prohibition notice
+Product safety and raw materials safety requirements, Safety Data Sheet (SDS)
+of materials, PPE in all stages of operations to ensure safety.
+LO2 Differentiate between the merits and use of different types of maintenance
+strategies in an industrial workplace
+Maintenance strategies:
+Definition of, and need for maintenance
+Component failure, bathtub curve
+Equipment design life and periodic maintenance (e.g. belt adjustment,
+lubrication etc)
+Reactive, preventive, predictive and reliability centred maintenance
+Comparison of the presented maintenance programmes – for example,
+Total Productive Maintenance (TPM), Condition Based Maintenance (CBM),
+Run-to-Failure Maintenance (RTF), Mean Time Between Failure (MTBF);
+compare and adapt latest advances in maintenance programmes
+Creation and application of Failure Mode and Effects Analysis
+Maintenance schedules and illustration diagrams/tools.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+138
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Illustrate competence in working safely by correctly determining the
+hazards and risks associated with maintenance techniques
+Working safely:
+Life-saving rules for employee safety, such as safety devices and guards, lock out,
+tag out, electrical work, arc flash, fall protection and permit required confined
+space working
+Understanding plant layouts as part of safety training including emergency
+exists, workflow chart, stage-wise PPE, and human ergonomics
+Development and implementation of safe schemes of work (e.g.,
+daily/weekly/monthly checks about the safety measures such as earth resistance,
+neutral to earth voltage, lighting illumination, lubrication for bearings, cleaning of
+Conveyors, input air pressure and its leakage systems, fire alarm etc.)
+Lone working
+Permit to work (PTW)
+Working safely in confined spaces
+Emergency procedures and training
+Hazard identification and assessment of risk associated with identified hazard
+Use of control measures (ERIC SP)
+Production of a Risk Assessment & Method Statement for a maintenance
+procedure.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+139
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO4 Apply effective inspection and maintenance techniques relative to a
+particular specialisation such as mechanical or electrical
+Maintenance techniques:
+Importance of isolation and making safe before undertaking maintenance
+Adherence to PTW process and shift changeover procedures
+In-service (live) preventative maintenance e.g. thermographic survey,
+partial discharge inspection
+Standard Operating Procedure (SOP) − application, and documentation recording
+systems, and the potential implications on safety, quality, and delivery if they are
+not adhered to
+Compliance with manufacturer’s recommended inspection and maintenance
+procedures, using manufacturer’s data as case studies
+Look, listen and feel philosophy. Visual inspections
+Measurements: electrical and mechanical. Mechanical operations test
+Functional tests e.g. exercise switching mechanisms
+Application of non-destructive examination (NDE) and non-destructive
+investigation (NDI) techniques for maintenance e.g. acoustic emission,
+eddy current, liquid penetrant, ultrasonics, thermography
+Recording data and maintenance records.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+140
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Analyse the impact of relevant statutory regulations
+and organisational safety requirements on the industrial
+workplace
+P1 Describe the key features M1 Assess the D1 Evaluate the likely
+of health and safety consequences of consequences of non-
+regulations in the workplace. employers not abiding adherence to relevant health
+by health and safety and safety legislation, and risk
+P2 Analyse the role of the
+legislation and prevention measures by
+Health and Safety Executive
+regulations, and risk employers and employees.
+in health and safety in the
+assessment in the
+workplace. D2 Critically appraise the
+workplace.
+potential impact of a workplace
+inspection by a Health and
+Safety Executive inspector
+including the role of Safety
+Data Sheet (SDS).
+LO2 Differentiate between the merits and use of
+different types of maintenance strategies in an industrial
+workplace
+P3 Differentiate methods M2 Explain the D3 Illustrate the most
+used to complete importance of selecting appropriate maintenance
+engineering maintenance relevant maintenance system in an industrial
+in an industrial workplace. methods and carrying workplace.
+out engineering
+P4 Discuss the advantages D4 Assess the likely
+maintenance in an
+and disadvantages of consequences of not
+industrial workplace.
+different strategies to completing a maintenance
+complete maintenance in regime in an industrial
+an industrial workplace. workplace.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+141
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Pass Merit Distinction
+LO3 Illustrate competence in working safely by correctly
+determining the hazards and risks associated with
+maintenance techniques
+P5 Illustrate various methods M3 Discuss the D5 Analyse, using actual
+used to identify risks and importance of workplace procedures, the
+their associated hazards. completing risk methods used such as SOP to
+assessments. deal with identified hazards in
+P6 Carry out a risk
+accordance with statutory legal
+assessment on a typical M4 Explain how control
+requirements and workplace
+maintenance technique. measures are used to
+policies and recommend
+prevent accidents.
+improvements.
+M5 Complete a method
+statement for a typical
+maintenance technique.
+LO4 Apply effective inspection and maintenance
+techniques relative to a particular specialisation such as
+mechanical or electrical
+P7 Apply effective inspection M6 Analyse the D6 Justify appropriate
+and maintenance techniques effectiveness of these inspection and maintenance
+in an industrial or simulated inspection and techniques across industrial
+environment, recording the maintenance techniques plant assets.
+appropriate sequence of in plant asset
+procedures. management.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+142
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Affleck E. (2022) Maintenance Engineering. New York: Larsen and Keller Education.
+Baptista J. (2020) Industrial Maintenance: Techniques, Stories, and Cases. Boca Raton,
+Florida: CRC Press.
+Dhillon B.S. (2023) System Safety, Maintainability, and Maintenance for Engineers.
+Boca Raton, Florida: CRC Press.
+Hellier C.J. (2020) Handbook of nondestructive evaluation . 3rd Ed. New York:
+McGraw-Hill Education.
+Mobley R.K. (2014) Maintenance Engineering Handbook . 8th Ed. New York: McGraw-Hill
+Education.
+Peng K. (2021) Equipment Management in the Post-Maintenance Era: Advancing in
+the Era of Smart Machines. 2nd Ed. Boca Raton, Florida: Productivity Press.
+Richardson D.C. (2013) Plant Equipment & Maintenance Engineering Handbook .
+New York: McGraw-Hill Education.
+The Institution of Engineering and Technology (IET) (2022) Guide to Electrical
+Maintenance (IET Codes and Guidance . London: IET.
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+Journal of Nondestructive Evaluation
+Journal of Quality in Maintenance Engineering
+Non-Destructive Testing
+Nondestructive Testing and Evaluation
+Links
+This unit links to the following related units:
+Unit 4004: Managing a Professional Engineering Project
+Unit 4025: Operations and Plant Management.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+143
+Issue 6 – October 2025 © Pearson Education Limited 2025
