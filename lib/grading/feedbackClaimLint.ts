@@ -20,8 +20,14 @@ function isUnachievedDecision(value: unknown) {
 function isDeterministicOutcomeLine(line: string) {
   const src = String(line || "").trim();
   if (!src) return false;
-  return /^(To reach\s+[A-Z]+,|Criteria achieved:|Criteria still to evidence clearly:|Why these are still open:|Learning outcomes\s|Final grade:)/i.test(
-    src
+  return (
+    /^(Criteria achieved:|Criteria still to evidence clearly:|Why these are still open:|Learning outcomes\s|Final grade:)/i.test(
+      src
+    ) ||
+    /^To reach\s+[A-Z]+,\s+achieve\s+[PMD]\d{1,2}\./i.test(src) ||
+    /^To reach\s+MERIT,\s+all Merit criteria must be achieved, including:\s+/i.test(src) ||
+    /^To reach\s+DISTINCTION,\s+all Distinction criteria must be achieved, including:\s+/i.test(src) ||
+    /^To achieve\s+PASS,\s+secure all Pass criteria, especially:\s+/i.test(src)
   );
 }
 
@@ -64,6 +70,12 @@ function softenBandOverclaimLine(input: {
   const hasCaveat = hasCaveatLanguage(next);
   const overallGrade = String(input.overallGrade || "").trim().toUpperCase();
 
+  if (input.outstandingBands.has("M")) {
+    next = next
+      .replace(/\bmerit-level achievements?\b/gi, "progress toward Merit criteria")
+      .replace(/\bmerit achievements?\b/gi, "progress toward Merit criteria");
+  }
+
   if (input.outstandingBands.has("D")) {
     if (!hasCaveat) {
       next = next
@@ -82,9 +94,19 @@ function softenBandOverclaimLine(input: {
     if (!hasCaveat && /\bhighest band\b/i.test(next)) {
       next = next.replace(/\bhighest band\b/gi, "higher band");
     }
+
+    next = next
+      .replace(/\bdistinction-level achievements?\b/gi, "progress toward Distinction criteria")
+      .replace(/\bdistinction achievements?\b/gi, "progress toward Distinction criteria");
   }
 
-  if (overallGrade === "PASS" && !hasCaveat) {
+  if ((overallGrade === "PASS" || overallGrade === "PASS_ON_RESUBMISSION") && /\bto reach distinction\b/i.test(next)) {
+    next = next
+      .replace(/^\s*to reach distinction,\s*/i, "After securing MERIT, to progress to DISTINCTION, ")
+      .replace(/\bto reach distinction\b/gi, "for later DISTINCTION progression (after MERIT)");
+  }
+
+  if ((overallGrade === "PASS" || overallGrade === "PASS_ON_RESUBMISSION") && !hasCaveat) {
     // If the final grade is PASS, avoid narrative lines that claim MERIT/DISTINCTION was achieved.
     if (/\b(merit|distinction)\b/i.test(next) && /\b(achieved|met|fully met|secured)\b/i.test(next)) {
       next = next

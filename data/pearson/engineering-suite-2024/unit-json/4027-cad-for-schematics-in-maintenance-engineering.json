@@ -1,0 +1,71 @@
+{
+  "code": "4027",
+  "title": "CAD for Schematics in Maintenance Engineering",
+  "detectedTitle": "CAD for Schematics in Maintenance Engineering",
+  "startPage": 219,
+  "endPage": 224,
+  "pageCount": 6,
+  "level": 4,
+  "creditValue": 15,
+  "guidedLearningHours": null,
+  "learningOutcomes": [
+    {
+      "id": "LO1",
+      "description": "Produce CAD drawings"
+    },
+    {
+      "id": "LO2",
+      "description": "Create blocks with textual attributes to perform insert and export operations"
+    },
+    {
+      "id": "LO3",
+      "description": "Construct complex schematic drawings"
+    },
+    {
+      "id": "LO4",
+      "description": "Transfer information to external sources."
+    }
+  ],
+  "assessmentCriteriaByLo": {
+    "LO1": [
+      "D1",
+      "M1",
+      "P1",
+      "P2"
+    ],
+    "LO2": [
+      "D2",
+      "M2",
+      "P3",
+      "P4"
+    ],
+    "LO3": [
+      "M3",
+      "P5",
+      "P6"
+    ],
+    "LO4": [
+      "D3",
+      "M4",
+      "P7",
+      "P8"
+    ]
+  },
+  "criteriaCodes": [
+    "D1",
+    "D2",
+    "D3",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

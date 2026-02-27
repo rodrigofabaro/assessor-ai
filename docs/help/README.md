@@ -1,6 +1,6 @@
 # Help Center Index
 
-Last updated: 2026-02-24
+Last updated: 2026-02-27
 
 This folder contains route-by-route operator help.
 
@@ -17,6 +17,7 @@ This folder contains route-by-route operator help.
 - `docs/operations/pearson-spec-master-workflow.md` - scripted Pearson engineering suite extract/import/repair/lock runbook
 - `docs/help/admin-settings.md` - AI/grading/app policy controls, audit-safe save flow, and Turnitin config
 - `docs/help/admin-qa.md` - QA analytics plus Turnitin send/status/report workflow
+  - includes QA -> IV-AD in-row generation/download workflow and Pearson QA decision checks
 
 ## Secondary Guides
 

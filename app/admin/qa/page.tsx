@@ -9,19 +9,20 @@ const GRADE_BANDS = ["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCT
 type GradeBand = (typeof GRADE_BANDS)[number];
 
 const CONTROL_CLASS =
-  "h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
+  "h-10 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100";
 const CONTROL_COMPACT_CLASS =
-  "h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900 shadow-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
+  "h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs font-medium text-zinc-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100";
 const BUTTON_BASE_CLASS =
   "inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 const BUTTON_PRIMARY_TALL_CLASS =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-sky-700 bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-sky-700 bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60";
 const BUTTON_NEUTRAL_CLASS = `${BUTTON_BASE_CLASS} border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50`;
 const BUTTON_TEAL_CLASS = `${BUTTON_BASE_CLASS} border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100`;
 const BUTTON_ROW_BASE_CLASS =
   "inline-flex h-7 items-center rounded-lg border px-2.5 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 const BUTTON_ROW_SKY_CLASS = `${BUTTON_ROW_BASE_CLASS} border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100`;
 const BUTTON_ROW_TEAL_CLASS = `${BUTTON_ROW_BASE_CLASS} border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100`;
+const BUTTON_ROW_VIOLET_CLASS = `${BUTTON_ROW_BASE_CLASS} border-violet-300 bg-violet-50 text-violet-900 hover:bg-violet-100`;
 const BUTTON_PAGE_CLASS =
   "inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 text-xs font-semibold text-zinc-800 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400";
 
@@ -71,6 +72,12 @@ type SubmissionResearchRow = {
     lastError?: string | null;
     updatedAt?: string | null;
   } | null;
+  ivAd?: {
+    exists?: boolean;
+    documentId?: string | null;
+    createdAt?: string | null;
+    downloadUrl?: string | null;
+  } | null;
 };
 
 function asGradeBand(v: unknown): GradeBand | null {
@@ -101,6 +108,17 @@ function asPercent(value: unknown): number | null {
   const n = Number(raw);
   if (!Number.isFinite(n)) return null;
   return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function turnitinPercentBadgeValue(turnitin: SubmissionResearchRow["turnitin"], key: "overallMatchPercentage" | "aiWritingPercentage") {
+  const status = String(turnitin?.status || "").trim().toUpperCase();
+  const pct = asPercent(turnitin?.[key]);
+  const isComplete = status === "COMPLETE";
+  if (pct === null) return { text: "—", tone: "empty" as const };
+  if (!isComplete && pct === 0 && (status === "PROCESSING" || status === "CREATED" || status === "UPLOADING")) {
+    return { text: "Pending", tone: "pending" as const };
+  }
+  return { text: `${pct}%`, tone: "value" as const };
 }
 
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
@@ -134,6 +152,8 @@ export default function AdminQaPage() {
   const [turnitinBusyById, setTurnitinBusyById] = useState<Record<string, boolean>>({});
   const [turnitinBatchBusy, setTurnitinBatchBusy] = useState(false);
   const [turnitinMsg, setTurnitinMsg] = useState("");
+  const [ivBusyById, setIvBusyById] = useState<Record<string, boolean>>({});
+  const [ivMsg, setIvMsg] = useState("");
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -283,6 +303,50 @@ export default function AdminQaPage() {
       setTurnitinMsg(e?.message || "Failed to send page rows to Turnitin.");
     } finally {
       setTurnitinBatchBusy(false);
+    }
+  }
+
+  async function generateIvAdFromSubmission(row: SubmissionResearchRow) {
+    const sid = String(row?.id || "").trim();
+    if (!sid) return;
+    const existingUrl = String(row?.ivAd?.downloadUrl || "").trim();
+    if (row?.ivAd?.exists && existingUrl) {
+      setIvMsg(`Using existing IV-AD for ${sid}.`);
+      if (typeof window !== "undefined") {
+        const a = document.createElement("a");
+        a.href = existingUrl;
+        a.click();
+      }
+      return;
+    }
+    setIvMsg("");
+    setIvBusyById((prev) => ({ ...prev, [sid]: true }));
+    try {
+      const res = await fetch("/api/admin/iv-ad/generate-from-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId: sid, useAiReview: true }),
+      });
+      const json = (await res.json()) as { error?: string; downloadUrl?: string; usedNarrativeSource?: string };
+      if (!res.ok) throw new Error(json?.error || `IV-AD generation failed (${res.status})`);
+
+      const downloadUrl = String(json?.downloadUrl || "").trim();
+      const source = String(json?.usedNarrativeSource || "HEURISTIC").trim();
+      setIvMsg(`IV-AD generated for ${sid} (${source}).`);
+      if (downloadUrl && typeof window !== "undefined") {
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.click();
+      }
+      await load();
+    } catch (e: any) {
+      setIvMsg(e?.message || "IV-AD generation failed.");
+    } finally {
+      setIvBusyById((prev) => {
+        const next = { ...prev };
+        delete next[sid];
+        return next;
+      });
     }
   }
 
@@ -439,22 +503,26 @@ export default function AdminQaPage() {
 
   return (
     <div className="grid min-w-0 gap-4">
-      <section className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-white p-3 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-900">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
               <TinyIcon name="qa" />
-              QA Analytics
+              Quality Assurance
             </div>
-            <h1 className="text-sm font-semibold tracking-tight text-zinc-900">QA Research</h1>
-            <p className="mt-1 text-sm text-zinc-700">
-              Query students, courses, AB numbers, grade spread by course, and compare grade outcomes within the same unit.
+            <h1 className="mt-2 text-lg font-semibold tracking-tight text-zinc-900">QA Workspace</h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              Review grading quality, monitor Turnitin indicators, and generate IV-AD evidence packs directly from assessed submissions.
             </p>
           </div>
           <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
             <TinyIcon name="status" className="mr-1 h-3 w-3" />
             {busy ? "Loading..." : "Ready"}
           </span>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+          <span className="font-semibold text-zinc-900">QA objective:</span> confirm decisions are evidence-based, criterion-linked, and supported by clear actionable feedback.
         </div>
 
         <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-7">
@@ -516,7 +584,7 @@ export default function AdminQaPage() {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
           {Object.entries(metrics.byGrade).map(([g, n]) => (
             <span key={g} className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-1 font-semibold text-zinc-700">
               {g}: {n}
@@ -524,11 +592,15 @@ export default function AdminQaPage() {
           ))}
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <button type="button" onClick={exportFiltered} className={BUTTON_NEUTRAL_CLASS}>
             <TinyIcon name="submissions" className="h-3 w-3" />
             Export filtered report
           </button>
+          <Link href="/admin/audit" className={BUTTON_NEUTRAL_CLASS}>
+            <TinyIcon name="audit" className="h-3 w-3" />
+            Open audit log
+          </Link>
           <button
             type="button"
             onClick={sendPageToTurnitin}
@@ -538,19 +610,20 @@ export default function AdminQaPage() {
             <TinyIcon name="refresh" className="h-3 w-3" />
             {turnitinBatchBusy ? "Sending..." : "Send page to Turnitin"}
           </button>
-          <Link href="/admin/audit" className={BUTTON_NEUTRAL_CLASS}>
-            <TinyIcon name="audit" className="h-3 w-3" />
-            Open audit log
+          <Link href="/admin/iv-ad" className={BUTTON_NEUTRAL_CLASS}>
+            <TinyIcon name="qa" className="h-3 w-3" />
+            Open manual IV workspace
           </Link>
         </div>
         {turnitinMsg ? <p className="mt-2 text-xs text-zinc-700">{turnitinMsg}</p> : null}
+        {ivMsg ? <p className="mt-1 text-xs text-zinc-700">{ivMsg}</p> : null}
       </section>
 
       {error ? <section className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</section> : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 px-4 py-3">
-          <div className="text-sm font-semibold text-zinc-900">Assessor Override Breakdown</div>
+          <div className="text-sm font-semibold tracking-tight text-zinc-900">Assessor Override Insights</div>
           <div className="mt-1 text-xs text-zinc-600">
             Runs with overrides: <span className="font-semibold text-zinc-900">{overrideInsights.runsWithOverrides}</span> ·
             Total overridden criteria: <span className="font-semibold text-zinc-900"> {overrideInsights.totalOverrides}</span>
@@ -606,7 +679,7 @@ export default function AdminQaPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900">Submission QA dataset</div>
+        <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold tracking-tight text-zinc-900">Submission QA Dataset</div>
         <div className="overflow-x-auto">
           <table className="min-w-full border-separate border-spacing-0">
             <thead>
@@ -614,18 +687,21 @@ export default function AdminQaPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Student</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Course</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Unit</th>
-                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">AB</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Assignment</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Status</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">QA Flags</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Similarity %</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">AI Writing %</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Turnitin</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">IV-AD</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Graded</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="text-sm">
@@ -651,30 +727,53 @@ export default function AdminQaPage() {
                       )}
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      {(() => {
+                        const badge = turnitinPercentBadgeValue(r.turnitin, "overallMatchPercentage");
+                        return (
+                          <span
+                            className={
+                              "inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                              (badge.tone === "empty"
+                                ? "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                : badge.tone === "pending"
+                                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                                  : "border-sky-200 bg-sky-50 text-sky-900")
+                            }
+                            title="Turnitin similarity report percentage"
+                          >
+                            {badge.text}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      {(() => {
+                        const badge = turnitinPercentBadgeValue(r.turnitin, "aiWritingPercentage");
+                        return (
+                          <span
+                            className={
+                              "inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-0.5 text-xs font-semibold " +
+                              (badge.tone === "empty"
+                                ? "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                : badge.tone === "pending"
+                                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                                  : "border-violet-200 bg-violet-50 text-violet-900")
+                            }
+                            title="Turnitin AI writing percentage"
+                          >
+                            {badge.text}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
                       <div className="space-y-1">
                         <div className="text-[11px]">
                           <span className="font-semibold text-zinc-800">
-                            Report: {r.turnitin?.status ? String(r.turnitin.status) : "Not sent"}
+                            Report status: {r.turnitin?.status ? String(r.turnitin.status) : "Not sent"}
                           </span>
                         </div>
-                        <div className="text-[11px] text-zinc-600">
-                          <span className="font-semibold text-zinc-800">
-                            {(() => {
-                              const pct = asPercent(r.turnitin?.overallMatchPercentage);
-                              return pct === null ? "—" : `${pct}%`;
-                            })()}
-                          </span>{" "}
-                          Similarity
-                        </div>
-                        <div className="text-[11px] text-zinc-600">
-                          <span className="font-semibold text-zinc-800">
-                            {(() => {
-                              const pct = asPercent(r.turnitin?.aiWritingPercentage);
-                              return pct === null ? "—" : `${pct}%`;
-                            })()}
-                          </span>{" "}
-                          AI writing
-                        </div>
+                        <div className="text-[11px] text-zinc-600">Use Check status to refresh similarity metrics.</div>
                         <div className="flex flex-wrap items-center gap-1.5">
                           {(() => {
                             const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
@@ -747,6 +846,21 @@ export default function AdminQaPage() {
                           <div className="text-[11px] text-rose-700">{String(r.turnitin.lastError)}</div>
                         ) : null}
                       </div>
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      <button
+                        type="button"
+                        onClick={() => void generateIvAdFromSubmission(r)}
+                        disabled={Boolean(ivBusyById[r.id]) || busy}
+                        className={BUTTON_ROW_VIOLET_CLASS}
+                        title={
+                          r?.ivAd?.exists
+                            ? "Download existing IV-AD DOCX"
+                            : "Generate IV-AD DOCX from existing submission + assessment data"
+                        }
+                      >
+                        {ivBusyById[r.id] ? "Generating..." : r?.ivAd?.exists ? "Download IV-AD" : "Generate IV-AD"}
+                      </button>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.gradedAt)}</td>

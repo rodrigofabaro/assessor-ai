@@ -53,8 +53,14 @@ function normalizeText(value: unknown) {
 function isDeterministicOutcomeLine(line: string) {
   const src = String(line || "").trim();
   if (!src) return false;
-  return /^(To reach\s+[A-Z]+,|Criteria achieved:|Criteria still to evidence clearly:|Why these are still open:|Learning outcomes\s|Final grade:)/i.test(
-    src
+  return (
+    /^(Criteria achieved:|Criteria still to evidence clearly:|Why these are still open:|Learning outcomes\s|Final grade:)/i.test(
+      src
+    ) ||
+    /^To reach\s+[A-Z]+,\s+achieve\s+[PMD]\d{1,2}\./i.test(src) ||
+    /^To reach\s+MERIT,\s+all Merit criteria must be achieved, including:\s+/i.test(src) ||
+    /^To reach\s+DISTINCTION,\s+all Distinction criteria must be achieved, including:\s+/i.test(src) ||
+    /^To achieve\s+PASS,\s+secure all Pass criteria, especially:\s+/i.test(src)
   );
 }
 
@@ -196,4 +202,3 @@ export function lintOverallFeedbackPearsonPolicy(input: {
     changedLines,
   };
 }
-

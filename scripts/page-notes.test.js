@@ -347,12 +347,15 @@ function run() {
 
   const passBandLint = lintOverallFeedbackClaims({
     text: [
+      "The work supports merit-level achievements in project monitoring.",
+      "To reach distinction, deepen the critical evaluation and add clearer recommendations.",
       "You have achieved Merit-level critical analysis across the report.",
       "Criteria still to evidence clearly: D2.",
       "Final grade: PASS",
     ].join("\n"),
     criterionChecks: [
       { code: "P1", decision: "ACHIEVED" },
+      { code: "M2", decision: "NOT_ACHIEVED" },
       { code: "M1", decision: "ACHIEVED" },
       { code: "D2", decision: "NOT_ACHIEVED" },
     ],
@@ -362,6 +365,14 @@ function run() {
   assert(
     !/\bachieved Merit-level critical analysis\b/i.test(passBandLint.text),
     "PASS feedback lint should remove strong higher-band achievement wording in the narrative"
+  );
+  assert(
+    !/\bmerit-level achievements\b/i.test(passBandLint.text),
+    "PASS feedback lint should soften merit-level achievement noun phrases when Merit criteria remain open"
+  );
+  assert(
+    !/^\s*To reach distinction,/im.test(passBandLint.text),
+    "PASS feedback lint should avoid premature narrative distinction lead-ins before the deterministic progression lines"
   );
   assert(
     /Criteria still to evidence clearly: D2\./i.test(passBandLint.text) && /Final grade: PASS/i.test(passBandLint.text),

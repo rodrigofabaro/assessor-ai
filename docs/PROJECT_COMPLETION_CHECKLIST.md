@@ -1,14 +1,14 @@
 # Project Completion Checklist
 
-Last updated: 2026-02-18
+Last updated: 2026-02-27
 
 ## Current status
 
-- UI consistency pass: in progress, major routes completed.
+- UI consistency pass: completed for core Admin/QA routes, with ongoing polish as needed.
 - Lint: passing.
 - TypeScript check: passing.
-- Build: not yet reliably confirmed in this environment due `.next/trace` lock/timeouts.
-- Git push: blocked by local GitHub credentials on this machine.
+- Build: still not reliably confirmed in this environment due intermittent `.next/trace` lock/timeouts.
+- Git push: operational from this machine (resolved on 2026-02-27).
 
 ## Done
 
@@ -25,11 +25,10 @@ Last updated: 2026-02-18
    - Upload -> extract -> resolve -> grade -> marked PDF.
    - Admin reference/spec/brief locking workflows.
    - QA and audit navigation/reporting paths.
-4. Push commits to remote after restoring Git credentials.
-5. Deploy and perform post-deploy smoke checks.
-6. Rework Help Center quality (deferred).
-7. Rebuild `/help/submissions-support` as a true operator tutorial (deferred).
-8. Rebuild `/help/submissions-onboarding` with realistic first-run training artifacts (deferred).
+4. Deploy and perform post-deploy smoke checks.
+5. Rework Help Center quality (deferred).
+6. Rebuild `/help/submissions-support` as a true operator tutorial (deferred).
+7. Rebuild `/help/submissions-onboarding` with realistic first-run training artifacts (deferred).
 
 ## Deferred help tasks (requested for later stage)
 
@@ -63,6 +62,4 @@ pnpm run build
 
 ## Deployment blockers to clear
 
-- Git auth error seen while pushing:
-  - `SEC_E_NO_CREDENTIALS (0x8009030E)`
 - Intermittent local `.next/trace` lock during build; clear lock and rerun build on clean terminal/session.

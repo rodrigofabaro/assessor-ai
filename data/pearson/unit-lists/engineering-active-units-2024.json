@@ -49,11 +49,13 @@
     { "code": "5023", "title": "Thermofluids" },
 
     { "code": "4015", "title": "Automation, Robotics and Programmable Logic Controllers (PLCs)" },
+    { "code": "4016", "title": "Instrumentation and Control Systems" },
     { "code": "4063", "title": "Engineering Mechanics and Materials" },
     { "code": "5011", "title": "Industrial Power, Electronics and Storage" },
     { "code": "5051", "title": "Heating, Ventilation and Air Conditioning (HVAC)" },
 
     { "code": "4017", "title": "Quality and Process Improvement" },
+    { "code": "4018", "title": "Maintenance Engineering" },
     { "code": "4064", "title": "Analogue and Digital Electronics" },
     { "code": "5012", "title": "Industrial Systems" },
 
@@ -69,6 +71,7 @@
     { "code": "5001", "title": null, "note": "Title not provided in user list; include by code." },
 
     { "code": "4022", "title": "Electronic Circuits and Devices" },
+    { "code": "4027", "title": "CAD for Schematics in Maintenance Engineering" },
 
     { "code": "5041", "title": null, "note": "User marked as 'Unique'; include by code." }
   ]

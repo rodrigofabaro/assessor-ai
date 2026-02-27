@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-02-24T17:02:25.262Z",
+  "generatedAt": "2026-02-27T09:15:31.880Z",
   "sourcePdfPath": "data/pearson/source/btec-hncd-unit-descriptor-engineering-suite-2024.pdf",
   "sourceListPath": "data/pearson/unit-lists/engineering-active-units-2024.json",
   "sourcePdfPageCount": 1443,
   "detectedUnitCount": 176,
-  "selectedRequestedCount": 53,
-  "selectedExtractedCount": 53,
+  "selectedRequestedCount": 56,
+  "selectedExtractedCount": 56,
   "missingRequestedUnits": [],
   "selectedUnits": [
     {
@@ -2955,6 +2955,88 @@
       ]
     },
     {
+      "code": "4016",
+      "requestedTitle": "Instrumentation and Control Systems",
+      "detectedTitle": "Instrumentation and Control Systems",
+      "title": "Instrumentation and Control Systems",
+      "startPage": 138,
+      "endPage": 144,
+      "pageCount": 7,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4016-instrumentation-and-control-systems.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4016-instrumentation-and-control-systems.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4016-instrumentation-and-control-systems.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Describe operation of instrumentation devices including parameters used in process control"
+        },
+        {
+          "id": "LO2",
+          "description": "Investigate process control systems and controllers"
+        },
+        {
+          "id": "LO3",
+          "description": "Analyse the control concepts used within an industrial process"
+        },
+        {
+          "id": "LO4",
+          "description": "Apply predicted values to ensure stability within a control system."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "M2",
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "LO2": [
+          "D2",
+          "M3",
+          "P4",
+          "P5"
+        ],
+        "LO3": [
+          "D3",
+          "M4",
+          "P6",
+          "P7"
+        ],
+        "LO4": [
+          "D4",
+          "M5",
+          "P8",
+          "P9"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ]
+    },
+    {
       "code": "4063",
       "requestedTitle": "Engineering Mechanics and Materials",
       "detectedTitle": "Engineering Mechanics and Materials",
@@ -3243,6 +3325,90 @@
         "M2",
         "M3",
         "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7"
+      ]
+    },
+    {
+      "code": "4018",
+      "requestedTitle": "Maintenance Engineering",
+      "detectedTitle": "Maintenance Engineering",
+      "title": "Maintenance Engineering",
+      "startPage": 152,
+      "endPage": 159,
+      "pageCount": 8,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4018-maintenance-engineering.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4018-maintenance-engineering.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4018-maintenance-engineering.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Analyse the impact of relevant statutory regulations and organisational safety requirements on the industrial workplace"
+        },
+        {
+          "id": "LO2",
+          "description": "Differentiate between the merits and use of different types of maintenance strategies in an industrial workplace"
+        },
+        {
+          "id": "LO3",
+          "description": "Illustrate competence in working safely by correctly determining the hazards and risks associated with maintenance techniques"
+        },
+        {
+          "id": "LO4",
+          "description": "Apply effective inspection and maintenance techniques relative to a particular specialisation such as mechanical or electrical."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "D2",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D3",
+          "D4",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "D5",
+          "M3",
+          "M4",
+          "M5",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D6",
+          "M6",
+          "P7"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
         "P1",
         "P2",
         "P3",
@@ -4098,6 +4264,82 @@
         "P5",
         "P6",
         "P7"
+      ]
+    },
+    {
+      "code": "4027",
+      "requestedTitle": "CAD for Schematics in Maintenance Engineering",
+      "detectedTitle": "CAD for Schematics in Maintenance Engineering",
+      "title": "CAD for Schematics in Maintenance Engineering",
+      "startPage": 219,
+      "endPage": 224,
+      "pageCount": 6,
+      "pdfPath": "data/pearson/engineering-suite-2024/unit-pdfs/4027-cad-for-schematics-in-maintenance-engineering.pdf",
+      "textPath": "data/pearson/engineering-suite-2024/unit-text/4027-cad-for-schematics-in-maintenance-engineering.txt",
+      "jsonPath": "data/pearson/engineering-suite-2024/unit-json/4027-cad-for-schematics-in-maintenance-engineering.json",
+      "duplicateCandidatesForCode": 1,
+      "level": 4,
+      "creditValue": 15,
+      "guidedLearningHours": null,
+      "learningOutcomes": [
+        {
+          "id": "LO1",
+          "description": "Produce CAD drawings"
+        },
+        {
+          "id": "LO2",
+          "description": "Create blocks with textual attributes to perform insert and export operations"
+        },
+        {
+          "id": "LO3",
+          "description": "Construct complex schematic drawings"
+        },
+        {
+          "id": "LO4",
+          "description": "Transfer information to external sources."
+        }
+      ],
+      "assessmentCriteriaByLo": {
+        "LO1": [
+          "D1",
+          "M1",
+          "P1",
+          "P2"
+        ],
+        "LO2": [
+          "D2",
+          "M2",
+          "P3",
+          "P4"
+        ],
+        "LO3": [
+          "M3",
+          "P5",
+          "P6"
+        ],
+        "LO4": [
+          "D3",
+          "M4",
+          "P7",
+          "P8"
+        ]
+      },
+      "criteriaCodes": [
+        "D1",
+        "D2",
+        "D3",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
       ]
     },
     {

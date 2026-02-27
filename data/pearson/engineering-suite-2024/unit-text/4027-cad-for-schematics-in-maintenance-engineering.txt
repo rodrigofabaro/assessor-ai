@@ -1,0 +1,182 @@
+Unit 4027: CAD for Schematics in
+Maintenance Engineering
+Unit Code: Y/651/0898
+Level: 4
+Credits: 15
+Introduction
+There is a growing trend, in part due to the popularity of three-dimensional (3D)
+Computer Aided Design (CAD) systems, for students to generate two-dimensional (2D)
+drawings from three-dimensional (3D) solid models. 3D models do look impressive
+and whilst they clearly serve an important function in CAD design, in reality the vast
+majority of CAD drawings used in the industry are 2D based and, of those, a
+significant number are schematic drawings utilised by maintenance engineers,
+which cannot be produced using a 3D system.
+The aim of this unit is to enable students to produce 2D CAD drawings (using industry
+standard CAD software), and to modify and construct electrical and mechanical
+drawings e.g., distribution systems, fire alarms, steam ranges, electrical and hydraulic
+circuits. This unit will support the development of the students’ CAD abilities and build
+upon those skills to introduce the more advanced techniques that are used to create
+and modify schematic drawings quickly and efficiently. These techniques can be used
+to construct pre-prepared symbols for use in circuit diagrams or be used to create
+unique symbols and symbol libraries.
+Alongside the creation of schematic drawings utilising the block, attributes and insert
+commands, the students will also learn how to extract information to populate
+spreadsheets and databases, tabulating the information directly from the working
+drawing.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+203
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes
+By the end of this unit students will be able to:
+LO1 Produce CAD drawings
+LO2 Create blocks with textual attributes to perform insert and export operations
+LO3 Construct complex schematic drawings
+LO4 Transfer information to external sources.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+204
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Essential content
+LO1 Produce CAD drawings
+Introduction to the user interface:
+Command line, Status Bar, panel titles and tabs
+Recognise and apply absolute, relative and polar coordinates.
+Drafting aids:
+Grid, snap, object snap, ortho and polar tracking.
+Draw commands:
+Line types, circle, text, hatching, dimensioning.
+Modifying commands:
+Sketch commands, copy, rotate, move, erase, scale, array, chamfer, fillet
+Creating and defining text and dimension styles.
+Multiline and Single line text
+Creating layers:
+Layers/levels, colour, line thicknesses
+Viewing commands:
+Zoom, pan, viewports and layouts.
+Case studies:
+Industry relevant CAD examples relevant to maintenance engineers.
+LO2 Create blocks with textual attributes to perform insert and export
+operations
+Blocks and textual attributes:
+Creating and editing blocks and write blocks
+Defining, editing and managing attributes
+Inserting blocks from external sources
+Attribute extraction
+Dynamic and nested blocks
+Using the design centre and tool palettes.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+205
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+LO3 Construct complex schematic drawings
+Complex schematics:
+Create block library and table legend, including symbols and description
+Create electrical, electronic, hydraulic and pneumatic schematic drawings,
+Process Flow Diagrams (PFDs). Engineering Flow Diagrams (EFDs) and
+Vent Flow Diagrams (VFDs)
+Industry case studies using complex schematic drawings and professional
+discussion on good practice observed.
+LO4 Transfer information to external sources.
+Electronic transfer of information:
+Data extraction and data extraction (DXE) files, DWG/DXF files
+Step-files ISO 10303-21
+Extracting data to tables and spreadsheets
+Organise and refine the extracted data
+Table styles and formatting data extraction tables
+Present CAD related work undertaken to peers or a team of maintenance
+engineers and respond to feedback.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+206
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Learning Outcomes and Assessment Criteria
+Pass Merit Distinction
+LO1 Produce CAD drawings
+P1 Propose the range of M1 Contrast the advantages D1 Evaluate the advantages
+drawing aids that assist and disadvantages of using of using template files.
+productivity. CAD over manual drafting in
+support of maintenance
+P2 For a given engineering
+engineer role.
+maintenance context,
+produce a template file to
+include a range of layers,
+dimension styles, text styles,
+border and title box.
+LO2 Create blocks with textual attributes to perform insert
+and export operations LO2 and LO3
+P3 Create ten schematic M2 Justify the advantages of D2 Validate how using
+symbols. using blocks in a drawing. attributes can improve
+productivity.
+P4 Add appropriate
+attribute data to each of
+the schematic symbols
+and convert into blocks.
+LO3 Construct complex schematic drawings
+P5 Construct a block library M3 Describe the advantages
+and table legend and of using block libraries and
+integrate into a template how they can enhance
+file. templates.
+P6 Create a complex
+schematic drawing using
+electrical/electronic or
+hydraulic symbols.
+LO4 Transfer information to external sources
+P7 Transfer attribute data to M4 Appraise the process for D3 Assess how electronic
+Excel spreadsheets. extracting drawing data to transfer of information
+create a table. can aid productivity, with
+P8 Explain the advantages of
+example engineering
+using data extraction (i.e.,
+maintenance applications.
+DXE, DWG, DXF) files.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+207
+Issue 6 – October 2025 © Pearson Education Limited 2025
+
+
+
+Recommended Resources
+Note: See HN Global for guidance on additional resources.
+Print Resources
+Bi Z. and WANG X. (2020) Computer Aided Design and Manufacturing . Wiley.
+BS 8888 (2017) Technical product documentation and specification .
+Metwalli S.M. (2021) Machine Design with CAD and Optimization . Wiley.
+Omura G. and Benton B.C. (2014) Mastering AutoCAD 2015 and AutoCAD
+LT 2015 Essentials . Autodesk Official Press
+Pitroda H. P (2019) Computer Aided Design: Textbook and Practice book .
+Walnut publication
+Sarkar J., (2014). Computer aided design: a conceptual approach . CRC Press.
+Shih R.H. (2024) Principles and Practice: An Integrated Approach to Engineering Graphics
+and AutoCAD 2024 . 1st Ed. SDC Publications.
+Simmons C.H., Dennis E. and Maguire N.P. (2020) Manual of Engineering Drawing −
+British and International Standards. 5th Ed. Butterworth-Heinemann.
+Stark J. (2021) What Every Engineer Should Know about Practical CAD/CAM Applications.
+CRC Press.
+Zeus Precision Charts Ltd. Zeus Precision Data Charts and Reference Tables for Drawing
+Office, Toolroom & Workshop .
+Journals
+Note: Example journals listed below provide a broad range of articles related to unit content and
+those relevant for the qualification. Staff and students are encouraged to explore these journals
+and any other suitable journals to support the development of academic study skills, and subject
+specific knowledge and skills as part of unit level delivery.
+CAD Journal – CAD and Applications
+Computer-Aided Design
+Computer-Aided Design and Applications
+Links
+This unit links to the following related units:
+Unit 4001: Engineering Design
+Unit 4023: Computer Aided Design and Manufacture (CAD/CAM)
+Unit 4034: Computer Aided Design (CAD) for Engineering.
+Unit Descriptors for the Pearson BTEC Higher Nationals Engineering Suite (2024)
+208
+Issue 6 – October 2025 © Pearson Education Limited 2025

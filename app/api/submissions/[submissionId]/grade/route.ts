@@ -1645,7 +1645,7 @@ function buildCriterionOutcomeSummaryBlock(input: {
         : "UNCLEAR";
     if (!decisionByCode.has(code)) decisionByCode.set(code, decision);
     if (decision !== "ACHIEVED" && !reasonByCode.has(code)) {
-      const reason = firstSentence(row?.rationale || "", 140);
+      const reason = firstSentence(row?.rationale || "", 400);
       if (reason) reasonByCode.set(code, reason);
     }
   }
