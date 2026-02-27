@@ -25,7 +25,7 @@ Status labels:
 
 ---
 
-## 🟨 M2 — Reference Library (Specs/Briefs)
+## ✅ M2 — Reference Library (Specs/Briefs)
 **Outcome**
 - Admin upload reference docs (unit specs, briefs)
 - Parse + store structured reference data
@@ -36,9 +36,14 @@ Status labels:
 - Assignment binding exists and is queryable
 - Locked reference versions are immutable
 
+**Current state (2026-02-27)**
+- Reference inbox and extract/lock lifecycle are live for specs/briefs.
+- Assignment bindings are operational and queryable in admin workflows.
+- Locked references are treated as immutable and enforced in governance routes.
+
 ---
 
-## 🟨 M3 — Extraction Engine
+## ✅ M3 — Extraction Engine
 **Outcome**
 - Extract text from PDF/DOCX
 - Per‑page extraction stored separately from raw file
@@ -56,9 +61,14 @@ Status labels:
   - method (pdf‑text / docx / vision‑later)
   - confidence + flags
 
+**Current state (2026-02-27)**
+- Extraction runs/pages are stored and surfaced in submission detail.
+- Cover/extraction quality gates and confidence signals are live.
+- Extraction metadata is persisted and used by QA/automation logic.
+
 ---
 
-## 🔜 M4 — Student detail cockpit
+## ✅ M4 — Student detail cockpit
 **Outcome**
 - `/students/[id]` becomes the operational cockpit
 - Shows student identity + submission history + latest outcomes
@@ -70,9 +80,12 @@ Status labels:
   - filters (assignment / status / date)
   - click-through to `/submissions/[submissionId]`
 
+**Current state (2026-02-27)**
+- `/students/[id]` is live with profile snapshot, status badges, filters, and submission drill-down.
+
 ---
 
-## 🟨 M5 — Grading engine v1 (Explainable JSON)
+## ✅ M5 — Grading engine v1 (Explainable JSON)
 **Outcome**
 - Strict per‑criterion decisions with evidence pointers
 - Overall word grade calculated from criteria
@@ -84,14 +97,14 @@ Status labels:
   - store model + prompt version
   - store evidence mapping to pages/snippets
 
-**Current state (2026-02-18)**
+**Current state (2026-02-27)**
 - Structured grading JSON is live in submission assessments.
 - Evidence-linked criterion decisions are rendered in `Audit & outputs`.
 - Grade vocabulary is constrained to Pearson HN path.
 
 ---
 
-## 🟨 M6 — Marked PDF generator
+## ✅ M6 — Marked PDF generator
 **Outcome**
 - Annotated PDF linked to criteria decisions
 - Original layout preserved
@@ -100,7 +113,7 @@ Status labels:
 - Downloadable marked PDF attached to submission record
 - Annotation log stored for audit
 
-**Current state (2026-02-18)**
+**Current state (2026-02-27)**
 - Marked PDF generation is live in grading/rebuild flows.
 - Overall summary is placed on final page.
 - Constructive page notes are mapped from criterion evidence pages.
@@ -119,6 +132,10 @@ Status labels:
 **Acceptance**
 - Export is deterministic and repeatable
 - Past exports can be regenerated identically (versions logged)
+
+**Current state (2026-02-27)**
+- Core grading outputs (JSON + marked PDF) exist in current workflows.
+- A single deterministic export-pack endpoint/UI with versioned regeneration logs is not yet complete.
 
 ---
 
