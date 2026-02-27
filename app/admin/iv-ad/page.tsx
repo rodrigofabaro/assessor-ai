@@ -31,6 +31,15 @@ type ExtractionPreview = {
   pageCount?: number;
 };
 
+type AiReviewPreview = {
+  gradingDecisionVerdict: "CORRECT" | "QUESTIONABLE" | "INCORRECT";
+  feedbackQualityVerdict: "STRONG" | "ADEQUATE" | "WEAK";
+  confidence: number;
+  summary: string;
+  provider: "openai";
+  model: string;
+} | null;
+
 type ReferenceSpecDocument = {
   id: string;
   title: string;
@@ -90,6 +99,9 @@ export default function IvAdAdminPage() {
   const [gradeOverride, setGradeOverride] = useState("");
   const [keyNotesOverride, setKeyNotesOverride] = useState("");
   const [preview, setPreview] = useState<ExtractionPreview | null>(null);
+  const [aiReview, setAiReview] = useState<AiReviewPreview>(null);
+  const [aiReviewReason, setAiReviewReason] = useState("");
+  const [useAiReview, setUseAiReview] = useState(true);
   const [lastDownloadUrl, setLastDownloadUrl] = useState("");
 
   async function loadTemplateAndHistory() {
@@ -162,6 +174,7 @@ export default function IvAdAdminPage() {
       const fd = new FormData();
       fd.set("markedPdf", markedPdf);
       if (selectedSpecId) fd.set("referenceSpecId", selectedSpecId);
+      fd.set("useAiReview", useAiReview ? "true" : "false");
       for (const [k, v] of Object.entries(fields)) fd.set(k, v);
       if (gradeOverride) fd.set("gradeOverride", gradeOverride);
       if (keyNotesOverride.trim()) fd.set("keyNotesOverride", keyNotesOverride.trim());
@@ -171,6 +184,8 @@ export default function IvAdAdminPage() {
       if (!res.ok) throw new Error(json?.error || `Generate failed (${res.status})`);
 
       setPreview(json?.extractionPreview || null);
+      setAiReview(json?.aiReview || null);
+      setAiReviewReason(String(json?.aiReviewReason || ""));
       setLastDownloadUrl(String(json?.downloadUrl || ""));
       setSuccess("IV DOCX generated successfully.");
       await loadTemplateAndHistory();
@@ -336,7 +351,33 @@ export default function IvAdAdminPage() {
                     placeholder="Short text, e.g. Task 2(b) table/graph incorrect and needs correction guidance."
                   />
                 </label>
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900">
+                  <input
+                    type="checkbox"
+                    checked={useAiReview}
+                    onChange={(e) => setUseAiReview(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-300 text-sky-700 focus:ring-sky-500"
+                  />
+                  Use AI IV review to fill comments/actions
+                </label>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-sm font-semibold text-zinc-900">AI review result (latest run)</div>
+              {aiReview ? (
+                <div className="mt-3 grid gap-2">
+                  <ReadOnlyField label="gradingDecisionVerdict" value={aiReview.gradingDecisionVerdict} />
+                  <ReadOnlyField label="feedbackQualityVerdict" value={aiReview.feedbackQualityVerdict} />
+                  <ReadOnlyField label="confidence" value={Number(aiReview.confidence).toFixed(2)} />
+                  <ReadOnlyField label="summary" value={aiReview.summary} multiline />
+                  <ReadOnlyField label="provider/model" value={`${aiReview.provider} · ${aiReview.model}`} />
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-zinc-600">
+                  {aiReviewReason ? `AI review unavailable (${aiReviewReason}). Heuristic narrative was used.` : "No AI review result yet."}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -349,6 +390,8 @@ export default function IvAdAdminPage() {
                   setMarkedPdf(null);
                   setSelectedSpecId("");
                   setPreview(null);
+                  setAiReview(null);
+                  setAiReviewReason("");
                   setGradeOverride("");
                   setKeyNotesOverride("");
                 }}

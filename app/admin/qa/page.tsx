@@ -22,6 +22,7 @@ const BUTTON_ROW_BASE_CLASS =
   "inline-flex h-7 items-center rounded-lg border px-2.5 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 const BUTTON_ROW_SKY_CLASS = `${BUTTON_ROW_BASE_CLASS} border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100`;
 const BUTTON_ROW_TEAL_CLASS = `${BUTTON_ROW_BASE_CLASS} border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100`;
+const BUTTON_ROW_VIOLET_CLASS = `${BUTTON_ROW_BASE_CLASS} border-violet-300 bg-violet-50 text-violet-900 hover:bg-violet-100`;
 const BUTTON_PAGE_CLASS =
   "inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 text-xs font-semibold text-zinc-800 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400";
 
@@ -145,6 +146,8 @@ export default function AdminQaPage() {
   const [turnitinBusyById, setTurnitinBusyById] = useState<Record<string, boolean>>({});
   const [turnitinBatchBusy, setTurnitinBatchBusy] = useState(false);
   const [turnitinMsg, setTurnitinMsg] = useState("");
+  const [ivBusyById, setIvBusyById] = useState<Record<string, boolean>>({});
+  const [ivMsg, setIvMsg] = useState("");
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -294,6 +297,39 @@ export default function AdminQaPage() {
       setTurnitinMsg(e?.message || "Failed to send page rows to Turnitin.");
     } finally {
       setTurnitinBatchBusy(false);
+    }
+  }
+
+  async function generateIvAdFromSubmission(row: SubmissionResearchRow) {
+    const sid = String(row?.id || "").trim();
+    if (!sid) return;
+    setIvMsg("");
+    setIvBusyById((prev) => ({ ...prev, [sid]: true }));
+    try {
+      const res = await fetch("/api/admin/iv-ad/generate-from-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId: sid, useAiReview: true }),
+      });
+      const json = (await res.json()) as { error?: string; downloadUrl?: string; usedNarrativeSource?: string };
+      if (!res.ok) throw new Error(json?.error || `IV-AD generation failed (${res.status})`);
+
+      const downloadUrl = String(json?.downloadUrl || "").trim();
+      const source = String(json?.usedNarrativeSource || "HEURISTIC").trim();
+      setIvMsg(`IV-AD generated for ${sid} (${source}).`);
+      if (downloadUrl && typeof window !== "undefined") {
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.click();
+      }
+    } catch (e: any) {
+      setIvMsg(e?.message || "IV-AD generation failed.");
+    } finally {
+      setIvBusyById((prev) => {
+        const next = { ...prev };
+        delete next[sid];
+        return next;
+      });
     }
   }
 
@@ -459,13 +495,18 @@ export default function AdminQaPage() {
             </div>
             <h1 className="text-sm font-semibold tracking-tight text-zinc-900">QA Research</h1>
             <p className="mt-1 text-sm text-zinc-700">
-              Query students, courses, AB numbers, grade spread by course, and compare grade outcomes within the same unit.
+              Query students, courses, AB numbers, grade spread by course, compare outcomes, and generate IV-AD directly from QA rows.
             </p>
           </div>
           <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
             <TinyIcon name="status" className="mr-1 h-3 w-3" />
             {busy ? "Loading..." : "Ready"}
           </span>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/60 px-3 py-2 text-xs text-violet-900">
+          <span className="font-semibold">QA purpose:</span> verify assessor decisions are evidence-based, criterion-linked, and supported by clear
+          actionable feedback before final quality assurance sign-off.
         </div>
 
         <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-7">
@@ -553,8 +594,13 @@ export default function AdminQaPage() {
             <TinyIcon name="audit" className="h-3 w-3" />
             Open audit log
           </Link>
+          <Link href="/admin/iv-ad" className={BUTTON_NEUTRAL_CLASS}>
+            <TinyIcon name="qa" className="h-3 w-3" />
+            Open manual IV workspace
+          </Link>
         </div>
         {turnitinMsg ? <p className="mt-2 text-xs text-zinc-700">{turnitinMsg}</p> : null}
+        {ivMsg ? <p className="mt-1 text-xs text-zinc-700">{ivMsg}</p> : null}
       </section>
 
       {error ? <section className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</section> : null}
@@ -632,13 +678,14 @@ export default function AdminQaPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Report %</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">AI %</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Turnitin</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">IV-AD</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Uploaded</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Graded</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={12} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="text-sm">
@@ -783,6 +830,17 @@ export default function AdminQaPage() {
                           <div className="text-[11px] text-rose-700">{String(r.turnitin.lastError)}</div>
                         ) : null}
                       </div>
+                    </td>
+                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                      <button
+                        type="button"
+                        onClick={() => void generateIvAdFromSubmission(r)}
+                        disabled={Boolean(ivBusyById[r.id]) || busy}
+                        className={BUTTON_ROW_VIOLET_CLASS}
+                        title="Generate IV-AD DOCX from existing submission + assessment data"
+                      >
+                        {ivBusyById[r.id] ? "Generating..." : "Generate IV-AD"}
+                      </button>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.gradedAt)}</td>
