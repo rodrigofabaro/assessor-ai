@@ -223,20 +223,29 @@ export async function POST(req: Request) {
         );
       }
 
-      // Upsert brief
-      const briefRec = await prisma.assignmentBrief.upsert({
-        where: { unitId_assignmentCode: { unitId: unit.id, assignmentCode } },
-        update: {
-          title,
-          briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
-        },
-        create: {
-          unitId: unit.id,
-          assignmentCode,
-          title,
-          briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
-        },
+      // Commit-stage behavior keeps latest draft/record current; version increment happens on LOCK overwrite.
+      const latestBrief = await prisma.assignmentBrief.findFirst({
+        where: { unitId: unit.id, assignmentCode },
+        orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
+        select: { id: true },
       });
+      const briefRec = latestBrief
+        ? await prisma.assignmentBrief.update({
+            where: { id: latestBrief.id },
+            data: {
+              title,
+              briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
+            },
+          })
+        : await prisma.assignmentBrief.create({
+            data: {
+              unitId: unit.id,
+              assignmentCode,
+              title,
+              version: 1,
+              briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
+            },
+          });
 
       // Map detected criterion codes (best-effort)
       const criteria = await prisma.assessmentCriterion.findMany({

@@ -349,12 +349,14 @@ model AssignmentBrief {
   id               String       @id @default(uuid())
   assignmentCode   String // e.g. "A1"
   title            String
+  version          Int          @default(1)
   status           RecordStatus @default(DRAFT)
   assignmentNumber Int?
   totalAssignments Int?
   aiasLevel        Int?
   lockedAt         DateTime?
   lockedBy         String?
+  supersededAt     DateTime?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -367,7 +369,8 @@ model AssignmentBrief {
   criteriaMaps AssignmentCriterionMap[]
   assignments  Assignment[] // operational assignments can point here
 
-  @@unique([unitId, assignmentCode])
+  @@unique([unitId, assignmentCode, version])
+  @@index([unitId, assignmentCode, status, updatedAt])
 }
 
 model AssignmentCriterionMap {

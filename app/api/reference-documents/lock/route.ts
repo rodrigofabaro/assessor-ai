@@ -315,11 +315,11 @@ export async function POST(req: Request) {
         );
       }
 
-      // Prevent accidental duplicates: if there's already a LOCKED brief for this Unit+AssignmentCode,
-      // require an explicit overwrite flag.
-      const existing = await prisma.assignmentBrief.findUnique({
-        where: { unitId_assignmentCode: { unitId: unit.id, assignmentCode } },
-        select: { id: true, status: true, briefDocumentId: true, title: true },
+      // Resolve latest brief version for this Unit+AssignmentCode.
+      const existing = await prisma.assignmentBrief.findFirst({
+        where: { unitId: unit.id, assignmentCode },
+        orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
+        select: { id: true, status: true, briefDocumentId: true, title: true, version: true },
       });
 
       if (
@@ -342,32 +342,98 @@ export async function POST(req: Request) {
         );
       }
 
-      // Upsert brief
-      const briefRec = await prisma.assignmentBrief.upsert({
-        where: { unitId_assignmentCode: { unitId: unit.id, assignmentCode } },
-        update: {
-          title,
-          status: "LOCKED" as any,
-          assignmentNumber: (brief as any).assignmentNumber ?? null,
-          totalAssignments: (brief as any).totalAssignments ?? null,
-          aiasLevel: (brief as any).aiasLevel ?? null,
-          briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
-          lockedAt: now,
-          lockedBy: lockedBy || null,
-        },
-        create: {
-          unitId: unit.id,
-          assignmentCode,
-          title,
-          status: "LOCKED" as any,
-          assignmentNumber: (brief as any).assignmentNumber ?? null,
-          totalAssignments: (brief as any).totalAssignments ?? null,
-          aiasLevel: (brief as any).aiasLevel ?? null,
-          briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
-          lockedAt: now,
-          lockedBy: lockedBy || null,
-        },
-      });
+      // Keep historical brief records untouched when replacing with a new document.
+      // New cycle => new AssignmentBrief version; existing row is marked superseded.
+      let briefRec: { id: string; version: number };
+      let supersededBriefId: string | null = null;
+      const replacingLockedBrief =
+        !!existing &&
+        existing.status === ("LOCKED" as any) &&
+        !!existing.briefDocumentId &&
+        existing.briefDocumentId !== doc.id;
+      const nextVersion = existing ? (existing.version || 1) + (replacingLockedBrief ? 1 : 0) : 1;
+
+      if (replacingLockedBrief && allowOverwrite) {
+        supersededBriefId = existing!.id;
+        await prisma.assignmentBrief.update({
+          where: { id: existing!.id },
+          data: { supersededAt: now },
+        });
+
+        briefRec = await prisma.assignmentBrief.create({
+          data: {
+            unitId: unit.id,
+            assignmentCode,
+            title,
+            version: nextVersion,
+            status: "LOCKED" as any,
+            assignmentNumber: (brief as any).assignmentNumber ?? null,
+            totalAssignments: (brief as any).totalAssignments ?? null,
+            aiasLevel: (brief as any).aiasLevel ?? null,
+            briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
+            lockedAt: now,
+            lockedBy: lockedBy || null,
+          },
+          select: { id: true, version: true },
+        });
+
+        if (existing?.briefDocumentId) {
+          const prevDoc = await prisma.referenceDocument.findUnique({
+            where: { id: existing.briefDocumentId },
+            select: { id: true, sourceMeta: true },
+          });
+          if (prevDoc?.id) {
+            const prevMeta =
+              prevDoc.sourceMeta && typeof prevDoc.sourceMeta === "object"
+                ? (prevDoc.sourceMeta as Record<string, any>)
+                : {};
+            await prisma.referenceDocument.update({
+              where: { id: prevDoc.id },
+              data: {
+                sourceMeta: {
+                  ...prevMeta,
+                  archived: true,
+                  archivedAt: now.toISOString(),
+                  archivedReason: "superseded_by_new_brief_version",
+                },
+              },
+            });
+          }
+        }
+      } else if (existing) {
+        briefRec = await prisma.assignmentBrief.update({
+          where: { id: existing.id },
+          data: {
+            title,
+            status: "LOCKED" as any,
+            assignmentNumber: (brief as any).assignmentNumber ?? null,
+            totalAssignments: (brief as any).totalAssignments ?? null,
+            aiasLevel: (brief as any).aiasLevel ?? null,
+            briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
+            lockedAt: now,
+            lockedBy: lockedBy || null,
+            supersededAt: null,
+          },
+          select: { id: true, version: true },
+        });
+      } else {
+        briefRec = await prisma.assignmentBrief.create({
+          data: {
+            unitId: unit.id,
+            assignmentCode,
+            title,
+            version: 1,
+            status: "LOCKED" as any,
+            assignmentNumber: (brief as any).assignmentNumber ?? null,
+            totalAssignments: (brief as any).totalAssignments ?? null,
+            aiasLevel: (brief as any).aiasLevel ?? null,
+            briefDocumentId: doc.type === "BRIEF" ? doc.id : null,
+            lockedAt: now,
+            lockedBy: lockedBy || null,
+          },
+          select: { id: true, version: true },
+        });
+      }
 
       // Determine mapping codes
       const codes = (mappingOverride && mappingOverride.length ? mappingOverride : pickedCodes.selectedCodes)
@@ -395,26 +461,19 @@ export async function POST(req: Request) {
         });
       }
 
-      // Ensure there is an Assignment row for submissions linking UI / triage.
-      // Some units use short codes like "44", so create/find by exact Unit + AssignmentRef.
-      const existingAssignment = await prisma.assignment.findFirst({
+      // Keep grading on current active brief by re-pointing assignment bindings.
+      const assignmentUpdate = await prisma.assignment.updateMany({
         where: { unitCode: unit.unitCode, assignmentRef: assignmentCode },
-        orderBy: { createdAt: "desc" },
-        select: { id: true },
+        data: {
+          title,
+          isPlaceholder: false,
+          assignmentBriefId: briefRec.id,
+          bindingStatus: "BOUND",
+          bindingLockedAt: now,
+          bindingLockedBy: lockedBy || null,
+        },
       });
-      if (existingAssignment) {
-        await prisma.assignment.update({
-          where: { id: existingAssignment.id },
-          data: {
-            title,
-            isPlaceholder: false,
-            assignmentBriefId: briefRec.id,
-            bindingStatus: "BOUND",
-            bindingLockedAt: now,
-            bindingLockedBy: lockedBy || null,
-          },
-        });
-      } else {
+      if ((assignmentUpdate.count || 0) === 0) {
         await prisma.assignment.create({
           data: {
             unitCode: unit.unitCode,
@@ -455,6 +514,8 @@ export async function POST(req: Request) {
         details: {
           documentId: doc.id,
           briefId: briefRec.id,
+          briefVersion: briefRec.version,
+          supersededBriefId,
           assignmentCode,
           mappedCount: criteria.length,
           qualityGate,
@@ -467,6 +528,8 @@ export async function POST(req: Request) {
         ok: true,
         kind: "BRIEF",
         briefId: briefRec.id,
+        briefVersion: briefRec.version,
+        supersededBriefId,
         mapped: criteria.length,
         detected: pickedCodes.baseCodes.length,
         usedCodes: codes,
