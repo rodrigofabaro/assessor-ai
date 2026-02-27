@@ -13,6 +13,9 @@ export type IvAdDocxFillInput = {
   grade: string;
   generalComments: string;
   actionRequired: string;
+  internalVerifierSignature?: string;
+  assessorSignature?: string;
+  signatureDate?: string;
 };
 
 export type IvAdDocxFillResult = {
@@ -221,6 +224,17 @@ export async function fillIvAdTemplateDocx(templateBuffer: Buffer, input: IvAdDo
   setMergedCellText(doc, 16, 0, input.actionRequired);
   setCellText(doc, 16, 5, "Within 5 working days of IV");
 
+  // Footer signatures
+  const signatureDate = String(input.signatureDate || "").trim();
+  const internalVerifierSignature = String(input.internalVerifierSignature || "").trim();
+  const assessorSignature = String(input.assessorSignature || "").trim();
+  if (internalVerifierSignature) setCellText(doc, 21, 2, internalVerifierSignature);
+  if (assessorSignature) setCellText(doc, 22, 2, assessorSignature);
+  if (signatureDate) {
+    setCellText(doc, 21, 9, signatureDate);
+    setCellText(doc, 22, 9, signatureDate);
+  }
+
   const nextXml = new XMLSerializer().serializeToString(doc);
   zip.file("word/document.xml", nextXml);
   const out = await zip.generateAsync({ type: "nodebuffer" });
@@ -229,4 +243,3 @@ export async function fillIvAdTemplateDocx(templateBuffer: Buffer, input: IvAdDo
     tableShape: { rowCount: rows.length, maxVisualCols },
   };
 }
-

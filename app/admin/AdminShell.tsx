@@ -5,10 +5,8 @@ import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/admin/qa", label: "QA", desc: "Research + reports" },
-  { href: "/admin/audit", label: "Audit", desc: "Operational logs" },
   { href: "/admin/bindings", label: "Bindings", desc: "Brief ↔ unit map" },
   { href: "/admin/students", label: "Students", desc: "Student records" },
-  { href: "/admin/users", label: "Users", desc: "Audit identities" },
   { href: "/admin/settings", label: "Settings", desc: "OpenAI usage" },
 ] as const;
 

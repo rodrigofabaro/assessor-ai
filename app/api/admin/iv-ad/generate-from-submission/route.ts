@@ -31,6 +31,14 @@ function buildUnitCodeTitle(input: {
   return "Unit";
 }
 
+function isPlaceholderAssignmentTitle(value: string) {
+  const v = normalizeText(value).toLowerCase();
+  if (!v) return true;
+  if (v === "assignment") return true;
+  if (/^auto[- ]generated[:\s]/i.test(v)) return true;
+  return false;
+}
+
 async function ensureAdmin(route: string, requestId: string) {
   const guard = await isAdminMutationAllowed();
   if (guard.ok) return null;
@@ -146,9 +154,29 @@ export async function POST(req: Request) {
       });
     }
 
+    const existing = await prisma.ivAdDocument.findFirst({
+      where: {
+        templateId: activeTemplate.id,
+        sourceMarkedPdfPath: markedPdfPath,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, assignmentTitle: true },
+    });
+    if (existing && !isPlaceholderAssignmentTitle(existing.assignmentTitle)) {
+      return NextResponse.json(
+        {
+          reused: true,
+          documentId: existing.id,
+          downloadUrl: `/api/admin/iv-ad/documents/${existing.id}/file`,
+          requestId,
+        },
+        { headers: { "x-request-id": requestId, "Cache-Control": "no-store" } }
+      );
+    }
+
     const appConfig = await prisma.appConfig.findUnique({
       where: { id: 1 },
-      select: { activeAuditUser: { select: { fullName: true } } },
+      select: { activeAuditUser: { select: { fullName: true, email: true } } },
     });
 
     const markedAbs = resolvePathMaybeRelative(markedPdfPath);
@@ -173,9 +201,11 @@ export async function POST(req: Request) {
       unitCode: submission.assignment?.assignmentBrief?.unit?.unitCode,
       unitTitle: submission.assignment?.assignmentBrief?.unit?.unitTitle,
     });
+    const assignmentTitleFromAssignment = normalizeText(submission.assignment?.title);
+    const assignmentTitleFromBrief = normalizeText(submission.assignment?.assignmentBrief?.title);
     const assignmentTitle =
-      normalizeText(submission.assignment?.title) ||
-      normalizeText(submission.assignment?.assignmentBrief?.title) ||
+      (!isPlaceholderAssignmentTitle(assignmentTitleFromAssignment) ? assignmentTitleFromAssignment : "") ||
+      assignmentTitleFromBrief ||
       normalizeText(submission.assignment?.assignmentRef) ||
       "Assignment";
 
@@ -185,6 +215,10 @@ export async function POST(req: Request) {
       normalizeText(body?.internalVerifierName) ||
       normalizeText(appConfig?.activeAuditUser?.fullName) ||
       "Internal Verifier";
+    const assessorSignatureEmail =
+      normalizeText(appConfig?.activeAuditUser?.email) ||
+      "rodrigo@unicourse.org";
+    const signatureDate = new Date().toLocaleDateString("en-GB");
 
     const feedbackSnippet = normalizeText(latestAssessment?.feedbackText);
     const finalKeyNotes = preview.extractedKeyNotesGuess || feedbackSnippet.slice(0, 600);
@@ -246,6 +280,9 @@ export async function POST(req: Request) {
       grade: finalGrade,
       generalComments: narrative.generalComments,
       actionRequired: narrative.actionRequired,
+      internalVerifierSignature: assessorSignatureEmail,
+      assessorSignature: assessorSignatureEmail,
+      signatureDate,
     });
 
     const outFilename = `${studentName}-${unitCodeTitle}-${assignmentTitle}-IV-AD.docx`;
@@ -304,4 +341,3 @@ export async function POST(req: Request) {
     });
   }
 }
-

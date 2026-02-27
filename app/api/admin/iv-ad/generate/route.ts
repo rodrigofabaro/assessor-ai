@@ -231,6 +231,9 @@ export async function POST(req: Request) {
 
     const templateAbs = ivAdToAbsolutePath(activeTemplate.storagePath);
     const templateBuffer = await fs.readFile(templateAbs);
+    const assessorSignatureEmail =
+      String(appConfig?.activeAuditUser?.email || "").trim() || "rodrigo@unicourse.org";
+    const signatureDate = new Date().toLocaleDateString("en-GB");
     const filled = await fillIvAdTemplateDocx(templateBuffer, {
       programmeTitle: fields.programmeTitle,
       unitCodeTitle: fields.unitCodeTitle,
@@ -241,6 +244,9 @@ export async function POST(req: Request) {
       grade: finalGrade,
       generalComments: narrative.generalComments,
       actionRequired: narrative.actionRequired,
+      internalVerifierSignature: assessorSignatureEmail,
+      assessorSignature: assessorSignatureEmail,
+      signatureDate,
     });
 
     const outFilename = `${fields.studentName}-${fields.unitCodeTitle}-${fields.assignmentTitle}-IV-AD.docx`;
@@ -301,3 +307,7 @@ export async function POST(req: Request) {
     });
   }
 }
+    const appConfig = await prisma.appConfig.findUnique({
+      where: { id: 1 },
+      select: { activeAuditUser: { select: { email: true } } },
+    });

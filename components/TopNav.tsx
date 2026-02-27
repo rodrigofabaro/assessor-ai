@@ -16,14 +16,11 @@ const MAIN_ITEMS: MainItem[] = [
 
 const ADMIN_ITEMS: AdminItem[] = [
   { label: "Overview", href: "/admin", accent: "sky" },
-  { label: "Audit", href: "/admin/audit", accent: "amber" },
   { label: "Briefs", href: "/admin/briefs", accent: "emerald" },
   { label: "Library", href: "/admin/library", accent: "teal" },
   { label: "QA", href: "/admin/qa", accent: "indigo" },
-  { label: "IV - AD", href: "/admin/iv-ad", accent: "blue" },
   { label: "Specs", href: "/admin/specs", accent: "cyan" },
   { label: "Students", href: "/admin/students", accent: "violet" },
-  { label: "Users", href: "/admin/users", accent: "fuchsia" },
 ];
 const ADMIN_SETTINGS_ITEM: AdminItem = {
   label: "Settings",

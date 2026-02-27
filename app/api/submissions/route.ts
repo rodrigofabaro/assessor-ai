@@ -412,6 +412,7 @@ export async function GET(req: Request) {
             take: 1,
             select: {
               overallGrade: true,
+              annotatedPdfPath: true,
               createdAt: true,
               ...(includeFeedback ? { feedbackText: true } : {}),
               ...(includeQa ? { resultJson: true } : {}),
@@ -421,6 +422,28 @@ export async function GET(req: Request) {
       }),
     ]);
 
+    const markedPaths = Array.from(
+      new Set(
+        rows
+          .map((s: any) => String(s?.assessments?.[0]?.annotatedPdfPath || "").trim())
+          .filter(Boolean)
+      )
+    );
+    const existingIvDocs =
+      markedPaths.length > 0
+        ? await prisma.ivAdDocument.findMany({
+            where: { sourceMarkedPdfPath: { in: markedPaths } },
+            orderBy: { createdAt: "desc" },
+            select: { id: true, sourceMarkedPdfPath: true, createdAt: true },
+          })
+        : [];
+    const latestIvByMarkedPath = new Map<string, { id: string; createdAt: Date }>();
+    for (const doc of existingIvDocs) {
+      const key = String(doc.sourceMarkedPdfPath || "").trim();
+      if (!key || latestIvByMarkedPath.has(key)) continue;
+      latestIvByMarkedPath.set(key, { id: doc.id, createdAt: doc.createdAt });
+    }
+
     const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
     const submissions = rows.map((s: any) => {
       const latest = s.assessments?.[0] || null;
@@ -428,6 +451,8 @@ export async function GET(req: Request) {
       const feedbackText = includeFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
       const qaFlags = includeQa ? computeQaFlags(latestJson) : null;
       const turnitin = turnitinStateBySubmissionId[s.id] || null;
+      const markedPdfPath = String(latest?.annotatedPdfPath || "").trim() || null;
+      const ivDoc = markedPdfPath ? latestIvByMarkedPath.get(markedPdfPath) : null;
       return {
         id: s.id,
         filename: s.filename,
@@ -438,10 +463,19 @@ export async function GET(req: Request) {
         grade: latest?.overallGrade || null,
         overallGrade: latest?.overallGrade || null,
         feedback: feedbackText,
+        markedPdfPath,
         gradedAt: latest?.createdAt || null,
         assessmentActor: includeQa ? String((latestJson as any)?.gradedBy || "").trim() || null : null,
         qaFlags,
         turnitin,
+        ivAd: ivDoc
+          ? {
+              exists: true,
+              documentId: ivDoc.id,
+              createdAt: ivDoc.createdAt,
+              downloadUrl: `/api/admin/iv-ad/documents/${ivDoc.id}/file`,
+            }
+          : { exists: false },
       };
     });
 
