@@ -408,7 +408,7 @@ export function SpecCatalogList({
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-zinc-500">
                   {row.isPearsonSet ? <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5">Pearson-set unit</span> : null}
-                  <span>{new Date(((d.sourceMeta as any)?.updatedAt || d.uploadedAt || Date.now())).toLocaleDateString()}</span>
+                  <span>{((d.sourceMeta as any)?.updatedAt || d.uploadedAt) ? new Date(((d.sourceMeta as any)?.updatedAt || d.uploadedAt)).toLocaleDateString() : "Unknown date"}</span>
                 </div>
               </div>
             );
