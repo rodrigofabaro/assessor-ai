@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
-import { deriveBulletsFromFeedbackText } from "@/lib/grading/feedbackDocument";
+import {
+  deriveBulletsFromFeedbackText,
+  getDefaultFeedbackTemplate,
+  renderFeedbackTemplate,
+  summarizeFeedbackText,
+} from "@/lib/grading/feedbackDocument";
 import { readGradingConfig } from "@/lib/grading/config";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { buildPageNotesFromCriterionChecks, extractCriterionChecksFromResultJson } from "@/lib/grading/pageNotes";
@@ -169,6 +174,83 @@ function toUkDate(value?: string | null) {
   return d.toLocaleDateString("en-GB");
 }
 
+function formatCriterionCodes(codes: string[], max = 10) {
+  const uniq = Array.from(
+    new Set(
+      (Array.isArray(codes) ? codes : [])
+        .map((code) => String(code || "").trim().toUpperCase())
+        .filter((code) => /^[PMD]\d{1,2}$/.test(code))
+    )
+  );
+  if (!uniq.length) return "";
+  if (uniq.length <= max) return uniq.join(", ");
+  const shown = uniq.slice(0, Math.max(1, max));
+  return `${shown.join(", ")} (+${uniq.length - shown.length} more)`;
+}
+
+function buildCriterionOutcomeSummary(
+  checks: Array<{ code?: string; decision?: string; rationale?: string }>
+) {
+  const rows = Array.isArray(checks) ? checks : [];
+  const achieved: string[] = [];
+  const outstanding: string[] = [];
+  const reasons: string[] = [];
+  for (const row of rows) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!/^[PMD]\d{1,2}$/.test(code)) continue;
+    const decision = normalizeDecisionLabel(row?.decision);
+    if (decision === "ACHIEVED") {
+      achieved.push(code);
+      continue;
+    }
+    outstanding.push(code);
+    const why = normalizeText(row?.rationale);
+    if (why) reasons.push(`${code}: ${why}`);
+  }
+
+  const lines: string[] = [];
+  if (achieved.length) lines.push(`Criteria achieved: ${formatCriterionCodes(achieved, 12)}.`);
+  if (outstanding.length) {
+    lines.push(`Criteria still to evidence clearly: ${formatCriterionCodes(outstanding, 12)}.`);
+    if (reasons.length) lines.push(`Why these are still open: ${reasons.slice(0, 3).join(" ")}`);
+  }
+  return lines.join("\n").trim();
+}
+
+function formatNextBandRequirementLine(targetBand: "PASS" | "MERIT" | "DISTINCTION", missingCodes: string[]) {
+  const shown = formatCriterionCodes(missingCodes, 12);
+  if (!shown) return "";
+  if (targetBand === "PASS") return `To achieve PASS, secure all Pass criteria, especially: ${shown}.`;
+  if (targetBand === "MERIT") return `To reach MERIT, all Merit criteria must be achieved, including: ${shown}.`;
+  return `To reach DISTINCTION, all Distinction criteria must be achieved, including: ${shown}.`;
+}
+
+function buildHigherGradeGuidance(input: {
+  finalGrade: string;
+  rawGrade: string;
+  missing: { pass: string[]; merit: string[]; distinction: string[] };
+}) {
+  const finalGrade = normalizeGradeBand(input.finalGrade);
+  const rawGrade = normalizeGradeBand(input.rawGrade);
+  const missingPass = Array.isArray(input.missing?.pass) ? input.missing.pass : [];
+  const missingMerit = Array.isArray(input.missing?.merit) ? input.missing.merit : [];
+  const missingDistinction = Array.isArray(input.missing?.distinction) ? input.missing.distinction : [];
+
+  if (finalGrade === "REFER") return formatNextBandRequirementLine("PASS", missingPass);
+  if (finalGrade === "PASS" || finalGrade === "PASS_ON_RESUBMISSION") {
+    if (missingMerit.length) return formatNextBandRequirementLine("MERIT", missingMerit);
+    if (rawGrade === "DISTINCTION" && missingDistinction.length) {
+      return formatNextBandRequirementLine("DISTINCTION", missingDistinction);
+    }
+    return "Maintain this standard and add stronger critical depth to progress to higher bands.";
+  }
+  if (finalGrade === "MERIT") {
+    if (missingDistinction.length) return formatNextBandRequirementLine("DISTINCTION", missingDistinction);
+    return "Merit is secure. To progress further, increase critical judgement and synthesis quality consistently.";
+  }
+  return "Distinction criteria are met across the mapped brief scope.";
+}
+
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ submissionId: string; assessmentId: string }> }
@@ -202,14 +284,14 @@ export async function PATCH(
     const strictness = String(resultJson.strictness || gradingCfg.strictness || "balanced");
     const actor = await getCurrentAuditActor();
     const incomingFeedback = sanitizeStudentFeedbackText(body.feedbackText);
-    const feedbackText = incomingFeedback || sanitizeStudentFeedbackText(assessment.feedbackText) || "";
     const hasOverrideRequest = Array.isArray(body.criterionOverrides) && body.criterionOverrides.length > 0;
+    const existingFeedbackText = sanitizeStudentFeedbackText(assessment.feedbackText) || "";
+    let feedbackText = incomingFeedback || existingFeedbackText || "";
     if (!feedbackText && !hasOverrideRequest) {
       return NextResponse.json({ error: "feedbackText or criterionOverrides is required." }, { status: 400 });
     }
     const markedDate = toUkDate(body.markedDate || resultJson?.feedbackOverride?.markedDate || null);
     const studentName = String(body.studentName || resultJson?.feedbackOverride?.studentName || resultJson.studentFirstNameUsed || "Student");
-    const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
     const criterionChecks = extractCriterionChecksFromResultJson(resultJson);
     const criteriaWithBand = extractCriteriaWithBand(resultJson);
     const currentDecisionByCode = new Map<string, DecisionLabel>();
@@ -332,6 +414,55 @@ export async function PATCH(
       lastUpdatedAt: overrideRows.length ? overrideRows[overrideRows.length - 1].updatedAt : null,
     };
 
+    const shouldAutoRefreshFeedback = hasOverrideRequest && !incomingFeedback;
+    const criterionOutcomeSummary = buildCriterionOutcomeSummary(effectiveCriterionChecks as any);
+    const higherGradeGuidance = buildHigherGradeGuidance({
+      finalGrade: finalOverallGrade,
+      rawGrade: gradePolicy.rawGrade,
+      missing: bandCap.missing,
+    });
+    let feedbackSummaryForPayload =
+      normalizeText(resultJson?.response?.feedbackSummary) ||
+      summarizeFeedbackText(existingFeedbackText || feedbackText || "Feedback generated.");
+    let feedbackBulletsForPayload =
+      Array.isArray(resultJson?.response?.feedbackBullets) &&
+      resultJson.response.feedbackBullets.some((b: unknown) => normalizeText(b))
+        ? resultJson.response.feedbackBullets.map((b: unknown) => normalizeText(b)).filter(Boolean)
+        : deriveBulletsFromFeedbackText(existingFeedbackText || feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
+    if (shouldAutoRefreshFeedback) {
+      const template = String(resultJson?.feedbackTemplateUsed || getDefaultFeedbackTemplate());
+      const studentFirstName = String(studentName || "Student")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)[0] || "Student";
+      feedbackText = renderFeedbackTemplate({
+        template,
+        studentFirstName,
+        studentFullName: String(studentName || "").trim() || studentFirstName,
+        feedbackSummary: feedbackSummaryForPayload || "Feedback generated.",
+        feedbackBullets: feedbackBulletsForPayload.length ? feedbackBulletsForPayload : ["Feedback generated."],
+        overallGrade: finalOverallGrade,
+        assessorName: actor,
+        markedDate,
+        unitCode: String(resultJson?.referenceContextSnapshot?.unit?.unitCode || ""),
+        assignmentCode: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.assignmentCode || ""),
+        submissionId,
+        confidence:
+          typeof resultJson?.response?.confidence === "number"
+            ? Number(resultJson.response.confidence)
+            : typeof resultJson?.structuredGradingV2?.confidence === "number"
+              ? Number(resultJson.structuredGradingV2.confidence)
+              : null,
+        gradingTone: tone,
+        gradingStrictness: strictness,
+        higherGradeGuidance,
+        criterionOutcomeSummary,
+      });
+      feedbackSummaryForPayload = summarizeFeedbackText(feedbackText || "Feedback generated.");
+      feedbackBulletsForPayload = deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
+    }
+    const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
+
     const responsePayload =
       resultJson?.response && typeof resultJson.response === "object"
         ? {
@@ -340,6 +471,10 @@ export async function PATCH(
             overallGradeWord: finalOverallGrade,
             overallGrade: finalOverallGrade,
             rawOverallGradeWord: gradePolicy.rawGrade,
+            feedbackSummary: feedbackSummaryForPayload || resultJson?.response?.feedbackSummary || null,
+            feedbackBullets: feedbackBulletsForPayload.length
+              ? feedbackBulletsForPayload
+              : resultJson?.response?.feedbackBullets || [],
             gradePolicy: {
               rawGrade: gradePolicy.rawGrade,
               finalGrade: gradePolicy.finalGrade,
@@ -366,6 +501,7 @@ export async function PATCH(
       overrideRows.length
         ? `Assessor criterion overrides: ${overrideRows.length} criteria updated (${overrideSummary.reasonCodes.join(", ")}).`
         : null,
+      shouldAutoRefreshFeedback ? "Feedback regenerated to match assessor criterion overrides." : null,
     ].filter(Boolean);
 
     const submissionPageCount = Math.max(
