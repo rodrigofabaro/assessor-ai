@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "qaOnly": true,
+  "autoSendOnExtract": false,
+  "autoDetectAiWritingOnGrade": true,
+  "baseUrl": "https://unicourse201.turnitin.com",
+  "apiKey": "bc8cefffda72455589fd73a1f707060b",
+  "ownerUserId": "rodrigo@unicourse.org",
+  "viewerUserId": "rodrigo@unicourse.org",
+  "locale": "en-US",
+  "integrationName": "assessor-ai",
+  "integrationVersion": "1.0.0",
+  "updatedAt": "2026-02-25T10:50:48.936Z"
+}
