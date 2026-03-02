@@ -12,6 +12,27 @@ Status labels:
 
 ---
 
+## 🔜 Product Direction — Tutor-First Zero-Expert Flow
+**Outcome**
+- Final product is optimized for a non-expert tutor workflow.
+- Daily operator path is:
+  1. login
+  2. upload assignment(s)
+  3. receive marked grade output
+- Advanced operations stay available but are not required for normal marking.
+
+**Operational rule**
+- Default UX must not require the tutor to use extraction/debug/mapping/governance screens.
+- System runs extraction -> validation -> grading automatically in the background.
+- Tutor sees only actionable status and final outputs.
+
+**Acceptance**
+- A new tutor can complete first marked output without admin assistance.
+- Standard run completes in one main workflow without opening expert pages.
+- Failures show plain-language reason + one clear next action (retry/fix input/contact admin).
+
+---
+
 ## ✅ M1 — Upload & Tracking Engine
 **Outcome**
 - Upload single + batch submissions (PDF/DOCX)
@@ -208,6 +229,93 @@ Status labels:
 - Existing local data is available in production (DB + files).
 - Automated smoke checks pass after deploy and after rollback simulation.
 - Monthly spend guardrails defined with threshold-based upgrade rules.
+
+**Pre-go-live hardening checklist**
+1. Go-live quality gates
+- Define minimum extraction accuracy/confidence threshold for release.
+- Define grading reliability threshold with fixture-backed pass criteria.
+- Require backup/restore drill sign-off before launch.
+
+2. Golden regression packs
+- Create a locked PDF pack set:
+  - clean digital text
+  - noisy scan/OCR-heavy sample
+  - tables/figures-heavy sample
+  - equation/Greek/SI symbol-heavy sample
+- Run full extraction + grading regression on every release candidate.
+
+3. Queue-first processing
+- Move extraction/grading work to background jobs with retry policy.
+- Keep UI async with observable job states (queued/running/retry/failed/done).
+
+4. Observability baseline
+- Add per-upload trace id across upload -> extraction -> grading.
+- Capture p50/p95 latency, failure rate, and retry metrics by stage.
+- Add operator dashboard cards for extraction health and grading health.
+
+5. Cost controls and limits
+- Add token/file-size/concurrency limits per org/tenant.
+- Add daily and monthly AI budget caps with alert thresholds.
+- Add per-stage spend telemetry (extraction, grading, retries).
+
+6. Extracted artifact versioning
+- Version extraction schema/artifacts explicitly.
+- Keep backward compatibility for old submissions when parser rules change.
+- Store parser/model/prompt versions per run for audit replay.
+
+7. Migration and rollback runbook
+- Document exact production cutover steps:
+  - DB export/import
+  - Prisma migrate deploy
+  - object storage sync
+- Document rollback trigger and step-by-step restore path.
+
+**Acceptance for pre-go-live checklist**
+- Golden pack passes on latest release candidate with no P1 extraction/grading regressions.
+- Background processing, telemetry, and budget controls are active in production config.
+- Migration and rollback are rehearsed and signed off.
+
+---
+
+## 🔜 M9 — Authentication, UX Templates, and Final Performance Hardening
+**Outcome**
+- Add production-ready authentication with role-based route protection.
+- Standardize major screens on reusable page templates/layout patterns.
+- Reduce UI/API latency and bundle weight on the heaviest workflows.
+- Deliver a tutor-facing workflow that hides expert complexity by default.
+
+**Scope**
+1. Authentication and access control
+- Implement login page and session management.
+- Add role-based access checks for `Admin`, `Assessor`, `IV` routes/actions.
+- Add invite/reset/logout flows and auth audit events.
+
+2. UX template and layout system
+- Create reusable page scaffolds for:
+  - workspace/list pages
+  - detail/cockpit pages
+  - settings/forms pages
+- Standardize loading/empty/error states and action bars across admin/submissions.
+- Apply responsive/mobile parity checks on all primary operator routes.
+- Add a tutor-focused primary workspace (simple upload -> progress -> output) as default post-login view.
+- Keep expert/admin tools behind role-aware navigation, not in default tutor workflow.
+
+3. Performance hardening pass
+- Break up oversized client/API modules in high-traffic paths.
+- Remove avoidable request waterfalls and duplicate fetches.
+- Verify DB index coverage for top filters/sorts and status dashboards.
+
+4. Help/docs parity
+- Remove remaining placeholder screenshot TODOs.
+- Align help pages with final route labels and controls.
+
+**Acceptance**
+- Unauthenticated users cannot access protected operational routes.
+- Login/logout/session expiry work end-to-end in production.
+- Primary screens share template consistency (layout, states, controls).
+- p95 page/API latency targets are defined and met on production-like dataset.
+- Help pages and screenshots match shipped UI.
+- Tutor can run upload-to-marked-output flow without expert intervention.
 
 ---
 
