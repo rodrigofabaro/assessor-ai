@@ -140,6 +140,39 @@ Status labels:
 
 ---
 
+## 🟨 Next implementation queue (2026-03-02)
+1. M7 export-pack endpoint + UI
+- Add one-click export per submission with deterministic bundle composition.
+- Include: grading JSON snapshot, marked PDF, feedback summary artifact, optional CSV line.
+- Persist export run metadata (who, when, source assessment id/version hash).
+
+2. Export reproducibility and replay
+- Add export regeneration route that replays an earlier export id and verifies hash parity.
+- Store immutable export manifest with file checksums.
+
+3. Brief extraction stabilization pack (post-hard-validation)
+- Add fixture coverage for multi-scenario briefs and mixed part-key formats (`1/2/3`, `i/ii`, `b.i`).
+- Add figure token/image linkage verification tests in list + detail rendering.
+
+4. Reference inbox performance phase 2
+- Add explicit client pagination in `/admin/reference`.
+- Add server-side projection presets by route context (reference list vs brief detail).
+
+5. Submission detail performance pass
+- Profile heavy panels (`Approval & outputs`, criterion list, run history diffs).
+- Reduce render churn on large criterion sets using memoized row segments + deferred detail panes.
+
+6. QA reliability instrumentation
+- Add lightweight latency telemetry on preview, commit, and regrade actions.
+- Add dashboard cards for p50/p95 timings and retry/failure rates by route.
+
+**Exit criteria for this queue**
+- No unresolved P1 regressions on extraction or grading integrity.
+- Export pack path is deterministic and auditable.
+- High-traffic admin pages remain responsive under production-sized datasets.
+
+---
+
 ## Maintenance rule
 Update milestone status only when you can point to:
 - the UI path that proves it
