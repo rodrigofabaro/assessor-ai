@@ -74,6 +74,24 @@ These are runtime env controls used by grading:
 
 In Phase 1 cover-only mode, page samples are the primary grounding context and body text is secondary.
 
+## Recommended production model profile (2026-03-02)
+
+For stable tutor-facing operations (`login -> upload -> marked output`) use:
+
+- `.openai-model.json`:
+  - `model: gpt-4o-mini`
+- provider routing:
+  - `AI_PROVIDER_MODE=openai`
+  - `AI_PROVIDER_CLEANUP_MODE=openai`
+  - `AI_PROVIDER_OCR_MODE=openai`
+  - `AI_PROVIDER_EQUATION_MODE=openai`
+  - `AI_PROVIDER_GRAPH_MODE=openai`
+  - `AI_LOCAL_ENABLED=false`
+- grading fallback:
+  - `OPENAI_GRADE_FALLBACK_MODEL=gpt-4.1-mini` (used only when grade route fallback triggers)
+
+This keeps cost low in the common path (`gpt-4o-mini`) while retaining a stronger fallback model for recovery paths.
+
 ## Grading Config Controls (admin UI)
 
 In `/admin/settings` -> `Grading`, operators can configure:

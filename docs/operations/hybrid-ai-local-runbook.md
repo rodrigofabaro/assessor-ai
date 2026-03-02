@@ -11,6 +11,7 @@ This runbook configures the app to use local AI first (lower cost) while keeping
 ## 1) Copy environment template
 
 Use `.env.example` as the baseline and apply values in your local `.env`.
+Note: `.env.example` now reflects production OpenAI-first defaults, so for hybrid/local runs you must override provider keys below.
 
 Key controls:
 
