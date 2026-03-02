@@ -22,6 +22,7 @@
     "test:brief-grading-scope-change": "node scripts/brief-grading-scope-change.test.js",
     "test:brief-lo-extraction": "node scripts/brief-lo-extraction.test.js",
     "test:brief-equation-false-positives": "node scripts/brief-equation-false-positives.test.js",
+    "test:symbol-normalization": "node scripts/symbol-normalization.test.js",
     "test:regression-pack": "node scripts/regression-pack.js",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",

@@ -1,6 +1,7 @@
 import { firstMatch, normalizeWhitespace } from "./common";
 import { extractCriteriaCodesFromText, normalizeCriteriaCode, sortCriteriaCodes } from "../extraction/utils/criteriaCodes";
 import { buildRangesFromStarts, nextIndexAfter, uniquePagesForRange, type LineWithPage } from "../extraction/brief/sections";
+import { normalizeSymbolArtifacts } from "../extraction/normalize/symbols";
 
 /**
  * BRIEF extractor
@@ -2064,11 +2065,11 @@ export function extractBrief(
       .replace(/(\[\[EQ:[^\]]+\]\])\s+(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
-  const normalizeCelsiusArtifacts = (textValue: string) =>
-    String(textValue || "")
-      .replace(/([0-9])\s*(?:\n\s*)?[∘°]\s*(?:\n\s*)?(?:퐶퐶|퐶\s*퐶|C\s*C|C{2,})\b/gi, "$1 °C")
-      .replace(/([0-9])\s*(?:\n\s*)?퐶퐶\b/gi, "$1 °C")
-      .replace(/([0-9])\s*[∘°]\s*(?:\n\s*)?C\b/gi, "$1 °C")
+  const normalizeSymbolsForTaskText = (textValue: string) =>
+    normalizeSymbolArtifacts(String(textValue || ""), {
+      normalizeNewlines: true,
+      collapseWhitespace: false,
+    })
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   const stripEqDuplicateFollowupLine = (textValue: string, eqMap: Map<string, BriefEquation>) => {
@@ -2280,7 +2281,7 @@ export function extractBrief(
       }
       task.prompt = task.text;
     }
-    transformTaskTexts(task, normalizeCelsiusArtifacts);
+    transformTaskTexts(task, normalizeSymbolsForTaskText);
     if (idsArr.length) {
       transformTaskTexts(task, (value) => stripEquationNeighborNoise(value, idsArr));
       transformTaskTexts(task, (value) => stripEqDuplicateFollowupLine(value, eqById));

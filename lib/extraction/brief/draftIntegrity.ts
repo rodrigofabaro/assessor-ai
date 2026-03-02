@@ -1,3 +1,5 @@
+import { normalizeSymbolArtifacts } from "@/lib/extraction/normalize/symbols";
+
 function normalizeText(text: string) {
   return String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
@@ -7,15 +9,10 @@ function cleanBlankRuns(text: string) {
 }
 
 function normalizeUnitArtifacts(text: string) {
-  return normalizeText(text)
-    .replace(/∘\s*(?:\n\s*)?퐶\s*(?:\n\s*)?퐶/g, "°C")
-    .replace(/°\s*(?:\n\s*)?퐶\s*(?:\n\s*)?퐶/g, "°C")
-    .replace(/∘\s*(?:\n\s*)?C\s*(?:\n\s*)?C/gi, "°C")
-    .replace(/°\s*(?:\n\s*)?C\s*(?:\n\s*)?C/gi, "°C")
-    // Common OCR split for Celsius: "100 ∘ 퐶퐶" / "100 ° CC" / line-broken variants
-    .replace(/([0-9])\s*(?:\n\s*)?[∘°]\s*(?:\n\s*)?(?:퐶퐶|퐶\s*퐶|C\s*C|C{2,})\b/g, "$1 °C")
-    .replace(/([0-9])\s*(?:\n\s*)?퐶퐶\b/g, "$1 °C")
-    .replace(/([0-9])\s*[∘°]\s*(?:\n\s*)?C\b/g, "$1 °C");
+  return normalizeSymbolArtifacts(normalizeText(text), {
+    normalizeNewlines: true,
+    collapseWhitespace: false,
+  });
 }
 
 function isFailureTablePart(text: string) {

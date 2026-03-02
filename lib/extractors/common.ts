@@ -1,5 +1,12 @@
+import { normalizeSymbolArtifacts } from "@/lib/extraction/normalize/symbols";
+
 export function normalizeWhitespace(s: string) {
-  return (s || "").replace(/\r/g, "").replace(/[ \t]+/g, " ").trim();
+  return normalizeSymbolArtifacts((s || "").replace(/\r/g, ""), {
+    normalizeNewlines: false,
+    collapseWhitespace: false,
+  })
+    .replace(/[ \t]+/g, " ")
+    .trim();
 }
 
 export function firstMatch(text: string, re: RegExp): string | null {

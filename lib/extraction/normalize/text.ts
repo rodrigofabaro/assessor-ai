@@ -1,6 +1,11 @@
+import { normalizeSymbolArtifacts } from "./symbols";
+
 export function normalizeWhitespace(s: string) {
-  return (s || "")
-    .replace(/\r/g, "")
+  return normalizeSymbolArtifacts(
+    (s || "")
+      .replace(/\r/g, ""),
+    { normalizeNewlines: false, collapseWhitespace: false }
+  )
     .replace(/[ \t]+/g, " ")
     .trim();
 }

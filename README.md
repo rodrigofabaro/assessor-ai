@@ -47,6 +47,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Brief mapping codes regression: `pnpm run test:brief-mapping-codes`
 - Brief hard validation test: `node scripts/brief-hard-validation.test.js`
 - Brief vs spec audit test: `node scripts/brief-spec-audit.test.js`
+- Symbol normalization test (Greek/SI/unit OCR cleanup): `pnpm run test:symbol-normalization`
 - Regression pack: `pnpm run test:regression-pack`
 - Draft artifact integrity test: `node scripts/draft-integrity.test.js`
 - Marked PDF URL test: `node scripts/marked-pdf-url.test.js`
@@ -62,6 +63,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Mapping health is surfaced after lock attempts (blockers/warnings/metrics).
 - Brief hard validation blocks unresolved structural extraction defects (missing scenarios, duplicate parts, figure-without-image-token, Celsius OCR artifacts).
 - Whole-PDF AI fallback is attempted when brief hard validation fails after native retries.
+- Shared symbol normalization is applied in extraction paths to improve readability and unit consistency (Greek letters, SI symbols, common OCR artifacts).
 
 ## Current navigation notes (admin)
 
