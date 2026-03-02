@@ -6,8 +6,20 @@ function cleanBlankRuns(text: string) {
   return String(text || "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function normalizeUnitArtifacts(text: string) {
+  return normalizeText(text)
+    .replace(/∘\s*(?:\n\s*)?퐶\s*(?:\n\s*)?퐶/g, "°C")
+    .replace(/°\s*(?:\n\s*)?퐶\s*(?:\n\s*)?퐶/g, "°C")
+    .replace(/∘\s*(?:\n\s*)?C\s*(?:\n\s*)?C/gi, "°C")
+    .replace(/°\s*(?:\n\s*)?C\s*(?:\n\s*)?C/gi, "°C")
+    // Common OCR split for Celsius: "100 ∘ 퐶퐶" / "100 ° CC" / line-broken variants
+    .replace(/([0-9])\s*(?:\n\s*)?[∘°]\s*(?:\n\s*)?(?:퐶퐶|퐶\s*퐶|C\s*C|C{2,})\b/g, "$1 °C")
+    .replace(/([0-9])\s*(?:\n\s*)?퐶퐶\b/g, "$1 °C")
+    .replace(/([0-9])\s*[∘°]\s*(?:\n\s*)?C\b/g, "$1 °C");
+}
+
 function isFailureTablePart(text: string) {
-  const src = normalizeText(text);
+  const src = normalizeUnitArtifacts(text);
   const hasHeader = /\bfailure reason\b/i.test(src) && /\bnumber of chips\b/i.test(src);
   if (!hasHeader) return false;
   const rowCount = (src.match(/^(overheating|voltage performance|unacceptable noise|radiation tolerance)\s+\d+\s*$/gim) || []).length;
@@ -17,11 +29,11 @@ function isFailureTablePart(text: string) {
 }
 
 function stripFailureTableEquationTokens(text: string) {
-  return normalizeText(text).replace(/\[\[EQ:[^\]]+\]\]/g, "");
+  return normalizeUnitArtifacts(text).replace(/\[\[EQ:[^\]]+\]\]/g, "");
 }
 
 function stripFailureTableLeakageFromNonFailurePart(text: string) {
-  const lines = normalizeText(text).split("\n");
+  const lines = normalizeUnitArtifacts(text).split("\n");
   const kept: string[] = [];
   for (const line of lines) {
     const s = String(line || "").trim();
@@ -37,7 +49,7 @@ function stripFailureTableLeakageFromNonFailurePart(text: string) {
 }
 
 function parseRecoveredChartRows(blockText: string) {
-  const lines = normalizeText(blockText).split("\n");
+  const lines = normalizeUnitArtifacts(blockText).split("\n");
   const rows: Array<{ label: string; value: number }> = [];
   const seen = new Set<string>();
   for (const line of lines) {
@@ -57,7 +69,7 @@ function parseRecoveredChartRows(blockText: string) {
 }
 
 function normalizeRecoveredChartBlock(text: string) {
-  const src = normalizeText(text);
+  const src = normalizeUnitArtifacts(text);
   const marker = /Recovered chart data \(from uploaded image\):/i;
   const m = src.match(marker);
   if (!m || typeof m.index !== "number") return src;
@@ -76,7 +88,7 @@ function normalizeRecoveredChartBlock(text: string) {
 }
 
 function sanitizePartText(text: string) {
-  const src = normalizeText(text);
+  const src = normalizeUnitArtifacts(text);
   const isFailure = isFailureTablePart(src);
 
   let next = src;
@@ -95,7 +107,7 @@ function stripStandaloneFalseEquationTokenLines(
   removableEqIds: Set<string>
 ) {
   if (!removableEqIds.size) return cleanBlankRuns(normalizeText(text));
-  const lines = normalizeText(text).split("\n");
+  const lines = normalizeUnitArtifacts(text).split("\n");
   const kept: string[] = [];
   for (const line of lines) {
     const trimmed = String(line || "").trim();
@@ -126,6 +138,50 @@ function collectReferencedEquationIdsFromBriefLike(value: any) {
     if (Array.isArray(t?.parts)) for (const p of t.parts) scan(p?.text);
   }
   return ids;
+}
+
+function collectBriefValidationWarnings(draftLike: any) {
+  const warnings = new Set<string>();
+  const tasks = Array.isArray(draftLike?.tasks) ? draftLike.tasks : [];
+
+  if (tasks.length === 0) warnings.add("validation: no tasks extracted");
+
+  const scenarios = Array.isArray(draftLike?.scenarios) ? draftLike.scenarios : [];
+  const scenarioTaskIds = new Set<number>(
+    scenarios.map((s: any) => Number(s?.appliesToTask)).filter((n: number) => Number.isInteger(n) && n > 0)
+  );
+
+  for (const task of tasks) {
+    const n = Number(task?.n || 0);
+    const parts = Array.isArray(task?.parts) ? task.parts : [];
+    if (parts.length > 0) {
+      const seen = new Set<string>();
+      for (const p of parts) {
+        const key = String(p?.key || "").trim().toLowerCase();
+        if (!key) continue;
+        if (seen.has(key)) {
+          warnings.add(`validation: duplicate part key in Task ${n} (${key})`);
+        }
+        seen.add(key);
+      }
+    }
+
+    const taskText = String(task?.text || "");
+    const partsText = parts.map((p: any) => String(p?.text || "")).join("\n");
+    const joined = `${taskText}\n${partsText}`;
+    if (/\bfigure\s*\d+\b/i.test(joined) && !/\[\[IMG:[^\]]+\]\]/.test(joined)) {
+      warnings.add(`validation: figure reference without image token in Task ${n}`);
+    }
+    if (/[∘°]\s*(?:\n\s*)?(?:퐶퐶|C\s*C|C{2,})\b/.test(joined)) {
+      warnings.add(`validation: unresolved Celsius symbol artifacts in Task ${n}`);
+    }
+
+    if (n > 0 && !scenarioTaskIds.has(n)) {
+      warnings.add(`validation: missing scenario mapping for Task ${n}`);
+    }
+  }
+
+  return Array.from(warnings);
 }
 
 export function sanitizeBriefDraftArtifacts(draft: any) {
@@ -179,6 +235,10 @@ export function sanitizeBriefDraftArtifacts(draft: any) {
   const draftLike = { ...draft, tasks: nextTasks, scenarios: nextScenarios };
   const referencedIds = collectReferencedEquationIdsFromBriefLike(draftLike);
   const nextEquations = equations.filter((eq: any) => referencedIds.has(String(eq?.id || "")));
+  const validationWarnings = collectBriefValidationWarnings(draftLike);
+  const mergedWarnings = Array.from(
+    new Set([...(Array.isArray(draftLike?.warnings) ? draftLike.warnings : []), ...validationWarnings])
+  );
 
-  return { ...draftLike, equations: nextEquations };
+  return { ...draftLike, equations: nextEquations, warnings: mergedWarnings };
 }

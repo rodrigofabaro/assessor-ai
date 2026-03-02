@@ -712,7 +712,7 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
       /\bimage-based chart\b/i.test(sourceAndInstructions);
     const imageBasedCue =
       /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
-      /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(sourceAndInstructions) ||
+      /\b(graph|chart)\s+(shown|below)\b/i.test(sourceAndInstructions) ||
       hasRecoveredImageDataCue;
     const hasTabularFailureData =
       /\bfailure reason\b/i.test(sourceText) &&
@@ -724,7 +724,7 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
         : undefined;
 
     // Only build chart previews when this specific part/task actually cues chart/graph work.
-    const hasChartRequirement = wantsBar || wantsPie || hasChartActionCue || imageBasedCue;
+    const hasChartRequirement = wantsBar || wantsPie || hasChartActionCue || hasRecoveredImageDataCue;
     if (!hasChartRequirement) return;
 
     // Guardrail: do not synthesize charts from plain text/table instructions.
@@ -1325,7 +1325,7 @@ export function TaskCard({
     [tableBlocks]
   );
   const hasImageGraphCueInTask = useMemo(
-    () => /\[\[img:[^\]]+\]\]/i.test(taskBodyText) || /\b(graph|chart|figure|diagram)\s+(shown|below)\b/i.test(taskBodyText),
+    () => /\[\[img:[^\]]+\]\]/i.test(taskBodyText) || /\b(graph|chart)\s+(shown|below)\b/i.test(taskBodyText),
     [taskBodyText]
   );
   const samplePowerTableBlock = useMemo(

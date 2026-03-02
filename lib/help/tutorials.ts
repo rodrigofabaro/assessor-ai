@@ -159,6 +159,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     howItWorks: [
       "Starts with locked reference truth (spec + brief + criteria mapping).",
       "Moves each submission through extraction readiness, preview, commit, and feedback checks.",
+      "Brief extraction quality is protected by hard validation and fallback recovery before lock.",
       "Adds Turnitin submission/report checks from QA when integration is enabled.",
       "Closes with QA flags, override analytics, and audit trace verification.",
     ],
@@ -257,6 +258,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         how: [
           "Set final decision, reason code, and optional note per criterion.",
           "Apply override and verify recomputed final grade.",
+          "When no manual feedback text is supplied, verify regenerated feedback now matches the updated grade.",
           "After regrade, confirm the latest run still shows the override badge (latest saved overrides are carried forward).",
           "If needed, reset criterion back to model decision.",
         ],
@@ -550,6 +552,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         how: [
           "Edit criterion overrides and/or feedback text in Approval & outputs.",
           "Use Apply manual review & regenerate outputs, then re-check the final confirmation block.",
+          "If you changed criteria only, verify the refreshed feedback narrative aligns with the recalculated final grade.",
           "Save once outputs reflect your final judgement.",
         ],
         why: "Keeps rework localized to the approval stage instead of sending you back through setup panels.",
@@ -785,6 +788,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     howItWorks: [
       "Library manages locked briefs and criteria scope toggles.",
       "Extract tools fix parsing and mapping issues before lock.",
+      "Hard validation blocks structural extraction defects before lock/reuse.",
       "Brief detail provides overview/tasks/versions/IV/rubric tabs.",
     ],
     whyItMatters: [
@@ -802,6 +806,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
         what: "Lock only when extraction and mapping are reliable.",
         how: [
           "Review warnings and mapping metrics.",
+          "Resolve hard-validation blockers (for example missing scenario, duplicate part keys, figure-without-image-token, Celsius artifacts).",
           "Resolve blockers, then lock.",
         ],
         why: "Locked bad mappings create downstream grading failures.",
@@ -843,6 +848,7 @@ const TUTORIALS_BY_SLUG: Record<string, Omit<HelpTutorial, "slug" | "title" | "r
     purpose: "Manage raw reference documents and extraction lifecycle state.",
     howItWorks: [
       "Reference inbox tracks upload, extract, review, lock states.",
+      "Brief extraction retries can escalate to whole-PDF fallback when hard validation fails.",
       "Meta updates and usage checks protect live documents.",
     ],
     whyItMatters: [

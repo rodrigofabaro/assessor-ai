@@ -61,10 +61,11 @@ Status labels:
   - method (pdf‑text / docx / vision‑later)
   - confidence + flags
 
-**Current state (2026-02-27)**
+**Current state (2026-03-02)**
 - Extraction runs/pages are stored and surfaced in submission detail.
 - Cover/extraction quality gates and confidence signals are live.
 - Extraction metadata is persisted and used by QA/automation logic.
+- Brief hard validation + retry/fallback path is active to block structurally invalid task extraction before lock/reuse.
 
 ---
 

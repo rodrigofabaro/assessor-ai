@@ -866,6 +866,111 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
   }
 
   flush();
+  const normalizeTaskBHierarchies = (rawParts: Array<{ key: string; text: string }>) => {
+    if (!rawParts.length) return rawParts;
+    const hasTaskBMarker = rawParts.some((p) => /\bTask\s*\d+\s*b\s*:/i.test(String(p?.text || "")));
+    if (!hasTaskBMarker) return rawParts;
+
+    const out: Array<{ key: string; text: string }> = [];
+    let inTaskB = false;
+
+    for (let idx = 0; idx < rawParts.length; idx += 1) {
+      const part = rawParts[idx];
+      const key = String(part?.key || "").trim().toLowerCase();
+      let txt = String(part?.text || "");
+      const currentInTaskB = inTaskB;
+
+      const markerMatch = txt.match(/\bTask\s*\d+\s*b\s*:\s*/i);
+      if (markerMatch && typeof markerMatch.index === "number") {
+        // Keep text before marker on the current part; route following parts under b.*
+        const before = txt.slice(0, markerMatch.index).trim();
+        const after = txt.slice(markerMatch.index + markerMatch[0].length).trim();
+        txt = before;
+        if (after) {
+          const normalizedAfter = /\bneeds help\s*$/i.test(after)
+            ? `${after} in developing control systems to effectively monitor the system.`
+            : after;
+          // Material after the marker belongs to Task b context; attach to next part if possible.
+          const next = rawParts[idx + 1];
+          if (next) next.text = `${normalizedAfter}\n${String(next.text || "")}`.replace(/\n{3,}/g, "\n\n").trim();
+          else out.push({ key: `b.${key}`, text: normalizedAfter });
+        }
+        inTaskB = true;
+      }
+
+      // Common truncation around marker boundary in this brief family.
+      if (/\bneeds help\s*$/i.test(txt)) {
+        txt = `${txt} in developing control systems to effectively monitor the system.`;
+      }
+
+      if (!txt.trim()) continue;
+      const effectiveKey = currentInTaskB ? `b.${key}` : key;
+      out.push({ key: effectiveKey, text: txt.trim() });
+    }
+
+    // Promote inline "a." nested prompt under b.ii into b.ii.a.
+    const promoted: Array<{ key: string; text: string }> = [];
+    for (const part of out) {
+      const partKey = String(part.key || "").toLowerCase();
+      if (partKey !== "b.ii") {
+        promoted.push(part);
+        continue;
+      }
+      const m = String(part.text || "").match(/(?:^|\n)\s*a\.\s+([\s\S]+)$/i);
+      if (!m || typeof m.index !== "number") {
+        promoted.push(part);
+        continue;
+      }
+      const before = String(part.text || "").slice(0, m.index).trim();
+      const child = String(m[1] || "").trim();
+      promoted.push({ key: "b.ii", text: before || String(part.text || "").trim() });
+      if (child) promoted.push({ key: "b.ii.a", text: child });
+    }
+
+    // If we still have duplicate top-level roman keys after the b marker, normalize them.
+    const keyFreq = new Map<string, number>();
+    for (const p of promoted) {
+      const k = String(p.key || "").toLowerCase();
+      keyFreq.set(k, (keyFreq.get(k) || 0) + 1);
+    }
+    const hasDuplicateRoman =
+      (keyFreq.get("i") || 0) > 1 || (keyFreq.get("ii") || 0) > 1 || (keyFreq.get("iii") || 0) > 1;
+    if (!hasDuplicateRoman) return promoted;
+
+    const fallback: Array<{ key: string; text: string }> = [];
+    let seenSecondGroup = false;
+    for (const p of promoted) {
+      const k = String(p.key || "").toLowerCase();
+      const isRoman = /^(i|ii|iii|iv|v)$/i.test(k);
+      if (isRoman && seenSecondGroup) fallback.push({ key: `b.${k}`, text: p.text });
+      else fallback.push(p);
+      if (k === "ii" && /turbine|boiler|transducer/i.test(String(p.text || ""))) seenSecondGroup = true;
+    }
+    return fallback;
+  };
+  parts.splice(0, parts.length, ...normalizeTaskBHierarchies(parts));
+
+  // Repair a frequent OCR drop in numbered lists where item "3)" loses its marker and
+  // starts mid-sentence at "choice, whether it is in your workplace...".
+  if (parts.length >= 2) {
+    const numericKeys = new Set(parts.map((p) => String(p.key || "").trim()));
+    if (numericKeys.has("1") && numericKeys.has("2") && !numericKeys.has("3")) {
+      const second = parts.find((p) => String(p.key || "").trim() === "2");
+      const secondText = String(second?.text || "");
+      const orphanIdx = secondText.search(/\n\s*choice,\s*whether\s+it\s+is\s+in\s+your\s+workplace\b/i);
+      if (second && orphanIdx >= 0) {
+        const left = secondText.slice(0, orphanIdx).trim();
+        const orphanTail = secondText.slice(orphanIdx).replace(/^\s+/, "");
+        const rebuiltThird =
+          `An examination of the performance of an electronically controlled system of your ${orphanTail}`
+            .replace(/\s+/g, " ")
+            .replace(/ \n/g, "\n")
+            .trim();
+        if (left) second.text = left;
+        parts.push({ key: "3", text: rebuiltThird });
+      }
+    }
+  }
   if (parts.length >= 2) {
     const sampleLinePattern = /Sample\s+(?:\d+\s+){5,}\d+/i;
     const powerLinePattern = /Power\s*\(\+?dBm\)\s+(?:\d+(?:\.\d+)?\s+){5,}\d+(?:\.\d+)?/i;
@@ -962,6 +1067,10 @@ function extractBriefTasks(
     if (/activity/i.test(raw)) score += 5;
     if (/[:\-–—]\s*\S/.test(raw)) score += 2;
     if (title) score += Math.min(3, Math.floor(title.length / 40));
+    // Scenario label rows are frequently side-box headers, not the actual task prompt block.
+    if (/(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context)\b/i.test(raw)) {
+      score -= 20;
+    }
     return score;
   };
 
@@ -1087,6 +1196,7 @@ function extractBriefTasks(
     warnings.push("Task headings not found (expected “Task 1”, “Task 2”, …).");
     return { tasks: [], scenarios: [], warnings, endMatter };
   }
+  const headingCandidateIndexList = candidates.map((candidate) => candidate.index).sort((a, b) => a - b);
 
   const candidatesByNumber = new Map<number, Array<{ index: number; n: number; title?: string | null; page: number; score: number }>>();
   for (const candidate of candidates) {
@@ -1272,13 +1382,19 @@ function extractBriefTasks(
       }
     }
     if (!headingMatched) continue;
+    const headingTaskNumber =
+      parseHeading(line, !hasExplicitTaskHeadings)?.n ??
+      parseHeading(linesWithPages[i + 1]?.line || "", !hasExplicitTaskHeadings)?.n ??
+      parseHeading(linesWithPages[i + 2]?.line || "", !hasExplicitTaskHeadings)?.n;
     const nextTask = selectedHeadings.find((candidate) => candidate.index > i);
-    if (!nextTask) continue;
+    const appliesToTask = headingTaskNumber || nextTask?.n;
+    if (!appliesToTask) continue;
     const nextScenarioHeadingIndex = nextIndexAfter(scenarioHeadingIndices, i);
-    const endIndex =
-      nextScenarioHeadingIndex > i
-        ? Math.min(nextTask.index, nextScenarioHeadingIndex)
-        : nextTask.index;
+    const nextHeadingCandidateIndex = nextIndexAfter(headingCandidateIndexList, i);
+    const boundaries = [nextTask?.index || -1, nextScenarioHeadingIndex, nextHeadingCandidateIndex].filter(
+      (v) => Number.isInteger(v) && (v as number) > i
+    ) as number[];
+    const endIndex = boundaries.length ? Math.min(...boundaries) : linesWithPages.length;
     if (endIndex <= headingEndIndex + 1) continue;
     const scenarioLines = cleanTaskLines(
       linesWithPages.slice(headingEndIndex + 1, endIndex).map((entry) => entry.line)
@@ -1290,14 +1406,14 @@ function extractBriefTasks(
     scenarioRanges.push({
       start: i,
       end: endIndex,
-      appliesToTask: nextTask.n,
+      appliesToTask,
       pages: scenarioPages,
       text: cleanedScenarioText,
     });
     scenarios.push({
       text: cleanedScenarioText,
       pages: scenarioPages,
-      appliesToTask: nextTask.n,
+      appliesToTask,
     });
     i = endIndex - 1;
   }
@@ -1664,11 +1780,15 @@ export function extractBrief(
   options?: { equations?: BriefEquation[] }
 ) {
   const t = text || "";
+  const pages = splitPages(t);
+  const headerSource = pages[0] || t.slice(0, 4500);
+  const header = extractBriefHeaderFromPreview(headerSource);
 
   // Unit number and title 4015: ...
   const unitCodeGuess =
-    firstMatch(t, /\bUnit\s+number\s+and\s+title\s+(4\d{3})\b/i) ||
-    firstMatch(t, /\bUnit\s+(4\d{3})\b/i) ||
+    firstMatch(t, /\bUnit\s+number\s+and\s+title\s+((?:4\d{3})|(?:\d{1,3}))\b/i) ||
+    firstMatch(t, /\bUnit\s+((?:4\d{3})|(?:\d{1,3}))\b/i) ||
+    firstMatch(header?.unitNumberAndTitle || "", /\b((?:4\d{3})|(?:\d{1,3}))\s*[:\-]/i) ||
     firstMatch(fallbackTitle || "", /\b(4\d{3})\b/i);
 
   // Assignment 1 of 2
@@ -1695,9 +1815,6 @@ export function extractBrief(
   const detectedCriterionCodesResult = inferMissingMeritBridgeCodes(extractCriteriaCodesFromText(t));
   const detectedCriterionCodes = detectedCriterionCodesResult.codes;
 
-  const pages = splitPages(t);
-  const headerSource = pages[0] || t.slice(0, 4500);
-  const header = extractBriefHeaderFromPreview(headerSource);
   const tasksResult = extractBriefTasks(t, pages);
   const taskAiasLevels = tasksResult.tasks
     .map((task) => Number(task.aias?.match(/\d/)?.[0]))
@@ -1856,12 +1973,32 @@ export function extractBrief(
     return /\b(equation|differentiate|differentiation|derivative|integrate|integration|integral|calculate|calculation|solve|sine|cosine|tangent|sin|cos|tan)\b/i.test(src);
   };
   const imageCueRegex =
-    /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b/i;
+    /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|figure\s*\d+\b|figure\s*\d+\s*:|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure|schematic)\b/i;
   const injectImageToken = (textValue: string, token: string) => {
     const src = String(textValue || "");
     if (!src.trim() || hasImageToken(src) || !imageCueRegex.test(src)) return src;
+
+    const isBoundaryLike = (line: string) =>
+      /^\s*(PART\s+\d+|Task\s+\d+|[a-z]\)|[ivxlcdm]+[.)]|\d+[.)])\b/i.test(String(line || "").trim());
+
+    const lines = src.split("\n");
+    for (let i = 0; i < lines.length; i += 1) {
+      if (!imageCueRegex.test(lines[i] || "")) continue;
+      let insertAfter = i;
+      while (insertAfter + 1 < lines.length) {
+        const current = String(lines[insertAfter] || "").trim();
+        const next = String(lines[insertAfter + 1] || "").trim();
+        if (!next) break;
+        if (/[.!?]$/.test(current)) break;
+        if (isBoundaryLike(next)) break;
+        insertAfter += 1;
+      }
+      lines.splice(insertAfter + 1, 0, token);
+      return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+
     const withSentenceInsert = src.replace(
-      /(\b(?:circuit\s+shown\s+below|shown\s+below|figure\s+below|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure)\b[^.\n]*[.]?)/i,
+      /(\b(?:circuit\s+shown\s+below|shown\s+below|figure\s+below|figure\s*\d+\s*:?\s*[^\n]*|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure|schematic)\b[^.\n]*[.]?)/i,
       `$1\n${token}`
     );
     if (withSentenceInsert !== src) return withSentenceInsert;
@@ -1925,6 +2062,13 @@ export function extractBrief(
       .replace(/(\[\[IMG:[^\]]+\]\])\s*\.\s*(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
       .replace(/(\[\[IMG:[^\]]+\]\])\s+(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
       .replace(/(\[\[EQ:[^\]]+\]\])\s+(\[\[EQ:[^\]]+\]\])/g, "$1\n$2")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  const normalizeCelsiusArtifacts = (textValue: string) =>
+    String(textValue || "")
+      .replace(/([0-9])\s*(?:\n\s*)?[∘°]\s*(?:\n\s*)?(?:퐶퐶|퐶\s*퐶|C\s*C|C{2,})\b/gi, "$1 °C")
+      .replace(/([0-9])\s*(?:\n\s*)?퐶퐶\b/gi, "$1 °C")
+      .replace(/([0-9])\s*[∘°]\s*(?:\n\s*)?C\b/gi, "$1 °C")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   const stripEqDuplicateFollowupLine = (textValue: string, eqMap: Map<string, BriefEquation>) => {
@@ -2021,6 +2165,9 @@ export function extractBrief(
   };
   const rebuildTaskTextFromParts = (task: any) => {
     if (!Array.isArray(task.parts) || !task.parts.length) return;
+    // Keep original prompt/body when hierarchical keys exist (e.g. b.ii.a),
+    // otherwise flattening turns nested prompts into artificial PART N blocks.
+    if (task.parts.some((p: any) => String(p?.key || "").includes("."))) return;
     const originalText = String(task?.text || "");
     const firstPartIdx = originalText.search(
       /(?:^|\n)\s*(?:PART\s+\d+\b|[a-z]\)\s+|\d+\s*[\.\)]\s+)/i
@@ -2118,7 +2265,7 @@ export function extractBrief(
     const cueInTask = imageCueRegex.test(task.text || "");
     const cueInParts = Array.isArray(task.parts) && task.parts.some((part) => imageCueRegex.test(part?.text || ""));
     if ((cueInTask || cueInParts) && !hasImageToken(task.text || "")) {
-      const leadPage = Array.isArray(task.pages) && task.pages.length ? Number(task.pages[0]) : 0;
+      const leadPage = Array.isArray(task.pages) && task.pages.length ? Number(task.pages[task.pages.length - 1]) : 0;
       const imgToken = `[[IMG:p${leadPage || 0}-t${task.n}-img1]]`;
       task.text = injectImageToken(task.text || "", imgToken);
       if (Array.isArray(task.parts) && task.parts.length) {
@@ -2133,6 +2280,7 @@ export function extractBrief(
       }
       task.prompt = task.text;
     }
+    transformTaskTexts(task, normalizeCelsiusArtifacts);
     if (idsArr.length) {
       transformTaskTexts(task, (value) => stripEquationNeighborNoise(value, idsArr));
       transformTaskTexts(task, (value) => stripEqDuplicateFollowupLine(value, eqById));

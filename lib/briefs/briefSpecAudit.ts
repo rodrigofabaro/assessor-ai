@@ -155,15 +155,15 @@ function parseBriefCriterionTexts(draft: any): Map<string, { description: string
     if (/^(sources of information|textbooks?|websites?|journals?|recommended resources)\b/i.test(line)) break;
 
     const loCodes = parseLoCodes(line);
+    const codeMatches = Array.from(line.matchAll(/\b([PMD])\s*(\d{1,2})\b/gi));
     if (loCodes.length) {
-      if (!/^\s*LO\s*\d+\s*$/i.test(line) && !/^\s*(LO\s*\d+\s*)+$/i.test(line)) {
-        // LO rows sometimes contain text; do not treat as criterion continuation.
-      }
+      // Ensure the previous criterion stays under the previous LO when a new LO heading starts.
+      if (currentCode) flush();
       currentLos = new Set(loCodes);
-      // continue scanning same line for criteria if present
+      const loOnlyHeading = /^\s*(LO\s*\d+\s*)+$/i.test(line) || /^\s*LO\s*\d+\b/i.test(line) && codeMatches.length === 0;
+      if (loOnlyHeading) continue;
     }
 
-    const codeMatches = Array.from(line.matchAll(/\b([PMD])\s*(\d{1,2})\b/gi));
     if (codeMatches.length) {
       // If a new code appears, split line into code+desc segments.
       const src = line;
@@ -203,13 +203,25 @@ export function evaluateBriefSpecAudit(input: Input): BriefSpecAuditResult {
   const selectedCodes = Array.from(new Set((input?.selectedCodes || []).map(cleanCode).filter(Boolean)));
 
   const unitByAc = new Map<string, BriefUnitCriterionAuditLite>();
-  const specLoSet = new Set<string>();
   for (const c of unitCriteria) {
     const code = cleanCode(c.acCode);
     const loCode = normalizeSpace(c.loCode).toUpperCase();
     if (!code || !loCode) continue;
     unitByAc.set(code, c);
-    specLoSet.add(loCode);
+  }
+
+  const activeCodes = selectedCodes.length ? selectedCodes : Array.from(unitByAc.keys());
+  const specLoSet = new Set<string>();
+  for (const acCode of activeCodes) {
+    const spec = unitByAc.get(acCode);
+    const loCode = normalizeSpace(spec?.loCode || "").toUpperCase();
+    if (loCode) specLoSet.add(loCode);
+  }
+  if (!specLoSet.size) {
+    for (const c of unitCriteria) {
+      const loCode = normalizeSpace(c.loCode).toUpperCase();
+      if (loCode) specLoSet.add(loCode);
+    }
   }
 
   const briefUnit = parseBriefUnitHeader(briefDraft);
@@ -354,4 +366,3 @@ export function evaluateBriefSpecAudit(input: Input): BriefSpecAuditResult {
     },
   };
 }
-

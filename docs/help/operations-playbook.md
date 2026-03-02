@@ -1,6 +1,6 @@
 # Operations Playbook (`/help/operations-playbook`)
 
-Last updated: 2026-02-20
+Last updated: 2026-03-02
 
 This guide is the end-to-end operating sequence:
 
@@ -12,6 +12,12 @@ This guide is the end-to-end operating sequence:
 6. Turnitin sync/report checks (when enabled)
 7. Assessor criterion overrides (when needed)
 8. QA review and audit close-out
+
+## Current Reliability Guards
+
+- Brief extraction includes hard validation + fallback recovery before lock/reuse.
+- Cover-first assignment extraction can pass readiness with strong cover metadata even when body text is short.
+- Assessor criterion overrides now regenerate feedback text automatically (when override is submitted without manual feedback text), so grade and narrative stay aligned.
 
 ## Local Screenshot Set
 
@@ -25,6 +31,7 @@ Use these local screenshots in training/handover packs:
 
 - This playbook is intended for operations leads and senior assessors.
 - Turnitin behavior is configured in `Admin Settings > App` and executed from QA row actions.
+- For overrides, always confirm the latest run is selected before final save.
 - For page-specific details, still use route guides:
   - `docs/help/upload.md`
   - `docs/help/submissions-list.md`

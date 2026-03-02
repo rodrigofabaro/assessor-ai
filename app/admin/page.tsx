@@ -181,8 +181,7 @@ export default async function AdminIndex() {
     specsAwaitingLock,
     briefsAwaitingLock,
     unlinkedSubmissions,
-    needsOcrSubmissions,
-    failedSubmissions,
+    submissionStatusCounts,
     failedReferences,
     gradeBreakdownRaw,
     recentDocs,
@@ -213,8 +212,11 @@ export default async function AdminIndex() {
       },
     }),
     prisma.submission.count({ where: { studentId: null } }),
-    prisma.submission.count({ where: { status: "NEEDS_OCR" } }),
-    prisma.submission.count({ where: { status: "FAILED" } }),
+    prisma.submission.groupBy({
+      by: ["status"],
+      where: { status: { in: ["NEEDS_OCR", "FAILED"] } },
+      _count: { _all: true },
+    }),
     prisma.referenceDocument.count({ where: { status: "FAILED" } }),
     prisma.assessment.groupBy({
       by: ["overallGrade"],
@@ -238,6 +240,13 @@ export default async function AdminIndex() {
     const k = String(row.overallGrade || "").toUpperCase();
     if (k) breakdownMap.set(k, row._count._all);
   }
+  const submissionStatusMap = new Map<string, number>();
+  for (const row of submissionStatusCounts) {
+    const status = String(row.status || "").toUpperCase();
+    if (status) submissionStatusMap.set(status, row._count._all);
+  }
+  const needsOcrSubmissions = submissionStatusMap.get("NEEDS_OCR") || 0;
+  const failedSubmissions = submissionStatusMap.get("FAILED") || 0;
 
   const attention = [
     {

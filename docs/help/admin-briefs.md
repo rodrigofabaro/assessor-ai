@@ -1,6 +1,6 @@
 # Admin Briefs (`/admin/briefs`, `/admin/briefs/[briefId]`)
 
-Last updated: 2026-02-24
+Last updated: 2026-03-02
 
 ## Purpose
 
@@ -12,6 +12,27 @@ Manage brief extraction, mapping health, and lock readiness.
 2. review task quality and warnings
 3. validate mapping health
 4. lock only after quality gate passes
+
+## Hard Validation (Brief Extraction)
+
+Brief extraction now runs a hard validation pass before save/lock promotion.
+
+It blocks extraction when structural defects remain, including:
+
+- no tasks extracted
+- duplicate task numbers
+- missing scenario/context for a task
+- duplicate part keys (for example repeated `i`)
+- figure reference without image token (missing `[[IMG:...]]`)
+- unresolved Celsius OCR artifacts (for example `100 ° CC`)
+- extracted task count lower than source task count
+
+Retry behavior:
+
+- native extraction retries with stronger recovery mode
+- if still failing, whole-PDF AI recovery is attempted
+- best candidate is selected by validation score
+- if still blocked, API returns `BRIEF_HARD_VALIDATION_FAILED` unless bypass is explicitly allowed
 
 ## Quality Gate Signals
 
@@ -70,6 +91,9 @@ If all criteria are excluded, grading is blocked by policy.
 
 - `BRIEF_EXTRACTION_QUALITY_GATE_FAILED`
   - mapping incomplete, extraction too short, or brief-vs-spec audit blockers
+- `BRIEF_HARD_VALIDATION_FAILED`
+  - structural extraction defects remain after retries/fallback
+  - fix source PDF quality or task structure, then re-extract
 - missing LO text in overview
   - verify spec extraction and lock state
 - stale lock/extract status mismatch

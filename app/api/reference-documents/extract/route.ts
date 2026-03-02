@@ -1,9 +1,12 @@
+import fs from "fs/promises";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { extractReferenceDocument } from "@/lib/extraction/index";
 import { sanitizeBriefDraftArtifacts } from "@/lib/extraction/brief/draftIntegrity";
+import { validateBriefExtractionHard } from "@/lib/extraction/brief/hardValidation";
+import { recoverBriefFromWholePdfWithOpenAi } from "@/lib/openai/briefWholePdfRecovery";
 
 
 export const runtime = "nodejs";
@@ -146,6 +149,43 @@ function summarizeExtracted(extractedJson: any) {
   }
 }
 
+function hardValidationEnabledForRequest(body: any) {
+  if (safeBool(body?.disableHardValidation) || safeBool(body?.skipHardValidation)) return false;
+  const env = String(process.env.BRIEF_HARD_VALIDATION || "true").toLowerCase();
+  return !["0", "false", "no", "off"].includes(env);
+}
+
+function maxHardAttemptsForRequest(body: any) {
+  const fromReq = Number(body?.hardValidationAttempts || body?.maxValidationAttempts || body?.maxAttempts || 0);
+  const fromEnv = Number(process.env.BRIEF_HARD_VALIDATION_ATTEMPTS || 2);
+  const raw = Number.isFinite(fromReq) && fromReq > 0 ? fromReq : fromEnv;
+  return Math.min(4, Math.max(1, Math.floor(raw || 2)));
+}
+
+function summarizeHardIssues(validation: any) {
+  const issues = Array.isArray(validation?.issues) ? validation.issues : [];
+  return issues.map((issue: any) => {
+    const n = Number(issue?.taskNumber || 0);
+    const prefix = Number.isInteger(n) && n > 0 ? `Task ${n} - ` : "";
+    return `[${String(issue?.level || "WARNING")}] ${prefix}${String(issue?.message || "")}`;
+  });
+}
+
+function scoreCandidate(candidate: {
+  validation?: { score?: number; blockerCount?: number; warningCount?: number } | null;
+  extractedJson: any;
+}) {
+  const v = candidate.validation;
+  if (v) {
+    const score = Number(v.score || 0);
+    const blockers = Number(v.blockerCount || 0);
+    const warnings = Number(v.warningCount || 0);
+    return score - blockers * 10 - warnings * 2;
+  }
+  const taskCount = Array.isArray(candidate?.extractedJson?.tasks) ? candidate.extractedJson.tasks.length : 0;
+  return taskCount * 10;
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({} as any));
 
@@ -224,29 +264,178 @@ export async function POST(req: Request) {
 
     const prevMeta = (doc.sourceMeta && typeof doc.sourceMeta === "object") ? (doc.sourceMeta as any) : {};
     const prevExtractSummary = summarizeExtracted(doc.extractedJson);
+    const isBrief = doc.type === "BRIEF";
+    const useHardValidation = isBrief && hardValidationEnabledForRequest(body);
+    const allowHardValidationBypass = safeBool(body?.allowHardValidationBypass || body?.allowValidationBypass);
+    const maxAttempts = useHardValidation ? maxHardAttemptsForRequest(body) : 1;
+    const extractionAttempts: any[] = [];
 
-    const result = await extractReferenceDocument({
-      type: doc.type,
-      filePath: resolved.path,
-      docTitleFallback: doc.title || doc.originalFilename || "",
-      runOpenAiCleanup,
-    });
+    let bestCandidate: null | {
+      extractedJson: any;
+      warnings: string[];
+      text: string;
+      validation: ReturnType<typeof validateBriefExtractionHard> | null;
+      mode: string;
+      runOpenAiCleanup: boolean;
+      forceStructureRecovery: boolean;
+    } = null;
 
-    const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
-    let extractedJson = result?.extractedJson ?? null;
-    const canPartialMerge =
-      taskNumbers.length > 0 &&
-      doc.type === "BRIEF" &&
-      doc.extractedJson &&
-      typeof doc.extractedJson === "object" &&
-      String((doc.extractedJson as any)?.kind || "").toUpperCase() === "BRIEF" &&
-      extractedJson &&
-      typeof extractedJson === "object" &&
-      String((extractedJson as any)?.kind || "").toUpperCase() === "BRIEF";
-    if (canPartialMerge) {
-      extractedJson = mergeBriefExtractionByTaskNumbers(doc.extractedJson, extractedJson, taskNumbers);
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const cleanupThisAttempt = attempt === 0 ? runOpenAiCleanup : true;
+      const forceStructureRecovery = attempt >= 1;
+      const result = await extractReferenceDocument({
+        type: doc.type,
+        filePath: resolved.path,
+        docTitleFallback: doc.title || doc.originalFilename || "",
+        runOpenAiCleanup: cleanupThisAttempt,
+        forceStructureRecovery,
+      });
+
+      const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
+      let extractedJson = result?.extractedJson ?? null;
+      const canPartialMerge =
+        taskNumbers.length > 0 &&
+        doc.type === "BRIEF" &&
+        doc.extractedJson &&
+        typeof doc.extractedJson === "object" &&
+        String((doc.extractedJson as any)?.kind || "").toUpperCase() === "BRIEF" &&
+        extractedJson &&
+        typeof extractedJson === "object" &&
+        String((extractedJson as any)?.kind || "").toUpperCase() === "BRIEF";
+      if (canPartialMerge) {
+        extractedJson = mergeBriefExtractionByTaskNumbers(doc.extractedJson, extractedJson, taskNumbers);
+      }
+      extractedJson = sanitizeBriefDraftArtifacts(extractedJson);
+
+      const validation = useHardValidation ? validateBriefExtractionHard(extractedJson, result?.text || "") : null;
+      extractionAttempts.push({
+        mode: "native",
+        attempt: attempt + 1,
+        runOpenAiCleanup: cleanupThisAttempt,
+        forceStructureRecovery,
+        warningCount: warnings.length,
+        validation: validation
+          ? {
+              ok: validation.ok,
+              score: validation.score,
+              blockerCount: validation.blockerCount,
+              warningCount: validation.warningCount,
+            }
+          : null,
+      });
+
+      const candidate = {
+        extractedJson,
+        warnings,
+        text: String(result?.text || ""),
+        validation,
+        mode: "native",
+        runOpenAiCleanup: cleanupThisAttempt,
+        forceStructureRecovery,
+      };
+      if (!bestCandidate || scoreCandidate(candidate) > scoreCandidate(bestCandidate)) {
+        bestCandidate = candidate;
+      }
+      if (!useHardValidation || (validation && validation.ok)) break;
     }
-    extractedJson = sanitizeBriefDraftArtifacts(extractedJson);
+
+    if (useHardValidation && bestCandidate && !bestCandidate.validation?.ok) {
+      try {
+        const pdfBytes = await fs.readFile(resolved.path);
+        const fallback = await recoverBriefFromWholePdfWithOpenAi({
+          pdfBytes,
+          fallbackTitle: doc.title || doc.originalFilename || "",
+          sourceText: bestCandidate.text || "",
+          currentBrief: bestCandidate.extractedJson,
+        });
+        extractionAttempts.push({
+          mode: "openai_whole_pdf",
+          attempt: extractionAttempts.length + 1,
+          ok: fallback.ok,
+          reason: fallback.reason || null,
+        });
+        if (fallback.ok && fallback.brief) {
+          let aiExtracted = sanitizeBriefDraftArtifacts(fallback.brief);
+          const canPartialMerge =
+            taskNumbers.length > 0 &&
+            doc.type === "BRIEF" &&
+            doc.extractedJson &&
+            typeof doc.extractedJson === "object" &&
+            String((doc.extractedJson as any)?.kind || "").toUpperCase() === "BRIEF" &&
+            aiExtracted &&
+            typeof aiExtracted === "object" &&
+            String((aiExtracted as any)?.kind || "").toUpperCase() === "BRIEF";
+          if (canPartialMerge) {
+            aiExtracted = mergeBriefExtractionByTaskNumbers(doc.extractedJson, aiExtracted, taskNumbers);
+          }
+          const aiValidation = validateBriefExtractionHard(aiExtracted, bestCandidate.text || "");
+          const aiWarnings = Array.from(new Set([...(bestCandidate.warnings || []), "ai whole-pdf fallback applied"]));
+          const aiCandidate = {
+            extractedJson: aiExtracted,
+            warnings: aiWarnings,
+            text: bestCandidate.text,
+            validation: aiValidation,
+            mode: "openai_whole_pdf",
+            runOpenAiCleanup: true,
+            forceStructureRecovery: true,
+          };
+          if (!bestCandidate || scoreCandidate(aiCandidate) >= scoreCandidate(bestCandidate)) {
+            bestCandidate = aiCandidate;
+          }
+        }
+      } catch (fallbackErr: any) {
+        extractionAttempts.push({
+          mode: "openai_whole_pdf",
+          attempt: extractionAttempts.length + 1,
+          ok: false,
+          reason: String(fallbackErr?.message || fallbackErr || "fallback failed"),
+        });
+      }
+    }
+
+    if (!bestCandidate) {
+      throw new Error("No extraction candidate was produced.");
+    }
+
+    if (useHardValidation && bestCandidate.validation && !bestCandidate.validation.ok && !allowHardValidationBypass) {
+      const validationLines = summarizeHardIssues(bestCandidate.validation);
+      const nextStatus = doc.lockedAt ? "LOCKED" : "FAILED";
+      await prisma.referenceDocument.update({
+        where: { id: doc.id },
+        data: {
+          status: nextStatus as any,
+          extractionWarnings: validationLines.slice(0, 80),
+          sourceMeta: {
+            ...prevMeta,
+            filePathUsed: resolved.path,
+            hardValidation: {
+              ok: false,
+              blockerCount: bestCandidate.validation.blockerCount,
+              warningCount: bestCandidate.validation.warningCount,
+              score: bestCandidate.validation.score,
+              checkedAt: new Date().toISOString(),
+              attempts: extractionAttempts,
+            },
+          } as any,
+        },
+      });
+      return NextResponse.json(
+        {
+          error: "BRIEF_HARD_VALIDATION_FAILED",
+          message: "Extraction failed hard validation after retries and fallback.",
+          validation: bestCandidate.validation,
+          attempts: extractionAttempts,
+          extractedJson: bestCandidate.extractedJson,
+        },
+        { status: 422 }
+      );
+    }
+
+    const warnings = Array.isArray(bestCandidate.warnings) ? [...bestCandidate.warnings] : [];
+    if (useHardValidation && bestCandidate.validation && !bestCandidate.validation.ok && allowHardValidationBypass) {
+      warnings.push("hard validation bypassed by request");
+    }
+    const extractedJson = bestCandidate.extractedJson;
 
     const nextExtractSummary = summarizeExtracted(extractedJson);
     const nowIso = new Date().toISOString();
@@ -266,6 +455,16 @@ export async function POST(req: Request) {
       unitCodeQualifier: extractedJson?.unit?.unitCodeQualifier || null,
       specIssue: extractedJson?.unit?.specIssue || null,
       parserVersion: extractedJson?.parserVersion || null,
+      hardValidation: useHardValidation
+        ? {
+            ok: !!bestCandidate.validation?.ok,
+            blockerCount: Number(bestCandidate.validation?.blockerCount || 0),
+            warningCount: Number(bestCandidate.validation?.warningCount || 0),
+            score: Number(bestCandidate.validation?.score || 0),
+            checkedAt: nowIso,
+            attempts: extractionAttempts,
+          }
+        : prevMeta.hardValidation || null,
       reextractHistory,
     } as any;
 
@@ -286,6 +485,8 @@ export async function POST(req: Request) {
       usedPath: resolved.path,
       warnings,
       extractedJson,
+      hardValidation: useHardValidation ? bestCandidate.validation : null,
+      extractionAttempts: useHardValidation ? extractionAttempts : undefined,
       partialTaskReextract: taskNumbers.length ? taskNumbers : undefined,
       document: updatedDoc,
     });

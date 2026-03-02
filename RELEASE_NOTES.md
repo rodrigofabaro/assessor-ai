@@ -1,5 +1,36 @@
 # Release Notes
 
+## 1.0.1 (Maintenance)
+
+Date: 2026-03-02  
+Release Branch: `main`
+
+### Shipped In 1.0.1
+
+1. Brief extraction reliability:
+   - hard validation guard added to block structurally invalid brief extraction outputs
+   - staged retry + whole-PDF AI fallback path for unresolved brief structure defects
+   - Celsius OCR artifact guard (`100 ° CC`-style) enforced in hard validation
+2. Feedback integrity:
+   - assessor criterion override PATCH now auto-regenerates feedback when no manual feedback text is supplied
+   - final grade and feedback narrative remain aligned after overrides
+3. Figure/diagram extraction controls:
+   - brief figure references are validated for image token presence (`[[IMG:...]]`)
+   - reference figure route available for rendering extracted brief figures
+4. Performance maintenance:
+   - admin overview reduced submission status count query fan-out by grouping status counts in one DB call
+5. Documentation/help refresh:
+   - help docs updated for hard validation, fallback flow, override-feedback sync, and current screenshot set
+
+### Validation Results (2026-03-02)
+
+1. `node scripts/cover-metadata.test.js`: PASS
+2. `node scripts/brief-hard-validation.test.js`: PASS
+3. `node scripts/brief-spec-audit.test.js`: PASS
+4. `node scripts/extraction-readiness.test.js`: PASS
+5. `node scripts/extraction-integrity.test.js`: PASS
+6. `pnpm exec tsc --noEmit --incremental false`: PASS
+
 ## 1.0.0 (Completed)
 
 Date: 2026-02-20  

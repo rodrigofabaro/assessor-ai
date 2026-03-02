@@ -416,6 +416,11 @@ export default function InlineEquationText({
 }: Props) {
   const parts = useMemo(() => normalizeDisplayText(String(text || "")).split(TOKEN_RE), [text]);
   const out: React.ReactNode[] = [];
+  const documentIdFromHref = useMemo(() => {
+    const src = String(openPdfHref || "");
+    const m = src.match(/\/api\/reference-documents\/([^/]+)\/file/i);
+    return m?.[1] || "";
+  }, [openPdfHref]);
 
   const normalizeSuggestedLatex = (raw: string) => {
     return String(raw || "")
@@ -483,16 +488,28 @@ export default function InlineEquationText({
     }
 
     if (imgTokenId) {
+      const figureSrc = documentIdFromHref
+        ? `/api/reference-documents/${documentIdFromHref}/figure?token=${encodeURIComponent(imgTokenId)}`
+        : "";
       out.push(
-        <span key={`img-${imgTokenId}`} className="my-1 block rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-900">
-          diagram reference from PDF image
+        <span key={`img-${imgTokenId}`} className="my-2 block rounded-md border border-sky-200 bg-sky-50 p-2 text-xs text-sky-900">
+          {figureSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={figureSrc}
+              alt={`Extracted figure ${imgTokenId}`}
+              className="max-h-[460px] w-full rounded border border-sky-100 bg-white object-contain"
+              loading="lazy"
+            />
+          ) : (
+            <span>diagram reference from PDF image</span>
+          )}
           {openPdfHref ? (
-            <>
-              {" "}
+            <span className="mt-2 block">
               <a href={openPdfHref} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                 open source PDF
               </a>
-            </>
+            </span>
           ) : null}
         </span>
       );

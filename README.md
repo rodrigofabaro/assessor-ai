@@ -1,7 +1,7 @@
 # Assessor-AI Webapp
 
 Operational documentation lives in `docs/README.md`.
-Last updated: 2026-02-20
+Last updated: 2026-03-02
 
 ## Quick start
 
@@ -42,8 +42,11 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Grading schema test: `pnpm run test:grading-schema`
 - Extraction readiness test: `pnpm run test:extraction-readiness`
 - Extraction integrity test: `pnpm run test:extraction-integrity`
+- Cover metadata extraction test: `node scripts/cover-metadata.test.js`
 - Brief readiness test: `pnpm run test:brief-readiness`
 - Brief mapping codes regression: `pnpm run test:brief-mapping-codes`
+- Brief hard validation test: `node scripts/brief-hard-validation.test.js`
+- Brief vs spec audit test: `node scripts/brief-spec-audit.test.js`
 - Regression pack: `pnpm run test:regression-pack`
 - Draft artifact integrity test: `node scripts/draft-integrity.test.js`
 - Marked PDF URL test: `node scripts/marked-pdf-url.test.js`
@@ -57,6 +60,8 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Current-brief criteria display is grouped by LO and ordered `P -> M -> D`.
 - Stale extraction/task warnings are auto-filtered when resolved.
 - Mapping health is surfaced after lock attempts (blockers/warnings/metrics).
+- Brief hard validation blocks unresolved structural extraction defects (missing scenarios, duplicate parts, figure-without-image-token, Celsius OCR artifacts).
+- Whole-PDF AI fallback is attempted when brief hard validation fails after native retries.
 
 ## Current navigation notes (admin)
 

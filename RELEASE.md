@@ -1,6 +1,7 @@
 # Release 1.0.0
 
 Date: 2026-02-20
+Maintenance update: 2026-03-02
 
 ## Definition Of Completed
 
@@ -39,3 +40,10 @@ This release is considered complete when the workflows listed under **In Scope**
 2. Any workflow added outside the in-scope list requires updating this file before merge.
 3. Release requires a Git tag `v1.0.0` on the merge commit.
 4. No silent grading changes: prompts, post-decision guards, grade caps, and contradiction-guard defaults must be documented in `RELEASE_NOTES.md`.
+
+## 1.0.1 Maintenance Addendum (2026-03-02)
+
+1. Brief extraction hard validation is part of the production contract for BRIEF docs.
+2. When hard validation fails after native retries, whole-PDF AI fallback is allowed before final fail.
+3. Criterion override updates must keep feedback narrative aligned with final grade.
+4. Admin overview performance regressions should be avoided by minimizing dashboard query fan-out.

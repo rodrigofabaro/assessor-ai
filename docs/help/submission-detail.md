@@ -1,6 +1,6 @@
 # Submission Detail Guide (`/submissions/[submissionId]`)
 
-Last updated: 2026-02-24
+Last updated: 2026-03-02
 
 This is the single-submission grading workspace.
 
@@ -46,6 +46,7 @@ System behavior:
   - note
   - actor + timestamp
 - Recomputes final grade policy from overridden criterion decisions.
+- Auto-regenerates feedback text when overrides are applied without manual feedback input, so `overallGrade` and `Final grade:` narrative stay consistent.
 - Regenerates marked PDF and page notes from effective decisions.
 - Shows override state inline (`Overridden`) on criterion rows.
 

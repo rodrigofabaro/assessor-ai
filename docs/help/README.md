@@ -1,6 +1,6 @@
 # Help Center Index
 
-Last updated: 2026-02-27
+Last updated: 2026-03-02
 
 This folder contains route-by-route operator help.
 
@@ -39,3 +39,13 @@ Example:
 - `/help/submissions/01-lane-overview.png`
 
 If a screenshot is not available yet, keep a `TODO screenshot` note in the doc section.
+
+Current curated screenshot set used by in-app help/tutorial cards:
+
+- `/help/screenshots/submissions-workspace.png`
+- `/help/screenshots/submission-detail-left-rail-collapsed.png`
+- `/help/screenshots/operations-playbook-queue.png`
+- `/help/screenshots/operations-playbook-submissions-list.png`
+- `/help/screenshots/operations-playbook-submission-detail.png`
+- `/help/screenshots/admin-briefs-overview.png`
+- `/help/screenshots/admin-briefs-criteria-mapping.png`

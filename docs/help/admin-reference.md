@@ -1,6 +1,6 @@
 # Admin Reference (`/admin/reference`)
 
-Last updated: 2026-02-24
+Last updated: 2026-03-02
 
 ## Purpose
 
@@ -25,6 +25,25 @@ Bulk spec imports can be created by scripts and still flow through the same extr
 
 - locked docs are immutable unless explicit force re-extract is requested
 - force re-extract on locked docs must keep history in source metadata
+- hard-validation attempts and fallback mode are stored in `sourceMeta.hardValidation`
+
+## Brief Extraction Recovery Path
+
+For BRIEF documents, extract now uses a staged recovery path:
+
+1. native extraction
+2. native retry with forced structure recovery
+3. whole-PDF AI recovery (fallback) when hard validation still fails
+
+If unresolved blockers remain, status is set to `FAILED` (or remains `LOCKED` if document was locked) and warnings are persisted for remediation.
+
+## Figures and Diagram References
+
+Brief tasks that reference a figure/diagram should carry `[[IMG:...]]` tokens in extracted task/part text.
+
+- this prevents mismatched diagrams in task rendering
+- missing tokens are treated as hard-validation blockers
+- extracted figure assets are served via `/api/reference-documents/[documentId]/figure`
 
 ## Common Issues
 

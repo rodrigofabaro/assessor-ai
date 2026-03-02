@@ -174,10 +174,11 @@ async function recoverWithOpenAi(prompt: string): Promise<{ tasks: BriefTask[]; 
 
 export async function recoverBriefStructureWithAi(
   brief: any,
-  sourceText: string
+  sourceText: string,
+  options?: { force?: boolean }
 ): Promise<{ brief: any; applied: boolean; mode?: "local" | "openai"; reason?: string }> {
   const enabled = /^(1|true|yes)$/i.test(String(process.env.AI_BRIEF_STRUCTURE_RECOVERY || "false"));
-  if (!enabled) return { brief, applied: false, reason: "disabled" };
+  if (!enabled && !options?.force) return { brief, applied: false, reason: "disabled" };
   const tasks = Array.isArray(brief?.tasks) ? (brief.tasks as BriefTask[]) : [];
   if (!tasks.length) return { brief, applied: false, reason: "no_tasks" };
 

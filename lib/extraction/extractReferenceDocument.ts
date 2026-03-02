@@ -64,6 +64,7 @@ export async function extractReferenceDocument(args: {
   filePath: string;
   docTitleFallback: string;
   runOpenAiCleanup?: boolean;
+  forceStructureRecovery?: boolean;
 }) {
   const buf = await fs.readFile(args.filePath);
 
@@ -121,7 +122,9 @@ export async function extractReferenceDocument(args: {
       extractBrief(text, args.docTitleFallback, { equations }),
       { runCleanup: args.runOpenAiCleanup }
     );
-    const recovered = await recoverBriefStructureWithAi(briefCleaned, text);
+    const recovered = await recoverBriefStructureWithAi(briefCleaned, text, {
+      force: !!args.forceStructureRecovery,
+    });
     const brief = recovered.brief;
     extractedJson = {
       ...brief,
