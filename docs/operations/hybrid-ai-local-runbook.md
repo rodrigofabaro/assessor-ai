@@ -1,12 +1,12 @@
-# Hybrid AI Local-First Runbook
+# Hybrid AI Quality-First Runbook
 
-This runbook configures the app to use local AI first (lower cost) while keeping OpenAI fallback for reliability and quality.
+This runbook configures the app to keep quality-critical operations on OpenAI while using local AI only where risk is lower.
 
 ## Goal
 
-- Maximize AI usage in the app.
-- Minimize external API spend.
-- Keep grading quality and audit reliability high.
+- Keep extraction and grading quality high.
+- Keep audit reliability high.
+- Reduce cost safely with local cleanup where appropriate.
 
 ## 1) Copy environment template
 
@@ -74,9 +74,10 @@ If local model is unstable:
 
 ## 6) Recommended production profile
 
-- `cleanup`: local
-- `equation fallback`: hybrid
-- `ocr`: hybrid
-- `grading`: OpenAI
+- `global mode`: `hybrid`
+- `cleanup`: `local`
+- `ocr`: `openai`
+- `equation`: `openai`
+- `grading`: OpenAI model from `.openai-model.json` with fallback model configured
 
-This gives the best balance of cost control, speed, and grading quality.
+This gives the best balance of grading/extraction quality, reliability, and controlled cost.
