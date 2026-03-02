@@ -26,6 +26,9 @@ function clamp01(n: number) {
 function normalizeText(s: string) {
   return (s || "")
     .replace(/\u00A0/g, " ")      // nbsp -> space
+    // Common OCR artifact around Celsius: "100 ° CC", "100 ∘ C C", "100 퐶퐶"
+    .replace(/(\d)\s*(?:\n\s*)?[°∘]\s*(?:\n\s*)?(?:C\s*C|퐶퐶|퐶\s*퐶|C{2,})\b/gi, "$1 °C")
+    .replace(/(\d)\s*(?:\n\s*)?(?:퐶퐶|퐶\s*퐶)\b/g, "$1 C")
     .replace(/[ \t]+\n/g, "\n")   // trim trailing spaces before newline
     .replace(/\n{3,}/g, "\n\n")   // collapse runaway newlines
     .replace(/[ \t]{2,}/g, " ")   // collapse spaces

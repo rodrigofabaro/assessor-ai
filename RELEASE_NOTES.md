@@ -20,6 +20,10 @@ Release Branch: `main`
 4. Performance maintenance:
    - admin overview reduced submission status count query fan-out by grouping status counts in one DB call
    - `/api/reference-documents` now defaults to lean extraction summaries and supports `extracted=none|summary|full` plus pagination (`limit`, `offset`, `includeTotal`)
+5. Deployment-safety extraction/auto-grade guardrails:
+   - auto-grade now requires cover metadata completeness in `COVER_ONLY` mode before `AUTO_READY`
+   - auto-grade now requires locked + hard-validated brief document context (configurable strict gate)
+   - submission extraction normalization now repairs common Celsius OCR artifacts (`° CC` -> `°C`) for cleaner readable text
 5. Documentation/help refresh:
    - help docs updated for hard validation, fallback flow, override-feedback sync, and current screenshot set
 

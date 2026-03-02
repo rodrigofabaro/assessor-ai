@@ -35,6 +35,9 @@ function envNumber(name: string, fallback: number) {
 export function computeExtractionQuality(input: ExtractionReadinessInput): ExtractionQualityResult {
   const gate = evaluateExtractionReadiness(input);
   const { extractedChars, pageCount, overallConfidence, runStatus, coverMetadataReady } = gate.metrics;
+  const extractionMode = String(gate.metrics.extractionMode || "UNKNOWN").toUpperCase();
+  const requireCoverReadyForAuto =
+    String(process.env.AUTO_READY_REQUIRE_COVER_METADATA || "true").toLowerCase() !== "false";
 
   // Weighted quality score from deterministic extraction metrics.
   // If cover metadata is ready, reduce dependence on full-body extracted chars.
@@ -63,8 +66,11 @@ export function computeExtractionQuality(input: ExtractionReadinessInput): Extra
   const blockedMax = clamp(envNumber("BLOCKED_MAX_QUALITY_SCORE", 40), 10, 65);
 
   const band: ExtractionQualityBand = score >= 75 ? "HIGH" : score >= 50 ? "MEDIUM" : "LOW";
-  const routeHint: ExtractionQualityRouteHint =
+  let routeHint: ExtractionQualityRouteHint =
     score <= blockedMax ? "BLOCKED" : score >= autoReadyMin ? "AUTO_READY" : "NEEDS_REVIEW";
+  if (routeHint === "AUTO_READY" && extractionMode === "COVER_ONLY" && requireCoverReadyForAuto && !coverMetadataReady) {
+    routeHint = "NEEDS_REVIEW";
+  }
 
   return {
     score,
