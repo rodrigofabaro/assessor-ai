@@ -37,6 +37,20 @@ For BRIEF documents, extract now uses a staged recovery path:
 
 If unresolved blockers remain, status is set to `FAILED` (or remains `LOCKED` if document was locked) and warnings are persisted for remediation.
 
+## List API Performance Mode
+
+`GET /api/reference-documents` now supports lean response modes for faster admin page refresh:
+
+- `extracted=none` (smallest payload, no extracted JSON)
+- `extracted=summary` (default; lightweight extracted summary)
+- `extracted=full` (full extracted JSON for deep edit/review flows)
+
+Pagination parameters:
+
+- `limit` (default `200`, max `500`)
+- `offset` (default `0`)
+- `includeTotal=true` (adds `page.total` and `page.hasMore`)
+
 ## Figures and Diagram References
 
 Brief tasks that reference a figure/diagram should carry `[[IMG:...]]` tokens in extracted task/part text.

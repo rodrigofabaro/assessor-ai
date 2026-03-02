@@ -111,6 +111,9 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Heavy routes are client-split and lazy-loaded with inline loading states:
   - `/submissions/[submissionId]` -> `SubmissionDetailClient`
   - `/admin/settings` -> `SettingsPageClient`
+- Reference documents list API supports lean payload modes for faster admin refresh:
+  - `/api/reference-documents?extracted=none|summary|full`
+  - pagination: `limit`, `offset`, optional `includeTotal=true`
 - Submissions workspace now uses a single primary upload CTA:
   - `Upload assignment` (header action in `/submissions`)
 - Batch controls in `/submissions` are simplified:

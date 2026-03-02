@@ -19,6 +19,7 @@ Release Branch: `main`
    - reference figure route available for rendering extracted brief figures
 4. Performance maintenance:
    - admin overview reduced submission status count query fan-out by grouping status counts in one DB call
+   - `/api/reference-documents` now defaults to lean extraction summaries and supports `extracted=none|summary|full` plus pagination (`limit`, `offset`, `includeTotal`)
 5. Documentation/help refresh:
    - help docs updated for hard validation, fallback flow, override-feedback sync, and current screenshot set
 
