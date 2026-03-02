@@ -173,6 +173,44 @@ Status labels:
 
 ---
 
+## 🔜 M8 — Production Deployment & Cost-Controlled Scaling
+**Outcome**
+- Move from local-only operation to stable online deployment with reproducible DB and file storage.
+- Keep monthly cost low at launch, then scale by demand thresholds.
+
+**Scope**
+1. Infrastructure baseline
+- Host app runtime in production (single region).
+- Managed Postgres with automated backups.
+- Persistent object/file storage for:
+  - `uploads`
+  - `reference_uploads`
+  - `storage/*` outputs
+
+2. Data migration and cutover
+- Export local DB and restore to managed Postgres.
+- Migrate file assets to object storage.
+- Run Prisma migration deploy against production DB.
+- Validate path/URL resolution for stored files.
+
+3. Production safeguards
+- Secrets management (`DATABASE_URL`, OpenAI, Turnitin, app env).
+- Health checks and smoke routes after deploy.
+- Backup + rollback runbook with restore drill.
+
+4. Cost ladder (upgrade by demand)
+- Stage A (lowest cost): single app instance + small managed Postgres + low-cost object storage.
+- Stage B: increase DB compute/storage and app compute once p95 latency or queue depth threshold is breached.
+- Stage C: add read replicas/HA patterns and stronger observability once active production load justifies it.
+
+**Acceptance**
+- Upload -> extract -> triage -> auto-grade runs online without local disk dependency.
+- Existing local data is available in production (DB + files).
+- Automated smoke checks pass after deploy and after rollback simulation.
+- Monthly spend guardrails defined with threshold-based upgrade rules.
+
+---
+
 ## Maintenance rule
 Update milestone status only when you can point to:
 - the UI path that proves it
