@@ -207,7 +207,7 @@ export function useBriefsAdmin() {
       const u = await jsonFetch<any>("/api/units", { cache: "no-store" });
       setUnits(asArray<Unit>(u));
 
-      const d = await jsonFetch<any>(`/api/reference-documents?type=BRIEF${onlyLockedDocs ? "&onlyLocked=true" : ""}`, {
+      const d = await jsonFetch<any>(`/api/reference-documents?type=BRIEF&extracted=summary${onlyLockedDocs ? "&onlyLocked=true" : ""}`, {
         cache: "no-store",
       });
       setDocs(asArray<ReferenceDocument>(d));

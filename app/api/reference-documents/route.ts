@@ -14,6 +14,80 @@ function safeName(name: string) {
     .slice(0, 120);
 }
 
+function clampInt(raw: string | null, fallback: number, min: number, max: number) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+function summarizeExtractedJson(value: any) {
+  if (!value || typeof value !== "object") return null;
+  const kind = String(value?.kind || "").toUpperCase();
+  if (kind === "BRIEF") {
+    const tasks = Array.isArray(value?.tasks) ? value.tasks : [];
+    return {
+      kind: "BRIEF",
+      parserVersion: value?.parserVersion || null,
+      assignmentCode: value?.assignmentCode || null,
+      unitCodeGuess: value?.unitCodeGuess || null,
+      header: value?.header
+        ? {
+            academicYear: value.header.academicYear || null,
+            issueDate: value.header.issueDate || null,
+            finalSubmissionDate: value.header.finalSubmissionDate || null,
+            verificationDate: value.header.verificationDate || null,
+            unitCode: value.header.unitCode || null,
+            unitNumberAndTitle: value.header.unitNumberAndTitle || null,
+          }
+        : null,
+      detectedCriterionCodes: Array.isArray(value?.detectedCriterionCodes) ? value.detectedCriterionCodes : [],
+      criteriaCodes: Array.isArray(value?.criteriaCodes) ? value.criteriaCodes : [],
+      criteriaRefs: Array.isArray(value?.criteriaRefs) ? value.criteriaRefs : [],
+      taskCount: tasks.length,
+      pageCount: Number(value?.pageCount || 0) || null,
+    };
+  }
+  if (kind === "SPEC") {
+    const los = Array.isArray(value?.learningOutcomes) ? value.learningOutcomes : [];
+    const criteriaCount = los.reduce((n: number, lo: any) => {
+      const rows = Array.isArray(lo?.criteria) ? lo.criteria.length : 0;
+      return n + rows;
+    }, 0);
+    return {
+      kind: "SPEC",
+      parserVersion: value?.parserVersion || null,
+      unit: value?.unit
+        ? {
+            unitCode: value.unit.unitCode || null,
+            specIssue: value.unit.specIssue || value.unit.specVersionLabel || null,
+            unitTitle: value.unit.unitTitle || null,
+          }
+        : null,
+      learningOutcomeCount: los.length,
+      criteriaCount,
+      detectedCriterionCodes: Array.isArray(value?.detectedCriterionCodes) ? value.detectedCriterionCodes : [],
+    };
+  }
+  return {
+    kind: kind || null,
+    parserVersion: value?.parserVersion || null,
+  };
+}
+
+function slimSourceMeta(value: any, keepFull = false) {
+  if (!value || typeof value !== "object") return value ?? null;
+  if (keepFull) return value;
+  const next = { ...value };
+  if ("manualDraft" in next) delete (next as any).manualDraft;
+  return next;
+}
+
+function trimExtractionWarnings(value: unknown, keepFull = false) {
+  if (keepFull) return value ?? null;
+  const rows = Array.isArray(value) ? value : [];
+  return rows.slice(0, 8).map((w) => String(w || "").slice(0, 400));
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
@@ -22,6 +96,12 @@ export async function GET(req: Request) {
   const q = (url.searchParams.get("q") || "").trim();
   const onlyLocked = url.searchParams.get("onlyLocked") === "true";
   const onlyUnlocked = url.searchParams.get("onlyUnlocked") === "true";
+  const extractedMode = String(url.searchParams.get("extracted") || "summary").toLowerCase(); // none | summary | full
+  const limit = clampInt(url.searchParams.get("limit"), 200, 1, 500);
+  const offset = clampInt(url.searchParams.get("offset"), 0, 0, 100000);
+  const includeTotal = url.searchParams.get("includeTotal") === "true";
+  const includeFullExtracted = extractedMode === "full";
+  const includeSummaryExtracted = extractedMode === "summary";
 
   const where: any = {};
 
@@ -51,9 +131,52 @@ export async function GET(req: Request) {
   const docs = await prisma.referenceDocument.findMany({
     where,
     orderBy: [{ updatedAt: "desc" }, { uploadedAt: "desc" }],
+    skip: offset,
+    take: limit,
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      title: true,
+      version: true,
+      originalFilename: true,
+      storedFilename: true,
+      storagePath: true,
+      checksumSha256: true,
+      uploadedAt: true,
+      updatedAt: true,
+      lockedAt: true,
+      sourceMeta: true,
+      extractionWarnings: true,
+      extractedJson: includeFullExtracted || includeSummaryExtracted,
+    },
   });
 
-  return NextResponse.json({ documents: docs });
+  const mappedDocs = docs.map((doc: any) => {
+    const extractedJson = includeFullExtracted
+      ? doc.extractedJson ?? null
+      : includeSummaryExtracted
+        ? summarizeExtractedJson(doc.extractedJson)
+        : undefined;
+    return {
+      ...doc,
+      sourceMeta: slimSourceMeta(doc.sourceMeta, includeFullExtracted),
+      extractionWarnings: trimExtractionWarnings(doc.extractionWarnings, includeFullExtracted),
+      ...(includeFullExtracted || includeSummaryExtracted ? { extractedJson } : {}),
+    };
+  });
+
+  if (!includeTotal) return NextResponse.json({ documents: mappedDocs });
+  const total = await prisma.referenceDocument.count({ where });
+  return NextResponse.json({
+    documents: mappedDocs,
+    page: {
+      limit,
+      offset,
+      total,
+      hasMore: offset + mappedDocs.length < total,
+    },
+  });
 }
 
 

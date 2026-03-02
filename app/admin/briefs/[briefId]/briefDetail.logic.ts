@@ -204,10 +204,10 @@ export function useBriefDetail(briefId: string) {
       const u = await jsonFetch<any>("/api/units", { cache: "no-store" });
       setUnits(asArray<Unit>(u));
 
-      const d = await jsonFetch<any>("/api/reference-documents?type=BRIEF", { cache: "no-store" });
+      const d = await jsonFetch<any>("/api/reference-documents?type=BRIEF&extracted=summary", { cache: "no-store" });
       setDocs(asArray<ReferenceDocument>(d));
 
-      const s = await jsonFetch<any>("/api/reference-documents?type=SPEC", { cache: "no-store" });
+      const s = await jsonFetch<any>("/api/reference-documents?type=SPEC&extracted=summary", { cache: "no-store" });
       setSpecDocs(asArray<ReferenceDocument>(s));
     } catch (e: any) {
       setError(e?.message || String(e));

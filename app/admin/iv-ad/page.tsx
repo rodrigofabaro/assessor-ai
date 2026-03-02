@@ -111,7 +111,7 @@ export default function IvAdAdminPage() {
       const [templateRes, docsRes, specsRes] = await Promise.all([
         fetch("/api/admin/iv-ad/template", { cache: "no-store" }),
         fetch("/api/admin/iv-ad/documents?templateId=active", { cache: "no-store" }),
-        fetch("/api/reference-documents?type=SPEC", { cache: "no-store" }),
+        fetch("/api/reference-documents?type=SPEC&extracted=none", { cache: "no-store" }),
       ]);
       const templateJson = await templateRes.json();
       const docsJson = await docsRes.json();

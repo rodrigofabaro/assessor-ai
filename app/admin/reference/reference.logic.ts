@@ -482,6 +482,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         if (filters.onlyLocked) params.set("onlyLocked", "true");
         if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
 
+        params.set("extracted", "full");
         const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
         return jsonFetch<{ documents: ReferenceDocument[] }>(url, { cache: "no-store" });
       })(),
