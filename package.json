@@ -26,6 +26,7 @@
     "test:regression-pack": "node scripts/regression-pack.js",
     "test:iv-ad-review-draft": "node scripts/iv-ad-review-draft-schema.test.js",
     "test:export-pack-validation": "node scripts/export-pack-validation.test.js",
+    "test:auth-scaffold-contract": "node scripts/auth-scaffold-contract.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",
     "ops:deploy-smoke": "node scripts/deploy-smoke-evidence.js",
     "ops:release-gate": "node scripts/release-gate-evidence.js",

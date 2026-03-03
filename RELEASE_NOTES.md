@@ -69,6 +69,7 @@ Last updated: 2026-03-03
    - added `AUTH_GUARDS_ENABLED` env toggle (default false) to keep rollout non-breaking
    - added cookie role bridge: `POST /api/auth/role-sync` + layout sync component (`components/auth/AuthRoleSync.tsx`)
    - added session-backed identity scaffold: `POST /api/auth/session/bootstrap` + signed cookie helper (`lib/auth/session.ts`) with `AUTH_SESSION_SECRET`
+   - added auth scaffold contract regression test (`scripts/auth-scaffold-contract.test.js`) and included it in `test:regression-pack`
 
 ## 1.0.1 (Maintenance)
 

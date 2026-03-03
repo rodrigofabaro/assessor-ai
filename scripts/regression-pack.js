@@ -9,6 +9,7 @@ const tests = [
   "scripts/brief-readiness.test.js",
   "scripts/iv-ad-review-draft-schema.test.js",
   "scripts/export-pack-validation.test.js",
+  "scripts/auth-scaffold-contract.test.js",
 ];
 
 let failures = 0;

@@ -275,6 +275,7 @@ Current update (2026-03-03):
 - Added feature-flagged middleware scaffolding (`middleware.ts`, `lib/auth/rbac.ts`) with default-off enforcement (`AUTH_GUARDS_ENABLED=false`).
 - Added cookie role bridge endpoint + layout sync (`/api/auth/role-sync`, `components/auth/AuthRoleSync.tsx`) to provide middleware role context when enabled.
 - Added session bootstrap endpoint + signed session helper (`/api/auth/session/bootstrap`, `lib/auth/session.ts`) for cookie-backed role identity.
+- Added auth scaffold contract regression guard (`scripts/auth-scaffold-contract.test.js`) in `test:regression-pack`.
 
 6. Documentation and runbook parity lock
 - Ensure new queue deliverables update:
