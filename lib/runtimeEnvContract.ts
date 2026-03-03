@@ -34,10 +34,17 @@ function shouldFailHard() {
 
 function collectIssues(): EnvIssue[] {
   const issues: EnvIssue[] = [];
-  if (!String(process.env.DATABASE_URL || "").trim()) {
+  const hasDbUrl = [
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_PRISMA_URL,
+    process.env.POSTGRES_URL,
+    process.env.DIRECT_URL,
+    process.env.POSTGRES_URL_NON_POOLING,
+  ].some((v) => String(v || "").trim().length > 0);
+  if (!hasDbUrl) {
     issues.push({
       code: "ENV_DATABASE_URL_MISSING",
-      detail: "DATABASE_URL is required.",
+      detail: "Set DATABASE_URL (or POSTGRES_PRISMA_URL / POSTGRES_URL).",
       hardFail: true,
     });
   }
