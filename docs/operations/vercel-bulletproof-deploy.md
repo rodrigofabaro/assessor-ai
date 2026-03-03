@@ -1,0 +1,82 @@
+# Vercel Bulletproof Deploy Runbook
+
+Last updated: 2026-03-03
+
+## Goal
+
+Avoid deploying wrong commits, missing migrations, or broken runtime config.
+
+## 0) Precondition
+
+1. Vercel project root directory is `webapp`.
+2. Production branch is `main`.
+
+## 1) Pre-push gate (local)
+
+Run:
+
+```powershell
+pnpm run ops:prepush-prod
+```
+
+Must pass before pushing.
+
+## 2) Push exact commit
+
+1. Confirm local head:
+
+```powershell
+git rev-parse --short HEAD
+```
+
+2. Push:
+
+```powershell
+git push origin main
+```
+
+3. Confirm remote head matches local:
+
+```powershell
+git ls-remote --heads origin main
+```
+
+## 3) Verify Vercel is building the right commit
+
+In Vercel deployment details, confirm Git commit hash equals remote `main` hash.
+
+If hash mismatch:
+1. Stop.
+2. Redeploy latest `main` commit explicitly.
+
+## 4) Required env in Vercel (Production)
+
+1. `DATABASE_URL`
+2. `AUTH_SESSION_SECRET`
+3. OpenAI keys in use (`OPENAI_API_KEY` / admin keys)
+4. Turnitin keys (if enabled)
+
+## 5) Run DB migrations for target DB
+
+```powershell
+pnpm prisma migrate deploy
+pnpm prisma generate --no-engine
+```
+
+## 6) Post-deploy verification
+
+Run smoke against deployed URL:
+
+```powershell
+$env:DEPLOY_SMOKE_BASE_URL="https://your-domain.com"
+pnpm run ops:deploy-smoke
+```
+
+Verify evidence artifact in `docs/evidence/deploy-smoke/`.
+
+## 7) If deploy fails
+
+1. Check failing commit hash in Vercel.
+2. Compare with `origin/main`.
+3. If mismatch, redeploy correct commit.
+4. If match, fix code on local -> run pre-push gate -> push -> redeploy.

@@ -32,6 +32,8 @@ Last updated: 2026-03-03
    - `docs/operations/deployment-environment-map.md`
 14. Persistence classification (what must migrate off local FS):
    - `docs/operations/persistence-classification.md`
+15. Vercel bulletproof deploy runbook:
+   - `docs/operations/vercel-bulletproof-deploy.md`
 
 ## Archived operations snapshots
 

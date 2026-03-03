@@ -132,6 +132,9 @@ Last updated: 2026-03-03
    - switched `read/writeOpenAiModel` to DB primary persistence with runtime cache hydration and file fallback
    - switched `read/writeGradingConfig` to DB primary persistence with runtime cache hydration and file fallback
    - validated with `pnpm prisma generate --no-engine`, `tsc`, regression pack, and deploy smoke evidence: `docs/evidence/deploy-smoke/20260303-172621.json`
+26. Deployment hardening (Vercel build type safety + runbook):
+   - hardened grading alignment helper typing in `/api/submissions/[submissionId]/grade` so criteria alignment normalization accepts unknown arrays safely
+   - added explicit Vercel deployment runbook: `docs/operations/vercel-bulletproof-deploy.md`
 
 ## 1.0.1 (Maintenance)
 
