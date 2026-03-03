@@ -36,6 +36,7 @@ Last updated: 2026-03-03
    - wired export-pack validation into `scripts/regression-pack.js`
    - added package script `pnpm run test:export-pack-validation`
    - added package script `pnpm run ops:export-pack-evidence` to generate+replay export pack and write a versioned evidence artifact in `docs/evidence/export-pack/`
+   - live evidence captured on 2026-03-03: `docs/evidence/export-pack/20260303-130826-0226534f-6796-431b-9978-04c32783748a-97e0d665a279f806737d.json`
 
 ## 1.0.1 (Maintenance)
 

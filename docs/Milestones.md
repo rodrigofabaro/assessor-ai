@@ -166,7 +166,7 @@ Status labels:
 
 ---
 
-## 🔜 M7 — Export packs
+## ✅ M7 — Export packs
 **Outcome**
 - One‑click export pack per submission:
   - authoritative JSON
@@ -187,7 +187,7 @@ Current update (2026-03-03):
 - Replay parity verification endpoint is implemented.
 - Operator validation script is implemented (`scripts/export-pack-validation.test.js`) and wired into `test:regression-pack`.
 - Live evidence capture script is implemented (`scripts/export-pack-evidence.js`, package script `ops:export-pack-evidence`).
-- Remaining closure task: run live evidence capture in deployment environment and attach generated artifact path in release notes.
+- Live evidence captured: `docs/evidence/export-pack/20260303-130826-0226534f-6796-431b-9978-04c32783748a-97e0d665a279f806737d.json`.
 
 ---
 

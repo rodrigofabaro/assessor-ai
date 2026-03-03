@@ -85,7 +85,7 @@ Progress (2026-03-03):
 2. Operator validation script added: `scripts/export-pack-validation.test.js` (manifest required files + checksum integrity).
 3. Validation script is included in `test:regression-pack`.
 4. Live evidence command added: `pnpm run ops:export-pack-evidence` (generates export, runs replay parity, writes `docs/evidence/export-pack/*.json`).
-5. Remaining closure evidence: run the live evidence command in deployment environment and attach artifact path in release notes.
+5. Live evidence captured (2026-03-03): `docs/evidence/export-pack/20260303-130826-0226534f-6796-431b-9978-04c32783748a-97e0d665a279f806737d.json`.
 
 ### Queue B - IV-AD Phase 4/5 start
 

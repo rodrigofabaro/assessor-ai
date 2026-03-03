@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-03-03T13:08:26.030Z",
+  "baseUrl": "http://localhost:3000",
+  "submissionId": "0226534f-6796-431b-9978-04c32783748a",
+  "exportId": "97e0d665a279f806737d",
+  "replay": {
+    "submissionId": "0226534f-6796-431b-9978-04c32783748a",
+    "exportId": "97e0d665a279f806737d",
+    "sourceAssessmentId": "b66f26cf-eb06-4598-b829-c2377fd0787f",
+    "expectedBundleHash": "97e0d665a279f806737dd448d9c416c45a55c852e12221f3dd2b1a5100f7e87e",
+    "actualBundleHash": "97e0d665a279f806737dd448d9c416c45a55c852e12221f3dd2b1a5100f7e87e",
+    "hashMatch": true,
+    "expectedSourceAssessmentHash": "b79814613c492eee3ae765fff58d642b8c8c206cc8e4bc3fd351d40294179f81",
+    "actualSourceAssessmentHash": "b79814613c492eee3ae765fff58d642b8c8c206cc8e4bc3fd351d40294179f81",
+    "assessmentHashMatch": true,
+    "fileDiffs": [
+      {
+        "name": "assessment-snapshot.json",
+        "expectedChecksumSha256": "b79814613c492eee3ae765fff58d642b8c8c206cc8e4bc3fd351d40294179f81",
+        "actualChecksumSha256": "b79814613c492eee3ae765fff58d642b8c8c206cc8e4bc3fd351d40294179f81",
+        "match": true
+      },
+      {
+        "name": "feedback-summary.txt",
+        "expectedChecksumSha256": "e668727113ea5864048b1883a8a7b5a1711306b9926423f99b293ff92a96c9dc",
+        "actualChecksumSha256": "e668727113ea5864048b1883a8a7b5a1711306b9926423f99b293ff92a96c9dc",
+        "match": true
+      },
+      {
+        "name": "summary.csv",
+        "expectedChecksumSha256": "e7dd784a3809e53d9ebc4ffd0cb935ae7163c2d2ce3bb1551d2c57bd7bdb33fb",
+        "actualChecksumSha256": "e7dd784a3809e53d9ebc4ffd0cb935ae7163c2d2ce3bb1551d2c57bd7bdb33fb",
+        "match": true
+      },
+      {
+        "name": "marked.pdf",
+        "expectedChecksumSha256": "9aa8978c21dd76e816daaedb6d2670360c56abd39913547082cd0d54f24372c8",
+        "actualChecksumSha256": "9aa8978c21dd76e816daaedb6d2670360c56abd39913547082cd0d54f24372c8",
+        "match": true
+      }
+    ]
+  }
+}
