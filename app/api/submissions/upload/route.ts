@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 import path from "path";
-import type { Submission } from "@prisma/client";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 
 const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
+type SubmissionRecord = Awaited<ReturnType<typeof prisma.submission.create>>;
 
 function getOptionalId(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const created: Submission[] = [];
+    const created: SubmissionRecord[] = [];
 
     // Create submissions sequentially (safe + simple). If you want concurrency later, we can add it.
     for (const file of validFiles) {
