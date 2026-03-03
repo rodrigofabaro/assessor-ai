@@ -252,6 +252,7 @@ Current update (2026-03-03):
 - Status (2026-03-03): environment contract step completed.
 - Canonical contract doc: `docs/operations/environment-contract.md`.
 - Runtime startup validation added (`lib/runtimeEnvContract.ts`) and wired into `app/layout.tsx` + `lib/prisma.ts`.
+- Hard-fail scope tuned: `DATABASE_URL` hard-fail by default; OpenAI credential warning by default (`ENV_CONTRACT_REQUIRE_OPENAI=true` to enforce hard-fail).
 - Status (2026-03-03): storage migration step completed.
 - Canonical migration/rollback runbook: `docs/operations/storage-migration-rollback.md`.
 - Status (2026-03-03): pre-deploy smoke automation implemented.

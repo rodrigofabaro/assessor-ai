@@ -122,7 +122,7 @@ Done when:
 Progress (2026-03-03):
 1. Environment contract is now canonicalized in `docs/operations/environment-contract.md`.
 2. Runtime startup validation is implemented in `lib/runtimeEnvContract.ts` and invoked by `app/layout.tsx` and `lib/prisma.ts`.
-3. Contract currently enforces critical keys: `DATABASE_URL` and at least one OpenAI credential key.
+3. Contract currently hard-fails on missing `DATABASE_URL`; OpenAI credential is warning by default and can be promoted to hard-fail with `ENV_CONTRACT_REQUIRE_OPENAI=true`.
 4. Storage migration + rollback runbook is now documented in `docs/operations/storage-migration-rollback.md` (backup, restore, verification, rollback triggers, evidence).
 5. One-command deploy smoke is implemented: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`) with evidence output in `docs/evidence/deploy-smoke/`.
 

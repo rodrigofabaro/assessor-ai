@@ -10,7 +10,7 @@ This is the canonical environment contract for deployment and runtime startup va
 - Required in all environments.
 - Used by Prisma and all DB-backed routes.
 
-2. OpenAI credential (at least one must be set)
+2. OpenAI credential (at least one should be set)
 - `OPENAI_ADMIN_KEY` (preferred), or
 - `OPENAI_ADMIN_API_KEY`, or
 - `OPENAI_ADMIN`, or
@@ -25,12 +25,17 @@ Validation is centralized in `lib/runtimeEnvContract.ts` and invoked from:
 - `lib/prisma.ts`
 
 Behavior:
-- Production runtime: fails hard on missing critical requirements.
+- Production runtime: fails hard on hard-fail requirements.
 - Build/dev/test: logs warning only by default.
 
 Overrides:
 - Force strict mode in any environment: `ENV_CONTRACT_ENFORCE=true`
 - Disable contract checks: `ENV_CONTRACT_DISABLE=true`
+- Require OpenAI key as hard-fail in production runtime: `ENV_CONTRACT_REQUIRE_OPENAI=true`
+
+Current hard-fail defaults:
+- `DATABASE_URL`: hard-fail
+- OpenAI credential: warning by default (hard-fail only when `ENV_CONTRACT_REQUIRE_OPENAI=true`)
 
 ## Canonical source of env keys
 

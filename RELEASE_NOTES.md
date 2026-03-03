@@ -49,6 +49,9 @@ Last updated: 2026-03-03
    - added one-command smoke script: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`)
    - smoke script performs upload -> extract -> link -> grade -> marked PDF -> export -> replay parity path
    - writes pass/fail evidence artifact to `docs/evidence/deploy-smoke/*.json` with step-level diagnostics
+10. Runtime env contract refinement:
+   - adjusted startup contract severity to hard-fail by default only on `DATABASE_URL`
+   - OpenAI credential requirement is warning by default and can be hard-failed with `ENV_CONTRACT_REQUIRE_OPENAI=true`
 
 ## 1.0.1 (Maintenance)
 

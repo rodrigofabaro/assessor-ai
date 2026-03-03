@@ -1,6 +1,7 @@
 type EnvIssue = {
   code: string;
   detail: string;
+  hardFail: boolean;
 };
 
 const globalForEnvContract = globalThis as unknown as {
@@ -37,12 +38,15 @@ function collectIssues(): EnvIssue[] {
     issues.push({
       code: "ENV_DATABASE_URL_MISSING",
       detail: "DATABASE_URL is required.",
+      hardFail: true,
     });
   }
   if (!hasOpenAiCredential()) {
+    const requireOpenAi = isTruthy(process.env.ENV_CONTRACT_REQUIRE_OPENAI);
     issues.push({
       code: "ENV_OPENAI_KEY_MISSING",
       detail: "At least one OpenAI key must be set (OPENAI_ADMIN_KEY | OPENAI_ADMIN_API_KEY | OPENAI_ADMIN | OPENAI_API_KEY).",
+      hardFail: requireOpenAi,
     });
   }
   return issues;
@@ -59,9 +63,9 @@ export function validateRuntimeEnvContract() {
     `Runtime env contract validation failed (${issues.length} issue(s)): ` +
     issues.map((i) => `${i.code}: ${i.detail}`).join(" | ");
 
-  if (shouldFailHard()) {
+  const hasHardFailIssue = issues.some((i) => i.hardFail);
+  if (shouldFailHard() && hasHardFailIssue) {
     throw new Error(message);
   }
   console.warn(message);
 }
-
