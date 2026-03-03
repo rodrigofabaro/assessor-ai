@@ -2772,7 +2772,10 @@ export async function POST(
     const allowed = new Set(criteriaScopePolicy.allowedCriteriaCodes);
     briefCriteriaCodes = briefCriteriaCodes.filter((code) => allowed.has(code));
   }
-  const criteriaAlignment = compareCriteriaAlignment(criteriaCodes, briefCriteriaCodes);
+  const criteriaAlignment = compareCriteriaAlignment(
+    criteriaCodes.map((code) => String(code || "").trim().toUpperCase()).filter(Boolean),
+    briefCriteriaCodes.map((code) => String(code || "").trim().toUpperCase()).filter(Boolean)
+  );
   const minAlignmentRatio = Math.max(0.3, Math.min(0.95, Number(process.env.GRADE_MAPPING_ALIGNMENT_MIN_RATIO || 0.65)));
   const mismatchThreshold = Math.max(1, Math.min(8, Number(process.env.GRADE_MAPPING_MISMATCH_MAX || 2)));
   const mappingMismatchBlocked =
