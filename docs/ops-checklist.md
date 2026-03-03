@@ -14,6 +14,7 @@ Roadmap status:
 2. PowerShell 7+, Node.js 20+, and pnpm are installed.
 3. Environment contract reviewed: `docs/operations/environment-contract.md`.
 4. Storage migration/rollback runbook reviewed: `docs/operations/storage-migration-rollback.md`.
+5. If using external storage mount during migration, `FILE_STORAGE_ROOT` is set for target runtime.
 
 ## Fresh Clone To Running App
 
@@ -120,6 +121,29 @@ What it runs:
 Output:
 - Writes `docs/evidence/release-gate/YYYYMMDD-HHMMSS.json`
 - Fails fast and exits non-zero on first failing step
+
+## Pre-Push Production Checklist (Before merge to `main`)
+
+Run one command:
+
+```powershell
+pnpm run ops:prepush-prod
+```
+
+What it enforces:
+1. Git branch policy (`main` blocked by default)
+2. Clean working tree (blocked if dirty by default)
+3. `pnpm exec tsc --noEmit --incremental false`
+4. `pnpm run test:regression-pack`
+5. `pnpm run test:export-pack-validation`
+
+Output:
+- Writes `docs/evidence/prepush-prod/YYYYMMDD-HHMMSS.json`
+- Exits non-zero on first failing policy/check
+
+Overrides (only when intentional):
+- `pnpm run ops:prepush-prod -- -AllowDirty`
+- `pnpm run ops:prepush-prod -- -AllowMain`
 
 ## Auth Guard Smoke (Staging Only)
 

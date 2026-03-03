@@ -4,9 +4,10 @@ import { apiError, makeRequestId } from "@/lib/api/errors";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { extractIvAdPreviewFromMarkedPdfBuffer, buildIvAdNarrative, normalizeGrade } from "@/lib/iv-ad/analysis";
 import { fillIvAdTemplateDocx } from "@/lib/iv-ad/docxFiller";
-import { ivAdToAbsolutePath, writeIvAdBuffer, writeIvAdUpload } from "@/lib/iv-ad/storage";
+import { writeIvAdBuffer, writeIvAdUpload } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
 import { ivAdReviewDraftSchema, type IvAdReviewDraft } from "@/lib/iv-ad/reviewDraft";
+import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
 import fs from "fs/promises";
 import path from "path";
 
@@ -236,7 +237,8 @@ export async function POST(req: Request) {
       let specExtractedText = "";
       if (selectedSpecDoc?.storagePath) {
         try {
-          const specAbsPath = ivAdToAbsolutePath(selectedSpecDoc.storagePath);
+          const specAbsPath = resolveStorageAbsolutePath(selectedSpecDoc.storagePath);
+          if (!specAbsPath) throw new Error("SPEC_PATH_UNRESOLVED");
           const specBytes = await fs.readFile(specAbsPath);
           const specPreview = await extractIvAdPreviewFromMarkedPdfBuffer(specBytes);
           specExtractedText = String(specPreview?.extractedText || "");
@@ -269,7 +271,16 @@ export async function POST(req: Request) {
       }
     }
 
-    const templateAbs = ivAdToAbsolutePath(activeTemplate.storagePath);
+    const templateAbs = resolveStorageAbsolutePath(activeTemplate.storagePath);
+    if (!templateAbs) {
+      return apiError({
+        status: 500,
+        code: "IV_AD_TEMPLATE_PATH_UNRESOLVED",
+        userMessage: "Active template path could not be resolved.",
+        route: "/api/admin/iv-ad/generate",
+        requestId,
+      });
+    }
     const appConfig = await prisma.appConfig.findUnique({
       where: { id: 1 },
       select: { activeAuditUser: { select: { email: true } } },

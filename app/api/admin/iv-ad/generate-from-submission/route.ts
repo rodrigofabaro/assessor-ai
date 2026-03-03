@@ -4,18 +4,13 @@ import { apiError, makeRequestId } from "@/lib/api/errors";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { extractIvAdPreviewFromMarkedPdfBuffer, buildIvAdNarrative, normalizeGrade } from "@/lib/iv-ad/analysis";
 import { fillIvAdTemplateDocx } from "@/lib/iv-ad/docxFiller";
-import { ivAdToAbsolutePath, writeIvAdBuffer } from "@/lib/iv-ad/storage";
+import { writeIvAdBuffer } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
+import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
 import fs from "fs/promises";
-import path from "path";
 
 function normalizeText(s: unknown) {
   return String(s || "").trim();
-}
-
-function resolvePathMaybeRelative(p: string) {
-  if (!p) return "";
-  return path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
 }
 
 function buildUnitCodeTitle(input: {
@@ -179,7 +174,17 @@ export async function POST(req: Request) {
       select: { activeAuditUser: { select: { fullName: true, email: true } } },
     });
 
-    const markedAbs = resolvePathMaybeRelative(markedPdfPath);
+    const markedAbs = resolveStorageAbsolutePath(markedPdfPath);
+    if (!markedAbs) {
+      return apiError({
+        status: 422,
+        code: "IV_AD_MARKED_PDF_PATH_UNRESOLVED",
+        userMessage: "Marked PDF path could not be resolved.",
+        route: "/api/admin/iv-ad/generate-from-submission",
+        requestId,
+        details: { submissionId },
+      });
+    }
     const markedBytes = await fs.readFile(markedAbs);
     const preview = await extractIvAdPreviewFromMarkedPdfBuffer(markedBytes);
     const finalGrade = normalizeGrade(latestAssessment?.overallGrade) || preview.extractedGradeGuess;
@@ -235,7 +240,8 @@ export async function POST(req: Request) {
       const specStoragePath = normalizeText(submission.assignment?.assignmentBrief?.unit?.specDocument?.storagePath);
       if (specStoragePath) {
         try {
-          const specAbsPath = ivAdToAbsolutePath(specStoragePath);
+          const specAbsPath = resolveStorageAbsolutePath(specStoragePath);
+          if (!specAbsPath) throw new Error("SPEC_PATH_UNRESOLVED");
           const specBytes = await fs.readFile(specAbsPath);
           const specPreview = await extractIvAdPreviewFromMarkedPdfBuffer(specBytes);
           specExtractedText = String(specPreview?.extractedText || "");
@@ -268,7 +274,16 @@ export async function POST(req: Request) {
       }
     }
 
-    const templateAbs = ivAdToAbsolutePath(activeTemplate.storagePath);
+    const templateAbs = resolveStorageAbsolutePath(activeTemplate.storagePath);
+    if (!templateAbs) {
+      return apiError({
+        status: 500,
+        code: "IV_AD_TEMPLATE_PATH_UNRESOLVED",
+        userMessage: "Active template path could not be resolved.",
+        route: "/api/admin/iv-ad/generate-from-submission",
+        requestId,
+      });
+    }
     const templateBuffer = await fs.readFile(templateAbs);
     const filled = await fillIvAdTemplateDocx(templateBuffer, {
       programmeTitle,

@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
+import { prisma } from "@/lib/prisma";
 
 function logPath() {
   return path.join(process.cwd(), ".ops-events.jsonl");
@@ -15,6 +16,40 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.max(10, Math.min(500, Number(url.searchParams.get("limit") || 100)));
   const maxBytes = Math.max(8_192, Math.min(4_000_000, Number(process.env.OPS_EVENTS_MAX_READ_BYTES || 1_000_000)));
+
+  // Primary source: DB-backed ops events.
+  try {
+    const rows = await prisma.opsRuntimeEvent.findMany({
+      orderBy: { ts: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        ts: true,
+        type: true,
+        actor: true,
+        route: true,
+        status: true,
+        details: true,
+      },
+    });
+    if (rows.length) {
+      return NextResponse.json({
+        ok: true,
+        source: "db",
+        events: rows.map((row) => ({
+          ts: row.ts.toISOString(),
+          type: row.type,
+          actor: row.actor,
+          route: row.route,
+          status: row.status,
+          details: row.details,
+        })),
+      });
+    }
+  } catch {
+    // Fallback to legacy file log below.
+  }
+
   const p = logPath();
   let raw = "";
   try {

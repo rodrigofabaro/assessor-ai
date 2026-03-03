@@ -34,6 +34,7 @@ import { chooseGradingInputStrategy } from "@/lib/grading/inputStrategy";
 import { extractFile } from "@/lib/extraction";
 import { maybeAutoDetectAiWritingForSubmission } from "@/lib/turnitin/service";
 import { pickTonePhrase, resolveToneProfileFromLegacy, type ToneProfile } from "@/lib/notes/toneDatabase";
+import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -2412,9 +2413,7 @@ async function renderPdfPagesForGrading(input: {
   warnings: string[];
 }> {
   const warnings: string[] = [];
-  const absPath = path.isAbsolute(input.pdfPath)
-    ? input.pdfPath
-    : path.join(process.cwd(), input.pdfPath);
+  const absPath = resolveStorageAbsolutePath(input.pdfPath) || input.pdfPath;
   const bytes = new Uint8Array(await fs.readFile(absPath));
 
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");

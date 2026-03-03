@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
-import fs from "fs/promises";
-import fssync from "fs";
 import path from "path";
 import type { Submission } from "@prisma/client";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
+import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 
 const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
 
@@ -19,12 +18,6 @@ function getOptionalId(value: FormDataEntryValue | null): string | null {
 function isAllowedFile(filename: string): boolean {
   const ext = path.extname(filename || "").toLowerCase();
   return ALLOWED_EXTS.has(ext);
-}
-
-async function ensureDir(dir: string) {
-  if (!fssync.existsSync(dir)) {
-    await fs.mkdir(dir, { recursive: true });
-  }
 }
 
 export async function POST(req: Request) {
@@ -48,9 +41,6 @@ export async function POST(req: Request) {
       });
     }
 
-    const uploadDir = path.join(process.cwd(), "uploads");
-    await ensureDir(uploadDir);
-
     const validFiles = files.filter((f) => isAllowedFile(f.name));
     if (!validFiles.length) {
       return apiError({
@@ -73,9 +63,8 @@ export async function POST(req: Request) {
       const buffer = Buffer.from(bytes);
 
       const storedFilename = `${uuid()}-${file.name}`;
-      const storagePath = path.join(uploadDir, storedFilename);
-
-      await fs.writeFile(storagePath, buffer);
+      const storagePath = toStorageRelativePath("uploads", storedFilename);
+      await writeStorageFile(storagePath, buffer);
 
       const submission = await prisma.submission.create({
         data: {

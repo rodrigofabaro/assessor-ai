@@ -1,11 +1,15 @@
 import fs from "fs/promises";
-import fssync from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import {
+  resolveStorageAbsolutePath,
+  toStorageRelativePath,
+  writeStorageFile,
+} from "@/lib/storage/provider";
 
 export type IvAdStorageBucket = "templates" | "inputs" | "outputs";
 
-const IV_AD_STORAGE_ROOT_REL = path.join("storage", "iv-ad");
+const IV_AD_STORAGE_ROOT_REL = toStorageRelativePath("storage", "iv-ad");
 
 function safeName(name: string) {
   return String(name || "file")
@@ -16,11 +20,11 @@ function safeName(name: string) {
 }
 
 export function ivAdStorageRootAbs() {
-  return path.join(process.cwd(), IV_AD_STORAGE_ROOT_REL);
+  return resolveStorageAbsolutePath(IV_AD_STORAGE_ROOT_REL) || path.join(process.cwd(), IV_AD_STORAGE_ROOT_REL);
 }
 
 export function ivAdToAbsolutePath(storagePath: string) {
-  return path.isAbsolute(storagePath) ? storagePath : path.join(process.cwd(), storagePath);
+  return resolveStorageAbsolutePath(storagePath) || storagePath;
 }
 
 export async function ensureIvAdStorageDirs() {
@@ -29,13 +33,7 @@ export async function ensureIvAdStorageDirs() {
     path.join(ivAdStorageRootAbs(), "inputs"),
     path.join(ivAdStorageRootAbs(), "outputs"),
   ];
-  await Promise.all(
-    dirs.map(async (dir) => {
-      if (!fssync.existsSync(dir)) {
-        await fs.mkdir(dir, { recursive: true });
-      }
-    })
-  );
+  await Promise.all(dirs.map((dir) => fs.mkdir(dir, { recursive: true })));
 }
 
 export async function writeIvAdBuffer(args: {
@@ -48,9 +46,8 @@ export async function writeIvAdBuffer(args: {
   const safe = safeName(args.originalFilename);
   const stem = args.prefix ? `${args.prefix}-` : "";
   const storedFilename = `${stem}${randomUUID()}-${safe}`;
-  const rel = path.join(IV_AD_STORAGE_ROOT_REL, args.bucket, storedFilename);
-  const abs = ivAdToAbsolutePath(rel);
-  await fs.writeFile(abs, args.buffer);
+  const rel = toStorageRelativePath(IV_AD_STORAGE_ROOT_REL, args.bucket, storedFilename);
+  await writeStorageFile(rel, args.buffer);
   return { storagePath: rel, storedFilename };
 }
 
@@ -71,4 +68,3 @@ export async function writeIvAdUpload(args: {
 export function ivAdDocxContentType() {
   return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 }
-

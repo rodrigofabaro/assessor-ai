@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
+import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 
 function safeName(name: string) {
   // keep it filesystem-safe and predictable
@@ -249,21 +248,13 @@ export async function POST(req: Request) {
 
       const checksumSha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
-      // ✅ Canonical folder (dev local). Keep DB path RELATIVE so it’s portable.
-      const uploadDirRel = "reference_uploads";
-      const uploadDirAbs = path.join(process.cwd(), uploadDirRel);
-
-      if (!fs.existsSync(uploadDirAbs)) fs.mkdirSync(uploadDirAbs, { recursive: true });
-
       // ✅ storedFilename should be stable and safe; keep original name for humans
       const originalSafe = safeName(file.name);
       const storedFilename = `${uuid()}-${originalSafe}`;
 
-      // ✅ Write using absolute path; store RELATIVE in DB
-      const storagePathRel = path.join(uploadDirRel, storedFilename);
-      const storagePathAbs = path.join(process.cwd(), storagePathRel);
-
-      fs.writeFileSync(storagePathAbs, buffer);
+      // Keep DB storage key relative for portability across environments.
+      const storagePathRel = toStorageRelativePath("reference_uploads", storedFilename);
+      await writeStorageFile(storagePathRel, buffer);
 
       const doc = await prisma.referenceDocument.create({
         data: {

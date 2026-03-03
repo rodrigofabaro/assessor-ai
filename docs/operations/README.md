@@ -28,6 +28,10 @@ Last updated: 2026-03-03
    - `docs/operations/storage-migration-rollback.md`
 12. Auth role matrix:
    - `docs/operations/auth-role-matrix.md`
+13. Deployment environment map (Local/Preview/Production):
+   - `docs/operations/deployment-environment-map.md`
+14. Persistence classification (what must migrate off local FS):
+   - `docs/operations/persistence-classification.md`
 
 ## Archived operations snapshots
 

@@ -2,8 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { readOpenAiModel } from "@/lib/openai/modelConfig";
 import { getDefaultFeedbackTemplate } from "@/lib/grading/feedbackDocument";
+import { prisma } from "@/lib/prisma";
 
 const FILE_PATH = path.join(process.cwd(), ".grading-config.json");
+let cachedConfig: GradingConfig | null = null;
+let dbHydrationStarted = false;
 
 export type GradingTone = "supportive" | "professional" | "strict";
 export type GradingStrictness = "lenient" | "balanced" | "strict";
@@ -136,12 +139,36 @@ function normalizeConfig(input: Partial<GradingConfig>): GradingConfig {
   };
 }
 
+function hydrateFromDbOnce() {
+  if (dbHydrationStarted) return;
+  dbHydrationStarted = true;
+  const dbModel = (prisma as any)?.appConfig;
+  if (!dbModel || typeof dbModel.findUnique !== "function") return;
+
+  void dbModel
+    .findUnique({
+      where: { id: 1 },
+      select: { gradingConfig: true },
+    })
+    .then((row: any) => {
+      const raw = row?.gradingConfig;
+      if (!raw || typeof raw !== "object") return;
+      cachedConfig = normalizeConfig(raw as Partial<GradingConfig>);
+    })
+    .catch(() => null);
+}
+
 export function readGradingConfig() {
+  hydrateFromDbOnce();
+  if (cachedConfig) return { config: cachedConfig, source: "settings" as const };
+
   try {
     if (!fs.existsSync(FILE_PATH)) return { config: defaultGradingConfig(), source: "default" as const };
     const raw = fs.readFileSync(FILE_PATH, "utf8");
     const parsed = JSON.parse(raw) as Partial<GradingConfig>;
-    return { config: normalizeConfig(parsed), source: "settings" as const };
+    const normalized = normalizeConfig(parsed);
+    cachedConfig = normalized;
+    return { config: normalized, source: "settings" as const };
   } catch {
     return { config: defaultGradingConfig(), source: "default" as const };
   }
@@ -149,6 +176,19 @@ export function readGradingConfig() {
 
 export function writeGradingConfig(next: Partial<GradingConfig>) {
   const merged = normalizeConfig({ ...readGradingConfig().config, ...next });
+  cachedConfig = merged;
+
+  const dbModel = (prisma as any)?.appConfig;
+  if (dbModel && typeof dbModel.upsert === "function") {
+    void dbModel
+      .upsert({
+        where: { id: 1 },
+        create: { id: 1, gradingConfig: merged },
+        update: { gradingConfig: merged },
+      })
+      .catch(() => null);
+  }
+
   fs.writeFileSync(FILE_PATH, JSON.stringify(merged, null, 2), "utf8");
   return merged;
 }

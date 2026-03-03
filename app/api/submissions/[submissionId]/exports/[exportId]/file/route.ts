@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
-import path from "node:path";
+import { resolveStorageAbsolutePath, toStorageRelativePath } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -28,8 +28,9 @@ export async function GET(
       return NextResponse.json({ error: "Valid file name is required." }, { status: 400 });
     }
 
-    const abs = path.join(process.cwd(), "storage", "exports", submissionId, exportId, name);
-    if (!fs.existsSync(abs)) {
+    const rel = toStorageRelativePath("storage", "exports", submissionId, exportId, name);
+    const abs = resolveStorageAbsolutePath(rel);
+    if (!abs || !fs.existsSync(abs)) {
       return NextResponse.json({ error: "Export file not found." }, { status: 404 });
     }
 
@@ -48,4 +49,3 @@ export async function GET(
     );
   }
 }
-

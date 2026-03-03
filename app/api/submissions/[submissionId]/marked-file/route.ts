@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
+import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -25,8 +26,8 @@ export async function GET(
   const rel = String(latest?.annotatedPdfPath || "").trim();
   if (!rel) return NextResponse.json({ error: "No marked PDF generated yet." }, { status: 404 });
 
-  const abs = path.join(process.cwd(), rel);
-  if (!fs.existsSync(abs)) {
+  const abs = resolveStorageAbsolutePath(rel);
+  if (!abs || !fs.existsSync(abs)) {
     return NextResponse.json({ error: "Marked PDF file not found on disk." }, { status: 404 });
   }
 

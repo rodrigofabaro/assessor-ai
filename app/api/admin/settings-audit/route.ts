@@ -9,6 +9,6 @@ export async function GET(req: Request) {
   }
   const { searchParams } = new URL(req.url);
   const take = Number(searchParams.get("take") || 40);
-  const events = listSettingsAuditEvents(take);
+  const events = await listSettingsAuditEvents(take);
   return NextResponse.json({ events });
 }

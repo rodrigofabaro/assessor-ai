@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
-import { ivAdDocxContentType, ivAdToAbsolutePath } from "@/lib/iv-ad/storage";
+import { ivAdDocxContentType } from "@/lib/iv-ad/storage";
+import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
 import fs from "fs";
 
 function sanitizeDownloadName(value: string) {
@@ -55,8 +56,8 @@ export async function GET(
       });
     }
 
-    const abs = ivAdToAbsolutePath(doc.outputDocxPath);
-    if (!fs.existsSync(abs)) {
+    const abs = resolveStorageAbsolutePath(doc.outputDocxPath);
+    if (!abs || !fs.existsSync(abs)) {
       return apiError({
         status: 404,
         code: "IV_AD_OUTPUT_FILE_MISSING",
@@ -92,4 +93,3 @@ export async function GET(
     });
   }
 }
-

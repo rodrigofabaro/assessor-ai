@@ -18,9 +18,10 @@ This folder is the operational source of truth for extraction, mapping, grading,
 10. Route help center: `docs/help/README.md`
 11. Latest documentation audit snapshot: `docs/DOCS_AUDIT_2026-03-03.md`
 12. Operations docs index: `docs/operations/README.md`
-13. Operations archive policy: `docs/operations/archive/README.md`
-14. Documentation role matrix: `docs/DOC_ROLE_MATRIX.md`
-15. Codebase file responsibility map: `docs/SYSTEM_FILE_MAP.md`
+13. Deployment environment map (Local/Preview/Production): `docs/operations/deployment-environment-map.md`
+14. Operations archive policy: `docs/operations/archive/README.md`
+15. Documentation role matrix: `docs/DOC_ROLE_MATRIX.md`
+16. Codebase file responsibility map: `docs/SYSTEM_FILE_MAP.md`
 
 ## If you need...
 

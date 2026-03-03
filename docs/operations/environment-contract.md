@@ -53,3 +53,10 @@ Current hard-fail defaults:
 - `AUTH_SESSION_SECRET`
   - required when `AUTH_GUARDS_ENABLED=true` and using signed session cookie bootstrap
   - minimum recommended length: 32+ characters
+
+## Storage migration env (M8)
+
+- `FILE_STORAGE_ROOT`
+  - optional
+  - when set, provider-managed relative storage paths resolve under this root
+  - scope: `uploads/*`, `reference_uploads/*`, `storage/*`, `submission_marked/*` when written via provider-aware paths

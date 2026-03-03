@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
-import fs from "fs";
 import path from "path";
+import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
@@ -66,14 +66,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
   const buffer = Buffer.from(bytes);
   const checksumSha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
-  const uploadDirRel = "reference_uploads";
-  const uploadDirAbs = path.join(process.cwd(), uploadDirRel);
-  if (!fs.existsSync(uploadDirAbs)) fs.mkdirSync(uploadDirAbs, { recursive: true });
-
   const storedFilename = `${uuid()}-${safeName(filename)}`;
-  const storagePathRel = path.join(uploadDirRel, storedFilename);
-  const storagePathAbs = path.join(process.cwd(), storagePathRel);
-  fs.writeFileSync(storagePathAbs, buffer);
+  const storagePathRel = toStorageRelativePath("reference_uploads", storedFilename);
+  await writeStorageFile(storagePathRel, buffer);
 
   const rubricDoc = await prisma.referenceDocument.create({
     data: {

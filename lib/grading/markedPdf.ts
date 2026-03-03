@@ -1,6 +1,10 @@
 import fs from "node:fs";
-import path from "node:path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import {
+  resolveStorageAbsolutePath,
+  toStorageRelativePath,
+  writeStorageFileSync,
+} from "@/lib/storage/provider";
 
 export type MarkedPdfPayload = {
   submissionId: string;
@@ -126,7 +130,11 @@ function buildFeedbackRenderLines(text: string, maxWidth: number, font: any, siz
 }
 
 export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPayload) {
-  const bytes = fs.readFileSync(inputPdfPath);
+  const inputAbs = resolveStorageAbsolutePath(inputPdfPath);
+  if (!inputAbs || !fs.existsSync(inputAbs)) {
+    throw new Error("Input submission PDF not found for marked output generation.");
+  }
+  const bytes = fs.readFileSync(inputAbs);
   const pdf = await PDFDocument.load(bytes);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -311,16 +319,14 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
     }
   }
 
-  const outDir = path.join(process.cwd(), "submission_marked");
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
   const outFile = `${payload.submissionId}-${Date.now()}.pdf`;
-  const outPath = path.join(outDir, outFile);
+  const storagePath = toStorageRelativePath("submission_marked", outFile);
 
   const outBytes = await pdf.save();
-  fs.writeFileSync(outPath, Buffer.from(outBytes));
+  const saved = writeStorageFileSync(storagePath, Buffer.from(outBytes));
 
   return {
-    storagePath: path.join("submission_marked", outFile),
-    absolutePath: outPath,
+    storagePath,
+    absolutePath: saved.absolutePath,
   };
 }

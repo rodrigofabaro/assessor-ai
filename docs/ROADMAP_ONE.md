@@ -15,24 +15,62 @@ Use this doc when the instruction is: "continue the roadmap".
 ## Current status snapshot
 
 1. Completed baseline milestones: M1-M6
-2. Active delivery target: M7 (Export packs)
+2. Active delivery target: M8 (production deployment readiness)
 3. Parallel tracks in preparation:
-   - IV-AD AI review rollout
-   - M8 deployment readiness
+   - IV-AD AI review rollout hardening
+   - M8 first production deployment execution
    - M9 auth and UX hardening foundation
 
 ## Execution lanes
 
 ### Now (in progress)
 
-1. M7 export-pack endpoint/UI
-- one-click export bundle per submission
-- deterministic manifest and checksums
-- replay route with parity validation
-
-Implementation note (2026-03-03):
-- submission-detail UI now generates export packs and runs replay parity checks
-- API routes added for export generation, replay verification, and per-file download
+1. M8 first production deployment blocker removal
+- replace direct local filesystem dependency with storage provider abstraction
+- migrate highest-risk write/read paths first (`submissions`, `reference documents`, export artifacts)
+- keep backward-compatible resolver for existing local `storagePath` values
+- Progress (2026-03-03): slice 1 completed.
+- Added `lib/storage/provider.ts` and migrated:
+  - `POST /api/submissions/upload`
+  - `GET /api/submissions/[submissionId]/file`
+  - `GET /api/submissions/[submissionId]/marked-file`
+  - `POST /api/reference-documents`
+  - `POST /api/briefs/[briefId]/rubric`
+  - `POST /api/briefs/[briefId]/iv/[ivId]/attachment`
+  - export-pack writes/replay reads in `lib/submissions/exportPack.ts`
+  - marked PDF and IV-AD storage writers (`lib/grading/markedPdf.ts`, `lib/iv-ad/storage.ts`)
+- Added `FILE_STORAGE_ROOT` env override for path migration control.
+- Progress (2026-03-03): slice 2 completed.
+- Additional provider resolution applied to:
+  - `lib/extraction.ts` (`extractFile`)
+  - `/api/submissions/[submissionId]/grade` raw-PDF page render path
+  - `/api/reference-documents/[documentId]/figure` cache write path (`storage/reference_images/*`)
+- Progress (2026-03-03): slice 3 completed.
+- IV-AD routes now use provider-based storage resolution for read paths:
+  - `/api/iv-ad/review-draft`
+  - `/api/admin/iv-ad/documents/[documentId]/file`
+  - `/api/admin/iv-ad/generate`
+  - `/api/admin/iv-ad/generate-from-submission`
+- Added explicit unresolved-path errors for template/marked-PDF reads.
+- Deploy smoke evidence after slice 3: `docs/evidence/deploy-smoke/20260303-170308.json`.
+- Progress (2026-03-03): persistence sweep completed.
+- Canonical classification added: `docs/operations/persistence-classification.md`.
+- Remaining `must-migrate` blockers before production-safe go-live:
+  - file-backed runtime settings/state (`.turnitin-config.json`, `.turnitin-submission-state.json`, `.automation-policy.json`)
+  - runtime favicon mutation path writing into `public/favicon.ico`
+- Progress (2026-03-03): first `must-migrate` item delivered.
+- Ops events now write/read from DB (`OpsRuntimeEvent`) with temporary file fallback (`.ops-events.jsonl`) for safe transition.
+- Compatibility hardening added: if DB model/migration is not yet available in a running environment, ops events auto-fallback to file sink instead of throwing runtime errors.
+- Deploy smoke evidence after this hardening: `docs/evidence/deploy-smoke/20260303-171515.json`.
+- Progress (2026-03-03): second `must-migrate` item delivered.
+- Settings audit now writes/reads from DB (`AdminSettingsAuditEvent`) with temporary file fallback (`.settings-audit.json`) for safe transition.
+- Progress (2026-03-03): third `must-migrate` item delivered.
+- OpenAI usage telemetry now writes/reads from DB (`OpenAiUsageEvent`) with temporary file fallback (`.openai-usage-log.jsonl`) for safe transition.
+- Deploy smoke evidence after this slice: `docs/evidence/deploy-smoke/20260303-172205.json`.
+- Progress (2026-03-03): fourth and fifth `must-migrate` items delivered.
+- Grading config now persists via DB (`AppConfig.gradingConfig`) with runtime cache hydration + file fallback.
+- OpenAI model config now persists via DB (`AppConfig.openaiModelConfig`) with runtime cache hydration + file fallback.
+- Deploy smoke evidence after this slice: `docs/evidence/deploy-smoke/20260303-172621.json`.
 
 2. Extraction and admin performance hardening
 - brief extraction regression stabilization
@@ -136,6 +174,33 @@ Progress (2026-03-03):
 8. Release gate evidence captured (2026-03-03): `docs/evidence/release-gate/20260303-142551.json` (includes deploy-smoke pass in same run).
 
 ## Production deployment steps (single runbook section)
+
+Canonical environment model:
+1. `docs/operations/deployment-environment-map.md` (Local vs Preview vs Production, Git->Vercel promotion flow, DB/storage separation policy)
+2. Pre-merge gate command: `pnpm run ops:prepush-prod` (enforces git policy + local quality checks before merging to `main`)
+
+## What is still missing before first Vercel deploy (as of 2026-03-03)
+
+You already have:
+1. Vercel account
+2. Domain purchased
+
+Still required:
+1. Production PostgreSQL database provisioned and connected (`DATABASE_URL` in Vercel project env).
+2. Persistent file/object storage integration completed (current app still writes many files to local disk paths like `uploads/`, `reference_uploads/`, `storage/*`, `submission_marked/`, which is not durable on Vercel runtime).
+3. Minimum production secrets configured in Vercel:
+- `DATABASE_URL`
+- `AUTH_SESSION_SECRET` (32+ chars)
+- OpenAI credentials in use by your runtime profile (`OPENAI_API_KEY` and related keys if used)
+4. Production migration step executed:
+- `pnpm prisma migrate deploy`
+5. First deploy smoke evidence captured against deployed URL:
+- `pnpm run ops:deploy-smoke`
+6. Domain DNS mapped to Vercel project and HTTPS validated.
+
+Launch decision:
+1. If you deploy now without item 2, uploads/generated artifacts can be lost between requests/restarts.
+2. First safe production deploy should happen only after storage provider migration for file persistence is complete.
 
 ### Pre-deploy
 

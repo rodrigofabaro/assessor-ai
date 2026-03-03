@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
+import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
 
 export async function GET(
   _req: Request,
@@ -18,13 +19,14 @@ export async function GET(
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
 
-  const filePath = sub.storagePath;
-  if (!filePath || !fs.existsSync(filePath)) {
+  const filePath = String(sub.storagePath || "").trim();
+  const absPath = filePath ? resolveStorageAbsolutePath(filePath) : null;
+  if (!filePath || !absPath || !fs.existsSync(absPath)) {
     return NextResponse.json({ error: "File not found on disk" }, { status: 404 });
   }
 
   const ext = path.extname(sub.filename || filePath).toLowerCase();
-  const buf = fs.readFileSync(filePath);
+  const buf = fs.readFileSync(absPath);
 
   // Basic content-types (we only upload PDF/DOCX today).
   const contentType =

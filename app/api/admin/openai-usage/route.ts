@@ -329,7 +329,7 @@ export async function GET() {
     (usageCompletionsFetch.ok ? 200 : usageCompletionsFetch.status) === 403 ||
     (usageResponsesFetch.ok ? 200 : usageResponsesFetch.status) === 403 ||
     (costsFetch.ok ? 200 : costsFetch.status) === 403;
-  const localUsage = readOpenAiUsageHistory(DEFAULT_WINDOW_DAYS);
+  const localUsage = await readOpenAiUsageHistory(DEFAULT_WINDOW_DAYS);
   // If org-scoped calls return zeros, retry without OpenAI-Organization header.
   if (useOrgHeader && usage.available && costs.available && usage.totalTokens === 0 && costs.amount === 0) {
     const [fallbackUsageCompletionsFetch, fallbackUsageResponsesFetch, fallbackCostsFetch] = await Promise.all([

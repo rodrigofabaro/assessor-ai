@@ -32,6 +32,14 @@ Central list of current constraints so operators and developers are not surprise
 - Impact: AI-assisted internal verification still in phased rollout.
 - Mitigation: manual IV-AD path remains available; Phase 4/5 in roadmap queue.
 
+7. Remaining runtime settings/audit persistence is file-based
+- Impact: some admin settings, audit trails, and telemetry can be non-durable on stateless production runtimes.
+- Mitigation: track and migrate all `must-migrate` items in `docs/operations/persistence-classification.md` before go-live.
+- Update (2026-03-03): ops events moved to DB primary storage (`OpsRuntimeEvent`) with file fallback during transition.
+- Update (2026-03-03): settings audit moved to DB primary storage (`AdminSettingsAuditEvent`) with file fallback during transition.
+- Update (2026-03-03): OpenAI usage telemetry moved to DB primary storage (`OpenAiUsageEvent`) with file fallback during transition.
+- Update (2026-03-03): grading config and OpenAI model config moved to `AppConfig` DB JSON persistence with file fallback during transition.
+
 ## Operational note
 
 Known limitations must be reviewed and updated on each release cycle.

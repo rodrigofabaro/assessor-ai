@@ -87,6 +87,8 @@ model AppConfig {
   id                Int      @id @default(1)
   activeAuditUserId String?
   faviconUpdatedAt  DateTime?
+  openaiModelConfig Json?
+  gradingConfig     Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -411,4 +413,45 @@ model SubmissionAuditEvent {
   @@index([submissionId])
   @@index([type])
   @@index([actor])
+}
+
+model OpsRuntimeEvent {
+  id        String   @id @default(cuid())
+  ts        DateTime @default(now())
+  type      String
+  actor     String?
+  route     String?
+  status    Int?
+  details   Json?
+
+  @@index([ts])
+  @@index([type])
+  @@index([route, ts])
+}
+
+model AdminSettingsAuditEvent {
+  id      String   @id @default(cuid())
+  ts      DateTime @default(now())
+  actor   String
+  role    String
+  action  String
+  target  String
+  changes Json?
+
+  @@index([ts])
+  @@index([target, ts])
+}
+
+model OpenAiUsageEvent {
+  id           String   @id @default(cuid())
+  ts           DateTime @default(now())
+  model        String
+  op           String
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+
+  @@index([ts])
+  @@index([model, ts])
+  @@index([op, ts])
 }

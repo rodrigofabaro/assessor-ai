@@ -72,6 +72,66 @@ Last updated: 2026-03-03
    - added auth scaffold contract regression test (`scripts/auth-scaffold-contract.test.js`) and included it in `test:regression-pack`
    - added staging-only auth guard smoke command: `pnpm run ops:auth-guard-smoke` (`scripts/auth-guard-smoke.js`) with evidence output in `docs/evidence/auth-guard-smoke/`
    - fixed middleware bundling path for Edge runtime by replacing `node:crypto` dependency with Edge-safe session verification helper (`lib/auth/sessionEdge.ts`)
+15. M8 documentation alignment for first Vercel deployment:
+   - updated `docs/ROADMAP_ONE.md` status snapshot to reflect active M8 deployment target
+   - added explicit "What is still missing before first Vercel deploy" checklist (DB, persistent object storage integration, production secrets, migrations, smoke evidence, domain cutover)
+   - marked local filesystem persistence as the current launch blocker for safe production rollout
+16. Deployment environment model documentation:
+   - added `docs/operations/deployment-environment-map.md` as canonical Local/Preview/Production workflow
+   - documented GitHub->Vercel promotion flow and strict separation of code vs database/files
+   - linked deployment environment map from `docs/README.md`, `docs/operations/README.md`, and `docs/ROADMAP_ONE.md`
+17. Pre-push production gate command:
+   - added `scripts/prepush-prod-check.ps1` and package script `pnpm run ops:prepush-prod`
+   - enforces branch/working-tree policy before merge to `main` and runs `tsc`, `test:regression-pack`, and `test:export-pack-validation`
+   - writes pass/fail evidence artifacts to `docs/evidence/prepush-prod/*.json`
+   - documented in `docs/ops-checklist.md`, `docs/operations/deployment-environment-map.md`, and `docs/ROADMAP_ONE.md`
+18. M8 storage migration slice 1 (provider abstraction):
+   - added shared storage helper: `lib/storage/provider.ts` (relative storage keys, read resolution across cwd/repo/env root, write root override via `FILE_STORAGE_ROOT`)
+   - migrated submission upload to store relative keys (`uploads/<uuid>-<filename>`) and write through provider
+   - migrated submission file download and marked-file routes to resolve legacy absolute and new relative storage paths through provider
+   - migrated reference document upload writes through provider (relative `reference_uploads/<uuid>-<filename>`)
+   - migrated export-pack artifact writes/reads through provider (`storage/exports/*`) including run-log append and replay manifest resolution
+   - migrated marked-PDF generation (`submission_marked/*`) and IV-AD storage writes (`storage/iv-ad/*`) through provider-aware paths
+   - migrated brief rubric and IV attachment uploads to provider-backed relative storage keys
+   - added optional env contract input in `.env.example`: `FILE_STORAGE_ROOT`
+19. M8 storage migration slice 2 (grading/extraction path resolution):
+   - `lib/extraction.ts` now resolves input `storagePath` through storage provider compatibility resolver (relative + legacy absolute)
+   - grading raw-PDF render path in `/api/submissions/[submissionId]/grade` now resolves through provider (`renderPdfPagesForGrading`)
+   - reference figure cache write path now uses provider-backed storage key (`storage/reference_images/*`)
+20. M8 storage migration slice 3 (IV-AD route resolution):
+   - replaced remaining IV-AD read-path resolution call sites with provider resolver (`resolveStorageAbsolutePath`) in:
+     - `/api/iv-ad/review-draft`
+     - `/api/admin/iv-ad/documents/[documentId]/file`
+     - `/api/admin/iv-ad/generate`
+     - `/api/admin/iv-ad/generate-from-submission`
+   - added explicit unresolved-path API errors for template/marked-PDF paths to improve deployment triage
+   - deploy smoke passed after this slice: `docs/evidence/deploy-smoke/20260303-170308.json`
+21. M8 persistence sweep and blocker classification:
+   - added canonical persistence matrix: `docs/operations/persistence-classification.md`
+   - classified remaining local filesystem dependencies into `must-migrate` vs `local-only-ok`
+   - documented remaining production blockers in unified roadmap and known limitations
+22. M8 `must-migrate` execution slice 1 (ops events):
+   - added Prisma model + migration for durable ops event storage: `OpsRuntimeEvent`
+   - switched `appendOpsEvent` to DB primary write with file fallback (`.ops-events.jsonl`) on DB failure
+   - switched `/api/admin/ops/events` to DB primary read with legacy file fallback
+   - generated Prisma client (`pnpm prisma generate --no-engine`) and validated with `tsc` + regression pack
+   - added runtime compatibility guard in `appendOpsEvent` so environments with older Prisma client/missing migration safely fall back to file log
+   - deploy smoke pass after guard: `docs/evidence/deploy-smoke/20260303-171515.json`
+23. M8 `must-migrate` execution slice 2 (settings audit):
+   - added Prisma model + migration for settings audit events: `AdminSettingsAuditEvent`
+   - switched `appendSettingsAuditEvent` to DB primary write with file fallback (`.settings-audit.json`)
+   - switched `/api/admin/settings-audit` to DB primary read with file fallback
+   - updated persistence classification and roadmap blocker list to reflect completed migration
+24. M8 `must-migrate` execution slice 3 (OpenAI usage telemetry):
+   - added Prisma model + migration for usage telemetry: `OpenAiUsageEvent`
+   - switched `recordOpenAiUsage` to DB primary write with file fallback (`.openai-usage-log.jsonl`)
+   - switched `readOpenAiUsageHistory` to DB primary read with file fallback and updated `/api/admin/openai-usage` to await async history read
+   - validated with `pnpm prisma generate --no-engine`, `tsc`, regression pack, and deploy smoke evidence: `docs/evidence/deploy-smoke/20260303-172205.json`
+25. M8 `must-migrate` execution slice 4/5 (model + grading settings):
+   - extended `AppConfig` with JSON-backed settings persistence fields: `openaiModelConfig`, `gradingConfig`
+   - switched `read/writeOpenAiModel` to DB primary persistence with runtime cache hydration and file fallback
+   - switched `read/writeGradingConfig` to DB primary persistence with runtime cache hydration and file fallback
+   - validated with `pnpm prisma generate --no-engine`, `tsc`, regression pack, and deploy smoke evidence: `docs/evidence/deploy-smoke/20260303-172621.json`
 
 ## 1.0.1 (Maintenance)
 

@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
+import { resolveStorageAbsolutePath, toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -346,8 +347,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ document
   }
 
   const safeToken = sanitizeToken(token);
-  const outDir = path.join(process.cwd(), "storage", "reference_images");
-  const outPath = path.join(outDir, `${documentId}-${safeToken}-v5.png`);
+  const outRel = toStorageRelativePath("storage", "reference_images", `${documentId}-${safeToken}-v5.png`);
+  const outPath = resolveStorageAbsolutePath(outRel) || path.join(process.cwd(), outRel);
 
   try {
     const cached = await fs.readFile(outPath);
@@ -366,8 +367,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ document
   const png = await renderPdfPageToPng(resolved.path, page, hint);
   if (!png) return NextResponse.json({ error: "PAGE_RENDER_FAILED" }, { status: 500 });
 
-  await fs.mkdir(outDir, { recursive: true });
-  await fs.writeFile(outPath, png);
+  await writeStorageFile(outRel, png);
 
   return new NextResponse(png as any, {
     headers: {
