@@ -17,6 +17,7 @@ Last updated: 2026-03-03
    - `/admin/iv-ad` now includes `Run AI IV Review` action before final DOCX generation
    - review draft sections are editable in-page (decision/feedback/criteria/integrity/comments/actions)
    - evidence snippets and warning list are rendered from the strict review-draft contract
+   - final generation now accepts `reviewDraftJson` override and uses edited draft comments/actions when present
 
 ## 1.0.1 (Maintenance)
 

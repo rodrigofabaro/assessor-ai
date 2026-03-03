@@ -6,6 +6,7 @@ import { extractIvAdPreviewFromMarkedPdfBuffer, buildIvAdNarrative, normalizeGra
 import { fillIvAdTemplateDocx } from "@/lib/iv-ad/docxFiller";
 import { ivAdToAbsolutePath, writeIvAdBuffer, writeIvAdUpload } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
+import { ivAdReviewDraftSchema, type IvAdReviewDraft } from "@/lib/iv-ad/reviewDraft";
 import fs from "fs/promises";
 import path from "path";
 
@@ -56,6 +57,18 @@ function parseFields(formData: FormData): GenerateFields {
   };
 }
 
+function parseReviewDraftOverride(formData: FormData): { draft: IvAdReviewDraft | null; error: string | null } {
+  const raw = parseTextField(formData, "reviewDraftJson");
+  if (!raw) return { draft: null, error: null };
+  try {
+    const parsed = ivAdReviewDraftSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) return { draft: null, error: "reviewDraftJson does not match required schema." };
+    return { draft: parsed.data, error: null };
+  } catch {
+    return { draft: null, error: "reviewDraftJson must be valid JSON." };
+  }
+}
+
 function isPdfFile(file: File) {
   const ext = path.extname(String(file?.name || "")).toLowerCase();
   return ext === ".pdf";
@@ -98,6 +111,16 @@ export async function POST(req: Request) {
     const briefPdf = formData.get("briefPdf");
     const referenceSpecId = parseTextField(formData, "referenceSpecId");
     const useAiReview = parseBoolField(formData, "useAiReview", true);
+    const reviewDraftOverride = parseReviewDraftOverride(formData);
+    if (reviewDraftOverride.error) {
+      return apiError({
+        status: 400,
+        code: "IV_AD_REVIEW_DRAFT_INVALID",
+        userMessage: reviewDraftOverride.error,
+        route: "/api/admin/iv-ad/generate",
+        requestId,
+      });
+    }
 
     if (!(markedPdf instanceof File)) {
       return apiError({
@@ -192,7 +215,13 @@ export async function POST(req: Request) {
     let aiReview: any = null;
     let aiReviewReason: string | null = null;
 
-    if (useAiReview) {
+    if (reviewDraftOverride.draft) {
+      narrative = {
+        generalComments: reviewDraftOverride.draft.generalComments,
+        actionRequired: reviewDraftOverride.draft.actionRequired,
+      };
+      aiReviewReason = "REVIEW_DRAFT_OVERRIDE_USED";
+    } else if (useAiReview) {
       let specExtractedText = "";
       if (selectedSpecDoc?.storagePath) {
         try {
@@ -290,6 +319,7 @@ export async function POST(req: Request) {
         },
         aiReview,
         aiReviewReason,
+        reviewDraftUsed: !!reviewDraftOverride.draft,
         usedNarrativeSource: aiReview ? "AI" : "HEURISTIC",
         tableShape: filled.tableShape,
         requestId,

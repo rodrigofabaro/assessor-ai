@@ -200,6 +200,7 @@ export default function IvAdAdminPage() {
       for (const [k, v] of Object.entries(fields)) fd.set(k, v);
       if (gradeOverride) fd.set("gradeOverride", gradeOverride);
       if (keyNotesOverride.trim()) fd.set("keyNotesOverride", keyNotesOverride.trim());
+      if (reviewDraft) fd.set("reviewDraftJson", JSON.stringify(reviewDraft));
 
       const res = await fetch("/api/admin/iv-ad/generate", { method: "POST", body: fd });
       const json = await res.json();
@@ -209,7 +210,7 @@ export default function IvAdAdminPage() {
       setAiReview(json?.aiReview || null);
       setAiReviewReason(String(json?.aiReviewReason || ""));
       setLastDownloadUrl(String(json?.downloadUrl || ""));
-      setSuccess("IV DOCX generated successfully.");
+      setSuccess(json?.reviewDraftUsed ? "IV DOCX generated using edited AI review draft." : "IV DOCX generated successfully.");
       await loadTemplateAndHistory();
 
       const downloadUrl = String(json?.downloadUrl || "");

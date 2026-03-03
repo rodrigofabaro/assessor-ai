@@ -239,6 +239,7 @@ Current update (2026-03-03):
 - Render editable draft sections and evidence snippets panel.
 - Keep manual fallback path available when AI draft fails.
 - Status (2026-03-03): started. `Run AI IV Review` now calls `/api/iv-ad/review-draft` and returns editable draft sections + evidence snippets in `/admin/iv-ad`.
+- Draft-to-generation handoff added: `/api/admin/iv-ad/generate` now accepts `reviewDraftJson` and uses edited comments/actions when provided.
 
 4. M8 Phase A groundwork (deployment readiness)
 - Finalize environment variable contract and secrets checklist.
