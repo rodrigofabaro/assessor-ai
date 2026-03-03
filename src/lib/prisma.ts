@@ -1,11 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { loadEnvConfig } from "@next/env";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-if (!process.env.DATABASE_URL) {
-  loadEnvConfig(process.cwd());
-}
 
 const databaseUrl = process.env.DATABASE_URL;
 
