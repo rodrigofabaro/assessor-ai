@@ -18,6 +18,8 @@ Last updated: 2026-03-03
    - review draft sections are editable in-page (decision/feedback/criteria/integrity/comments/actions)
    - evidence snippets and warning list are rendered from the strict review-draft contract
    - final generation now accepts `reviewDraftJson` override and uses edited draft comments/actions when present
+   - final generation now enforces an explicit approval gate (`reviewApproved`, `reviewApprovedBy`) before DOCX output
+   - IV-AD document records now persist review draft audit snapshot + approval metadata (`reviewDraftJson`, `reviewDraftApproved*`)
 
 ## 1.0.1 (Maintenance)
 

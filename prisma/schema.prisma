@@ -284,6 +284,10 @@ model IvAdDocument {
   sourceMarkedPdfPath  String
   sourceBriefPdfPath   String?
   outputDocxPath       String
+  reviewDraftJson      Json?
+  reviewDraftApproved  Boolean      @default(false)
+  reviewDraftApprovedBy String?
+  reviewDraftApprovedAt DateTime?
   createdAt            DateTime     @default(now())
 
   @@index([templateId, createdAt])

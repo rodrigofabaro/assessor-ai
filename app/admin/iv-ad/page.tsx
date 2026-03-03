@@ -119,6 +119,8 @@ export default function IvAdAdminPage() {
   const [aiReview, setAiReview] = useState<AiReviewPreview>(null);
   const [aiReviewReason, setAiReviewReason] = useState("");
   const [reviewDraft, setReviewDraft] = useState<IvAdReviewDraft>(null);
+  const [reviewApproved, setReviewApproved] = useState(false);
+  const [reviewApprovedBy, setReviewApprovedBy] = useState("");
   const [useAiReview, setUseAiReview] = useState(true);
   const [lastDownloadUrl, setLastDownloadUrl] = useState("");
 
@@ -159,8 +161,8 @@ export default function IvAdAdminPage() {
   const noActiveTemplate = !activeTemplate;
   const canGenerate = useMemo(() => {
     const requiredFieldValues = Object.values(fields).every((v) => String(v || "").trim());
-    return !!markedPdf && requiredFieldValues && !noActiveTemplate && !busy;
-  }, [fields, markedPdf, noActiveTemplate, busy]);
+    return !!markedPdf && requiredFieldValues && !noActiveTemplate && !busy && reviewApproved && !!reviewApprovedBy.trim();
+  }, [fields, markedPdf, noActiveTemplate, busy, reviewApproved, reviewApprovedBy]);
   const canRunDraftReview = useMemo(() => {
     const requiredFieldValues = Object.values(fields).every((v) => String(v || "").trim());
     return !!markedPdf && requiredFieldValues && !busy;
@@ -201,6 +203,8 @@ export default function IvAdAdminPage() {
       if (gradeOverride) fd.set("gradeOverride", gradeOverride);
       if (keyNotesOverride.trim()) fd.set("keyNotesOverride", keyNotesOverride.trim());
       if (reviewDraft) fd.set("reviewDraftJson", JSON.stringify(reviewDraft));
+      fd.set("reviewApproved", reviewApproved ? "true" : "false");
+      fd.set("reviewApprovedBy", reviewApprovedBy.trim());
 
       const res = await fetch("/api/admin/iv-ad/generate", { method: "POST", body: fd });
       const json = await res.json();
@@ -244,6 +248,8 @@ export default function IvAdAdminPage() {
       if (!res.ok) throw new Error(json?.error || `Review draft failed (${res.status})`);
 
       setReviewDraft(json?.draft || null);
+      setReviewApproved(false);
+      setReviewApprovedBy(fields.internalVerifierName || "");
       setSuccess("AI review draft generated. You can now edit the draft sections before final generation.");
     } catch (e: any) {
       setReviewDraft(null);
@@ -487,6 +493,31 @@ export default function IvAdAdminPage() {
               )}
             </div>
 
+            <div className="rounded-xl border border-zinc-200 bg-white p-3">
+              <div className="text-sm font-semibold text-zinc-900">Approval gate (required)</div>
+              <p className="mt-1 text-xs text-zinc-500">Confirm review and capture approver identity before generating the final DOCX.</p>
+              <div className="mt-3 grid gap-3">
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900">
+                  <input
+                    type="checkbox"
+                    checked={reviewApproved}
+                    onChange={(e) => setReviewApproved(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-300 text-sky-700 focus:ring-sky-500"
+                  />
+                  I approve this IV-AD review draft for final generation
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-sm font-medium">Approved by</span>
+                  <input
+                    value={reviewApprovedBy}
+                    onChange={(e) => setReviewApprovedBy(e.target.value)}
+                    placeholder="Approver full name"
+                    className={INPUT_CLASS}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={runAiReviewDraft} disabled={!canRunDraftReview} className={BUTTON_NEUTRAL}>
                 {busy === "Running AI IV review..." ? "Running AI Review..." : "Run AI IV Review"}
@@ -503,6 +534,8 @@ export default function IvAdAdminPage() {
                   setAiReview(null);
                   setAiReviewReason("");
                   setReviewDraft(null);
+                  setReviewApproved(false);
+                  setReviewApprovedBy("");
                   setGradeOverride("");
                   setKeyNotesOverride("");
                 }}

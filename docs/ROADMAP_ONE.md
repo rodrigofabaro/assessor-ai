@@ -86,7 +86,7 @@ Done when:
 1. Review-draft endpoint is merged and test-covered
    - Status (2026-03-03): `POST /api/iv-ad/review-draft` added with strict request/response schema validation and request-id + ops-event logging.
 2. `/admin/iv-ad` can generate editable AI draft
-   - Status (2026-03-03): started. Added `Run AI IV Review` action in `/admin/iv-ad`, editable draft sections backed by `/api/iv-ad/review-draft`, and `reviewDraftJson` handoff into final DOCX generation.
+   - Status (2026-03-03): in progress. Added `Run AI IV Review` action in `/admin/iv-ad`, editable draft sections backed by `/api/iv-ad/review-draft`, `reviewDraftJson` handoff into final DOCX generation, and mandatory approval gate before generation.
 3. Manual completion still works when AI draft fails
 
 ### Queue C - Deployment readiness

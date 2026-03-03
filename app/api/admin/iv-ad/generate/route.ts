@@ -111,12 +111,23 @@ export async function POST(req: Request) {
     const briefPdf = formData.get("briefPdf");
     const referenceSpecId = parseTextField(formData, "referenceSpecId");
     const useAiReview = parseBoolField(formData, "useAiReview", true);
+    const reviewApproved = parseBoolField(formData, "reviewApproved", false);
+    const reviewApprovedBy = parseTextField(formData, "reviewApprovedBy");
     const reviewDraftOverride = parseReviewDraftOverride(formData);
     if (reviewDraftOverride.error) {
       return apiError({
         status: 400,
         code: "IV_AD_REVIEW_DRAFT_INVALID",
         userMessage: reviewDraftOverride.error,
+        route: "/api/admin/iv-ad/generate",
+        requestId,
+      });
+    }
+    if (!reviewApproved || !reviewApprovedBy) {
+      return apiError({
+        status: 400,
+        code: "IV_AD_REVIEW_APPROVAL_REQUIRED",
+        userMessage: "Review approval is required before generating IV DOCX.",
         route: "/api/admin/iv-ad/generate",
         requestId,
       });
@@ -300,6 +311,20 @@ export async function POST(req: Request) {
         sourceMarkedPdfPath: markedSaved.storagePath,
         sourceBriefPdfPath: briefSaved?.storagePath ?? selectedSpecDoc?.storagePath ?? null,
         outputDocxPath: savedOutput.storagePath,
+        reviewDraftJson: reviewDraftOverride.draft
+          ? ({
+              source: "review-draft",
+              draft: reviewDraftOverride.draft,
+              approval: {
+                approved: true,
+                approvedBy: reviewApprovedBy,
+                approvedAt: new Date().toISOString(),
+              },
+            } as any)
+          : null,
+        reviewDraftApproved: true,
+        reviewDraftApprovedBy: reviewApprovedBy,
+        reviewDraftApprovedAt: new Date(),
       },
       include: {
         template: {
@@ -320,6 +345,8 @@ export async function POST(req: Request) {
         aiReview,
         aiReviewReason,
         reviewDraftUsed: !!reviewDraftOverride.draft,
+        reviewApproved: true,
+        reviewApprovedBy,
         usedNarrativeSource: aiReview ? "AI" : "HEURISTIC",
         tableShape: filled.tableShape,
         requestId,
