@@ -5,19 +5,21 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
-const databaseUrl = process.env.DATABASE_URL;
+let prismaInstance: PrismaClient | null = globalForPrisma.prisma ?? null;
 
-if (!databaseUrl) {
-  throw new Error(
-    "Missing DATABASE_URL. Set it in your environment or .env (e.g. postgresql://user:pass@host:5432/db).",
-  );
-}
+function getPrismaClient(): PrismaClient {
+  if (prismaInstance) return prismaInstance;
 
-validateRuntimeEnvContract();
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      "Missing DATABASE_URL. Set it in your environment or .env (e.g. postgresql://user:pass@host:5432/db).",
+    );
+  }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+  validateRuntimeEnvContract();
+
+  prismaInstance = new PrismaClient({
     datasources: {
       db: { url: databaseUrl },
     },
@@ -27,8 +29,22 @@ export const prisma =
         : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = prismaInstance;
+  }
+
+  return prismaInstance;
 }
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getPrismaClient() as unknown as Record<PropertyKey, unknown>;
+    const value = Reflect.get(client, prop, receiver);
+    if (typeof value === "function") {
+      return (value as (...args: unknown[]) => unknown).bind(client);
+    }
+    return value;
+  },
+}) as PrismaClient;
 
 export {};
