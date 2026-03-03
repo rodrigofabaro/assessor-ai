@@ -14,6 +14,9 @@ importers:
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
+      '@xmldom/xmldom':
+        specifier: ^0.8.11
+        version: 0.8.11
       jszip:
         specifier: ^3.10.1
         version: 3.10.1

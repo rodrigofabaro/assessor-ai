@@ -41,6 +41,7 @@
   "dependencies": {
     "@napi-rs/canvas": "^0.1.92",
     "@prisma/client": "^5.22.0",
+    "@xmldom/xmldom": "^0.8.11",
     "jszip": "^3.10.1",
     "katex": "^0.16.28",
     "mammoth": "^1.11.0",
