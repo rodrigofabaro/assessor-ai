@@ -85,6 +85,14 @@ export default function TopNav() {
   const pathname = usePathname();
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const activeAdminAccent = accentFromPath(pathname);
+  const showSignOut = pathname !== "/" && !pathname.startsWith("/help") && !pathname.startsWith("/login");
+
+  async function onSignOut() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {}
+    window.location.assign("/login");
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur">
@@ -161,6 +169,15 @@ export default function TopNav() {
                 <TinyIcon name="settings" className="h-3.5 w-3.5" />
                 <span className="sr-only">Settings</span>
               </Link>
+              {showSignOut ? (
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1"
+                >
+                  Sign out
+                </button>
+              ) : null}
             </nav>
           ) : null}
         </div>
@@ -218,6 +235,15 @@ export default function TopNav() {
               <TinyIcon name="settings" className="h-3.5 w-3.5" />
               <span className="sr-only">Settings</span>
             </Link>
+            {showSignOut ? (
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-1"
+              >
+                Sign out
+              </button>
+            ) : null}
           </nav>
         </div>
       ) : null}

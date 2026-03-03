@@ -4,6 +4,7 @@ import { findPolicyForPath, isAuthGuardsEnabled } from "@/lib/auth/rbac";
 import { verifySignedSessionTokenEdge } from "@/lib/auth/sessionEdge";
 
 const SESSION_COOKIE_NAME = "assessor_session";
+const ALL_ROLES = ["ADMIN", "ASSESSOR", "IV"] as const;
 
 async function resolveRole(req: NextRequest) {
   const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value || "";
@@ -17,30 +18,33 @@ function isApiPath(pathname: string) {
   return pathname.startsWith("/api/");
 }
 
+function isPublicPath(pathname: string) {
+  if (pathname === "/" || pathname.startsWith("/help") || pathname === "/login" || pathname.startsWith("/login/")) return true;
+  if (pathname === "/api/auth/login" || pathname === "/api/auth/logout") return true;
+  if (pathname === "/api/auth/session/bootstrap" || pathname === "/api/auth/role-sync") return true;
+  return false;
+}
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  const isLoginPath = pathname === "/login" || pathname.startsWith("/login/");
-
-  if (isLoginPath && isAuthGuardsEnabled()) {
-    const role = await resolveRole(req);
-    if (role) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/admin";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
-  }
-
   if (!isAuthGuardsEnabled()) return NextResponse.next();
 
-  const policy = findPolicyForPath(pathname);
-  if (!policy) return NextResponse.next();
-
+  const isLoginPath = pathname === "/login" || pathname.startsWith("/login/");
   const role = await resolveRole(req);
+  if (isLoginPath && role) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/admin";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  if (isPublicPath(pathname)) return NextResponse.next();
+
+  const policy = findPolicyForPath(pathname);
   if (!role) {
     if (isApiPath(pathname)) {
       return NextResponse.json(
-        { error: "Authentication required.", code: "AUTH_REQUIRED", requiredRoles: policy.allowedRoles },
+        { error: "Authentication required.", code: "AUTH_REQUIRED", requiredRoles: policy?.allowedRoles || ALL_ROLES },
         { status: 401 }
       );
     }
