@@ -2773,8 +2773,8 @@ export async function POST(
     briefCriteriaCodes = briefCriteriaCodes.filter((code) => allowed.has(code));
   }
   const criteriaAlignment = compareCriteriaAlignment(
-    criteriaCodes.map((code) => String(code || "").trim().toUpperCase()).filter(Boolean),
-    briefCriteriaCodes.map((code) => String(code || "").trim().toUpperCase()).filter(Boolean)
+    criteriaCodes.map((code) => String(code || "").trim().toUpperCase()).filter(Boolean) as string[],
+    briefCriteriaCodes.map((code) => String(code || "").trim().toUpperCase()).filter(Boolean) as string[]
   );
   const minAlignmentRatio = Math.max(0.3, Math.min(0.95, Number(process.env.GRADE_MAPPING_ALIGNMENT_MIN_RATIO || 0.65)));
   const mismatchThreshold = Math.max(1, Math.min(8, Number(process.env.GRADE_MAPPING_MISMATCH_MAX || 2)));
