@@ -135,6 +135,9 @@ Last updated: 2026-03-03
 26. Deployment hardening (Vercel build type safety + runbook):
    - hardened grading alignment helper typing in `/api/submissions/[submissionId]/grade` so criteria alignment normalization accepts unknown arrays safely
    - added explicit Vercel deployment runbook: `docs/operations/vercel-bulletproof-deploy.md`
+27. Pre-push gate hardening for Vercel parity:
+   - `ops:prepush-prod` now runs `pnpm run build` (after clearing `.next/trace` best-effort) before regression checks
+   - this catches Vercel-equivalent Next.js build/type issues before push
 
 ## 1.0.1 (Maintenance)
 

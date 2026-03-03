@@ -133,9 +133,11 @@ pnpm run ops:prepush-prod
 What it enforces:
 1. Git branch policy (`main` blocked by default)
 2. Clean working tree (blocked if dirty by default)
-3. `pnpm exec tsc --noEmit --incremental false`
-4. `pnpm run test:regression-pack`
-5. `pnpm run test:export-pack-validation`
+3. `pnpm prisma generate`
+4. `pnpm exec tsc --noEmit --incremental false`
+5. `pnpm run build`
+6. `pnpm run test:regression-pack`
+7. `pnpm run test:export-pack-validation`
 
 Output:
 - Writes `docs/evidence/prepush-prod/YYYYMMDD-HHMMSS.json`

@@ -60,7 +60,7 @@ $result = [ordered]@{
   summary = [ordered]@{
     ok = $true
     failedStep = $null
-    totalSteps = 3
+    totalSteps = 4
     passedSteps = 0
     message = ""
   }
@@ -86,8 +86,11 @@ if (-not $branch) {
 }
 
 if ($result.summary.ok) {
+  Remove-Item ".next\trace" -Force -ErrorAction SilentlyContinue
+
   $steps = @(
     @{ id = "tsc"; stepArgs = @("exec", "tsc", "--noEmit", "--incremental", "false") },
+    @{ id = "build"; stepArgs = @("run", "build") },
     @{ id = "regression_pack"; stepArgs = @("run", "test:regression-pack") },
     @{ id = "export_pack_validation"; stepArgs = @("run", "test:export-pack-validation") }
   )

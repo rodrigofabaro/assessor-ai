@@ -77,7 +77,7 @@ Set these separately for Preview and Production:
 
 Before merge to `main`:
 
-1. `pnpm run ops:prepush-prod` (git policy + tsc + regression pack + export pack validation)
+1. `pnpm run ops:prepush-prod` (git policy + prisma generate + tsc + build + regression pack + export pack validation)
 2. Preview deployment checks pass
 
 Before production cutover:
