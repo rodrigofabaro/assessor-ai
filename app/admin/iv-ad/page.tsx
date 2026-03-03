@@ -22,6 +22,10 @@ type IvAdDocument = {
   internalVerifierName: string;
   grade: string;
   keyNotes?: string | null;
+  reviewDraftJson?: unknown;
+  reviewDraftApproved?: boolean;
+  reviewDraftApprovedBy?: string | null;
+  reviewDraftApprovedAt?: string | null;
   createdAt: string;
 };
 
@@ -87,6 +91,24 @@ function fmtDate(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function summarizeReviewAudit(row: IvAdDocument) {
+  const approved = !!row.reviewDraftApproved;
+  const approvedBy = String(row.reviewDraftApprovedBy || "").trim() || "—";
+  const approvedAt = fmtDate(row.reviewDraftApprovedAt || null);
+  const payload = row.reviewDraftJson as any;
+  const hasDraft = !!payload?.draft;
+  const warningCount = Array.isArray(payload?.draft?.warnings) ? payload.draft.warnings.length : 0;
+  const evidenceCount = Array.isArray(payload?.draft?.evidenceSnippets) ? payload.draft.evidenceSnippets.length : 0;
+  return {
+    approved,
+    approvedBy,
+    approvedAt,
+    source: hasDraft ? "AI draft + edit" : "Manual/heuristic",
+    warningCount,
+    evidenceCount,
+  };
 }
 
 function makeDefaultFields() {
@@ -568,6 +590,7 @@ export default function IvAdAdminPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Student</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Unit</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Review audit</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Created</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Download</th>
               </tr>
@@ -575,30 +598,44 @@ export default function IvAdAdminPage() {
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-zinc-600">
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-zinc-600">
                     No generated IV documents yet.
                   </td>
                 </tr>
               ) : (
-                history.map((row) => (
-                  <tr key={row.id} className="text-sm">
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-900">
-                      <div className="font-medium">{row.studentName}</div>
-                      <div className="text-xs text-zinc-500">{row.assignmentTitle}</div>
-                    </td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{row.unitCodeTitle}</td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{row.grade}</td>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(row.createdAt)}</td>
-                    <td className="border-b border-zinc-100 px-4 py-3">
-                      <a
-                        href={`/api/admin/iv-ad/documents/${row.id}/file`}
-                        className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
-                      >
-                        Download DOCX
-                      </a>
-                    </td>
-                  </tr>
-                ))
+                history.map((row) => {
+                  const audit = summarizeReviewAudit(row);
+                  return (
+                    <tr key={row.id} className="text-sm">
+                      <td className="border-b border-zinc-100 px-4 py-3 text-zinc-900">
+                        <div className="font-medium">{row.studentName}</div>
+                        <div className="text-xs text-zinc-500">{row.assignmentTitle}</div>
+                      </td>
+                      <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{row.unitCodeTitle}</td>
+                      <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{row.grade}</td>
+                      <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">
+                        <div className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${audit.approved ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
+                          {audit.approved ? "Approved" : "Not approved"}
+                        </div>
+                        <div className="mt-1 text-xs text-zinc-600">By: {audit.approvedBy}</div>
+                        <div className="text-xs text-zinc-600">At: {audit.approvedAt}</div>
+                        <div className="text-xs text-zinc-600">Source: {audit.source}</div>
+                        <div className="text-xs text-zinc-600">
+                          Warnings: {audit.warningCount} · Evidence: {audit.evidenceCount}
+                        </div>
+                      </td>
+                      <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(row.createdAt)}</td>
+                      <td className="border-b border-zinc-100 px-4 py-3">
+                        <a
+                          href={`/api/admin/iv-ad/documents/${row.id}/file`}
+                          className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+                        >
+                          Download DOCX
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -241,6 +241,7 @@ Current update (2026-03-03):
 - Status (2026-03-03): started. `Run AI IV Review` now calls `/api/iv-ad/review-draft` and returns editable draft sections + evidence snippets in `/admin/iv-ad`.
 - Draft-to-generation handoff added: `/api/admin/iv-ad/generate` now accepts `reviewDraftJson` and uses edited comments/actions when provided.
 - Approval gate added: generation requires explicit reviewer approval + approver name and persists review audit snapshot in `IvAdDocument`.
+- History visibility added: `/admin/iv-ad` history table now surfaces approval metadata and review-draft audit summary.
 
 4. M8 Phase A groundwork (deployment readiness)
 - Finalize environment variable contract and secrets checklist.
