@@ -2762,8 +2762,10 @@ export async function POST(
       details: { submissionId, briefId: brief.id, excludedCriteriaCodes },
     });
   }
-  const criteriaCodes = Array.from(new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean)));
-  let briefCriteriaCodes = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson).filter(
+  const criteriaCodes: string[] = Array.from(
+    new Set(criteria.map((c) => String(c.code || "").trim().toUpperCase()).filter(Boolean))
+  );
+  let briefCriteriaCodes: string[] = pickBriefCriteriaCodes(brief.briefDocument?.extractedJson).filter(
     (code) => !excludedCriteriaSet.has(String(code || "").trim().toUpperCase())
   );
   if (criteriaScopePolicy) {
