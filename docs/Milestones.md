@@ -186,7 +186,8 @@ Current update (2026-03-03):
 - Deterministic export-pack generation endpoint and submission-detail UI action are implemented.
 - Replay parity verification endpoint is implemented.
 - Operator validation script is implemented (`scripts/export-pack-validation.test.js`) and wired into `test:regression-pack`.
-- Remaining closure task: capture release validation evidence on a live dataset with at least one generated export manifest.
+- Live evidence capture script is implemented (`scripts/export-pack-evidence.js`, package script `ops:export-pack-evidence`).
+- Remaining closure task: run live evidence capture in deployment environment and attach generated artifact path in release notes.
 
 ---
 

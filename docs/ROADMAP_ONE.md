@@ -84,7 +84,8 @@ Progress (2026-03-03):
 1. Deterministic export generation and replay parity routes are implemented.
 2. Operator validation script added: `scripts/export-pack-validation.test.js` (manifest required files + checksum integrity).
 3. Validation script is included in `test:regression-pack`.
-4. Remaining closure evidence: run against a live dataset containing at least one generated export manifest.
+4. Live evidence command added: `pnpm run ops:export-pack-evidence` (generates export, runs replay parity, writes `docs/evidence/export-pack/*.json`).
+5. Remaining closure evidence: run the live evidence command in deployment environment and attach artifact path in release notes.
 
 ### Queue B - IV-AD Phase 4/5 start
 

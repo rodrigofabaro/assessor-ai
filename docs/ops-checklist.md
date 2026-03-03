@@ -81,6 +81,11 @@ $replay = Invoke-RestMethod -Method Post -Uri "$Base/api/submissions/$submission
 } | ConvertTo-Json)
 $replay.replay.hashMatch
 $replay.replay.assessmentHashMatch
+
+# 9) Capture versioned evidence artifact (requires app running)
+pnpm run ops:export-pack-evidence
+# Optional: verify candidate selection only (no API calls)
+node scripts/export-pack-evidence.js --dry-run
 ```
 
 ## Build Reproducibility Check
