@@ -1,6 +1,10 @@
 # Submission Grading Runbook
 
-Date: 2026-02-19
+Last updated: 2026-03-03
+
+Doc role:
+- Active operations runbook for extraction -> grading flow.
+- Roadmap priority/sequence remains in `docs/Milestones.md`.
 
 ## Objective
 

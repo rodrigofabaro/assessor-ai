@@ -1,5 +1,8 @@
 # Assignment-Specific Policy Playbook
 
+Last updated: 2026-03-03
+
+
 Use this playbook when the global Pearson-aligned grading/feedback rules are not enough and a specific unit/assignment needs tailored grading logic.
 
 ## Goal
@@ -107,4 +110,5 @@ When adding a tailored rule, record:
 - Date and assessor feedback source (if relevant)
 
 This keeps the system maintainable as more assignment-specific policies are added over time.
+
 

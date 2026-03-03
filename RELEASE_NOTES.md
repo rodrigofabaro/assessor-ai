@@ -1,5 +1,7 @@
 # Release Notes
 
+Last updated: 2026-03-03
+
 ## 1.0.1 (Maintenance)
 
 Date: 2026-03-02  
@@ -24,7 +26,7 @@ Release Branch: `main`
    - auto-grade now requires cover metadata completeness in `COVER_ONLY` mode before `AUTO_READY`
    - auto-grade now requires locked + hard-validated brief document context (configurable strict gate)
    - submission extraction normalization now repairs common Celsius OCR artifacts (`° CC` -> `°C`) for cleaner readable text
-5. Documentation/help refresh:
+6. Documentation/help refresh:
    - help docs updated for hard validation, fallback flow, override-feedback sync, and current screenshot set
 
 ### Validation Results (2026-03-02)

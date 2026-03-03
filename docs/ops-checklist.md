@@ -1,6 +1,12 @@
 # Ops Checklist (Reproducible)
 
-Last updated: 2026-02-20
+Last updated: 2026-03-03
+
+Roadmap status:
+- Operations execution runbook (not canonical roadmap).
+- Canonical roadmap is `docs/Milestones.md`.
+- Index: `docs/ROADMAP.md`.
+- Documentation rules: `docs/DOCS_SYSTEM.md`.
 
 ## Preconditions
 

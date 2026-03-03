@@ -1,13 +1,22 @@
 # Submissions Daily Tutorial (`/submissions`)
 
 Route: `http://localhost:3000/submissions`
-Last updated: 2026-02-20
+Last updated: 2026-03-03
+
+Doc role:
+- Day-to-day step-by-step operator tutorial.
+- For first-day environment validation, use `docs/help/submissions-onboarding.md`.
+- For compact controls reference, use `docs/help/submissions-list.md`.
 
 Use this tutorial for daily operations from intake to graded outputs.
 
 ## 1. Read Queue Pressure First
 
-TODO screenshot: `/help/submissions/01-lane-overview.png`
+Screenshot action item:
+- Owner: Docs maintainer
+- Due: 2026-03-10
+- Status: OPEN
+- Target path: `/help/submissions/01-lane-overview.png`
 
 Check in this order:
 
@@ -20,7 +29,11 @@ If Blocked is high, fix blockers before running grading actions.
 
 ## 2. Resolve Linking and Context
 
-TODO screenshot: `/help/submissions/02-row-actions.png`
+Screenshot action item:
+- Owner: Docs maintainer
+- Due: 2026-03-10
+- Status: OPEN
+- Target path: `/help/submissions/02-row-actions.png`
 
 For each unresolved row:
 
@@ -33,7 +46,11 @@ Do not run batch grading while assignment links are missing.
 
 ## 3. Confirm Extraction State
 
-TODO screenshot: `/help/submissions/03-extraction-status.png`
+Screenshot action item:
+- Owner: Docs maintainer
+- Due: 2026-03-10
+- Status: OPEN
+- Target path: `/help/submissions/03-extraction-status.png`
 
 Expected states:
 
@@ -44,7 +61,11 @@ When cover-only mode is enabled, short body text can be valid if cover metadata 
 
 ## 4. Run QA Safely
 
-TODO screenshot: `/help/submissions/04-qa-preview-commit.png`
+Screenshot action item:
+- Owner: Docs maintainer
+- Due: 2026-03-10
+- Status: OPEN
+- Target path: `/help/submissions/04-qa-preview-commit.png`
 
 Required sequence:
 

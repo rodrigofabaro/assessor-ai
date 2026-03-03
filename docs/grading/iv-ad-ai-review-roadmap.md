@@ -1,5 +1,13 @@
 # IV-AD AI Review Roadmap (Future Phase)
 
+Last updated: 2026-03-03
+
+Roadmap status:
+- Feature-specific supporting roadmap.
+- Canonical priority/sequence lives in `docs/Milestones.md`.
+- Index: `docs/ROADMAP.md`.
+- Documentation rules: `docs/DOCS_SYSTEM.md`.
+
 ## Why this exists
 The current `/admin/iv-ad` page fills the Pearson IV-AD DOCX template reliably (positional cell fill) but uses:
 - PDF text extraction
@@ -160,3 +168,73 @@ This preserves auditability without breaking the current workflow.
 - Preserve template layout: continue positional table fill only.
 - Keep manual fallback path available even if AI review fails.
 - Prefer structured JSON AI output over free text for audit and editability.
+
+## Continuation roadmap (next queue)
+
+### Phase 4 (review contract + endpoint)
+- Add server endpoint: `POST /api/iv-ad/review-draft`
+- Define strict request/response schema for AI review payload (`zod` + runtime validation)
+- Return typed review draft JSON for UI editing; reject malformed responses
+- Persist transient draft in session/local state before DOCX generation
+
+Definition of done:
+- endpoint validates and logs request ids
+- AI output is schema-validated or surfaced as actionable error
+- no existing `/admin/iv-ad` manual generation flow regression
+
+### Phase 5 (UI review workspace in `/admin/iv-ad`)
+- Add `Run AI IV Review` action and loading/error states
+- Add editable sections mapped to AI output:
+  - assessment decision check
+  - feedback compliance check
+  - criteria linking check
+  - academic integrity check
+  - general comments
+  - action required
+- Add evidence snippet panel with source labels (`submission`, `assessment`, `spec`)
+- Add explicit approval gate: checkbox + approver name/date before final DOCX
+
+Definition of done:
+- reviewer can edit every generated section
+- reviewer must explicitly approve before `Generate IV DOCX`
+- failed AI review still allows manual completion path
+
+### Phase 6 (internal launch and preload)
+- Add `Generate IV-AD` action on submission detail
+- Preload internal context from latest `Assessment` + linked `Submission` + locked spec/brief bindings
+- Add read-only source badges showing which fields were auto-populated vs manual
+- Add safe fallback when fields are missing (`unknown` badges + prompt for manual input)
+
+Definition of done:
+- one-click launch from submission detail to prefilled IV-AD page
+- no hard failure when optional context is missing
+- generated output remains template-compatible
+
+### Phase 7 (audit trail + governance)
+- Persist approved review record (`IvAdDocument` extension or companion table):
+  - mode/source ids
+  - review JSON snapshot
+  - model/version
+  - approver + timestamp
+- Add audit view to history list with:
+  - review confidence
+  - warnings
+  - evidence snippet count
+- Add export-safe redaction for sensitive extracted text where required
+
+Definition of done:
+- each IV-AD output has traceable provenance
+- auditors can inspect AI draft vs final approved text
+- history supports filtering by mode and approval state
+
+## Immediate implementation order (recommended)
+1. Implement Phase 4 endpoint + schema contract first (unblocks everything else).
+2. Implement Phase 5 UI review workspace and manual fallback.
+3. Implement Phase 6 internal launch/preload from submission detail.
+4. Implement Phase 7 persistence/audit trail.
+
+## Risk controls to keep in scope
+- Token/cost control: cap snippet size and number of evidence excerpts sent to AI.
+- Hallucination control: require evidence snippets for non-trivial claims in draft checks.
+- Consistency control: freeze template cell map tests to prevent document layout drift.
+- Operational control: add retry with idempotency key for review generation endpoint.

@@ -1,5 +1,8 @@
 # Dry Run Playbook - Submission 4002 A1
 
+Last updated: 2026-03-03
+Archive status: HISTORICAL SNAPSHOT (not active runbook)
+
 Date: 2026-02-15  
 Project: `assessor-ai-webapp`
 

@@ -1,5 +1,8 @@
 # Stable App Baseline
 
+Last updated: 2026-03-03
+Archive status: HISTORICAL SNAPSHOT
+
 - Branch: main
 - Baseline merge commit: 921a901
 - Purpose: marks a stable merged state after submission workspace hardening, editable audit outputs, and evidence-mapped marked PDF notes.

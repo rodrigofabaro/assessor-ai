@@ -1,5 +1,8 @@
 # Student Pages Help
 
+Last updated: 2026-03-03
+
+
 ## `/admin/students` (admin student management)
 
 ### Purpose
@@ -25,3 +28,4 @@ View one student profile and their submission/grade history.
 1. Open student.
 2. Review recent submissions and latest grade outcome.
 3. Drill into specific submission detail for audit and feedback.
+

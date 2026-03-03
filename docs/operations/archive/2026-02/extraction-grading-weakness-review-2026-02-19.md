@@ -1,5 +1,8 @@
 # Extraction and Grading Weakness Review
 
+Last updated: 2026-03-03
+Archive status: HISTORICAL SNAPSHOT (superseded by active roadmap/backlog docs)
+
 Date: 2026-02-19
 Author: Codex review pass (tests + code audit)
 

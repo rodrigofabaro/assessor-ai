@@ -1,5 +1,8 @@
 # Example Codex Task: Add brief archive banner
 
+Last updated: 2026-03-03
+
+
 ## Governing rules
 - Read and follow: [NON_NEGOTIABLES](../NON_NEGOTIABLES.md)
 
@@ -27,3 +30,4 @@ Current issue: archived records appear identical to active records in `/admin/br
 ## EVIDENCE REQUIRED IN PR
 - Screenshot of `/admin/briefs` showing the badge.
 - File path(s) changed.
+

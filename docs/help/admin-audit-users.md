@@ -1,5 +1,8 @@
 # `/admin/audit` and `/admin/users` Help
 
+Last updated: 2026-03-03
+
+
 ## `/admin/audit`
 
 ### Purpose
@@ -37,3 +40,4 @@ Manage app users and active audit actor identity.
 
 ### Important behavior
 Assessor identity in grading and feedback workflows is derived from active audit user policy.
+

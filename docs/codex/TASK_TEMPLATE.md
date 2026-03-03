@@ -1,5 +1,8 @@
 # Codex Task Template (audit‑grade)
 
+Last updated: 2026-03-03
+
+
 Use this template verbatim when sending work to Codex.
 
 ## Governing rules
@@ -37,3 +40,4 @@ Use this template verbatim when sending work to Codex.
 - Commands run + results
 - Before/after screenshots (if UI)
 - Notes on any scope expansion
+

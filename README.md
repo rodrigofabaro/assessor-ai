@@ -1,7 +1,7 @@
 # Assessor-AI Webapp
 
 Operational documentation lives in `docs/README.md`.
-Last updated: 2026-03-02
+Last updated: 2026-03-03
 
 ## Quick start
 
@@ -20,7 +20,11 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 ## Key docs
 
 - Docs hub: `docs/README.md`
+- Documentation governance: `docs/DOCS_SYSTEM.md`
+- Roadmap index: `docs/ROADMAP.md`
+- Canonical milestones: `docs/Milestones.md`
 - Release scope contract: `RELEASE.md`
+- Release history: `RELEASE_NOTES.md`
 - Reproducible ops checklist: `docs/ops-checklist.md`
 - Local startup troubleshooting: `docs/operations/local-dev-troubleshooting.md`
 - Integrity checks: `docs/operations/integrity-checks.md`

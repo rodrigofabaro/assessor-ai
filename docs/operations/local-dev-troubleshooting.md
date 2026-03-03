@@ -1,5 +1,8 @@
 # Local dev troubleshooting
 
+Last updated: 2026-03-03
+
+
 Use this when `pnpm dev` does not start as expected.
 
 ## 1) Tooling not found in shell
@@ -103,3 +106,4 @@ If still slow:
 - `pnpm dev`
 3. Run a clean dev boot once:
 - `pnpm run dev:clean`
+

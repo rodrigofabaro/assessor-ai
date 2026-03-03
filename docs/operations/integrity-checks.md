@@ -1,5 +1,8 @@
 # Integrity checks (repo health)
 
+Last updated: 2026-03-03
+
+
 This is the **standard, repeatable** way to verify the repository is in a healthy state.
 
 Assessor‑AI treats these as “health gates”, not optional suggestions.
@@ -60,3 +63,4 @@ When warnings are visible in brief review UI, they must be actionable.
 - stale/non-actionable warnings should be filtered
 - resolved warnings should auto-clear
 - if warning remains, treat it as a real extraction issue and fix draft/extractor path
+

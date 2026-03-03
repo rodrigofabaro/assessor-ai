@@ -1,5 +1,8 @@
 # Codex operating manual (Assessor‑AI)
 
+Last updated: 2026-03-03
+
+
 Codex is most useful when it is treated like a junior engineer who:
 - can read the whole codebase quickly
 - can make precise changes
@@ -40,4 +43,5 @@ For any claim like “this fixes X”:
 ## Required reading
 - [NON_NEGOTIABLES](./NON_NEGOTIABLES.md)
 - [TASK_TEMPLATE](./TASK_TEMPLATE.md)
+
 

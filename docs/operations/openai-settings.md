@@ -1,5 +1,7 @@
 # OpenAI Settings Operations
 
+Last updated: 2026-03-03
+
 This document covers OpenAI operations settings available at:
 
 - `/admin/settings`
@@ -36,7 +38,11 @@ This document covers OpenAI operations settings available at:
   - `GET /api/admin/openai-model`
   - `PUT /api/admin/openai-model`
 
-## Key Rotation TODO
+## Key Rotation Action Item
+
+Owner: Platform maintainer  
+Due: 2026-03-07  
+Status: OPEN
 
 1. Update `OPENAI_ADMIN_KEY` (preferred) in environment secrets.
 2. Ensure `OPENAI_API_KEY` fallback exists.

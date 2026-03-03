@@ -1,5 +1,12 @@
 # Assessor‑AI — Milestones
 
+Last updated: 2026-03-03
+
+Canonical planning source:
+- `docs/ROADMAP.md` (index)
+- This file is the source of truth for roadmap priority and sequencing.
+- Documentation rules: `docs/DOCS_SYSTEM.md`.
+
 This is the “boring but reliable” build tracker.
 
 **Rule:** each milestone ends with a working UI path + database truth + audit trail.
@@ -9,6 +16,21 @@ Status labels:
 - 🟨 IN PROGRESS
 - 🔜 NEXT
 - 🧊 PARKED
+
+## Tracking lanes (canonical)
+
+### Priorities (Now)
+- M7 export-pack endpoint/UI and deterministic replay.
+- Next implementation queue (performance, instrumentation, extraction stabilization).
+
+### Developments (Next)
+- M8 production deployment and cost-controlled scaling.
+- M9 authentication, UX template system, and final performance hardening.
+- IV-AD AI review rollout tracked in `docs/grading/iv-ad-ai-review-roadmap.md` (supporting feature roadmap).
+
+### Bugs and Risks (Stabilization)
+- Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.
+- Release/readiness validation tracked in `docs/PROJECT_COMPLETION_CHECKLIST.md` and `docs/ops-checklist.md`.
 
 ---
 

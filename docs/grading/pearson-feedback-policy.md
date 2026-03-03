@@ -1,5 +1,8 @@
 # Pearson-Aligned Feedback Policy (App Rules)
 
+Last updated: 2026-03-03
+
+
 This document captures the grading/feedback rules the app should follow when Pearson is the awarding body.
 
 ## Core Rules
@@ -59,3 +62,4 @@ This document captures the grading/feedback rules the app should follow when Pea
 
 - When a recurring issue needs a tailored unit/assignment rule, follow:
   - `docs/grading/assignment-specific-policy-playbook.md`
+

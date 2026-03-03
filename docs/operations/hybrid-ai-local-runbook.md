@@ -1,5 +1,8 @@
 # Hybrid AI Quality-First Runbook
 
+Last updated: 2026-03-03
+
+
 This runbook configures the app to keep quality-critical operations on OpenAI while using local AI only where risk is lower.
 
 ## Goal
@@ -81,3 +84,4 @@ If local model is unstable:
 - `grading`: OpenAI model from `.openai-model.json` with fallback model configured
 
 This gives the best balance of grading/extraction quality, reliability, and controlled cost.
+

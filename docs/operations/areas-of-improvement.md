@@ -1,6 +1,12 @@
 # Areas Of Improvement
 
-Last updated: 2026-02-18
+Last updated: 2026-03-03
+
+Roadmap status:
+- Supporting improvement backlog (not canonical roadmap).
+- Canonical roadmap is `docs/Milestones.md`.
+- Index: `docs/ROADMAP.md`.
+- Documentation rules: `docs/DOCS_SYSTEM.md`.
 
 ## Current bottlenecks
 

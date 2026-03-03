@@ -1,6 +1,11 @@
 # Submissions List (`/submissions`)
 
-Last updated: 2026-02-20
+Last updated: 2026-03-03
+
+Doc role:
+- Quick reference for experienced operators.
+- For first-day onboarding, use `docs/help/submissions-onboarding.md`.
+- For step-by-step daily tutorial, use `docs/help/submissions-support.md`.
 
 Use this page as the operations queue.
 

@@ -1,37 +1,46 @@
 # Assessor AI Documentation
 
-Last updated: 2026-02-20
+Last updated: 2026-03-03
 
 This folder is the operational source of truth for extraction, mapping, grading, and audit workflows.
 
-## Start Here
+## Start here
 
-1. Standards and constraints: `docs/standards/truth-model.md`
-2. Brief extraction internals: `docs/brief-extraction.md`
-3. Grading hardening architecture: `docs/operations/grading-hardening-system.md`
-4. Submission operations runbook: `docs/operations/phase1-submission-grading-runbook.md`
-5. End-to-end weakness review: `docs/operations/extraction-grading-weakness-review-2026-02-19.md`
-6. Template and UI/UX recommendations: `docs/operations/template-ui-ux-recommendations-2026-02-19.md`
+1. Documentation system and update rules: `docs/DOCS_SYSTEM.md`
+2. Roadmap and planning lanes: `docs/ROADMAP.md`
+3. Product milestone truth: `docs/Milestones.md`
+4. Release scope contract: `RELEASE.md`
+5. Release history: `RELEASE_NOTES.md`
+6. Reproducible operations checklist: `docs/ops-checklist.md`
 7. Route help center: `docs/help/README.md`
-8. Release scope contract: `RELEASE.md`
-9. Reproducible operations checklist: `docs/ops-checklist.md`
-10. Stable baseline snapshot: `docs/operations/stable-app-baseline.md`
-11. Turnitin controls and QA workflow: `docs/help/admin-settings.md`, `docs/help/admin-qa.md`
+8. Latest documentation audit snapshot: `docs/DOCS_AUDIT_2026-03-03.md`
+9. Operations docs index: `docs/operations/README.md`
+10. Operations archive policy: `docs/operations/archive/README.md`
+11. Documentation role matrix: `docs/DOC_ROLE_MATRIX.md`
+12. Codebase file responsibility map: `docs/SYSTEM_FILE_MAP.md`
 
-## Scope Map
+## If you need...
 
-- Briefs
-  - extraction/parser behavior
-  - quality gates before lock
-  - mapping health and criterion exclusions
-- Specs
-  - LO and criteria parsing
-  - import and locking behavior
-- Submissions
-  - extraction readiness
-  - triage and automation
-  - grading policy and confidence
-  - marked PDF outputs
+1. Daily priorities and sequence:
+   - `docs/Milestones.md`
+2. Feature roadmap detail (IV-AD):
+   - `docs/grading/iv-ad-ai-review-roadmap.md`
+3. Grading architecture and reliability:
+   - `docs/operations/grading-hardening-system.md`
+   - `docs/grading/assignment-specific-policy-playbook.md`
+4. Runbooks and operations:
+   - `docs/ops-checklist.md`
+   - `docs/operations/phase1-submission-grading-runbook.md`
+   - `docs/operations/local-dev-troubleshooting.md`
+5. Reference/spec/brief mechanics:
+   - `docs/brief-extraction.md`
+   - `docs/operations/pearson-spec-master-workflow.md`
+6. Route-by-route operator guides:
+   - `docs/help/README.md`
+7. Known bottlenecks/risk backlog:
+   - `docs/operations/areas-of-improvement.md`
+8. Completion/readiness checks:
+   - `docs/PROJECT_COMPLETION_CHECKLIST.md`
 
 ## Verification Commands
 
@@ -70,3 +79,4 @@ Navigation baseline updates:
 - Keep docs implementation-accurate.
 - If behavior changes, update docs in the same branch.
 - Do not hide known weaknesses; log them in operations docs with severity and owners.
+- Update canonical docs first, then supporting docs (`docs/DOCS_SYSTEM.md`).

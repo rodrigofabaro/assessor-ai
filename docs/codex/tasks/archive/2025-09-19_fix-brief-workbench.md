@@ -1,5 +1,8 @@
 # (Archived) Fix brief workbench state, extraction, lock UX, and safe delete
 
+Last updated: 2026-03-03
+
+
 > Archived reference task. Kept for historical context. Do not reuse blindly; update scope, paths and acceptance tests for the current codebase.
 
 ## Governing rules
@@ -28,3 +31,4 @@ Brief extraction returns headers but tasks were missing. Extracted data only app
 ## FAILURE MODES
 - If a brief is locked elsewhere, do not override it silently.
 - If a delete is blocked due to submissions, explain why.
+

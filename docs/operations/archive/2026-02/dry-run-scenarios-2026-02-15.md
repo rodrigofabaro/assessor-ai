@@ -1,5 +1,8 @@
 # Dry Run Report - Scenario Coverage
 
+Last updated: 2026-03-03
+Archive status: HISTORICAL SNAPSHOT (not active runbook)
+
 Date: 2026-02-15  
 Project: `assessor-ai-webapp`
 
@@ -101,4 +104,4 @@ It also included repo health gates from `docs/operations/integrity-checks.md`.
 - Dry run executed across all defined stages with scenario variation.
 - Functional logic checks: PASS.
 - Operational blockers: none in final rerun.
-- Documentation generated from this run: `docs/operations/dry-run-scenarios-2026-02-15.md`.
+- Documentation generated from this run: `docs/operations/archive/2026-02/dry-run-scenarios-2026-02-15.md`.

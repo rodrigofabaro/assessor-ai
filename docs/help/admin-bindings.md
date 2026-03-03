@@ -1,5 +1,8 @@
 # `/admin/bindings` Help
 
+Last updated: 2026-03-03
+
+
 ## Purpose
 
 Bind assignments to locked brief/spec references used by grading.
@@ -19,3 +22,4 @@ Bind assignments to locked brief/spec references used by grading.
 ## Important rule
 
 Binding lock defines criteria universe for grading and audit reproducibility.
+

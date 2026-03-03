@@ -1,5 +1,8 @@
 # `/admin` Help
 
+Last updated: 2026-03-03
+
+
 ## Purpose
 
 Admin control tower for operations.
@@ -25,3 +28,4 @@ Use this page to monitor blockers, jump into QA research, and open audit/locking
 2. Resolve locking and extraction issues first.
 3. Open `/admin/qa` for outcome analysis and report export.
 4. Open `/admin/audit` to verify event-level evidence for any anomalies.
+

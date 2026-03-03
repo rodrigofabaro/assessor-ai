@@ -1,5 +1,8 @@
 # `/` Home Dashboard Help
 
+Last updated: 2026-03-03
+
+
 ## Purpose
 
 Landing page to enter the platform quickly and see high-level status.
@@ -30,3 +33,4 @@ Landing page to enter the platform quickly and see high-level status.
 - Counts look stale:
   - refresh browser page
   - confirm DB is reachable and app is running on expected environment
+

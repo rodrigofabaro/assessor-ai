@@ -1,5 +1,8 @@
 # `/upload` Help
 
+Last updated: 2026-03-03
+
+
 ## Purpose
 
 Upload student submission files and trigger intake processing.
@@ -28,3 +31,4 @@ Upload student submission files and trigger intake processing.
 - Upload accepted but not visible in list:
   - refresh `/submissions`
   - check filters (`unlinked only`, timeframe, status)
+

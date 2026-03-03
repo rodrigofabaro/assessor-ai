@@ -2,6 +2,13 @@
 
 Date: 2026-02-20
 Maintenance update: 2026-03-02
+Last updated: 2026-03-03
+
+Roadmap status:
+- Release contract doc (not canonical roadmap).
+- Canonical roadmap is `docs/Milestones.md`.
+- Index: `docs/ROADMAP.md`.
+- Documentation rules: `docs/DOCS_SYSTEM.md`.
 
 ## Definition Of Completed
 

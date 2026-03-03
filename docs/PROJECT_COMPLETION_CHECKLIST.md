@@ -1,6 +1,12 @@
 # Project Completion Checklist
 
-Last updated: 2026-02-27
+Last updated: 2026-03-03
+
+Roadmap status:
+- Readiness checklist (not canonical roadmap).
+- Canonical roadmap is `docs/Milestones.md`.
+- Index: `docs/ROADMAP.md`.
+- Documentation rules: `docs/DOCS_SYSTEM.md`.
 
 ## Current status
 

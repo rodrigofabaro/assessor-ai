@@ -1,8 +1,13 @@
 # Help Center Index
 
-Last updated: 2026-03-02
+Last updated: 2026-03-03
 
 This folder contains route-by-route operator help.
+
+Canonical references for planning and release status:
+- Roadmap: `docs/Milestones.md`
+- Release contract: `RELEASE.md`
+- Release history: `RELEASE_NOTES.md`
 
 ## High Priority Guides
 
@@ -38,7 +43,11 @@ Example:
 
 - `/help/submissions/01-lane-overview.png`
 
-If a screenshot is not available yet, keep a `TODO screenshot` note in the doc section.
+If a screenshot is not available yet, add a tracked action item block with:
+- Owner
+- Due date
+- Status (`OPEN` or `DONE`)
+- Target path
 
 Current curated screenshot set used by in-app help/tutorial cards:
 

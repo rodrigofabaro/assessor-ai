@@ -1,5 +1,8 @@
 # Exam Board Mode (Jacob Allen template discipline)
 
+Last updated: 2026-03-03
+
+
 These rules apply whenever we generate **Exam Board documents**.
 
 This is intentionally strict. “Looks about right” is not a feature.
@@ -43,3 +46,4 @@ This is intentionally strict. “Looks about right” is not a feature.
 - Do not “improve” the template.
 - Do not reflow table text.
 - Do not add extra rows.
+

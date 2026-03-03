@@ -1,7 +1,11 @@
 # Grading Hardening System
 
-Date: 2026-02-19
+Last updated: 2026-03-03
 Scope: briefs, specs, submissions, grading confidence, audit traceability
+
+Doc role:
+- Active engineering policy and architecture guidance.
+- Supporting backlog only; canonical roadmap remains `docs/Milestones.md`.
 
 ## Core Objective
 

@@ -1,5 +1,8 @@
 # Truth model (Specs + Briefs + Evidence)
 
+Last updated: 2026-03-03
+
+
 Assessor‑AI is a **marking pipeline**, not a chatty grader.
 
 It exists to survive QA/IV/appeals months later by answering:
@@ -81,3 +84,4 @@ Anything that changes state should be evented (even if only internally):
 - (future) resubmission
 
 Silent overwrites are disallowed.
+

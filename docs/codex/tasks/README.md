@@ -1,5 +1,8 @@
 # Codex tasks
 
+Last updated: 2026-03-03
+
+
 This folder is for **examples and archived task write‑ups**, not live tickets.
 
 Rules:
@@ -8,3 +11,4 @@ Rules:
 - Move old tasks into `archive/` when they become historical.
 
 Use the template at `docs/codex/TASK_TEMPLATE.md`.
+

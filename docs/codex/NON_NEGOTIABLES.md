@@ -1,5 +1,8 @@
 # Codex Non‑Negotiables (Assessor‑AI)
 
+Last updated: 2026-03-03
+
+
 These rules apply to **every Codex task** unless the task explicitly overrides them.
 They exist to preserve **auditability, exam‑board compliance, and database truth**.
 
@@ -62,3 +65,4 @@ When a task touches:
 - Never print `.env` values.
 - Do not paste tokens/keys into code or docs.
 - Env var **names** are OK.
+

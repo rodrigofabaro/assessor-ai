@@ -1,7 +1,11 @@
 # Submissions Workspace Guide
 
 Route: `/submissions`
-Last updated: 2026-02-24
+Last updated: 2026-03-03
+
+Doc role:
+- Supporting operations guide for queue behavior.
+- Route-level operator steps live in `docs/help/submissions-list.md` and `docs/help/submissions-support.md`.
 
 ## What This Page Is
 
@@ -60,4 +64,8 @@ Notes:
 - lane card density can require excess scrolling
 - right-side controls can crowd evidence workspace
 
-See `docs/operations/template-ui-ux-recommendations-2026-02-19.md` for redesign proposals.
+Historical redesign notes moved to archive:
+- `docs/operations/archive/2026-02/template-ui-ux-recommendations-2026-02-19.md`
+
+Current prioritization should be tracked in:
+- `docs/Milestones.md`

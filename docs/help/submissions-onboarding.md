@@ -1,6 +1,11 @@
 # Submissions Onboarding (`/submissions`)
 
-Last updated: 2026-02-19
+Last updated: 2026-03-03
+
+Doc role:
+- First-day/new-operator validation checklist.
+- For ongoing daily operations, use `docs/help/submissions-support.md`.
+- For quick controls lookup, use `docs/help/submissions-list.md`.
 
 Use this for first-day validation with 3 controlled samples.
 
