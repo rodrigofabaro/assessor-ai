@@ -125,6 +125,7 @@ Progress (2026-03-03):
 3. Contract currently hard-fails on missing `DATABASE_URL`; OpenAI credential is warning by default and can be promoted to hard-fail with `ENV_CONTRACT_REQUIRE_OPENAI=true`.
 4. Storage migration + rollback runbook is now documented in `docs/operations/storage-migration-rollback.md` (backup, restore, verification, rollback triggers, evidence).
 5. One-command deploy smoke is implemented: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`) with evidence output in `docs/evidence/deploy-smoke/`.
+6. Deploy smoke evidence captured (2026-03-03): `docs/evidence/deploy-smoke/20260303-140208.json`.
 
 ## Production deployment steps (single runbook section)
 

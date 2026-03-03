@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-03-03T14:01:01.164Z",
+  "baseUrl": "http://localhost:3000",
+  "steps": {
+    "upload": {
+      "status": 200,
+      "ms": 17473,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 8065,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmaoevie0002tdowrupe2gly",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 2286
+    },
+    "assignment": {
+      "id": "e130443b-cb7c-45a8-ad8e-01209c786428",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "4017 A1 Baseline",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 2489
+    },
+    "grade": {
+      "status": 200,
+      "ms": 27041,
+      "overallGrade": "REFER",
+      "assessmentId": "e27292e8-3721-45d3-b429-5d36f214a33f",
+      "error": null,
+      "code": null
+    },
+    "poll": {
+      "status": "DONE",
+      "hasExtraction": true,
+      "hasAssessment": true,
+      "hasMarkedPdf": true,
+      "latestAssessmentId": "e27292e8-3721-45d3-b429-5d36f214a33f",
+      "polledMs": 113
+    },
+    "markedPdf": {
+      "status": 200,
+      "ms": 2428,
+      "bytes": 3803
+    },
+    "exportPack": {
+      "status": 200,
+      "ms": 2259,
+      "exportId": "d911534f3b689f9259e7"
+    },
+    "replay": {
+      "status": 200,
+      "ms": 1864,
+      "hashMatch": true,
+      "assessmentHashMatch": true,
+      "fileDiffCount": 4,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": true,
+    "message": "deploy smoke passed"
+  },
+  "submissionId": "e3a7884f-dd31-43fa-9449-fb1ffa85738d"
+}

@@ -52,6 +52,9 @@ Last updated: 2026-03-03
 10. Runtime env contract refinement:
    - adjusted startup contract severity to hard-fail by default only on `DATABASE_URL`
    - OpenAI credential requirement is warning by default and can be hard-failed with `ENV_CONTRACT_REQUIRE_OPENAI=true`
+11. M8 Phase A deploy-smoke evidence:
+   - automated deploy smoke passed on 2026-03-03 via `pnpm run ops:deploy-smoke`
+   - evidence artifact: `docs/evidence/deploy-smoke/20260303-140208.json`
 
 ## 1.0.1 (Maintenance)
 

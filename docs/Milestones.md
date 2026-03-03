@@ -258,6 +258,8 @@ Current update (2026-03-03):
 - Status (2026-03-03): pre-deploy smoke automation implemented.
 - Command: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`).
 - Evidence output: `docs/evidence/deploy-smoke/*.json` (pass/fail artifact with step-level diagnostics).
+- Status (2026-03-03): deploy-smoke pass evidence captured.
+- Artifact: `docs/evidence/deploy-smoke/20260303-140208.json`.
 
 5. M9 foundation (auth scaffolding spike)
 - Select auth/session approach and document route protection matrix.
