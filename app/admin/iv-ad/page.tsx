@@ -167,6 +167,7 @@ export default function IvAdAdminPage() {
   const [gradeOverride, setGradeOverride] = useState("");
   const [keyNotesOverride, setKeyNotesOverride] = useState("");
   const [prefillFlags, setPrefillFlags] = useState<PrefillFlags>(makeDefaultPrefillFlags);
+  const [missingFlags, setMissingFlags] = useState<PrefillFlags>(makeDefaultPrefillFlags);
   const [preview, setPreview] = useState<ExtractionPreview | null>(null);
   const [aiReview, setAiReview] = useState<AiReviewPreview>(null);
   const [aiReviewReason, setAiReviewReason] = useState("");
@@ -218,6 +219,7 @@ export default function IvAdAdminPage() {
     const fieldKeys = ["studentName", "programmeTitle", "unitCodeTitle", "assignmentTitle", "assessorName", "internalVerifierName"] as const;
     const nextFields = makeDefaultFields();
     const nextPrefillFlags = makeDefaultPrefillFlags();
+    const nextMissingFlags = makeDefaultPrefillFlags();
     let hasAnyField = false;
     for (const key of fieldKeys) {
       const v = String(searchParams.get(key) || "").trim();
@@ -225,6 +227,8 @@ export default function IvAdAdminPage() {
         nextFields[key] = v;
         nextPrefillFlags[key] = true;
         hasAnyField = true;
+      } else {
+        nextMissingFlags[key] = true;
       }
     }
     if (hasAnyField) setFields(nextFields);
@@ -233,22 +237,43 @@ export default function IvAdAdminPage() {
     if (finalGrade) {
       setGradeOverride(finalGrade);
       nextPrefillFlags.gradeOverride = true;
+    } else {
+      nextMissingFlags.gradeOverride = true;
     }
     const keyNotes = String(searchParams.get("keyNotes") || "").trim();
     if (keyNotes) {
       setKeyNotesOverride(keyNotes);
       nextPrefillFlags.keyNotesOverride = true;
+    } else {
+      nextMissingFlags.keyNotesOverride = true;
     }
     const referenceSpecId = String(searchParams.get("referenceSpecId") || "").trim();
     if (referenceSpecId) {
       setSelectedSpecId(referenceSpecId);
       nextPrefillFlags.selectedSpecId = true;
+    } else {
+      nextMissingFlags.selectedSpecId = true;
     }
     if (nextFields.internalVerifierName) setReviewApprovedBy(nextFields.internalVerifierName);
     setPrefillFlags(nextPrefillFlags);
+    setMissingFlags(nextMissingFlags);
     setSuccess("Prefilled from submission detail context. Upload marked PDF (or run AI review) to continue.");
     didApplyLaunchPrefill.current = true;
   }, [searchParams]);
+
+  const missingContextItems = useMemo(() => {
+    const out: string[] = [];
+    if (missingFlags.studentName) out.push("Student name");
+    if (missingFlags.programmeTitle) out.push("Programme title");
+    if (missingFlags.unitCodeTitle) out.push("Unit code + title");
+    if (missingFlags.assignmentTitle) out.push("Assignment title");
+    if (missingFlags.assessorName) out.push("Assessor name");
+    if (missingFlags.internalVerifierName) out.push("Internal verifier name");
+    if (missingFlags.gradeOverride) out.push("Grade override");
+    if (missingFlags.keyNotesOverride) out.push("Key notes override");
+    if (missingFlags.selectedSpecId) out.push("SPEC selection");
+    return out;
+  }, [missingFlags]);
 
   const noActiveTemplate = !activeTemplate;
   const canGenerate = useMemo(() => {
@@ -425,6 +450,11 @@ export default function IvAdAdminPage() {
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          {missingContextItems.length > 0 ? (
+            <div className="lg:col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Missing submission context detected. Complete manually: {missingContextItems.join(", ")}.
+            </div>
+          ) : null}
           <div className="grid gap-3">
             <label className="grid gap-1">
               <span className="text-sm font-medium">Marked Submission PDF (required)</span>
@@ -443,6 +473,7 @@ export default function IvAdAdminPage() {
                 onChange={(e) => {
                   setSelectedSpecId(e.target.value);
                   setPrefillFlags((p) => ({ ...p, selectedSpecId: false }));
+                  setMissingFlags((p) => ({ ...p, selectedSpecId: false }));
                 }}
                 className={INPUT_CLASS}
               >
@@ -458,6 +489,8 @@ export default function IvAdAdminPage() {
               </span>
               {prefillFlags.selectedSpecId ? (
                 <span className="text-[11px] font-semibold text-cyan-700">Auto-filled from submission context</span>
+              ) : missingFlags.selectedSpecId ? (
+                <span className="text-[11px] font-semibold text-amber-700">Missing context - select SPEC manually</span>
               ) : null}
             </label>
 
@@ -465,55 +498,67 @@ export default function IvAdAdminPage() {
               <Field
                 label="Student name"
                 value={fields.studentName}
-                sourceLabel={prefillFlags.studentName ? "Auto-filled" : ""}
+                sourceLabel={prefillFlags.studentName ? "Auto-filled" : missingFlags.studentName ? "Missing context" : ""}
+                sourceTone={prefillFlags.studentName ? "auto" : missingFlags.studentName ? "unknown" : undefined}
                 onChange={(v) => {
                   setFields((f) => ({ ...f, studentName: v }));
                   setPrefillFlags((p) => ({ ...p, studentName: false }));
+                  setMissingFlags((p) => ({ ...p, studentName: false }));
                 }}
               />
               <Field
                 label="Programme title"
                 value={fields.programmeTitle}
-                sourceLabel={prefillFlags.programmeTitle ? "Auto-filled" : ""}
+                sourceLabel={prefillFlags.programmeTitle ? "Auto-filled" : missingFlags.programmeTitle ? "Missing context" : ""}
+                sourceTone={prefillFlags.programmeTitle ? "auto" : missingFlags.programmeTitle ? "unknown" : undefined}
                 onChange={(v) => {
                   setFields((f) => ({ ...f, programmeTitle: v }));
                   setPrefillFlags((p) => ({ ...p, programmeTitle: false }));
+                  setMissingFlags((p) => ({ ...p, programmeTitle: false }));
                 }}
               />
               <Field
                 label="Unit code + title"
                 value={fields.unitCodeTitle}
-                sourceLabel={prefillFlags.unitCodeTitle ? "Auto-filled" : ""}
+                sourceLabel={prefillFlags.unitCodeTitle ? "Auto-filled" : missingFlags.unitCodeTitle ? "Missing context" : ""}
+                sourceTone={prefillFlags.unitCodeTitle ? "auto" : missingFlags.unitCodeTitle ? "unknown" : undefined}
                 onChange={(v) => {
                   setFields((f) => ({ ...f, unitCodeTitle: v }));
                   setPrefillFlags((p) => ({ ...p, unitCodeTitle: false }));
+                  setMissingFlags((p) => ({ ...p, unitCodeTitle: false }));
                 }}
               />
               <Field
                 label="Assignment title"
                 value={fields.assignmentTitle}
-                sourceLabel={prefillFlags.assignmentTitle ? "Auto-filled" : ""}
+                sourceLabel={prefillFlags.assignmentTitle ? "Auto-filled" : missingFlags.assignmentTitle ? "Missing context" : ""}
+                sourceTone={prefillFlags.assignmentTitle ? "auto" : missingFlags.assignmentTitle ? "unknown" : undefined}
                 onChange={(v) => {
                   setFields((f) => ({ ...f, assignmentTitle: v }));
                   setPrefillFlags((p) => ({ ...p, assignmentTitle: false }));
+                  setMissingFlags((p) => ({ ...p, assignmentTitle: false }));
                 }}
               />
               <Field
                 label="Assessor name"
                 value={fields.assessorName}
-                sourceLabel={prefillFlags.assessorName ? "Auto-filled" : ""}
+                sourceLabel={prefillFlags.assessorName ? "Auto-filled" : missingFlags.assessorName ? "Missing context" : ""}
+                sourceTone={prefillFlags.assessorName ? "auto" : missingFlags.assessorName ? "unknown" : undefined}
                 onChange={(v) => {
                   setFields((f) => ({ ...f, assessorName: v }));
                   setPrefillFlags((p) => ({ ...p, assessorName: false }));
+                  setMissingFlags((p) => ({ ...p, assessorName: false }));
                 }}
               />
               <Field
                 label="Internal verifier name"
                 value={fields.internalVerifierName}
-                sourceLabel={prefillFlags.internalVerifierName ? "Auto-filled" : ""}
+                sourceLabel={prefillFlags.internalVerifierName ? "Auto-filled" : missingFlags.internalVerifierName ? "Missing context" : ""}
+                sourceTone={prefillFlags.internalVerifierName ? "auto" : missingFlags.internalVerifierName ? "unknown" : undefined}
                 onChange={(v) => {
                   setFields((f) => ({ ...f, internalVerifierName: v }));
                   setPrefillFlags((p) => ({ ...p, internalVerifierName: false }));
+                  setMissingFlags((p) => ({ ...p, internalVerifierName: false }));
                 }}
               />
             </div>
@@ -540,6 +585,7 @@ export default function IvAdAdminPage() {
                     onChange={(e) => {
                       setGradeOverride(e.target.value);
                       setPrefillFlags((p) => ({ ...p, gradeOverride: false }));
+                      setMissingFlags((p) => ({ ...p, gradeOverride: false }));
                     }}
                     className={INPUT_CLASS}
                   >
@@ -552,6 +598,8 @@ export default function IvAdAdminPage() {
                 </label>
                 {prefillFlags.gradeOverride ? (
                   <span className="text-[11px] font-semibold text-cyan-700">Auto-filled from submission context</span>
+                ) : missingFlags.gradeOverride ? (
+                  <span className="text-[11px] font-semibold text-amber-700">Missing context - set grade manually</span>
                 ) : null}
                 <label className="grid gap-1">
                   <span className="text-sm font-medium">Key notes override</span>
@@ -560,6 +608,7 @@ export default function IvAdAdminPage() {
                     onChange={(e) => {
                       setKeyNotesOverride(e.target.value);
                       setPrefillFlags((p) => ({ ...p, keyNotesOverride: false }));
+                      setMissingFlags((p) => ({ ...p, keyNotesOverride: false }));
                     }}
                     rows={4}
                     className={TEXTAREA_CLASS}
@@ -568,6 +617,8 @@ export default function IvAdAdminPage() {
                 </label>
                 {prefillFlags.keyNotesOverride ? (
                   <span className="text-[11px] font-semibold text-cyan-700">Auto-filled from submission context</span>
+                ) : missingFlags.keyNotesOverride ? (
+                  <span className="text-[11px] font-semibold text-amber-700">Missing context - add key notes manually</span>
                 ) : null}
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900">
                   <input
@@ -700,6 +751,8 @@ export default function IvAdAdminPage() {
                   setReviewApprovedBy("");
                   setGradeOverride("");
                   setKeyNotesOverride("");
+                  setPrefillFlags(makeDefaultPrefillFlags());
+                  setMissingFlags(makeDefaultPrefillFlags());
                 }}
                 disabled={!!busy}
                 className={BUTTON_NEUTRAL}
@@ -788,11 +841,13 @@ export default function IvAdAdminPage() {
 function Field({
   label,
   sourceLabel,
+  sourceTone,
   value,
   onChange,
 }: {
   label: string;
   sourceLabel?: string;
+  sourceTone?: "auto" | "unknown";
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -801,7 +856,13 @@ function Field({
       <span className="flex items-center gap-2 text-sm font-medium">
         <span>{label}</span>
         {sourceLabel ? (
-          <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              sourceTone === "unknown"
+                ? "border border-amber-200 bg-amber-50 text-amber-800"
+                : "border border-cyan-200 bg-cyan-50 text-cyan-800"
+            }`}
+          >
             {sourceLabel}
           </span>
         ) : null}

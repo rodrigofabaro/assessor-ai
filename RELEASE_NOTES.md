@@ -25,6 +25,7 @@ Last updated: 2026-03-03
    - submission detail now includes a `Generate IV-AD` launch action that opens `/admin/iv-ad` with prefilled context
    - `/admin/iv-ad` now accepts submission-detail query prefill for key fields, grade override, key notes, and approver default
    - launch flow now also carries `referenceSpecId` when available and shows source badges for auto-filled fields in `/admin/iv-ad`
+   - missing-context fallback now surfaces `Missing context` badges and a manual-completion prompt list when prefill data is unavailable
 
 ## 1.0.1 (Maintenance)
 

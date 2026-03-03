@@ -95,6 +95,7 @@ Progress (2026-03-03):
 1. Added `Generate IV-AD` launch action from submission detail.
 2. Added first-pass prefill handoff into `/admin/iv-ad` via query parameters (student/unit/assignment/assessor/IV, grade, key notes).
 3. Added source badges in `/admin/iv-ad` for auto-filled fields and SPEC preselection when reference context is available.
+4. Added missing-context fallback in `/admin/iv-ad` (`Missing context` badges + manual completion prompt list).
 
 ### Queue C - Deployment readiness
 
