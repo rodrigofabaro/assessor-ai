@@ -182,6 +182,11 @@ Status labels:
 - Core grading outputs (JSON + marked PDF) exist in current workflows.
 - A single deterministic export-pack endpoint/UI with versioned regeneration logs is not yet complete.
 
+Current update (2026-03-03):
+- Deterministic export-pack generation endpoint and submission-detail UI action are implemented.
+- Replay parity verification endpoint is implemented.
+- Remaining closure task: operator validation script + release validation evidence capture.
+
 ---
 
 ## 🟨 Next implementation queue (2026-03-02)

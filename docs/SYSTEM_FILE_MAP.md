@@ -82,6 +82,9 @@ Technical index of what each major file area does, so implementation work stays 
 - `app/api/submissions/[submissionId]/grade/*`: grading execution.
 - `app/api/submissions/[submissionId]/assessments/[assessmentId]/*`: assessment updates.
 - `app/api/submissions/[submissionId]/marked-file/*`: marked PDF access.
+- `app/api/submissions/[submissionId]/export/*`: deterministic export-pack generation.
+- `app/api/submissions/[submissionId]/export/replay/*`: replay parity verification for prior exports.
+- `app/api/submissions/[submissionId]/exports/[exportId]/file/*`: export artifact download.
 - `app/api/submissions/[submissionId]/turnitin/*`: submission-level Turnitin actions.
 - `app/api/submissions/[submissionId]/link-student|unlink-student/*`: student relation changes.
 - `app/api/submissions/batch-grade/*`, `qa-flags/*`: queue-wide batch actions and QA flags.

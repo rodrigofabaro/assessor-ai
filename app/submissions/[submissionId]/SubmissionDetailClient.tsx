@@ -117,6 +117,24 @@ type GradePreviewRunMeta = {
   requestId: string | null;
 };
 
+type ExportPackFile = {
+  name: string;
+  checksumSha256: string;
+  bytes: number;
+  downloadUrl?: string;
+};
+
+type ExportPackResponse = {
+  exportId: string;
+  submissionId: string;
+  sourceAssessmentId: string;
+  sourceAssessmentHash: string;
+  bundleHash: string;
+  requestedAt: string;
+  actor: string;
+  files: ExportPackFile[];
+};
+
 type AppConfigPayload = {
   activeAuditUser?: { fullName?: string | null } | null;
 };
@@ -443,6 +461,14 @@ export default function SubmissionDetailPage() {
   const [feedbackBaseline, setFeedbackBaseline] = useState({ text: "", studentName: "", date: "" });
   const [activeAuditActorName, setActiveAuditActorName] = useState("system");
   const [lastActionNote, setLastActionNote] = useState("");
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportReplayBusy, setExportReplayBusy] = useState(false);
+  const [latestExportPack, setLatestExportPack] = useState<ExportPackResponse | null>(null);
+  const [lastExportReplay, setLastExportReplay] = useState<{
+    exportId: string;
+    hashMatch: boolean;
+    assessmentHashMatch: boolean;
+  } | null>(null);
   const [pdfJumpPage, setPdfJumpPage] = useState<number | null>(null);
   const [coverStudentName, setCoverStudentName] = useState("");
   const [coverStudentId, setCoverStudentId] = useState("");
@@ -1962,6 +1988,75 @@ export default function SubmissionDetailPage() {
     await copyText("Overall feedback", payload);
   }
 
+  async function generateExportPack() {
+    if (!submissionId || !selectedAssessment?.id) {
+      notifyToast("error", "Select an assessment first.");
+      return;
+    }
+    setExportBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await jsonFetch<{ ok: boolean; pack: ExportPackResponse }>(
+        `/api/submissions/${submissionId}/export`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assessmentId: selectedAssessment.id }),
+        }
+      );
+      setLatestExportPack(res?.pack || null);
+      setMsg(`Export pack generated (${res?.pack?.exportId || "n/a"}).`);
+      notifyToast("success", "Export pack generated.");
+      setLastActionNote(`Export pack ${res?.pack?.exportId || ""} generated at ${new Date().toLocaleString()}`);
+    } catch (e: any) {
+      const message = e?.message || "Failed to generate export pack.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  async function replayExportPack() {
+    if (!submissionId || !latestExportPack?.exportId) {
+      notifyToast("error", "Generate an export pack first.");
+      return;
+    }
+    setExportReplayBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await jsonFetch<{
+        ok: boolean;
+        replay: { hashMatch: boolean; assessmentHashMatch: boolean; exportId: string };
+      }>(`/api/submissions/${submissionId}/export/replay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exportId: latestExportPack.exportId }),
+      });
+      const replay = res?.replay;
+      setLastExportReplay({
+        exportId: String(replay?.exportId || latestExportPack.exportId),
+        hashMatch: Boolean(replay?.hashMatch),
+        assessmentHashMatch: Boolean(replay?.assessmentHashMatch),
+      });
+      if (replay?.hashMatch && replay?.assessmentHashMatch) {
+        setMsg(`Replay parity passed for export ${replay.exportId}.`);
+        notifyToast("success", "Replay parity passed.");
+      } else {
+        setErr(`Replay parity mismatch for export ${replay?.exportId || latestExportPack.exportId}.`);
+        notifyToast("warn", "Replay parity mismatch.");
+      }
+    } catch (e: any) {
+      const message = e?.message || "Failed to replay export pack.";
+      setErr(message);
+      notifyToast("error", message);
+    } finally {
+      setExportReplayBusy(false);
+    }
+  }
+
   function buildCriterionDecisionsText() {
     const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
     if (!rows.length) return "";
@@ -3398,7 +3493,74 @@ export default function SubmissionDetailPage() {
                   >
                     Regenerate with current settings
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => void generateExportPack()}
+                    disabled={!selectedAssessment?.id || exportBusy}
+                    className={cx(
+                      "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+                      !selectedAssessment?.id || exportBusy
+                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                        : "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                    )}
+                  >
+                    {exportBusy ? "Building export..." : "Generate export pack"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void replayExportPack()}
+                    disabled={!latestExportPack?.exportId || exportReplayBusy}
+                    className={cx(
+                      "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+                      !latestExportPack?.exportId || exportReplayBusy
+                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                        : "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                    )}
+                  >
+                    {exportReplayBusy ? "Checking replay..." : "Replay parity check"}
+                  </button>
                 </div>
+                {latestExportPack ? (
+                  <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-2">
+                    <div className="text-[11px] font-semibold text-zinc-800">
+                      Export {latestExportPack.exportId}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {latestExportPack.files.map((f) => (
+                        <a
+                          key={`exp-file-${f.name}`}
+                          href={f.downloadUrl || "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cx(
+                            "rounded-md border px-2 py-0.5 text-[10px] font-semibold",
+                            f.downloadUrl
+                              ? "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100"
+                              : "pointer-events-none border-zinc-200 bg-zinc-100 text-zinc-400"
+                          )}
+                        >
+                          {f.name}
+                        </a>
+                      ))}
+                    </div>
+                    <div className="mt-1 text-[10px] text-zinc-500">
+                      Bundle hash: {latestExportPack.bundleHash.slice(0, 16)}...
+                    </div>
+                  </div>
+                ) : null}
+                {lastExportReplay ? (
+                  <div
+                    className={cx(
+                      "mt-2 rounded-lg border px-2 py-1 text-[10px] font-semibold",
+                      lastExportReplay.hashMatch && lastExportReplay.assessmentHashMatch
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : "border-amber-200 bg-amber-50 text-amber-900"
+                    )}
+                  >
+                    Replay {lastExportReplay.exportId}: bundle {lastExportReplay.hashMatch ? "match" : "mismatch"} · assessment{" "}
+                    {lastExportReplay.assessmentHashMatch ? "match" : "mismatch"}
+                  </div>
+                ) : null}
               </details>
               <div
                 className={cx(

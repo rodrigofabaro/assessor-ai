@@ -1,0 +1,51 @@
+import { NextResponse } from "next/server";
+import fs from "node:fs";
+import path from "node:path";
+
+export const runtime = "nodejs";
+
+const MIME_BY_NAME: Record<string, string> = {
+  "manifest.json": "application/json",
+  "assessment-snapshot.json": "application/json",
+  "feedback-summary.txt": "text/plain",
+  "summary.csv": "text/csv",
+  "marked.pdf": "application/pdf",
+};
+
+function isSafeFileName(name: string) {
+  return /^[a-z0-9._-]+$/i.test(name);
+}
+
+export async function GET(
+  req: Request,
+  ctx: { params: Promise<{ submissionId: string; exportId: string }> }
+) {
+  try {
+    const { submissionId, exportId } = await ctx.params;
+    const url = new URL(req.url);
+    const name = String(url.searchParams.get("name") || "").trim();
+    if (!name || !isSafeFileName(name)) {
+      return NextResponse.json({ error: "Valid file name is required." }, { status: 400 });
+    }
+
+    const abs = path.join(process.cwd(), "storage", "exports", submissionId, exportId, name);
+    if (!fs.existsSync(abs)) {
+      return NextResponse.json({ error: "Export file not found." }, { status: 404 });
+    }
+
+    const bytes = fs.readFileSync(abs);
+    return new NextResponse(bytes, {
+      headers: {
+        "content-type": MIME_BY_NAME[name] || "application/octet-stream",
+        "content-disposition": `attachment; filename="${name}"`,
+        "cache-control": "no-store",
+      },
+    });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "Failed to download export file." },
+      { status: 500 }
+    );
+  }
+}
+

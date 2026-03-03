@@ -30,6 +30,10 @@ Use this doc when the instruction is: "continue the roadmap".
 - deterministic manifest and checksums
 - replay route with parity validation
 
+Implementation note (2026-03-03):
+- submission-detail UI now generates export packs and runs replay parity checks
+- API routes added for export generation, replay verification, and per-file download
+
 2. Extraction and admin performance hardening
 - brief extraction regression stabilization
 - reference inbox pagination/projection optimization
