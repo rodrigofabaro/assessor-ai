@@ -69,6 +69,18 @@ $grade.assessment.overallGrade
 $outFile = ".\tmp-marked-$submissionId.pdf"
 Invoke-WebRequest -Method Get -Uri "$Base/api/submissions/$submissionId/marked-file" -OutFile $outFile
 Resolve-Path $outFile
+
+# 7) Generate deterministic export pack
+$pack = Invoke-RestMethod -Method Post -Uri "$Base/api/submissions/$submissionId/export" -ContentType "application/json" -Body "{}"
+$exportId = $pack.pack.exportId
+$exportId
+
+# 8) Replay parity check against same export id
+$replay = Invoke-RestMethod -Method Post -Uri "$Base/api/submissions/$submissionId/export/replay" -ContentType "application/json" -Body (@{
+  exportId = $exportId
+} | ConvertTo-Json)
+$replay.replay.hashMatch
+$replay.replay.assessmentHashMatch
 ```
 
 ## Build Reproducibility Check
@@ -76,4 +88,5 @@ Resolve-Path $outFile
 ```powershell
 pnpm exec tsc --noEmit
 pnpm run build
+pnpm run test:export-pack-validation
 ```

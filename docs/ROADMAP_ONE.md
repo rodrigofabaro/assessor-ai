@@ -130,6 +130,7 @@ Done when:
 - `pnpm lint`
 - `pnpm exec tsc --noEmit --incremental false`
 - `pnpm run test:regression-pack`
+- `pnpm run test:export-pack-validation` (explicit export manifest integrity gate)
 
 3. Verify environment contract:
 - `DATABASE_URL`
