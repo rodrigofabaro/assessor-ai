@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type IvAdTemplate = {
@@ -168,7 +168,7 @@ function makeDefaultPrefillFlags(): PrefillFlags {
   };
 }
 
-export default function IvAdAdminPage() {
+function IvAdAdminPageContent() {
   const searchParams = useSearchParams();
   const didApplyLaunchPrefill = useRef(false);
   const [activeTemplate, setActiveTemplate] = useState<IvAdTemplate | null>(null);
@@ -1089,6 +1089,14 @@ export default function IvAdAdminPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function IvAdAdminPage() {
+  return (
+    <Suspense fallback={<div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600 shadow-sm">Loading IV-AD workspace...</div>}>
+      <IvAdAdminPageContent />
+    </Suspense>
   );
 }
 
