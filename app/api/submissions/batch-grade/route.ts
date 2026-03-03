@@ -38,6 +38,8 @@ type BatchResult = {
   error?: string;
 };
 
+type ExtractionGate = ReturnType<typeof evaluateExtractionReadiness>;
+
 function parseJsonSafe(text: string) {
   try {
     return JSON.parse(text || "{}");
@@ -156,15 +158,17 @@ export async function POST(req: Request) {
     });
     const statusById = new Map(submissions.map((s) => [s.id, String(s.status || "").toUpperCase()]));
     const studentLinkedById = new Map(submissions.map((s) => [s.id, Boolean(s.studentId)]));
-    const extractionGateById = new Map(
-      submissions.map((s) => [
-        s.id,
-        evaluateExtractionReadiness({
-          submissionStatus: s.status,
-          extractedText: null,
-          latestRun: s.extractionRuns?.[0] || null,
-        }),
-      ])
+    const extractionGateById = new Map<string, ExtractionGate>(
+      submissions.map(
+        (s): [string, ExtractionGate] => [
+          s.id,
+          evaluateExtractionReadiness({
+            submissionStatus: s.status,
+            extractedText: null,
+            latestRun: s.extractionRuns?.[0] || null,
+          }),
+        ]
+      )
     );
 
     const retryFailedOnly = !!body.retryFailedOnly;
