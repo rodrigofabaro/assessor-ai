@@ -46,9 +46,9 @@ Current hard-fail defaults:
 ## M9 auth scaffold env
 
 - `AUTH_GUARDS_ENABLED`
-  - default: `false`
+  - default: `false` in local/dev; `true` by default in production when unset
   - effect: enables middleware role checks for `/admin/*` and `/api/admin/*`
-  - rollout note: when enabled, signed-session login is required
+  - rollout note: when enabled, signed-session login is required for all non-public routes
 
 - `AUTH_SESSION_SECRET`
   - required when `AUTH_GUARDS_ENABLED=true` and using signed session cookie bootstrap

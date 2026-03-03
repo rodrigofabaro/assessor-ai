@@ -16,7 +16,9 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 ];
 
 export function isAuthGuardsEnabled() {
-  return /^(1|true|yes|on)$/i.test(String(process.env.AUTH_GUARDS_ENABLED || "false").trim());
+  const raw = String(process.env.AUTH_GUARDS_ENABLED || "").trim();
+  if (!raw) return process.env.NODE_ENV === "production";
+  return /^(1|true|yes|on)$/i.test(raw);
 }
 
 export function parseRole(value: string | null | undefined): AppRole | null {

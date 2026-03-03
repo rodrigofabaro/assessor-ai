@@ -12,6 +12,12 @@ function isTruthy(raw: string | undefined) {
   return /^(1|true|yes|on)$/i.test(String(raw || "").trim());
 }
 
+function isAuthGuardsEffectivelyEnabled() {
+  const raw = String(process.env.AUTH_GUARDS_ENABLED || "").trim();
+  if (!raw) return process.env.NODE_ENV === "production";
+  return isTruthy(raw);
+}
+
 function hasOpenAiCredential() {
   const candidates = [
     process.env.OPENAI_ADMIN_KEY,
@@ -56,7 +62,7 @@ function collectIssues(): EnvIssue[] {
       hardFail: requireOpenAi,
     });
   }
-  const authGuardsEnabled = isTruthy(process.env.AUTH_GUARDS_ENABLED);
+  const authGuardsEnabled = isAuthGuardsEffectivelyEnabled();
   if (authGuardsEnabled) {
     const sessionSecret = String(process.env.AUTH_SESSION_SECRET || "").trim();
     if (sessionSecret.length < 24) {

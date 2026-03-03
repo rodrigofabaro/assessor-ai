@@ -19,7 +19,7 @@ function isApiPath(pathname: string) {
 }
 
 function isPublicPath(pathname: string) {
-  if (pathname === "/" || pathname.startsWith("/help") || pathname === "/login" || pathname.startsWith("/login/")) return true;
+  if (pathname === "/" || pathname === "/login" || pathname.startsWith("/login/")) return true;
   if (pathname === "/api/auth/login" || pathname === "/api/auth/logout") return true;
   if (pathname === "/api/auth/session/bootstrap" || pathname === "/api/auth/role-sync") return true;
   return false;
@@ -56,7 +56,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (!policy.allowedRoles.includes(role)) {
+  if (policy && !policy.allowedRoles.includes(role)) {
     if (isApiPath(pathname)) {
       return NextResponse.json(
         { error: "Insufficient role.", code: "ROLE_FORBIDDEN", role, requiredRoles: policy.allowedRoles },
