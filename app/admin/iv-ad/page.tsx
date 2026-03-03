@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type IvAdTemplate = {
   id: string;
@@ -123,6 +124,8 @@ function makeDefaultFields() {
 }
 
 export default function IvAdAdminPage() {
+  const searchParams = useSearchParams();
+  const didApplyLaunchPrefill = useRef(false);
   const [activeTemplate, setActiveTemplate] = useState<IvAdTemplate | null>(null);
   const [history, setHistory] = useState<IvAdDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,6 +182,32 @@ export default function IvAdAdminPage() {
   useEffect(() => {
     void loadTemplateAndHistory();
   }, []);
+
+  useEffect(() => {
+    if (didApplyLaunchPrefill.current) return;
+    if (!searchParams) return;
+    if (String(searchParams.get("source") || "").trim() !== "submission-detail") return;
+
+    const fieldKeys = ["studentName", "programmeTitle", "unitCodeTitle", "assignmentTitle", "assessorName", "internalVerifierName"] as const;
+    const nextFields = makeDefaultFields();
+    let hasAnyField = false;
+    for (const key of fieldKeys) {
+      const v = String(searchParams.get(key) || "").trim();
+      if (v) {
+        nextFields[key] = v;
+        hasAnyField = true;
+      }
+    }
+    if (hasAnyField) setFields(nextFields);
+
+    const finalGrade = String(searchParams.get("finalGrade") || "").trim();
+    if (finalGrade) setGradeOverride(finalGrade);
+    const keyNotes = String(searchParams.get("keyNotes") || "").trim();
+    if (keyNotes) setKeyNotesOverride(keyNotes);
+    if (nextFields.internalVerifierName) setReviewApprovedBy(nextFields.internalVerifierName);
+    setSuccess("Prefilled from submission detail context. Upload marked PDF (or run AI review) to continue.");
+    didApplyLaunchPrefill.current = true;
+  }, [searchParams]);
 
   const noActiveTemplate = !activeTemplate;
   const canGenerate = useMemo(() => {

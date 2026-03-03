@@ -21,6 +21,9 @@ Last updated: 2026-03-03
    - final generation now enforces an explicit approval gate (`reviewApproved`, `reviewApprovedBy`) before DOCX output
    - IV-AD document records now persist review draft audit snapshot + approval metadata (`reviewDraftJson`, `reviewDraftApproved*`)
    - `/admin/iv-ad` history now shows review audit status (approved/by/at, source type, warnings/evidence counts)
+4. IV-AD Phase 6 kickoff:
+   - submission detail now includes a `Generate IV-AD` launch action that opens `/admin/iv-ad` with prefilled context
+   - `/admin/iv-ad` now accepts submission-detail query prefill for key fields, grade override, key notes, and approver default
 
 ## 1.0.1 (Maintenance)
 

@@ -601,6 +601,44 @@ export default function SubmissionDetailPage() {
       },
     });
   }, [structuredGrading, submission, selectedAssessment]);
+  const ivAdLaunchHref = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("source", "submission-detail");
+    params.set("submissionId", submissionId);
+    const studentName =
+      String(submission?.student?.fullName || "").trim() ||
+      String(coverStudentName || "").trim();
+    const programmeTitle = String((submission as any)?.student?.courseName || "").trim();
+    const unitCode = String(submission?.assignment?.unitCode || "").trim();
+    const unitTitle = String((submission as any)?.assignment?.assignmentBrief?.unit?.unitTitle || "").trim();
+    const unitCodeTitle = unitCode && unitTitle ? `${unitCode} - ${unitTitle}` : unitCode || unitTitle;
+    const assignmentTitle =
+      String(submission?.assignment?.title || "").trim() ||
+      String(submission?.assignment?.assignmentRef || "").trim();
+    const assessorName =
+      String((selectedAssessment as any)?.resultJson?.gradedBy || "").trim() ||
+      String(activeAuditActorName || "").trim();
+    const internalVerifierName = String(activeAuditActorName || "").trim();
+    const finalGrade = String(selectedAssessment?.overallGrade || "").trim();
+    const keyNotes = summarizeFeedbackText(String(selectedAssessment?.feedbackText || ""), 600);
+
+    if (studentName) params.set("studentName", studentName);
+    if (programmeTitle) params.set("programmeTitle", programmeTitle);
+    if (unitCodeTitle) params.set("unitCodeTitle", unitCodeTitle);
+    if (assignmentTitle) params.set("assignmentTitle", assignmentTitle);
+    if (assessorName) params.set("assessorName", assessorName);
+    if (internalVerifierName) params.set("internalVerifierName", internalVerifierName);
+    if (finalGrade) params.set("finalGrade", finalGrade);
+    if (keyNotes) params.set("keyNotes", keyNotes);
+
+    return `/admin/iv-ad?${params.toString()}`;
+  }, [
+    submissionId,
+    submission,
+    coverStudentName,
+    selectedAssessment,
+    activeAuditActorName,
+  ]);
   const pageFeedbackBySection = useMemo(() => {
     const groups = new Map<string, { key: string; label: string; notes: typeof pageFeedbackMap }>();
     for (const note of pageFeedbackMap) {
@@ -3519,6 +3557,13 @@ export default function SubmissionDetailPage() {
                   >
                     {exportReplayBusy ? "Checking replay..." : "Replay parity check"}
                   </button>
+                  <Link
+                    href={ivAdLaunchHref}
+                    className="rounded-lg border border-cyan-300 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-900 hover:bg-cyan-100"
+                    title="Open IV-AD page with prefilled submission and assessment context."
+                  >
+                    Generate IV-AD
+                  </Link>
                 </div>
                 {latestExportPack ? (
                   <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-2">

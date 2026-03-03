@@ -267,6 +267,10 @@ Current update (2026-03-03):
 - M8 Phase A readiness checklist exists and is executable.
 - Auth foundation decision is documented with route guard matrix.
 
+Phase 6 progress (2026-03-03):
+- `Generate IV-AD` launch added in submission detail.
+- `/admin/iv-ad` now preloads context from submission-detail query params as a first-pass internal launch flow.
+
 ---
 
 ## 🔜 M8 — Production Deployment & Cost-Controlled Scaling
