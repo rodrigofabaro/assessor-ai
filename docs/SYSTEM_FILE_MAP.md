@@ -72,6 +72,7 @@ Technical index of what each major file area does, so implementation work stays 
 - `app/api/admin/iv-ad/generate/*`: IV-AD DOCX generation from current form payload.
 - `app/api/admin/iv-ad/generate-from-submission/*`: prefilled generation from submission context.
 - `app/api/admin/iv-ad/documents/*`: IV-AD history listing and file download.
+- `app/api/admin/iv-ad/documents/[documentId]/*`: IV-AD document audit detail payload.
 - `app/api/iv-ad/review-draft/*`: strict AI review draft generation contract for IV-AD Phase 4.
 
 #### Submissions pipeline

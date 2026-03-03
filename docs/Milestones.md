@@ -273,6 +273,10 @@ Phase 6 progress (2026-03-03):
 - Prefill source badges added (`auto-filled` vs manual edits), including SPEC preselection when context has `referenceSpecId`.
 - Missing-context fallback added: `unknown` badges + required-manual-fields prompt for incomplete submission-detail launch context.
 
+Phase 7 progress (2026-03-03):
+- Added IV-AD document detail endpoint (`/api/admin/iv-ad/documents/[documentId]`) for full audit payload retrieval.
+- Added `View audit` modal in `/admin/iv-ad` history to inspect persisted review-draft snapshot and approval metadata.
+
 ---
 
 ## 🔜 M8 — Production Deployment & Cost-Controlled Scaling

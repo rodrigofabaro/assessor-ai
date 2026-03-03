@@ -26,6 +26,9 @@ Last updated: 2026-03-03
    - `/admin/iv-ad` now accepts submission-detail query prefill for key fields, grade override, key notes, and approver default
    - launch flow now also carries `referenceSpecId` when available and shows source badges for auto-filled fields in `/admin/iv-ad`
    - missing-context fallback now surfaces `Missing context` badges and a manual-completion prompt list when prefill data is unavailable
+5. IV-AD Phase 7 kickoff:
+   - added `GET /api/admin/iv-ad/documents/[documentId]` for full audit detail retrieval
+   - `/admin/iv-ad` history now supports `View audit` modal to inspect persisted review snapshot, approval metadata, and evidence/warnings detail
 
 ## 1.0.1 (Maintenance)
 

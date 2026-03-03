@@ -30,6 +30,17 @@ type IvAdDocument = {
   createdAt: string;
 };
 
+type IvAdDocumentDetail = IvAdDocument & {
+  sourceMarkedPdfPath: string;
+  sourceBriefPdfPath?: string | null;
+  outputDocxPath: string;
+  template?: {
+    id: string;
+    filename: string;
+    createdAt: string;
+  } | null;
+};
+
 type ExtractionPreview = {
   extractedGradeGuess: string | null;
   extractedKeyNotesGuess: string;
@@ -176,6 +187,9 @@ export default function IvAdAdminPage() {
   const [reviewApprovedBy, setReviewApprovedBy] = useState("");
   const [useAiReview, setUseAiReview] = useState(true);
   const [lastDownloadUrl, setLastDownloadUrl] = useState("");
+  const [auditBusy, setAuditBusy] = useState("");
+  const [auditError, setAuditError] = useState("");
+  const [auditDetail, setAuditDetail] = useState<IvAdDocumentDetail | null>(null);
 
   async function loadTemplateAndHistory() {
     setLoading(true);
@@ -376,6 +390,23 @@ export default function IvAdAdminPage() {
     }
   }
 
+  async function openAuditDetail(documentId: string) {
+    if (!documentId) return;
+    setAuditBusy(documentId);
+    setAuditError("");
+    try {
+      const res = await fetch(`/api/admin/iv-ad/documents/${documentId}`, { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `Audit detail failed (${res.status})`);
+      setAuditDetail((json?.document || null) as IvAdDocumentDetail | null);
+    } catch (e: any) {
+      setAuditError(e?.message || "Failed to load audit detail.");
+      setAuditDetail(null);
+    } finally {
+      setAuditBusy("");
+    }
+  }
+
   return (
     <div className="grid min-w-0 gap-4">
       <header className="rounded-2xl border border-cyan-200 bg-gradient-to-r from-cyan-50 via-white to-white p-4 shadow-sm">
@@ -395,6 +426,7 @@ export default function IvAdAdminPage() {
         </div>
         {error ? <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{error}</div> : null}
         {success ? <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{success}</div> : null}
+        {auditError ? <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{auditError}</div> : null}
       </header>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -785,7 +817,7 @@ export default function IvAdAdminPage() {
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Grade</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Review audit</th>
                 <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Created</th>
-                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Download</th>
+                <th className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -819,12 +851,22 @@ export default function IvAdAdminPage() {
                       </td>
                       <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(row.createdAt)}</td>
                       <td className="border-b border-zinc-100 px-4 py-3">
-                        <a
-                          href={`/api/admin/iv-ad/documents/${row.id}/file`}
-                          className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
-                        >
-                          Download DOCX
-                        </a>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void openAuditDetail(row.id)}
+                            disabled={auditBusy === row.id}
+                            className="inline-flex h-8 items-center rounded-lg border border-cyan-300 bg-cyan-50 px-3 text-xs font-semibold text-cyan-900 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {auditBusy === row.id ? "Loading..." : "View audit"}
+                          </button>
+                          <a
+                            href={`/api/admin/iv-ad/documents/${row.id}/file`}
+                            className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+                          >
+                            Download DOCX
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -834,6 +876,79 @@ export default function IvAdAdminPage() {
           </table>
         </div>
       </section>
+
+      {auditDetail ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-zinc-900">IV-AD audit detail</h3>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Record {auditDetail.id} · Template {auditDetail.template?.filename || "—"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuditDetail(null)}
+                className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50"
+              >
+                Close
+              </button>
+            </div>
+
+            {auditError ? (
+              <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{auditError}</div>
+            ) : null}
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-2">
+                <ReadOnlyField label="student" value={auditDetail.studentName} />
+                <ReadOnlyField label="programme" value={auditDetail.programmeTitle} />
+                <ReadOnlyField label="unit" value={auditDetail.unitCodeTitle} />
+                <ReadOnlyField label="assignment" value={auditDetail.assignmentTitle} />
+                <ReadOnlyField label="assessor" value={auditDetail.assessorName} />
+                <ReadOnlyField label="internal verifier" value={auditDetail.internalVerifierName} />
+                <ReadOnlyField label="grade" value={auditDetail.grade} />
+                <ReadOnlyField label="created" value={fmtDate(auditDetail.createdAt)} />
+              </div>
+              <div className="grid gap-2">
+                <ReadOnlyField label="review approved" value={auditDetail.reviewDraftApproved ? "Yes" : "No"} />
+                <ReadOnlyField label="approved by" value={String(auditDetail.reviewDraftApprovedBy || "—")} />
+                <ReadOnlyField label="approved at" value={fmtDate(auditDetail.reviewDraftApprovedAt || null)} />
+                <ReadOnlyField label="sourceMarkedPdfPath" value={auditDetail.sourceMarkedPdfPath} multiline />
+                <ReadOnlyField label="sourceBriefPdfPath" value={String(auditDetail.sourceBriefPdfPath || "—")} multiline />
+                <ReadOnlyField label="outputDocxPath" value={auditDetail.outputDocxPath} multiline />
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-sm font-semibold text-zinc-900">Persisted review draft JSON</div>
+              {((auditDetail.reviewDraftJson as any)?.draft && typeof (auditDetail.reviewDraftJson as any)?.draft === "object") ? (
+                <div className="mt-3 grid gap-2">
+                  <ReadOnlyField label="assessmentDecisionCheck" value={String((auditDetail.reviewDraftJson as any).draft.assessmentDecisionCheck || "—")} multiline />
+                  <ReadOnlyField label="feedbackComplianceCheck" value={String((auditDetail.reviewDraftJson as any).draft.feedbackComplianceCheck || "—")} multiline />
+                  <ReadOnlyField label="criteriaLinkingCheck" value={String((auditDetail.reviewDraftJson as any).draft.criteriaLinkingCheck || "—")} multiline />
+                  <ReadOnlyField label="academicIntegrityCheck" value={String((auditDetail.reviewDraftJson as any).draft.academicIntegrityCheck || "—")} multiline />
+                  <ReadOnlyField label="generalComments" value={String((auditDetail.reviewDraftJson as any).draft.generalComments || "—")} multiline />
+                  <ReadOnlyField label="actionRequired" value={String((auditDetail.reviewDraftJson as any).draft.actionRequired || "—")} multiline />
+                  <ReadOnlyField label="warnings" value={Array.isArray((auditDetail.reviewDraftJson as any).draft.warnings) ? (auditDetail.reviewDraftJson as any).draft.warnings.join(" | ") : "—"} multiline />
+                  <ReadOnlyField
+                    label="evidenceSnippets"
+                    value={Array.isArray((auditDetail.reviewDraftJson as any).draft.evidenceSnippets)
+                      ? (auditDetail.reviewDraftJson as any).draft.evidenceSnippets
+                          .map((s: any) => `[${String(s?.source || "unknown")}] ${String(s?.excerpt || "")}`)
+                          .join("\n\n")
+                      : "—"}
+                    multiline
+                  />
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-zinc-600">No persisted review draft snapshot for this record.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

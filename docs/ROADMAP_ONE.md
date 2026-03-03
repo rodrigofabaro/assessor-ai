@@ -97,6 +97,12 @@ Progress (2026-03-03):
 3. Added source badges in `/admin/iv-ad` for auto-filled fields and SPEC preselection when reference context is available.
 4. Added missing-context fallback in `/admin/iv-ad` (`Missing context` badges + manual completion prompt list).
 
+### Queue B.2 - IV-AD Phase 7 start
+
+Progress (2026-03-03):
+1. Added IV-AD audit detail endpoint (`GET /api/admin/iv-ad/documents/[documentId]`).
+2. Added `View audit` modal in `/admin/iv-ad` history for persisted review snapshot and approval inspection.
+
 ### Queue C - Deployment readiness
 
 Done when:
