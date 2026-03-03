@@ -45,6 +45,10 @@ Last updated: 2026-03-03
 8. M8 Phase A (storage migration + rollback) start:
    - added canonical storage migration runbook: `docs/operations/storage-migration-rollback.md`
    - runbook includes backup hashes, DB restore, file restore/sync, verification gates, rollback triggers, and rollback procedure
+9. M8 Phase A (pre-deploy smoke automation) start:
+   - added one-command smoke script: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`)
+   - smoke script performs upload -> extract -> link -> grade -> marked PDF -> export -> replay parity path
+   - writes pass/fail evidence artifact to `docs/evidence/deploy-smoke/*.json` with step-level diagnostics
 
 ## 1.0.1 (Maintenance)
 

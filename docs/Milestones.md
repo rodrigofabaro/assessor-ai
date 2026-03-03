@@ -254,6 +254,9 @@ Current update (2026-03-03):
 - Runtime startup validation added (`lib/runtimeEnvContract.ts`) and wired into `app/layout.tsx` + `lib/prisma.ts`.
 - Status (2026-03-03): storage migration step completed.
 - Canonical migration/rollback runbook: `docs/operations/storage-migration-rollback.md`.
+- Status (2026-03-03): pre-deploy smoke automation implemented.
+- Command: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`).
+- Evidence output: `docs/evidence/deploy-smoke/*.json` (pass/fail artifact with step-level diagnostics).
 
 5. M9 foundation (auth scaffolding spike)
 - Select auth/session approach and document route protection matrix.

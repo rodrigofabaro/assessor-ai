@@ -90,6 +90,19 @@ pnpm run ops:export-pack-evidence
 node scripts/export-pack-evidence.js --dry-run
 ```
 
+## Automated Deploy Smoke (Single Command)
+
+Use this for deployment gate evidence (app must be running):
+
+```powershell
+pnpm run ops:deploy-smoke
+```
+
+Output:
+- Writes `docs/evidence/deploy-smoke/YYYYMMDD-HHMMSS.json`
+- Exits non-zero on failure
+- Failure artifact includes step, status, and API error payload for triage
+
 ## Build Reproducibility Check
 
 ```powershell

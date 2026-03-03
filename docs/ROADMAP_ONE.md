@@ -124,6 +124,7 @@ Progress (2026-03-03):
 2. Runtime startup validation is implemented in `lib/runtimeEnvContract.ts` and invoked by `app/layout.tsx` and `lib/prisma.ts`.
 3. Contract currently enforces critical keys: `DATABASE_URL` and at least one OpenAI credential key.
 4. Storage migration + rollback runbook is now documented in `docs/operations/storage-migration-rollback.md` (backup, restore, verification, rollback triggers, evidence).
+5. One-command deploy smoke is implemented: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`) with evidence output in `docs/evidence/deploy-smoke/`.
 
 ## Production deployment steps (single runbook section)
 
@@ -165,12 +166,11 @@ Progress (2026-03-03):
 
 ### Post-deploy smoke checks
 
-1. Upload -> extract -> triage -> grade path succeeds
-2. Marked PDF generation/download works
-3. Reference/spec/brief lock routes work
-4. QA preview/commit works
-5. IV-AD generation path works
-6. `/api/admin/ops/metrics` and event logs are healthy
+1. Run `pnpm run ops:deploy-smoke` and verify PASS evidence artifact in `docs/evidence/deploy-smoke/`
+2. Reference/spec/brief lock routes work
+3. QA preview/commit works
+4. IV-AD generation path works
+5. `/api/admin/ops/metrics` and event logs are healthy
 
 ### Rollback
 
