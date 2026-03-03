@@ -22,6 +22,8 @@ Last updated: 2026-03-03
    - `docs/operations/hybrid-ai-local-runbook.md`
 9. Improvement backlog:
    - `docs/operations/areas-of-improvement.md`
+10. Environment contract:
+   - `docs/operations/environment-contract.md`
 
 ## Archived operations snapshots
 

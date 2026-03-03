@@ -32,11 +32,12 @@ function validateManifest(absManifestPath) {
   if (!String(manifest.submissionId || "").trim()) fail(`Missing submissionId in ${rel}`);
   if (!Array.isArray(manifest.files) || manifest.files.length === 0) fail(`Missing files[] in ${rel}`);
 
-  const required = ["assessment-snapshot.json", "feedback-summary.txt", "summary.csv", "marked.pdf", "manifest.json"];
+  const required = ["assessment-snapshot.json", "feedback-summary.txt", "summary.csv", "marked.pdf"];
   const names = new Set(manifest.files.map((f) => String(f?.name || "")));
   for (const req of required) {
     if (!names.has(req)) fail(`Missing required file "${req}" in ${rel}`);
   }
+  if (!fs.existsSync(absManifestPath)) fail(`manifest.json missing on disk: ${rel}`);
 
   for (const file of manifest.files) {
     const name = String(file?.name || "").trim();

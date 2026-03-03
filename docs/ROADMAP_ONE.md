@@ -119,6 +119,11 @@ Done when:
 2. Data/file migration plan is documented with rollback path
 3. Smoke checks are scripted and repeatable
 
+Progress (2026-03-03):
+1. Environment contract is now canonicalized in `docs/operations/environment-contract.md`.
+2. Runtime startup validation is implemented in `lib/runtimeEnvContract.ts` and invoked by `app/layout.tsx` and `lib/prisma.ts`.
+3. Contract currently enforces critical keys: `DATABASE_URL` and at least one OpenAI credential key.
+
 ## Production deployment steps (single runbook section)
 
 ### Pre-deploy

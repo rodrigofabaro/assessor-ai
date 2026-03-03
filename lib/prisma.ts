@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { loadEnvConfig } from "@next/env";
+import { validateRuntimeEnvContract } from "@/lib/runtimeEnvContract";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -16,6 +17,8 @@ if (!databaseUrl) {
     "Missing DATABASE_URL. Set it in your environment or .env (e.g. postgresql://user:pass@host:5432/db).",
   );
 }
+
+validateRuntimeEnvContract();
 
 export const prisma =
   globalForPrisma.prisma ??

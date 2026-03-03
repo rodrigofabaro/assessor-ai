@@ -12,6 +12,7 @@ Roadmap status:
 
 1. PostgreSQL is running and reachable by `DATABASE_URL`.
 2. PowerShell 7+, Node.js 20+, and pnpm are installed.
+3. Environment contract reviewed: `docs/operations/environment-contract.md`.
 
 ## Fresh Clone To Running App
 

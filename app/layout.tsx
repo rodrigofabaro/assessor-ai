@@ -3,6 +3,7 @@ import TopNav from "@/components/TopNav";
 import PageContainer, { LANE } from "@/components/PageContainer";
 import ToastHost from "@/components/ui/ToastHost";
 import DevBuildBadge from "@/components/DevBuildBadge";
+import { validateRuntimeEnvContract } from "@/lib/runtimeEnvContract";
 
 export const metadata = {
   title: "Assessor AI",
@@ -15,6 +16,7 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  validateRuntimeEnvContract();
   const isDev = process.env.NODE_ENV === "development";
   const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "1.2.0").trim();
   const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "qa-iv-integrated").trim();

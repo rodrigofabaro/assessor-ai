@@ -249,6 +249,9 @@ Current update (2026-03-03):
 - Finalize environment variable contract and secrets checklist.
 - Define storage migration plan (`uploads`, `reference_uploads`, `storage/*`) with rollback steps.
 - Add pre-deploy smoke route checklist to ops docs.
+- Status (2026-03-03): environment contract step completed.
+- Canonical contract doc: `docs/operations/environment-contract.md`.
+- Runtime startup validation added (`lib/runtimeEnvContract.ts`) and wired into `app/layout.tsx` + `lib/prisma.ts`.
 
 5. M9 foundation (auth scaffolding spike)
 - Select auth/session approach and document route protection matrix.

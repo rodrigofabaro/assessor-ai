@@ -37,6 +37,11 @@ Last updated: 2026-03-03
    - added package script `pnpm run test:export-pack-validation`
    - added package script `pnpm run ops:export-pack-evidence` to generate+replay export pack and write a versioned evidence artifact in `docs/evidence/export-pack/`
    - live evidence captured on 2026-03-03: `docs/evidence/export-pack/20260303-130826-0226534f-6796-431b-9978-04c32783748a-97e0d665a279f806737d.json`
+7. M8 Phase A (environment contract) start:
+   - added canonical env contract doc: `docs/operations/environment-contract.md`
+   - added centralized runtime env validator: `lib/runtimeEnvContract.ts`
+   - wired startup validation into `app/layout.tsx` and `lib/prisma.ts`
+   - startup checks now cover `DATABASE_URL` and at least one OpenAI credential key
 
 ## 1.0.1 (Maintenance)
 
