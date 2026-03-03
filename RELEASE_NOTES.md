@@ -71,6 +71,7 @@ Last updated: 2026-03-03
    - added session-backed identity scaffold: `POST /api/auth/session/bootstrap` + signed cookie helper (`lib/auth/session.ts`) with `AUTH_SESSION_SECRET`
    - added auth scaffold contract regression test (`scripts/auth-scaffold-contract.test.js`) and included it in `test:regression-pack`
    - added staging-only auth guard smoke command: `pnpm run ops:auth-guard-smoke` (`scripts/auth-guard-smoke.js`) with evidence output in `docs/evidence/auth-guard-smoke/`
+   - fixed middleware bundling path for Edge runtime by replacing `node:crypto` dependency with Edge-safe session verification helper (`lib/auth/sessionEdge.ts`)
 
 ## 1.0.1 (Maintenance)
 

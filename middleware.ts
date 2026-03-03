@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { findPolicyForPath, isAuthGuardsEnabled, parseRole } from "@/lib/auth/rbac";
-import { getSessionCookieName, verifySignedSessionToken } from "@/lib/auth/session";
+import { verifySignedSessionTokenEdge } from "@/lib/auth/sessionEdge";
 
-function resolveRole(req: NextRequest) {
-  const sessionToken = req.cookies.get(getSessionCookieName())?.value || "";
-  const session = sessionToken ? verifySignedSessionToken(sessionToken) : null;
+const SESSION_COOKIE_NAME = "assessor_session";
+
+async function resolveRole(req: NextRequest) {
+  const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value || "";
+  const secret = String(process.env.AUTH_SESSION_SECRET || "").trim();
+  const session = sessionToken ? await verifySignedSessionTokenEdge(sessionToken, secret) : null;
   if (session?.role) return session.role;
   return (
     parseRole(req.headers.get("x-assessor-role")) ||
@@ -19,14 +22,14 @@ function isApiPath(pathname: string) {
   return pathname.startsWith("/api/");
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   if (!isAuthGuardsEnabled()) return NextResponse.next();
 
   const pathname = req.nextUrl.pathname;
   const policy = findPolicyForPath(pathname);
   if (!policy) return NextResponse.next();
 
-  const role = resolveRole(req);
+  const role = await resolveRole(req);
   if (!role) {
     if (isApiPath(pathname)) {
       return NextResponse.json(

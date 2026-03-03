@@ -29,8 +29,8 @@ function main() {
   expectContains(rbac, 'allowedRoles: ["ADMIN", "ASSESSOR", "IV"]', "rbac");
 
   // Middleware session-first resolution contract
-  expectContains(middleware, "getSessionCookieName", "middleware");
-  expectContains(middleware, "verifySignedSessionToken", "middleware");
+  expectContains(middleware, "SESSION_COOKIE_NAME", "middleware");
+  expectContains(middleware, "verifySignedSessionTokenEdge", "middleware");
   expectContains(middleware, "AUTH_REQUIRED", "middleware");
   expectContains(middleware, "ROLE_FORBIDDEN", "middleware");
 
@@ -53,4 +53,3 @@ function main() {
 }
 
 main();
-
