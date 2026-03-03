@@ -26,9 +26,14 @@ When disabled:
 
 When enabled:
 - middleware enforces role checks from:
-  - request header `x-assessor-role` (preferred for early integration)
+  - cookie `assessor_role` (preferred bridge source)
+  - request header `x-assessor-role` (temporary fallback)
   - request header `x-active-role`
-  - cookie `assessor_role`
+
+Cookie bridge endpoint:
+- `POST /api/auth/role-sync`
+- sets `assessor_role` from active audit user role in app config
+- mounted in layout via `AuthRoleSync` when `AUTH_GUARDS_ENABLED=true`
 
 ## Route protection matrix (phase 1 scaffold)
 

@@ -4,6 +4,7 @@ import PageContainer, { LANE } from "@/components/PageContainer";
 import ToastHost from "@/components/ui/ToastHost";
 import DevBuildBadge from "@/components/DevBuildBadge";
 import { validateRuntimeEnvContract } from "@/lib/runtimeEnvContract";
+import AuthRoleSync from "@/components/auth/AuthRoleSync";
 
 export const metadata = {
   title: "Assessor AI",
@@ -18,6 +19,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   validateRuntimeEnvContract();
   const isDev = process.env.NODE_ENV === "development";
+  const authGuardsEnabled = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_GUARDS_ENABLED || "false").trim());
   const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "1.2.0").trim();
   const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "qa-iv-integrated").trim();
 
@@ -26,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col">
         <TopNav />
         <ToastHost />
+        <AuthRoleSync enabled={authGuardsEnabled} />
         {isDev ? <DevBuildBadge /> : null}
 
         <main className="flex-1">

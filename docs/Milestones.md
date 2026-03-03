@@ -273,6 +273,7 @@ Current update (2026-03-03):
 - Status (2026-03-03): M9 foundation scaffold implemented.
 - Added canonical role matrix: `docs/operations/auth-role-matrix.md`.
 - Added feature-flagged middleware scaffolding (`middleware.ts`, `lib/auth/rbac.ts`) with default-off enforcement (`AUTH_GUARDS_ENABLED=false`).
+- Added cookie role bridge endpoint + layout sync (`/api/auth/role-sync`, `components/auth/AuthRoleSync.tsx`) to provide middleware role context when enabled.
 
 6. Documentation and runbook parity lock
 - Ensure new queue deliverables update:
