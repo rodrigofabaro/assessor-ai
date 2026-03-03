@@ -13,6 +13,10 @@ Last updated: 2026-03-03
    - added strict AI response schema enforcement for typed review draft JSON
    - added request-id aware error taxonomy + ops event logging for invalid request/provider/schema failures
    - added `scripts/iv-ad-review-draft-schema.test.js` and included it in `test:regression-pack`
+3. IV-AD Phase 5 kickoff:
+   - `/admin/iv-ad` now includes `Run AI IV Review` action before final DOCX generation
+   - review draft sections are editable in-page (decision/feedback/criteria/integrity/comments/actions)
+   - evidence snippets and warning list are rendered from the strict review-draft contract
 
 ## 1.0.1 (Maintenance)
 

@@ -40,6 +40,23 @@ type AiReviewPreview = {
   model: string;
 } | null;
 
+type IvAdReviewDraft = {
+  assessmentDecisionCheck: string;
+  feedbackComplianceCheck: string;
+  criteriaLinkingCheck: string;
+  academicIntegrityCheck: string;
+  generalComments: string;
+  actionRequired: string;
+  warnings: string[];
+  confidence: number;
+  evidenceSnippets: Array<{
+    source: "submission" | "assessment" | "spec";
+    excerpt: string;
+  }>;
+  provider: "openai";
+  model: string;
+} | null;
+
 type ReferenceSpecDocument = {
   id: string;
   title: string;
@@ -101,6 +118,7 @@ export default function IvAdAdminPage() {
   const [preview, setPreview] = useState<ExtractionPreview | null>(null);
   const [aiReview, setAiReview] = useState<AiReviewPreview>(null);
   const [aiReviewReason, setAiReviewReason] = useState("");
+  const [reviewDraft, setReviewDraft] = useState<IvAdReviewDraft>(null);
   const [useAiReview, setUseAiReview] = useState(true);
   const [lastDownloadUrl, setLastDownloadUrl] = useState("");
 
@@ -143,6 +161,10 @@ export default function IvAdAdminPage() {
     const requiredFieldValues = Object.values(fields).every((v) => String(v || "").trim());
     return !!markedPdf && requiredFieldValues && !noActiveTemplate && !busy;
   }, [fields, markedPdf, noActiveTemplate, busy]);
+  const canRunDraftReview = useMemo(() => {
+    const requiredFieldValues = Object.values(fields).every((v) => String(v || "").trim());
+    return !!markedPdf && requiredFieldValues && !busy;
+  }, [fields, markedPdf, busy]);
 
   async function uploadTemplate() {
     if (!templateFile) return;
@@ -198,6 +220,33 @@ export default function IvAdAdminPage() {
       }
     } catch (e: any) {
       setError(e?.message || "Failed to generate IV DOCX.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runAiReviewDraft() {
+    if (!canRunDraftReview || !markedPdf) return;
+    setBusy("Running AI IV review...");
+    setError("");
+    setSuccess("");
+    try {
+      const fd = new FormData();
+      fd.set("markedPdf", markedPdf);
+      if (selectedSpecId) fd.set("referenceSpecId", selectedSpecId);
+      for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+      if (gradeOverride) fd.set("finalGrade", gradeOverride);
+      if (keyNotesOverride.trim()) fd.set("keyNotes", keyNotesOverride.trim());
+
+      const res = await fetch("/api/iv-ad/review-draft", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `Review draft failed (${res.status})`);
+
+      setReviewDraft(json?.draft || null);
+      setSuccess("AI review draft generated. You can now edit the draft sections before final generation.");
+    } catch (e: any) {
+      setReviewDraft(null);
+      setError(e?.message || "Failed to run AI IV review.");
     } finally {
       setBusy("");
     }
@@ -364,7 +413,64 @@ export default function IvAdAdminPage() {
             </div>
 
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-              <div className="text-sm font-semibold text-zinc-900">AI review result (latest run)</div>
+              <div className="text-sm font-semibold text-zinc-900">AI review draft workspace</div>
+              <p className="mt-1 text-xs text-zinc-500">
+                Run AI review to generate editable draft sections before producing the final DOCX.
+              </p>
+              {reviewDraft ? (
+                <div className="mt-3 grid gap-3">
+                  <EditableField
+                    label="Assessment decision check"
+                    value={reviewDraft.assessmentDecisionCheck}
+                    onChange={(value) =>
+                      setReviewDraft((prev) => (prev ? { ...prev, assessmentDecisionCheck: value } : prev))
+                    }
+                  />
+                  <EditableField
+                    label="Feedback compliance check"
+                    value={reviewDraft.feedbackComplianceCheck}
+                    onChange={(value) =>
+                      setReviewDraft((prev) => (prev ? { ...prev, feedbackComplianceCheck: value } : prev))
+                    }
+                  />
+                  <EditableField
+                    label="Criteria linking check"
+                    value={reviewDraft.criteriaLinkingCheck}
+                    onChange={(value) => setReviewDraft((prev) => (prev ? { ...prev, criteriaLinkingCheck: value } : prev))}
+                  />
+                  <EditableField
+                    label="Academic integrity check"
+                    value={reviewDraft.academicIntegrityCheck}
+                    onChange={(value) =>
+                      setReviewDraft((prev) => (prev ? { ...prev, academicIntegrityCheck: value } : prev))
+                    }
+                  />
+                  <EditableField
+                    label="General comments"
+                    value={reviewDraft.generalComments}
+                    onChange={(value) => setReviewDraft((prev) => (prev ? { ...prev, generalComments: value } : prev))}
+                  />
+                  <EditableField
+                    label="Action required"
+                    value={reviewDraft.actionRequired}
+                    onChange={(value) => setReviewDraft((prev) => (prev ? { ...prev, actionRequired: value } : prev))}
+                  />
+                  <ReadOnlyField label="confidence" value={Number(reviewDraft.confidence).toFixed(2)} />
+                  <ReadOnlyField label="warnings" value={reviewDraft.warnings.join(" | ") || "—"} multiline />
+                  <ReadOnlyField
+                    label="evidence snippets"
+                    value={reviewDraft.evidenceSnippets.map((s) => `[${s.source}] ${s.excerpt}`).join("\n\n") || "—"}
+                    multiline
+                  />
+                  <ReadOnlyField label="provider/model" value={`${reviewDraft.provider} · ${reviewDraft.model}`} />
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-zinc-600">No draft yet. Use Run AI IV Review to generate one.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-sm font-semibold text-zinc-900">AI review result (during final generation)</div>
               {aiReview ? (
                 <div className="mt-3 grid gap-2">
                   <ReadOnlyField label="gradingDecisionVerdict" value={aiReview.gradingDecisionVerdict} />
@@ -375,12 +481,15 @@ export default function IvAdAdminPage() {
                 </div>
               ) : (
                 <p className="mt-2 text-xs text-zinc-600">
-                  {aiReviewReason ? `AI review unavailable (${aiReviewReason}). Heuristic narrative was used.` : "No AI review result yet."}
+                  {aiReviewReason ? `AI review unavailable (${aiReviewReason}). Heuristic narrative was used.` : "No generation AI review result yet."}
                 </p>
               )}
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={runAiReviewDraft} disabled={!canRunDraftReview} className={BUTTON_NEUTRAL}>
+                {busy === "Running AI IV review..." ? "Running AI Review..." : "Run AI IV Review"}
+              </button>
               <button type="button" onClick={generateIvDocx} disabled={!canGenerate} className={BUTTON_PRIMARY}>
                 {busy === "Generating IV DOCX..." ? "Generating..." : "Generate IV DOCX"}
               </button>
@@ -392,6 +501,7 @@ export default function IvAdAdminPage() {
                   setPreview(null);
                   setAiReview(null);
                   setAiReviewReason("");
+                  setReviewDraft(null);
                   setGradeOverride("");
                   setKeyNotesOverride("");
                 }}
@@ -487,6 +597,23 @@ function Meta({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-zinc-500">{label}</div>
       <div className="text-sm font-semibold text-zinc-900 break-words">{value || "—"}</div>
     </div>
+  );
+}
+
+function EditableField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="text-xs text-zinc-500">{label}</span>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className={TEXTAREA_CLASS} />
+    </label>
   );
 }
 
