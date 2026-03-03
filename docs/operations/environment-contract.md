@@ -42,3 +42,10 @@ Current hard-fail defaults:
 - Base template: `.env.example`
 - OpenAI ops detail: `docs/operations/openai-settings.md`
 - Hybrid/local overrides: `docs/operations/hybrid-ai-local-runbook.md`
+
+## M9 auth scaffold env
+
+- `AUTH_GUARDS_ENABLED`
+  - default: `false`
+  - effect: enables middleware role checks for `/admin/*` and `/api/admin/*`
+  - rollout note: keep disabled until identity/session source is integrated

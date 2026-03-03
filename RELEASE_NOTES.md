@@ -63,6 +63,10 @@ Last updated: 2026-03-03
    - release gate passed on 2026-03-03 via `pnpm run ops:release-gate`
    - release gate artifact: `docs/evidence/release-gate/20260303-142551.json`
    - deploy smoke artifact from same gate run: `docs/evidence/deploy-smoke/20260303-142706.json`
+14. M9 foundation (auth scaffolding) start:
+   - added feature-flagged RBAC scaffold: `middleware.ts` + `lib/auth/rbac.ts`
+   - added canonical role matrix and rollout path: `docs/operations/auth-role-matrix.md`
+   - added `AUTH_GUARDS_ENABLED` env toggle (default false) to keep rollout non-breaking
 
 ## 1.0.1 (Maintenance)
 

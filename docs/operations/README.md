@@ -26,6 +26,8 @@ Last updated: 2026-03-03
    - `docs/operations/environment-contract.md`
 11. Storage migration + rollback:
    - `docs/operations/storage-migration-rollback.md`
+12. Auth role matrix:
+   - `docs/operations/auth-role-matrix.md`
 
 ## Archived operations snapshots
 

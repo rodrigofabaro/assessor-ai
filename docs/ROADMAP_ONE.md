@@ -65,6 +65,9 @@ Implementation note (2026-03-03):
 - auth/session approach selection
 - route protection matrix (`Admin`, `Assessor`, `IV`)
 - non-breaking rollout path
+- Progress (2026-03-03): foundation scaffold added.
+- Canonical matrix: `docs/operations/auth-role-matrix.md`.
+- Feature-flagged middleware (`AUTH_GUARDS_ENABLED`) added with non-breaking default (`false`).
 
 ### Later
 
