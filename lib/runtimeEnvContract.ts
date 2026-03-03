@@ -56,6 +56,24 @@ function collectIssues(): EnvIssue[] {
       hardFail: requireOpenAi,
     });
   }
+  const authGuardsEnabled = isTruthy(process.env.AUTH_GUARDS_ENABLED);
+  if (authGuardsEnabled) {
+    const sessionSecret = String(process.env.AUTH_SESSION_SECRET || "").trim();
+    if (sessionSecret.length < 24) {
+      issues.push({
+        code: "ENV_AUTH_SESSION_SECRET_MISSING",
+        detail: "AUTH_SESSION_SECRET must be set to 24+ characters when AUTH_GUARDS_ENABLED=true.",
+        hardFail: true,
+      });
+    }
+    if (!String(process.env.AUTH_LOGIN_USERNAME || "").trim() || !String(process.env.AUTH_LOGIN_PASSWORD || "").trim()) {
+      issues.push({
+        code: "ENV_AUTH_LOGIN_CREDENTIALS_MISSING",
+        detail: "AUTH_LOGIN_USERNAME and AUTH_LOGIN_PASSWORD are required when AUTH_GUARDS_ENABLED=true.",
+        hardFail: true,
+      });
+    }
+  }
   return issues;
 }
 

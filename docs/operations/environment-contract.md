@@ -48,11 +48,29 @@ Current hard-fail defaults:
 - `AUTH_GUARDS_ENABLED`
   - default: `false`
   - effect: enables middleware role checks for `/admin/*` and `/api/admin/*`
-  - rollout note: keep disabled until identity/session source is integrated
+  - rollout note: when enabled, signed-session login is required
 
 - `AUTH_SESSION_SECRET`
   - required when `AUTH_GUARDS_ENABLED=true` and using signed session cookie bootstrap
   - minimum recommended length: 32+ characters
+
+- `AUTH_LOGIN_USERNAME`
+  - required when `AUTH_GUARDS_ENABLED=true`
+  - username accepted by `/login`
+
+- `AUTH_LOGIN_PASSWORD`
+  - required when `AUTH_GUARDS_ENABLED=true`
+  - password accepted by `/login` (set only in deployment secrets)
+
+- `AUTH_LOGIN_ROLE`
+  - optional when `AUTH_GUARDS_ENABLED=true`
+  - issued session role (`ADMIN` default)
+
+- `AUTH_BOOTSTRAP_ENABLED`
+  - default: `false`
+  - when `true`, enables legacy auto-bootstrap routes:
+    - `POST /api/auth/session/bootstrap`
+    - `POST /api/auth/role-sync`
 
 ## Storage migration env (M8)
 

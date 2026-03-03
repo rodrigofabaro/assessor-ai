@@ -6,8 +6,12 @@ import { parseRole } from "@/lib/auth/rbac";
 export const runtime = "nodejs";
 
 const ONE_DAY_SECONDS = 60 * 60 * 24;
+const allowBootstrap = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_BOOTSTRAP_ENABLED || "false").trim());
 
 export async function POST() {
+  if (!allowBootstrap) {
+    return NextResponse.json({ error: "Session bootstrap is disabled.", code: "AUTH_BOOTSTRAP_DISABLED" }, { status: 403 });
+  }
   if (!hasSessionSecret()) {
     return NextResponse.json(
       { error: "AUTH_SESSION_SECRET is not configured.", code: "AUTH_SESSION_SECRET_MISSING" },
@@ -56,4 +60,3 @@ export async function POST() {
   });
   return res;
 }
-

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { findPolicyForPath, isAuthGuardsEnabled, parseRole } from "@/lib/auth/rbac";
+import { findPolicyForPath, isAuthGuardsEnabled } from "@/lib/auth/rbac";
 import { verifySignedSessionTokenEdge } from "@/lib/auth/sessionEdge";
 
 const SESSION_COOKIE_NAME = "assessor_session";
@@ -8,14 +8,9 @@ const SESSION_COOKIE_NAME = "assessor_session";
 async function resolveRole(req: NextRequest) {
   const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value || "";
   const secret = String(process.env.AUTH_SESSION_SECRET || "").trim();
+  if (!sessionToken || secret.length < 24) return null;
   const session = sessionToken ? await verifySignedSessionTokenEdge(sessionToken, secret) : null;
-  if (session?.role) return session.role;
-  return (
-    parseRole(req.headers.get("x-assessor-role")) ||
-    parseRole(req.headers.get("x-active-role")) ||
-    parseRole(req.cookies.get("assessor_role")?.value) ||
-    null
-  );
+  return session?.role || null;
 }
 
 function isApiPath(pathname: string) {
@@ -23,9 +18,21 @@ function isApiPath(pathname: string) {
 }
 
 export async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  const isLoginPath = pathname === "/login" || pathname.startsWith("/login/");
+
+  if (isLoginPath && isAuthGuardsEnabled()) {
+    const role = await resolveRole(req);
+    if (role) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/admin";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (!isAuthGuardsEnabled()) return NextResponse.next();
 
-  const pathname = req.nextUrl.pathname;
   const policy = findPolicyForPath(pathname);
   if (!policy) return NextResponse.next();
 
@@ -38,7 +45,9 @@ export async function middleware(req: NextRequest) {
       );
     }
     const url = req.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/login";
+    const nextPath = `${pathname}${req.nextUrl.search || ""}`;
+    if (nextPath) url.searchParams.set("next", nextPath);
     url.searchParams.set("auth", "required");
     return NextResponse.redirect(url);
   }

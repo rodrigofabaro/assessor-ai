@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 
-export default function AuthRoleSync({ enabled }: { enabled: boolean }) {
+export default function AuthRoleSync({ enabled, bootstrapEnabled }: { enabled: boolean; bootstrapEnabled: boolean }) {
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !bootstrapEnabled) return;
     const ctrl = new AbortController();
     const run = async () => {
       try {
@@ -25,7 +25,7 @@ export default function AuthRoleSync({ enabled }: { enabled: boolean }) {
     };
     void run();
     return () => ctrl.abort();
-  }, [enabled]);
+  }, [enabled, bootstrapEnabled]);
 
   return null;
 }

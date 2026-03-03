@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 
 const COOKIE_NAME = "assessor_role";
 const ONE_DAY_SECONDS = 60 * 60 * 24;
+const allowBootstrap = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_BOOTSTRAP_ENABLED || "false").trim());
 
 function normalizeRole(value: string | null | undefined) {
   const role = String(value || "").trim().toUpperCase();
@@ -13,6 +14,9 @@ function normalizeRole(value: string | null | undefined) {
 }
 
 export async function POST() {
+  if (!allowBootstrap) {
+    return NextResponse.json({ error: "Role bootstrap is disabled.", code: "AUTH_BOOTSTRAP_DISABLED" }, { status: 403 });
+  }
   const cfg = await getOrCreateAppConfig();
   const active = cfg.activeAuditUser;
   const role = active?.isActive ? normalizeRole(active.role) : "";
@@ -47,4 +51,3 @@ export async function POST() {
 
   return res;
 }
-
