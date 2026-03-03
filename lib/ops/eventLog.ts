@@ -1,7 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 
 type OpsEvent = {
   ts?: string;
@@ -43,7 +42,7 @@ export function appendOpsEvent(event: OpsEvent) {
         actor: payload.actor,
         route: payload.route,
         status: payload.status,
-        details: payload.details as Prisma.InputJsonValue,
+        details: payload.details,
       },
     })
     .catch(() => legacyFileFallback());

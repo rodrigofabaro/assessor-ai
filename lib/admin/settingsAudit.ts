@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 
 export type SettingsAuditEvent = {
   id: string;
@@ -66,7 +65,7 @@ export function appendSettingsAuditEvent(input: Omit<SettingsAuditEvent, "id" | 
         role: event.role,
         action: event.action,
         target: event.target,
-        changes: (event.changes || null) as Prisma.InputJsonValue | null,
+        changes: event.changes || null,
       },
     })
     .catch(() => appendFallbackEvent(event));
