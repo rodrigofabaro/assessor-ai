@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { QueueTermsCard } from "@/components/submissions/QueueTermsCard";
 
+export const dynamic = "force-dynamic";
+
 const GRADE_BANDS = ["REFER", "PASS", "PASS_ON_RESUBMISSION", "MERIT", "DISTINCTION"] as const;
 
 function formatUpdated(ts: Date) {

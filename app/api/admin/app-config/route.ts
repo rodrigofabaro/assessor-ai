@@ -6,6 +6,8 @@ import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { readAutomationPolicy, writeAutomationPolicy } from "@/lib/admin/automationPolicy";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const readCtx = await getSettingsReadContext();
   if (!readCtx.canRead) {
