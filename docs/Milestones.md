@@ -4,7 +4,8 @@ Last updated: 2026-03-03
 
 Canonical planning source:
 - `docs/ROADMAP.md` (index)
-- This file is the source of truth for roadmap priority and sequencing.
+- `docs/ROADMAP_ONE.md` (unified roadmap + deployment steps)
+- This file is the milestone ledger.
 - Documentation rules: `docs/DOCS_SYSTEM.md`.
 
 This is the “boring but reliable” build tracker.
@@ -213,6 +214,48 @@ Status labels:
 - No unresolved P1 regressions on extraction or grading integrity.
 - Export pack path is deterministic and auditable.
 - High-traffic admin pages remain responsive under production-sized datasets.
+
+---
+
+## 🔜 Roadmap continuation queue (2026-03-03)
+1. M7 close-out and release gate
+- Complete deterministic export pack implementation and replay parity checks.
+- Add release note entry + operator validation script for export parity.
+- Mark M7 done only after reproducibility evidence is captured.
+
+2. IV-AD Phase 4 start (API contract)
+- Implement `POST /api/iv-ad/review-draft` with strict schema validation.
+- Add structured error taxonomy for malformed AI output.
+- Wire request id and audit-safe logging for review generation.
+
+3. IV-AD Phase 5 start (review workspace)
+- Add `Run AI IV Review` UI action in `/admin/iv-ad`.
+- Render editable draft sections and evidence snippets panel.
+- Keep manual fallback path available when AI draft fails.
+
+4. M8 Phase A groundwork (deployment readiness)
+- Finalize environment variable contract and secrets checklist.
+- Define storage migration plan (`uploads`, `reference_uploads`, `storage/*`) with rollback steps.
+- Add pre-deploy smoke route checklist to ops docs.
+
+5. M9 foundation (auth scaffolding spike)
+- Select auth/session approach and document route protection matrix.
+- Add non-breaking auth scaffolding branch plan (no production lockout risk).
+- Define role model contract (`Admin`, `Assessor`, `IV`) and required route guards.
+
+6. Documentation and runbook parity lock
+- Ensure new queue deliverables update:
+  - `docs/Milestones.md`
+  - `RELEASE_NOTES.md`
+  - affected route help pages
+- Block queue completion if docs for changed behavior are missing.
+
+**Exit criteria for continuation queue**
+- M7 is closed with reproducibility proof.
+- IV-AD Phase 4 endpoint contract is merged and test-covered.
+- IV-AD Phase 5 UI entrypoint is live with manual fallback.
+- M8 Phase A readiness checklist exists and is executable.
+- Auth foundation decision is documented with route guard matrix.
 
 ---
 

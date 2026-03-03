@@ -9,6 +9,8 @@ Single lookup table for "which doc to use for what" to remove overlap ambiguity.
 ## Canonical docs
 
 - `docs/Milestones.md`: roadmap priority and sequencing.
+- `docs/SCOPE_AND_DOD.md`: definition of done, non-goals, and top risks.
+- `docs/KNOWN_LIMITATIONS.md`: active limitations register.
 - `docs/ROADMAP.md`: roadmap categories and navigation.
 - `RELEASE.md`: release contract and scope.
 - `RELEASE_NOTES.md`: shipped history.

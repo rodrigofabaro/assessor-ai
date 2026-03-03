@@ -8,16 +8,19 @@ This folder is the operational source of truth for extraction, mapping, grading,
 
 1. Documentation system and update rules: `docs/DOCS_SYSTEM.md`
 2. Roadmap and planning lanes: `docs/ROADMAP.md`
-3. Product milestone truth: `docs/Milestones.md`
-4. Release scope contract: `RELEASE.md`
-5. Release history: `RELEASE_NOTES.md`
-6. Reproducible operations checklist: `docs/ops-checklist.md`
-7. Route help center: `docs/help/README.md`
-8. Latest documentation audit snapshot: `docs/DOCS_AUDIT_2026-03-03.md`
-9. Operations docs index: `docs/operations/README.md`
-10. Operations archive policy: `docs/operations/archive/README.md`
-11. Documentation role matrix: `docs/DOC_ROLE_MATRIX.md`
-12. Codebase file responsibility map: `docs/SYSTEM_FILE_MAP.md`
+3. Unified delivery roadmap + deployment steps: `docs/ROADMAP_ONE.md`
+4. Product milestone truth: `docs/Milestones.md`
+5. Scope + Definition of Done + Non-goals + Risks: `docs/SCOPE_AND_DOD.md`
+6. Known limitations register: `docs/KNOWN_LIMITATIONS.md`
+7. Release scope contract: `RELEASE.md`
+8. Release history: `RELEASE_NOTES.md`
+9. Reproducible operations checklist: `docs/ops-checklist.md`
+10. Route help center: `docs/help/README.md`
+11. Latest documentation audit snapshot: `docs/DOCS_AUDIT_2026-03-03.md`
+12. Operations docs index: `docs/operations/README.md`
+13. Operations archive policy: `docs/operations/archive/README.md`
+14. Documentation role matrix: `docs/DOC_ROLE_MATRIX.md`
+15. Codebase file responsibility map: `docs/SYSTEM_FILE_MAP.md`
 
 ## If you need...
 

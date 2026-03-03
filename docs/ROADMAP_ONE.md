@@ -1,0 +1,164 @@
+# Assessor-AI Unified Roadmap
+
+Last updated: 2026-03-03
+
+## Purpose
+
+Single source for:
+1. What is next
+2. What to implement
+3. How to deploy
+4. What defines done
+
+Use this doc when the instruction is: "continue the roadmap".
+
+## Current status snapshot
+
+1. Completed baseline milestones: M1-M6
+2. Active delivery target: M7 (Export packs)
+3. Parallel tracks in preparation:
+   - IV-AD AI review rollout
+   - M8 deployment readiness
+   - M9 auth and UX hardening foundation
+
+## Execution lanes
+
+### Now (in progress)
+
+1. M7 export-pack endpoint/UI
+- one-click export bundle per submission
+- deterministic manifest and checksums
+- replay route with parity validation
+
+2. Extraction and admin performance hardening
+- brief extraction regression stabilization
+- reference inbox pagination/projection optimization
+- submission detail heavy-panel render optimization
+
+3. QA reliability instrumentation
+- preview/commit/regrade latency metrics
+- p50/p95 + retry/failure dashboard cards
+
+### Next (immediately after current queue)
+
+1. IV-AD Phase 4
+- `POST /api/iv-ad/review-draft`
+- strict request/response schema
+- structured error taxonomy and request-id logging
+
+2. IV-AD Phase 5
+- `Run AI IV Review` action in `/admin/iv-ad`
+- editable draft sections
+- evidence snippet panel
+- manual fallback preserved
+
+3. M8 Phase A groundwork
+- production env contract
+- storage/data migration plan
+- pre-deploy smoke checklist
+
+4. M9 auth foundation spike
+- auth/session approach selection
+- route protection matrix (`Admin`, `Assessor`, `IV`)
+- non-breaking rollout path
+
+### Later
+
+1. Full M8 production deployment and cost-ladder scaling
+2. Full M9 auth + UX template rollout + final performance hardening
+
+## Definition of done by active queue
+
+### Queue A - M7 closure
+
+Done when:
+1. Export pack is deterministic and reproducible
+2. Replay parity check passes on same export id
+3. Release notes include shipped behavior and validation evidence
+
+### Queue B - IV-AD Phase 4/5 start
+
+Done when:
+1. Review-draft endpoint is merged and test-covered
+2. `/admin/iv-ad` can generate editable AI draft
+3. Manual completion still works when AI draft fails
+
+### Queue C - Deployment readiness
+
+Done when:
+1. Deployment preflight checklist is executable end-to-end
+2. Data/file migration plan is documented with rollback path
+3. Smoke checks are scripted and repeatable
+
+## Production deployment steps (single runbook section)
+
+### Pre-deploy
+
+1. Confirm tooling:
+- `node -v`
+- `pnpm -v`
+
+2. Run quality gates:
+- `pnpm lint`
+- `pnpm exec tsc --noEmit --incremental false`
+- `pnpm run test:regression-pack`
+
+3. Verify environment contract:
+- `DATABASE_URL`
+- OpenAI keys/config
+- Turnitin config (if enabled)
+- app runtime envs for extraction/grading automation
+
+4. Confirm backup/rollback readiness:
+- DB backup point created
+- file storage snapshot/sync plan ready
+
+### Deploy
+
+1. Install and generate:
+- `pnpm install`
+- `pnpm prisma generate`
+
+2. Apply schema:
+- `pnpm prisma migrate deploy`
+
+3. Start app:
+- `pnpm run build`
+- `pnpm start` (or platform equivalent)
+
+### Post-deploy smoke checks
+
+1. Upload -> extract -> triage -> grade path succeeds
+2. Marked PDF generation/download works
+3. Reference/spec/brief lock routes work
+4. QA preview/commit works
+5. IV-AD generation path works
+6. `/api/admin/ops/metrics` and event logs are healthy
+
+### Rollback
+
+1. Trigger rollback on P1 functional break or data integrity risk
+2. Revert app to previous release artifact/commit
+3. Restore DB/files from pre-deploy checkpoint if needed
+4. Re-run smoke checks before reopening traffic
+
+## Change discipline (required)
+
+For every roadmap continuation batch:
+1. Update this file first
+2. Implement code changes
+3. Update `RELEASE_NOTES.md`
+4. Update affected help/ops docs
+5. Mark queue items done only with verifiable evidence
+6. Keep `docs/SCOPE_AND_DOD.md` and `docs/KNOWN_LIMITATIONS.md` current.
+
+## Operator prompt contract
+
+When asked: "continue the roadmap"
+
+Default action order:
+1. Read this file
+2. Pick next unfinished item from `Now`, then `Next`
+3. Implement
+4. Validate with tests/smoke checks
+5. Update docs and status in this file

@@ -12,9 +12,11 @@ Role lookup:
 ## Canonical documents (single source by decision type)
 
 1. Product priorities and sequencing:
-   - `docs/Milestones.md`
+   - `docs/ROADMAP_ONE.md`
+   - `docs/SCOPE_AND_DOD.md`
 2. Roadmap index and planning lanes:
    - `docs/ROADMAP.md`
+   - milestone ledger: `docs/Milestones.md`
 3. Release scope contract:
    - `RELEASE.md`
 4. Release history:
@@ -24,6 +26,8 @@ Role lookup:
    - `docs/PROJECT_COMPLETION_CHECKLIST.md`
 6. Help center navigation:
    - `docs/help/README.md`
+7. Known limitations register:
+   - `docs/KNOWN_LIMITATIONS.md`
 
 ## Document classes
 

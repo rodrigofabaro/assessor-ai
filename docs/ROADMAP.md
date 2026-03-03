@@ -8,10 +8,13 @@ Documentation governance:
 ## Canonical roadmap
 
 Primary source of truth for "what gets built next":
+- `docs/ROADMAP_ONE.md`
+
+Milestone ledger:
 - `docs/Milestones.md`
 
 Rule:
-- New roadmap items must be added to `docs/Milestones.md` first.
+- New roadmap items must be added to `docs/ROADMAP_ONE.md` first.
 - Feature-specific roadmap docs should link back to their milestone item.
 
 ## Categorized tracking lanes
@@ -22,6 +25,7 @@ Use these categories for all planning updates.
    - Active implementation queue in `docs/Milestones.md`:
      - `M7 Export packs`
      - `Next implementation queue (2026-03-02)`
+     - `Roadmap continuation queue (2026-03-03)`
 2. Developments (Next)
    - Planned roadmap milestones in `docs/Milestones.md`:
      - `M8 Production Deployment & Cost-Controlled Scaling`
