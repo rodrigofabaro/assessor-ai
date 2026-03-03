@@ -123,6 +123,7 @@ Progress (2026-03-03):
 1. Environment contract is now canonicalized in `docs/operations/environment-contract.md`.
 2. Runtime startup validation is implemented in `lib/runtimeEnvContract.ts` and invoked by `app/layout.tsx` and `lib/prisma.ts`.
 3. Contract currently enforces critical keys: `DATABASE_URL` and at least one OpenAI credential key.
+4. Storage migration + rollback runbook is now documented in `docs/operations/storage-migration-rollback.md` (backup, restore, verification, rollback triggers, evidence).
 
 ## Production deployment steps (single runbook section)
 
@@ -147,6 +148,7 @@ Progress (2026-03-03):
 4. Confirm backup/rollback readiness:
 - DB backup point created
 - file storage snapshot/sync plan ready
+- runbook: `docs/operations/storage-migration-rollback.md`
 
 ### Deploy
 

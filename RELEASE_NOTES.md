@@ -42,6 +42,9 @@ Last updated: 2026-03-03
    - added centralized runtime env validator: `lib/runtimeEnvContract.ts`
    - wired startup validation into `app/layout.tsx` and `lib/prisma.ts`
    - startup checks now cover `DATABASE_URL` and at least one OpenAI credential key
+8. M8 Phase A (storage migration + rollback) start:
+   - added canonical storage migration runbook: `docs/operations/storage-migration-rollback.md`
+   - runbook includes backup hashes, DB restore, file restore/sync, verification gates, rollback triggers, and rollback procedure
 
 ## 1.0.1 (Maintenance)
 

@@ -24,6 +24,8 @@ Last updated: 2026-03-03
    - `docs/operations/areas-of-improvement.md`
 10. Environment contract:
    - `docs/operations/environment-contract.md`
+11. Storage migration + rollback:
+   - `docs/operations/storage-migration-rollback.md`
 
 ## Archived operations snapshots
 
