@@ -399,7 +399,7 @@ function resolveCriteriaScopePolicy(unitCode: string, assignmentCode: string): C
   return null;
 }
 
-function compareCriteriaAlignment(mappedCodes: string[], briefCodes: string[]) {
+function compareCriteriaAlignment(mappedCodes: unknown[], briefCodes: unknown[]) {
   const mapped = Array.from(new Set((mappedCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
   const brief = Array.from(new Set((briefCodes || []).map((c) => String(c || "").trim().toUpperCase()).filter(Boolean)));
   const mappedSet = new Set(mapped);
