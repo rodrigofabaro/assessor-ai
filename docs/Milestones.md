@@ -260,6 +260,9 @@ Current update (2026-03-03):
 - Evidence output: `docs/evidence/deploy-smoke/*.json` (pass/fail artifact with step-level diagnostics).
 - Status (2026-03-03): deploy-smoke pass evidence captured.
 - Artifact: `docs/evidence/deploy-smoke/20260303-140208.json`.
+- Status (2026-03-03): release gate command implemented.
+- Command: `pnpm run ops:release-gate` (`scripts/release-gate-evidence.js`).
+- Evidence output: `docs/evidence/release-gate/*.json`.
 
 5. M9 foundation (auth scaffolding spike)
 - Select auth/session approach and document route protection matrix.

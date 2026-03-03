@@ -55,6 +55,10 @@ Last updated: 2026-03-03
 11. M8 Phase A deploy-smoke evidence:
    - automated deploy smoke passed on 2026-03-03 via `pnpm run ops:deploy-smoke`
    - evidence artifact: `docs/evidence/deploy-smoke/20260303-140208.json`
+12. M8 Phase A release gate automation:
+   - added one-command release gate: `pnpm run ops:release-gate` (`scripts/release-gate-evidence.js`)
+   - release gate runs: tsc + regression pack + export-pack validation + deploy smoke
+   - writes pass/fail artifact to `docs/evidence/release-gate/*.json`
 
 ## 1.0.1 (Maintenance)
 

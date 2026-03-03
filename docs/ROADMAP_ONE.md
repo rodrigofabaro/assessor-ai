@@ -126,6 +126,7 @@ Progress (2026-03-03):
 4. Storage migration + rollback runbook is now documented in `docs/operations/storage-migration-rollback.md` (backup, restore, verification, rollback triggers, evidence).
 5. One-command deploy smoke is implemented: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`) with evidence output in `docs/evidence/deploy-smoke/`.
 6. Deploy smoke evidence captured (2026-03-03): `docs/evidence/deploy-smoke/20260303-140208.json`.
+7. Release gate command added: `pnpm run ops:release-gate` with evidence output in `docs/evidence/release-gate/`.
 
 ## Production deployment steps (single runbook section)
 
@@ -136,10 +137,7 @@ Progress (2026-03-03):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm lint`
-- `pnpm exec tsc --noEmit --incremental false`
-- `pnpm run test:regression-pack`
-- `pnpm run test:export-pack-validation` (explicit export manifest integrity gate)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

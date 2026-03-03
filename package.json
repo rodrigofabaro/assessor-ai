@@ -28,6 +28,7 @@
     "test:export-pack-validation": "node scripts/export-pack-validation.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",
     "ops:deploy-smoke": "node scripts/deploy-smoke-evidence.js",
+    "ops:release-gate": "node scripts/release-gate-evidence.js",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",

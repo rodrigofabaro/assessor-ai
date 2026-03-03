@@ -103,6 +103,24 @@ Output:
 - Exits non-zero on failure
 - Failure artifact includes step, status, and API error payload for triage
 
+## Release Gate (Required Before Deploy)
+
+Run one command:
+
+```powershell
+pnpm run ops:release-gate
+```
+
+What it runs:
+1. `pnpm exec tsc --noEmit --incremental false`
+2. `pnpm run test:regression-pack`
+3. `pnpm run test:export-pack-validation`
+4. `pnpm run ops:deploy-smoke`
+
+Output:
+- Writes `docs/evidence/release-gate/YYYYMMDD-HHMMSS.json`
+- Fails fast and exits non-zero on first failing step
+
 ## Build Reproducibility Check
 
 ```powershell
