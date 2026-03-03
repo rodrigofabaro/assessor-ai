@@ -70,6 +70,7 @@ Implementation note (2026-03-03):
 - Feature-flagged middleware (`AUTH_GUARDS_ENABLED`) added with non-breaking default (`false`).
 - Cookie role bridge added: `/api/auth/role-sync` + layout `AuthRoleSync` to populate `assessor_role` when guards are enabled.
 - Session-backed identity scaffold added: `/api/auth/session/bootstrap` + signed `assessor_session` cookie (`AUTH_SESSION_SECRET`) used by middleware.
+- Staging-only guard validation command added: `pnpm run ops:auth-guard-smoke` (kept outside default `ops:release-gate` until enforcement rollout).
 
 ### Later
 

@@ -276,6 +276,7 @@ Current update (2026-03-03):
 - Added cookie role bridge endpoint + layout sync (`/api/auth/role-sync`, `components/auth/AuthRoleSync.tsx`) to provide middleware role context when enabled.
 - Added session bootstrap endpoint + signed session helper (`/api/auth/session/bootstrap`, `lib/auth/session.ts`) for cookie-backed role identity.
 - Added auth scaffold contract regression guard (`scripts/auth-scaffold-contract.test.js`) in `test:regression-pack`.
+- Added staging-only auth guard smoke command (`scripts/auth-guard-smoke.js`, `pnpm run ops:auth-guard-smoke`) with evidence output in `docs/evidence/auth-guard-smoke/`.
 
 6. Documentation and runbook parity lock
 - Ensure new queue deliverables update:

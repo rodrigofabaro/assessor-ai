@@ -29,6 +29,7 @@
     "test:auth-scaffold-contract": "node scripts/auth-scaffold-contract.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",
     "ops:deploy-smoke": "node scripts/deploy-smoke-evidence.js",
+    "ops:auth-guard-smoke": "node scripts/auth-guard-smoke.js",
     "ops:release-gate": "node scripts/release-gate-evidence.js",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",

@@ -121,6 +121,22 @@ Output:
 - Writes `docs/evidence/release-gate/YYYYMMDD-HHMMSS.json`
 - Fails fast and exits non-zero on first failing step
 
+## Auth Guard Smoke (Staging Only)
+
+Run this only when auth guards are enabled in the target runtime:
+
+```powershell
+pnpm run ops:auth-guard-smoke
+```
+
+Requirements:
+1. `AUTH_GUARDS_ENABLED=true`
+2. `AUTH_SESSION_SECRET` configured
+
+Output:
+- Writes `docs/evidence/auth-guard-smoke/YYYYMMDD-HHMMSS.json`
+- Verifies 401/403/allow behavior and session-cookie bootstrap path
+
 ## Build Reproducibility Check
 
 ```powershell

@@ -73,3 +73,19 @@ Session bootstrap endpoint:
 3. Validate all admin workflows and API calls.
 4. Move from header-based role to real session/cookie-backed role.
 5. Expand matrix to non-admin routes (`/submissions`, `/students`, `/api/submissions/*`) after role contracts are finalized.
+
+## Staging validation command
+
+Use this only when `AUTH_GUARDS_ENABLED=true` in the running environment:
+
+```powershell
+pnpm run ops:auth-guard-smoke
+```
+
+Behavior:
+- validates 401/403/allowed guard behavior for admin and submissions/students APIs
+- validates session bootstrap cookie path (`/api/auth/session/bootstrap`)
+- writes evidence to `docs/evidence/auth-guard-smoke/*.json`
+
+Note:
+- This command is intentionally not part of default `ops:release-gate` until auth enforcement is enabled for deployment environments.
