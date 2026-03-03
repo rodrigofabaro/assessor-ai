@@ -49,3 +49,7 @@ Current hard-fail defaults:
   - default: `false`
   - effect: enables middleware role checks for `/admin/*` and `/api/admin/*`
   - rollout note: keep disabled until identity/session source is integrated
+
+- `AUTH_SESSION_SECRET`
+  - required when `AUTH_GUARDS_ENABLED=true` and using signed session cookie bootstrap
+  - minimum recommended length: 32+ characters

@@ -26,14 +26,21 @@ When disabled:
 
 When enabled:
 - middleware enforces role checks from:
-  - cookie `assessor_role` (preferred bridge source)
-  - request header `x-assessor-role` (temporary fallback)
-  - request header `x-active-role`
+  - signed session cookie `assessor_session` (preferred source)
+  - cookie `assessor_role` (legacy fallback)
+  - request header `x-assessor-role` (temporary fallback only)
+  - request header `x-active-role` (temporary fallback only)
 
 Cookie bridge endpoint:
 - `POST /api/auth/role-sync`
 - sets `assessor_role` from active audit user role in app config
 - mounted in layout via `AuthRoleSync` when `AUTH_GUARDS_ENABLED=true`
+
+Session bootstrap endpoint:
+- `POST /api/auth/session/bootstrap`
+- issues signed `assessor_session` cookie from active audit user role
+- requires `AUTH_SESSION_SECRET` (minimum 24 chars)
+- called by `AuthRoleSync` first; falls back to role-sync bridge if unavailable
 
 ## Route protection matrix (phase 1 scaffold)
 
@@ -45,6 +52,9 @@ Cookie bridge endpoint:
 
 3. all other routes
 - no middleware role enforcement in this phase
+
+4. `/submissions/*`, `/students/*`, `/api/submissions/*`, `/api/students/*`
+- allowed roles: `ADMIN`, `ASSESSOR`, `IV`
 
 ## Enforcement responses
 

@@ -9,6 +9,10 @@ export type RoutePolicy = {
 export const ROUTE_POLICIES: RoutePolicy[] = [
   { id: "admin-pages", prefix: "/admin", allowedRoles: ["ADMIN"] },
   { id: "admin-api", prefix: "/api/admin", allowedRoles: ["ADMIN"] },
+  { id: "submissions-pages", prefix: "/submissions", allowedRoles: ["ADMIN", "ASSESSOR", "IV"] },
+  { id: "submissions-api", prefix: "/api/submissions", allowedRoles: ["ADMIN", "ASSESSOR", "IV"] },
+  { id: "students-pages", prefix: "/students", allowedRoles: ["ADMIN", "ASSESSOR", "IV"] },
+  { id: "students-api", prefix: "/api/students", allowedRoles: ["ADMIN", "ASSESSOR", "IV"] },
 ];
 
 export function isAuthGuardsEnabled() {
@@ -27,4 +31,3 @@ export function findPolicyForPath(pathname: string): RoutePolicy | null {
   }
   return null;
 }
-

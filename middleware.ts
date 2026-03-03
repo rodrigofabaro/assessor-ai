@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { findPolicyForPath, isAuthGuardsEnabled, parseRole } from "@/lib/auth/rbac";
+import { getSessionCookieName, verifySignedSessionToken } from "@/lib/auth/session";
 
 function resolveRole(req: NextRequest) {
+  const sessionToken = req.cookies.get(getSessionCookieName())?.value || "";
+  const session = sessionToken ? verifySignedSessionToken(sessionToken) : null;
+  if (session?.role) return session.role;
   return (
     parseRole(req.headers.get("x-assessor-role")) ||
     parseRole(req.headers.get("x-active-role")) ||
@@ -55,4 +59,3 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg).*)"],
 };
-

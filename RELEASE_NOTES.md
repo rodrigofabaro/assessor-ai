@@ -68,6 +68,7 @@ Last updated: 2026-03-03
    - added canonical role matrix and rollout path: `docs/operations/auth-role-matrix.md`
    - added `AUTH_GUARDS_ENABLED` env toggle (default false) to keep rollout non-breaking
    - added cookie role bridge: `POST /api/auth/role-sync` + layout sync component (`components/auth/AuthRoleSync.tsx`)
+   - added session-backed identity scaffold: `POST /api/auth/session/bootstrap` + signed cookie helper (`lib/auth/session.ts`) with `AUTH_SESSION_SECRET`
 
 ## 1.0.1 (Maintenance)
 
