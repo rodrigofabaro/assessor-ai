@@ -127,6 +127,7 @@ Progress (2026-03-03):
 5. One-command deploy smoke is implemented: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`) with evidence output in `docs/evidence/deploy-smoke/`.
 6. Deploy smoke evidence captured (2026-03-03): `docs/evidence/deploy-smoke/20260303-140208.json`.
 7. Release gate command added: `pnpm run ops:release-gate` with evidence output in `docs/evidence/release-gate/`.
+8. Release gate evidence captured (2026-03-03): `docs/evidence/release-gate/20260303-142551.json` (includes deploy-smoke pass in same run).
 
 ## Production deployment steps (single runbook section)
 

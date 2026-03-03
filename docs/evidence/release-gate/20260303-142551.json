@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-03-03T14:25:51.226Z",
+  "gate": "release",
+  "steps": [
+    {
+      "id": "tsc",
+      "command": "pnpm exec tsc --noEmit --incremental false",
+      "startedAt": "2026-03-03T14:25:51.228Z",
+      "endedAt": "2026-03-03T14:26:13.414Z",
+      "durationMs": 22186,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "regression_pack",
+      "command": "pnpm run test:regression-pack",
+      "startedAt": "2026-03-03T14:26:13.414Z",
+      "endedAt": "2026-03-03T14:26:16.124Z",
+      "durationMs": 2710,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "export_pack_validation",
+      "command": "pnpm run test:export-pack-validation",
+      "startedAt": "2026-03-03T14:26:16.124Z",
+      "endedAt": "2026-03-03T14:26:16.837Z",
+      "durationMs": 713,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "deploy_smoke",
+      "command": "pnpm run ops:deploy-smoke",
+      "startedAt": "2026-03-03T14:26:16.838Z",
+      "endedAt": "2026-03-03T14:27:06.787Z",
+      "durationMs": 49949,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    }
+  ],
+  "summary": {
+    "ok": true,
+    "failedStep": null,
+    "totalSteps": 4,
+    "passedSteps": 4
+  }
+}

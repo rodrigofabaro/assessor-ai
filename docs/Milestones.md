@@ -263,6 +263,8 @@ Current update (2026-03-03):
 - Status (2026-03-03): release gate command implemented.
 - Command: `pnpm run ops:release-gate` (`scripts/release-gate-evidence.js`).
 - Evidence output: `docs/evidence/release-gate/*.json`.
+- Status (2026-03-03): release gate pass evidence captured.
+- Artifact: `docs/evidence/release-gate/20260303-142551.json`.
 
 5. M9 foundation (auth scaffolding spike)
 - Select auth/session approach and document route protection matrix.

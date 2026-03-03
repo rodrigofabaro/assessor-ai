@@ -59,6 +59,10 @@ Last updated: 2026-03-03
    - added one-command release gate: `pnpm run ops:release-gate` (`scripts/release-gate-evidence.js`)
    - release gate runs: tsc + regression pack + export-pack validation + deploy smoke
    - writes pass/fail artifact to `docs/evidence/release-gate/*.json`
+13. M8 Phase A release gate evidence:
+   - release gate passed on 2026-03-03 via `pnpm run ops:release-gate`
+   - release gate artifact: `docs/evidence/release-gate/20260303-142551.json`
+   - deploy smoke artifact from same gate run: `docs/evidence/deploy-smoke/20260303-142706.json`
 
 ## 1.0.1 (Maintenance)
 
