@@ -72,6 +72,18 @@ type ReferenceSpecDocument = {
   updatedAt?: string | null;
 };
 
+type PrefillFlags = {
+  studentName: boolean;
+  programmeTitle: boolean;
+  unitCodeTitle: boolean;
+  assignmentTitle: boolean;
+  assessorName: boolean;
+  internalVerifierName: boolean;
+  gradeOverride: boolean;
+  keyNotesOverride: boolean;
+  selectedSpecId: boolean;
+};
+
 const INPUT_CLASS =
   "h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
 const TEXTAREA_CLASS =
@@ -123,6 +135,20 @@ function makeDefaultFields() {
   };
 }
 
+function makeDefaultPrefillFlags(): PrefillFlags {
+  return {
+    studentName: false,
+    programmeTitle: false,
+    unitCodeTitle: false,
+    assignmentTitle: false,
+    assessorName: false,
+    internalVerifierName: false,
+    gradeOverride: false,
+    keyNotesOverride: false,
+    selectedSpecId: false,
+  };
+}
+
 export default function IvAdAdminPage() {
   const searchParams = useSearchParams();
   const didApplyLaunchPrefill = useRef(false);
@@ -140,6 +166,7 @@ export default function IvAdAdminPage() {
   const [fields, setFields] = useState(makeDefaultFields);
   const [gradeOverride, setGradeOverride] = useState("");
   const [keyNotesOverride, setKeyNotesOverride] = useState("");
+  const [prefillFlags, setPrefillFlags] = useState<PrefillFlags>(makeDefaultPrefillFlags);
   const [preview, setPreview] = useState<ExtractionPreview | null>(null);
   const [aiReview, setAiReview] = useState<AiReviewPreview>(null);
   const [aiReviewReason, setAiReviewReason] = useState("");
@@ -190,21 +217,35 @@ export default function IvAdAdminPage() {
 
     const fieldKeys = ["studentName", "programmeTitle", "unitCodeTitle", "assignmentTitle", "assessorName", "internalVerifierName"] as const;
     const nextFields = makeDefaultFields();
+    const nextPrefillFlags = makeDefaultPrefillFlags();
     let hasAnyField = false;
     for (const key of fieldKeys) {
       const v = String(searchParams.get(key) || "").trim();
       if (v) {
         nextFields[key] = v;
+        nextPrefillFlags[key] = true;
         hasAnyField = true;
       }
     }
     if (hasAnyField) setFields(nextFields);
 
     const finalGrade = String(searchParams.get("finalGrade") || "").trim();
-    if (finalGrade) setGradeOverride(finalGrade);
+    if (finalGrade) {
+      setGradeOverride(finalGrade);
+      nextPrefillFlags.gradeOverride = true;
+    }
     const keyNotes = String(searchParams.get("keyNotes") || "").trim();
-    if (keyNotes) setKeyNotesOverride(keyNotes);
+    if (keyNotes) {
+      setKeyNotesOverride(keyNotes);
+      nextPrefillFlags.keyNotesOverride = true;
+    }
+    const referenceSpecId = String(searchParams.get("referenceSpecId") || "").trim();
+    if (referenceSpecId) {
+      setSelectedSpecId(referenceSpecId);
+      nextPrefillFlags.selectedSpecId = true;
+    }
     if (nextFields.internalVerifierName) setReviewApprovedBy(nextFields.internalVerifierName);
+    setPrefillFlags(nextPrefillFlags);
     setSuccess("Prefilled from submission detail context. Upload marked PDF (or run AI review) to continue.");
     didApplyLaunchPrefill.current = true;
   }, [searchParams]);
@@ -397,7 +438,14 @@ export default function IvAdAdminPage() {
 
             <label className="grid gap-1">
               <span className="text-sm font-medium">Optional spec (from existing library)</span>
-              <select value={selectedSpecId} onChange={(e) => setSelectedSpecId(e.target.value)} className={INPUT_CLASS}>
+              <select
+                value={selectedSpecId}
+                onChange={(e) => {
+                  setSelectedSpecId(e.target.value);
+                  setPrefillFlags((p) => ({ ...p, selectedSpecId: false }));
+                }}
+                className={INPUT_CLASS}
+              >
                 <option value="">None</option>
                 {specOptions.map((spec) => (
                   <option key={spec.id} value={spec.id}>
@@ -408,18 +456,65 @@ export default function IvAdAdminPage() {
               <span className="text-xs text-zinc-500">
                 Uses your stored SPEC PDFs from Reference Library instead of uploading another file.
               </span>
+              {prefillFlags.selectedSpecId ? (
+                <span className="text-[11px] font-semibold text-cyan-700">Auto-filled from submission context</span>
+              ) : null}
             </label>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <Field label="Student name" value={fields.studentName} onChange={(v) => setFields((f) => ({ ...f, studentName: v }))} />
-              <Field label="Programme title" value={fields.programmeTitle} onChange={(v) => setFields((f) => ({ ...f, programmeTitle: v }))} />
-              <Field label="Unit code + title" value={fields.unitCodeTitle} onChange={(v) => setFields((f) => ({ ...f, unitCodeTitle: v }))} />
-              <Field label="Assignment title" value={fields.assignmentTitle} onChange={(v) => setFields((f) => ({ ...f, assignmentTitle: v }))} />
-              <Field label="Assessor name" value={fields.assessorName} onChange={(v) => setFields((f) => ({ ...f, assessorName: v }))} />
+              <Field
+                label="Student name"
+                value={fields.studentName}
+                sourceLabel={prefillFlags.studentName ? "Auto-filled" : ""}
+                onChange={(v) => {
+                  setFields((f) => ({ ...f, studentName: v }));
+                  setPrefillFlags((p) => ({ ...p, studentName: false }));
+                }}
+              />
+              <Field
+                label="Programme title"
+                value={fields.programmeTitle}
+                sourceLabel={prefillFlags.programmeTitle ? "Auto-filled" : ""}
+                onChange={(v) => {
+                  setFields((f) => ({ ...f, programmeTitle: v }));
+                  setPrefillFlags((p) => ({ ...p, programmeTitle: false }));
+                }}
+              />
+              <Field
+                label="Unit code + title"
+                value={fields.unitCodeTitle}
+                sourceLabel={prefillFlags.unitCodeTitle ? "Auto-filled" : ""}
+                onChange={(v) => {
+                  setFields((f) => ({ ...f, unitCodeTitle: v }));
+                  setPrefillFlags((p) => ({ ...p, unitCodeTitle: false }));
+                }}
+              />
+              <Field
+                label="Assignment title"
+                value={fields.assignmentTitle}
+                sourceLabel={prefillFlags.assignmentTitle ? "Auto-filled" : ""}
+                onChange={(v) => {
+                  setFields((f) => ({ ...f, assignmentTitle: v }));
+                  setPrefillFlags((p) => ({ ...p, assignmentTitle: false }));
+                }}
+              />
+              <Field
+                label="Assessor name"
+                value={fields.assessorName}
+                sourceLabel={prefillFlags.assessorName ? "Auto-filled" : ""}
+                onChange={(v) => {
+                  setFields((f) => ({ ...f, assessorName: v }));
+                  setPrefillFlags((p) => ({ ...p, assessorName: false }));
+                }}
+              />
               <Field
                 label="Internal verifier name"
                 value={fields.internalVerifierName}
-                onChange={(v) => setFields((f) => ({ ...f, internalVerifierName: v }))}
+                sourceLabel={prefillFlags.internalVerifierName ? "Auto-filled" : ""}
+                onChange={(v) => {
+                  setFields((f) => ({ ...f, internalVerifierName: v }));
+                  setPrefillFlags((p) => ({ ...p, internalVerifierName: false }));
+                }}
               />
             </div>
           </div>
@@ -440,7 +535,14 @@ export default function IvAdAdminPage() {
               <div className="mt-3 grid gap-3">
                 <label className="grid gap-1">
                   <span className="text-sm font-medium">Grade override</span>
-                  <select value={gradeOverride} onChange={(e) => setGradeOverride(e.target.value)} className={INPUT_CLASS}>
+                  <select
+                    value={gradeOverride}
+                    onChange={(e) => {
+                      setGradeOverride(e.target.value);
+                      setPrefillFlags((p) => ({ ...p, gradeOverride: false }));
+                    }}
+                    className={INPUT_CLASS}
+                  >
                     <option value="">Use extracted guess</option>
                     <option value="Pass">Pass</option>
                     <option value="Merit">Merit</option>
@@ -448,16 +550,25 @@ export default function IvAdAdminPage() {
                     <option value="Fail">Fail</option>
                   </select>
                 </label>
+                {prefillFlags.gradeOverride ? (
+                  <span className="text-[11px] font-semibold text-cyan-700">Auto-filled from submission context</span>
+                ) : null}
                 <label className="grid gap-1">
                   <span className="text-sm font-medium">Key notes override</span>
                   <textarea
                     value={keyNotesOverride}
-                    onChange={(e) => setKeyNotesOverride(e.target.value)}
+                    onChange={(e) => {
+                      setKeyNotesOverride(e.target.value);
+                      setPrefillFlags((p) => ({ ...p, keyNotesOverride: false }));
+                    }}
                     rows={4}
                     className={TEXTAREA_CLASS}
                     placeholder="Short text, e.g. Task 2(b) table/graph incorrect and needs correction guidance."
                   />
                 </label>
+                {prefillFlags.keyNotesOverride ? (
+                  <span className="text-[11px] font-semibold text-cyan-700">Auto-filled from submission context</span>
+                ) : null}
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900">
                   <input
                     type="checkbox"
@@ -676,16 +787,25 @@ export default function IvAdAdminPage() {
 
 function Field({
   label,
+  sourceLabel,
   value,
   onChange,
 }: {
   label: string;
+  sourceLabel?: string;
   value: string;
   onChange: (v: string) => void;
 }) {
   return (
     <label className="grid gap-1">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="flex items-center gap-2 text-sm font-medium">
+        <span>{label}</span>
+        {sourceLabel ? (
+          <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+            {sourceLabel}
+          </span>
+        ) : null}
+      </span>
       <input value={value} onChange={(e) => onChange(e.target.value)} className={INPUT_CLASS} />
     </label>
   );

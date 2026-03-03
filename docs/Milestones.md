@@ -270,6 +270,7 @@ Current update (2026-03-03):
 Phase 6 progress (2026-03-03):
 - `Generate IV-AD` launch added in submission detail.
 - `/admin/iv-ad` now preloads context from submission-detail query params as a first-pass internal launch flow.
+- Prefill source badges added (`auto-filled` vs manual edits), including SPEC preselection when context has `referenceSpecId`.
 
 ---
 

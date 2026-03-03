@@ -621,6 +621,9 @@ export default function SubmissionDetailPage() {
     const internalVerifierName = String(activeAuditActorName || "").trim();
     const finalGrade = String(selectedAssessment?.overallGrade || "").trim();
     const keyNotes = summarizeFeedbackText(String(selectedAssessment?.feedbackText || ""), 600);
+    const referenceSpecId =
+      String((selectedAssessment as any)?.resultJson?.referenceContextSnapshot?.spec?.documentId || "").trim() ||
+      String((submission as any)?.assignment?.assignmentBrief?.unit?.specDocumentId || "").trim();
 
     if (studentName) params.set("studentName", studentName);
     if (programmeTitle) params.set("programmeTitle", programmeTitle);
@@ -630,6 +633,7 @@ export default function SubmissionDetailPage() {
     if (internalVerifierName) params.set("internalVerifierName", internalVerifierName);
     if (finalGrade) params.set("finalGrade", finalGrade);
     if (keyNotes) params.set("keyNotes", keyNotes);
+    if (referenceSpecId) params.set("referenceSpecId", referenceSpecId);
 
     return `/admin/iv-ad?${params.toString()}`;
   }, [
