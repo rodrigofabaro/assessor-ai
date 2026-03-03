@@ -135,6 +135,14 @@ function summarizeReviewAudit(row: IvAdDocument) {
   };
 }
 
+function csvEscape(value: unknown) {
+  const text = String(value ?? "");
+  if (text.includes("\"") || text.includes(",") || text.includes("\n") || text.includes("\r")) {
+    return `"${text.replace(/"/g, "\"\"")}"`;
+  }
+  return text;
+}
+
 function makeDefaultFields() {
   return {
     studentName: "",
@@ -192,6 +200,8 @@ export default function IvAdAdminPage() {
   const [auditDetail, setAuditDetail] = useState<IvAdDocumentDetail | null>(null);
   const [historyApprovalFilter, setHistoryApprovalFilter] = useState<"all" | "approved" | "not_approved">("all");
   const [historySourceFilter, setHistorySourceFilter] = useState<"all" | "ai" | "manual">("all");
+  const [historyFromDate, setHistoryFromDate] = useState("");
+  const [historyToDate, setHistoryToDate] = useState("");
 
   async function loadTemplateAndHistory() {
     setLoading(true);
@@ -294,12 +304,22 @@ export default function IvAdAdminPage() {
     return history.filter((row) => {
       const approved = !!row.reviewDraftApproved;
       const source = (row.reviewDraftJson as any)?.draft ? "ai" : "manual";
+      const created = new Date(row.createdAt);
+      if (Number.isNaN(created.getTime())) return false;
       if (historyApprovalFilter === "approved" && !approved) return false;
       if (historyApprovalFilter === "not_approved" && approved) return false;
       if (historySourceFilter !== "all" && source !== historySourceFilter) return false;
+      if (historyFromDate) {
+        const from = new Date(`${historyFromDate}T00:00:00`);
+        if (!Number.isNaN(from.getTime()) && created < from) return false;
+      }
+      if (historyToDate) {
+        const to = new Date(`${historyToDate}T23:59:59.999`);
+        if (!Number.isNaN(to.getTime()) && created > to) return false;
+      }
       return true;
     });
-  }, [history, historyApprovalFilter, historySourceFilter]);
+  }, [history, historyApprovalFilter, historySourceFilter, historyFromDate, historyToDate]);
 
   const noActiveTemplate = !activeTemplate;
   const canGenerate = useMemo(() => {
@@ -417,6 +437,57 @@ export default function IvAdAdminPage() {
     } finally {
       setAuditBusy("");
     }
+  }
+
+  function exportHistoryCsv() {
+    if (filteredHistory.length === 0 || typeof window === "undefined") return;
+    const header = [
+      "documentId",
+      "createdAt",
+      "studentName",
+      "programmeTitle",
+      "unitCodeTitle",
+      "assignmentTitle",
+      "assessorName",
+      "internalVerifierName",
+      "grade",
+      "reviewApproved",
+      "reviewApprovedBy",
+      "reviewApprovedAt",
+      "reviewSource",
+      "warningCount",
+      "evidenceCount",
+    ];
+    const rows = filteredHistory.map((row) => {
+      const audit = summarizeReviewAudit(row);
+      return [
+        row.id,
+        row.createdAt,
+        row.studentName,
+        row.programmeTitle,
+        row.unitCodeTitle,
+        row.assignmentTitle,
+        row.assessorName,
+        row.internalVerifierName,
+        row.grade,
+        audit.approved ? "yes" : "no",
+        audit.approvedBy === "—" ? "" : audit.approvedBy,
+        audit.approvedAt === "—" ? "" : audit.approvedAt,
+        audit.source,
+        String(audit.warningCount),
+        String(audit.evidenceCount),
+      ];
+    });
+    const csv = [header, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const dateStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `iv-ad-history-${dateStamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -847,6 +918,32 @@ export default function IvAdAdminPage() {
                   <option value="manual">Manual/heuristic</option>
                 </select>
               </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-medium text-zinc-600">From</span>
+                <input
+                  type="date"
+                  value={historyFromDate}
+                  onChange={(e) => setHistoryFromDate(e.target.value)}
+                  className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-medium text-zinc-600">To</span>
+                <input
+                  type="date"
+                  value={historyToDate}
+                  onChange={(e) => setHistoryToDate(e.target.value)}
+                  className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={exportHistoryCsv}
+                disabled={filteredHistory.length === 0}
+                className="inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Export CSV
+              </button>
             </div>
           </div>
         </div>

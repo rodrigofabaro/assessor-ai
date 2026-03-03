@@ -103,6 +103,7 @@ Progress (2026-03-03):
 1. Added IV-AD audit detail endpoint (`GET /api/admin/iv-ad/documents/[documentId]`).
 2. Added `View audit` modal in `/admin/iv-ad` history for persisted review snapshot and approval inspection.
 3. Added history filters in `/admin/iv-ad` (approval state + source type).
+4. Added history date-range filter (`From`/`To`) and CSV export of the current filtered result set.
 
 ### Queue C - Deployment readiness
 

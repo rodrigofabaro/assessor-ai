@@ -258,6 +258,11 @@ Current update (2026-03-03):
   - `docs/Milestones.md`
   - `RELEASE_NOTES.md`
   - affected route help pages
+
+7. IV-AD Phase 7 continuation
+- add created-date range filter in `/admin/iv-ad` history for faster period-based audit selection.
+- add CSV export for the currently filtered IV-AD history rows (approval/source/date filters applied).
+- Status (2026-03-03): complete. Date-range filters and filtered CSV export are live in `/admin/iv-ad`.
 - Block queue completion if docs for changed behavior are missing.
 
 **Exit criteria for continuation queue**

@@ -30,6 +30,7 @@ Last updated: 2026-03-03
    - added `GET /api/admin/iv-ad/documents/[documentId]` for full audit detail retrieval
    - `/admin/iv-ad` history now supports `View audit` modal to inspect persisted review snapshot, approval metadata, and evidence/warnings detail
    - `/admin/iv-ad` history now supports approval/source filters for faster audit triage
+   - `/admin/iv-ad` history now supports date-range filtering (`From`/`To`) and CSV export of the currently filtered audit rows
 
 ## 1.0.1 (Maintenance)
 
