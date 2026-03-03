@@ -270,6 +270,10 @@ export async function POST(req: Request) {
     }
 
     const templateAbs = ivAdToAbsolutePath(activeTemplate.storagePath);
+    const appConfig = await prisma.appConfig.findUnique({
+      where: { id: 1 },
+      select: { activeAuditUser: { select: { email: true } } },
+    });
     const templateBuffer = await fs.readFile(templateAbs);
     const assessorSignatureEmail =
       String(appConfig?.activeAuditUser?.email || "").trim() || "rodrigo@unicourse.org";
@@ -364,7 +368,3 @@ export async function POST(req: Request) {
     });
   }
 }
-    const appConfig = await prisma.appConfig.findUnique({
-      where: { id: 1 },
-      select: { activeAuditUser: { select: { email: true } } },
-    });
