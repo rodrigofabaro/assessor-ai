@@ -8,6 +8,7 @@ const tests = [
   "scripts/brief-grading-scope-change.test.js",
   "scripts/brief-readiness.test.js",
   "scripts/iv-ad-review-draft-schema.test.js",
+  "scripts/export-pack-validation.test.js",
 ];
 
 let failures = 0;

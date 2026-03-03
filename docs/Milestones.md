@@ -185,7 +185,8 @@ Status labels:
 Current update (2026-03-03):
 - Deterministic export-pack generation endpoint and submission-detail UI action are implemented.
 - Replay parity verification endpoint is implemented.
-- Remaining closure task: operator validation script + release validation evidence capture.
+- Operator validation script is implemented (`scripts/export-pack-validation.test.js`) and wired into `test:regression-pack`.
+- Remaining closure task: capture release validation evidence on a live dataset with at least one generated export manifest.
 
 ---
 

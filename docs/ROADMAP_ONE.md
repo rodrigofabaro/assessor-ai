@@ -80,6 +80,12 @@ Done when:
 2. Replay parity check passes on same export id
 3. Release notes include shipped behavior and validation evidence
 
+Progress (2026-03-03):
+1. Deterministic export generation and replay parity routes are implemented.
+2. Operator validation script added: `scripts/export-pack-validation.test.js` (manifest required files + checksum integrity).
+3. Validation script is included in `test:regression-pack`.
+4. Remaining closure evidence: run against a live dataset containing at least one generated export manifest.
+
 ### Queue B - IV-AD Phase 4/5 start
 
 Done when:
