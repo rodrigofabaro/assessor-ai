@@ -190,6 +190,8 @@ export default function IvAdAdminPage() {
   const [auditBusy, setAuditBusy] = useState("");
   const [auditError, setAuditError] = useState("");
   const [auditDetail, setAuditDetail] = useState<IvAdDocumentDetail | null>(null);
+  const [historyApprovalFilter, setHistoryApprovalFilter] = useState<"all" | "approved" | "not_approved">("all");
+  const [historySourceFilter, setHistorySourceFilter] = useState<"all" | "ai" | "manual">("all");
 
   async function loadTemplateAndHistory() {
     setLoading(true);
@@ -288,6 +290,16 @@ export default function IvAdAdminPage() {
     if (missingFlags.selectedSpecId) out.push("SPEC selection");
     return out;
   }, [missingFlags]);
+  const filteredHistory = useMemo(() => {
+    return history.filter((row) => {
+      const approved = !!row.reviewDraftApproved;
+      const source = (row.reviewDraftJson as any)?.draft ? "ai" : "manual";
+      if (historyApprovalFilter === "approved" && !approved) return false;
+      if (historyApprovalFilter === "not_approved" && approved) return false;
+      if (historySourceFilter !== "all" && source !== historySourceFilter) return false;
+      return true;
+    });
+  }, [history, historyApprovalFilter, historySourceFilter]);
 
   const noActiveTemplate = !activeTemplate;
   const canGenerate = useMemo(() => {
@@ -803,9 +815,39 @@ export default function IvAdAdminPage() {
 
       <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 px-4 py-3">
-          <div className="text-sm font-semibold text-zinc-900">History (generated docs for active template)</div>
-          <div className="mt-1 text-xs text-zinc-500">
-            {activeTemplate ? `Template: ${activeTemplate.filename}` : "No active template selected"} · {history.length} record(s)
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-zinc-900">History (generated docs for active template)</div>
+              <div className="mt-1 text-xs text-zinc-500">
+                {activeTemplate ? `Template: ${activeTemplate.filename}` : "No active template selected"} · {filteredHistory.length}/{history.length} record(s)
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="grid gap-1">
+                <span className="text-[11px] font-medium text-zinc-600">Approval</span>
+                <select
+                  value={historyApprovalFilter}
+                  onChange={(e) => setHistoryApprovalFilter(e.target.value as "all" | "approved" | "not_approved")}
+                  className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                >
+                  <option value="all">All</option>
+                  <option value="approved">Approved</option>
+                  <option value="not_approved">Not approved</option>
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-medium text-zinc-600">Source</span>
+                <select
+                  value={historySourceFilter}
+                  onChange={(e) => setHistorySourceFilter(e.target.value as "all" | "ai" | "manual")}
+                  className="h-8 rounded-lg border border-zinc-300 bg-white px-2 text-xs text-zinc-900"
+                >
+                  <option value="all">All</option>
+                  <option value="ai">AI draft + edit</option>
+                  <option value="manual">Manual/heuristic</option>
+                </select>
+              </label>
+            </div>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -821,14 +863,14 @@ export default function IvAdAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {history.length === 0 ? (
+              {filteredHistory.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-sm text-zinc-600">
-                    No generated IV documents yet.
+                    {history.length === 0 ? "No generated IV documents yet." : "No history rows match current filters."}
                   </td>
                 </tr>
               ) : (
-                history.map((row) => {
+                filteredHistory.map((row) => {
                   const audit = summarizeReviewAudit(row);
                   return (
                     <tr key={row.id} className="text-sm">

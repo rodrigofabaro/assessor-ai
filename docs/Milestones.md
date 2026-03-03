@@ -276,6 +276,7 @@ Phase 6 progress (2026-03-03):
 Phase 7 progress (2026-03-03):
 - Added IV-AD document detail endpoint (`/api/admin/iv-ad/documents/[documentId]`) for full audit payload retrieval.
 - Added `View audit` modal in `/admin/iv-ad` history to inspect persisted review-draft snapshot and approval metadata.
+- Added `/admin/iv-ad` history filters for approval state and source type.
 
 ---
 
