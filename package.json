@@ -24,6 +24,7 @@
     "test:brief-equation-false-positives": "node scripts/brief-equation-false-positives.test.js",
     "test:symbol-normalization": "node scripts/symbol-normalization.test.js",
     "test:regression-pack": "node scripts/regression-pack.js",
+    "test:iv-ad-review-draft": "node scripts/iv-ad-review-draft-schema.test.js",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
@@ -42,7 +43,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uuid": "^9.0.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

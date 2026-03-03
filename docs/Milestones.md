@@ -232,6 +232,7 @@ Current update (2026-03-03):
 - Implement `POST /api/iv-ad/review-draft` with strict schema validation.
 - Add structured error taxonomy for malformed AI output.
 - Wire request id and audit-safe logging for review generation.
+- Status (2026-03-03): complete. Endpoint + schema validation + ops-event logging merged; regression test added (`scripts/iv-ad-review-draft-schema.test.js`).
 
 3. IV-AD Phase 5 start (review workspace)
 - Add `Run AI IV Review` UI action in `/admin/iv-ad`.

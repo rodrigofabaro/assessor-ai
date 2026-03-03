@@ -8,6 +8,11 @@ Last updated: 2026-03-03
    - added deterministic submission export-pack generation (`assessment-snapshot.json`, `feedback-summary.txt`, `summary.csv`, `marked.pdf`, `manifest.json`)
    - added replay parity verification endpoint for earlier export ids
    - wired submission-detail utilities with `Generate export pack` and `Replay parity check` actions
+2. IV-AD Phase 4 API contract:
+   - added `POST /api/iv-ad/review-draft` with strict request schema validation
+   - added strict AI response schema enforcement for typed review draft JSON
+   - added request-id aware error taxonomy + ops event logging for invalid request/provider/schema failures
+   - added `scripts/iv-ad-review-draft-schema.test.js` and included it in `test:regression-pack`
 
 ## 1.0.1 (Maintenance)
 

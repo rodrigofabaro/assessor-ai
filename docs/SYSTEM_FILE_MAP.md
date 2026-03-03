@@ -72,6 +72,7 @@ Technical index of what each major file area does, so implementation work stays 
 - `app/api/admin/iv-ad/generate/*`: IV-AD DOCX generation from current form payload.
 - `app/api/admin/iv-ad/generate-from-submission/*`: prefilled generation from submission context.
 - `app/api/admin/iv-ad/documents/*`: IV-AD history listing and file download.
+- `app/api/iv-ad/review-draft/*`: strict AI review draft generation contract for IV-AD Phase 4.
 
 #### Submissions pipeline
 
@@ -160,6 +161,7 @@ Technical index of what each major file area does, so implementation work stays 
 ### IV/IV-AD
 
 - `lib/iv-ad/*`: IV-AD analysis, AI review generation, DOCX filler, storage.
+- `lib/iv-ad/reviewDraft.ts`: IV-AD review-draft request/output schemas + AI review draft runtime validation.
 - `lib/iv/evidenceSummary.ts`: IV evidence summarization support.
 
 ### AI/OpenAI/OCR/Turnitin integrations

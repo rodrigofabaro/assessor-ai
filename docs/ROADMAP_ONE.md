@@ -84,6 +84,7 @@ Done when:
 
 Done when:
 1. Review-draft endpoint is merged and test-covered
+   - Status (2026-03-03): `POST /api/iv-ad/review-draft` added with strict request/response schema validation and request-id + ops-event logging.
 2. `/admin/iv-ad` can generate editable AI draft
 3. Manual completion still works when AI draft fails
 
