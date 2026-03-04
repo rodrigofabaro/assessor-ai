@@ -2417,10 +2417,14 @@ async function renderPdfPagesForGrading(input: {
   const bytes = new Uint8Array(await fs.readFile(absPath));
 
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const nodeRequire = eval("require") as NodeRequire;
-  const canvasModule = nodeRequire("@napi-rs/canvas") as {
-    createCanvas: (w: number, h: number) => any;
-  };
+  const canvasMod: any = await import("@napi-rs/canvas");
+  const createCanvas =
+    canvasMod?.createCanvas ??
+    canvasMod?.default?.createCanvas ??
+    null;
+  if (typeof createCanvas !== "function") {
+    throw new Error("@napi-rs/canvas createCanvas is unavailable.");
+  }
   const workerPath = path.join(
     process.cwd(),
     "node_modules",
@@ -2446,7 +2450,7 @@ async function renderPdfPagesForGrading(input: {
     const viewport = page.getViewport({ scale: input.scale });
     const width = Math.max(1, Math.floor(viewport.width));
     const height = Math.max(1, Math.floor(viewport.height));
-    const canvas = canvasModule.createCanvas(width, height);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
     await page.render({ canvasContext: ctx as any, viewport }).promise;
     const png = canvas.toBuffer("image/png");

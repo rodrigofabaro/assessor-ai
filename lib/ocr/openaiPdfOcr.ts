@@ -64,9 +64,14 @@ function extractOutputText(responseJson: any): string {
 
 async function renderPdfPageToPng(pdfPathAbs: string, pageNumber: number) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const nodeRequire = eval("require") as NodeRequire;
-  const canvasModule = nodeRequire("@napi-rs/canvas") as { createCanvas: (w: number, h: number) => any };
-  const createCanvas = canvasModule.createCanvas;
+  const canvasMod: any = await import("@napi-rs/canvas");
+  const createCanvas =
+    canvasMod?.createCanvas ??
+    canvasMod?.default?.createCanvas ??
+    null;
+  if (typeof createCanvas !== "function") {
+    throw new Error("@napi-rs/canvas createCanvas is unavailable.");
+  }
   const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
   if (pdfjs?.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();

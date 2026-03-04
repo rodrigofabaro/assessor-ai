@@ -112,13 +112,24 @@ function ensureDir(absDir) {
 
 async function buildSamplePdfBuffer() {
   const doc = await PDFDocument.create();
-  const page = doc.addPage([595, 842]);
-  const text = [
+  const fillerSentence =
+    "This paragraph is intentionally verbose to keep extraction above readiness thresholds for deployment smoke validation.";
+  const lines = [
     "Deploy smoke sample submission",
     `Generated: ${nowIso()}`,
     "This file validates upload/extract/grade/export/replay path.",
-  ].join("\n");
-  page.drawText(text, { x: 48, y: 760, size: 12 });
+    "",
+  ];
+  for (let i = 1; i <= 220; i += 1) {
+    lines.push(`${String(i).padStart(3, "0")}: ${fillerSentence}`);
+  }
+
+  const linesPerPage = 44;
+  for (let offset = 0; offset < lines.length; offset += linesPerPage) {
+    const page = doc.addPage([595, 842]);
+    const chunk = lines.slice(offset, offset + linesPerPage).join("\n");
+    page.drawText(chunk, { x: 42, y: 805, size: 11, lineHeight: 16, maxWidth: 510 });
+  }
   const bytes = await doc.save();
   return Buffer.from(bytes);
 }
