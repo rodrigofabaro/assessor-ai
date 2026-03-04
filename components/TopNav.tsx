@@ -95,7 +95,7 @@ export default function TopNav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-zinc-200/85 bg-white/85 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-md">
       <div className={LANE + " flex items-center justify-between gap-3 py-2.5"}>
         <Link href="/" className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sm font-bold text-sky-900">
