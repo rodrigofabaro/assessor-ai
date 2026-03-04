@@ -19,6 +19,18 @@ function isOrgScopeCompatError(error: unknown) {
   return false;
 }
 
+function isSubmissionSchemaCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2022") return true; // missing column
+  if (msg.includes("studentlinkedat") || msg.includes("studentlinkedby")) return true;
+  if (msg.includes("organizationid")) return true;
+  if (msg.includes("unknown argument") && msg.includes("studentlinked")) return true;
+  if (msg.includes("unknown argument") && msg.includes("organization")) return true;
+  if (msg.includes("column") && msg.includes("does not exist")) return true;
+  return false;
+}
+
 function getOptionalId(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const v = value.trim();
@@ -90,19 +102,30 @@ export async function POST(req: Request) {
         status: "UPLOADED" as const,
         studentId,
         assignmentId,
-        studentLinkedAt: studentId ? new Date() : null,
-        studentLinkedBy: studentId ? actor : null,
       };
 
       let submission: SubmissionRecord;
+      const orgScopedData = organizationId ? { ...baseData, organizationId } : baseData;
       try {
-        submission = await prisma.submission.create({
-          data: organizationId ? { ...baseData, organizationId } : baseData,
-        });
+        submission = await prisma.submission.create({ data: orgScopedData });
       } catch (createErr) {
-        if (!organizationId || !isOrgScopeCompatError(createErr)) throw createErr;
-        // Backward-compatible path while organization column rollout is still being migrated.
-        submission = await prisma.submission.create({ data: baseData });
+        if (!isOrgScopeCompatError(createErr) && !isSubmissionSchemaCompatError(createErr)) throw createErr;
+
+        // Backward-compatible path while schema rollout is still being migrated.
+        try {
+          submission = await prisma.submission.create({ data: baseData });
+        } catch (legacyErr) {
+          if (!isSubmissionSchemaCompatError(legacyErr)) throw legacyErr;
+          const minimalData = {
+            filename: file.name,
+            storedFilename,
+            storagePath,
+            status: "UPLOADED" as const,
+            studentId,
+            assignmentId,
+          };
+          submission = await prisma.submission.create({ data: minimalData });
+        }
       }
 
       if (studentId) {
