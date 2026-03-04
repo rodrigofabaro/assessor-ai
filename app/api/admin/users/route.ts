@@ -8,6 +8,18 @@ import { getRequestSession } from "@/lib/auth/requestSession";
 type UserRole = "ADMIN" | "ASSESSOR" | "IV";
 type PlatformRole = "USER" | "SUPER_ADMIN";
 
+function isOrgSchemaCompatError(error: unknown) {
+  const message = String((error as { message?: string })?.message || "").toLowerCase();
+  return (
+    message.includes("platformrole") ||
+    message.includes("organizationmembership") ||
+    message.includes("memberships") ||
+    (message.includes("unknown argument") && message.includes("platform")) ||
+    (message.includes("unknown argument") && message.includes("memberships")) ||
+    (message.includes("column") && message.includes("does not exist"))
+  );
+}
+
 function normalizeRole(value: unknown): UserRole {
   const role = String(value || "").trim().toUpperCase();
   if (role === "IV") return "IV";
@@ -46,44 +58,79 @@ export async function GET() {
   const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
   const sessionOrgId = String(session?.orgId || "").trim() || null;
   await ensureDefaultOrganization();
-  const users = await prisma.appUser.findMany({
-    where: canManageAll
-      ? undefined
-      : sessionOrgId
-        ? {
-            OR: [
-              { organizationId: sessionOrgId },
-              { memberships: { some: { organizationId: sessionOrgId, isActive: true } } },
-            ],
-          }
-        : { id: "__none__" },
-    orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      role: true,
-      isActive: true,
-      loginEnabled: true,
-      passwordUpdatedAt: true,
-      mustResetPassword: true,
-      platformRole: true,
-      organizationId: true,
-      organization: { select: { id: true, slug: true, name: true, isActive: true } },
-      memberships: {
-        where: { isActive: true, organization: { isActive: true } },
-        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-        select: {
-          organizationId: true,
-          role: true,
-          isDefault: true,
-          organization: { select: { id: true, slug: true, name: true, isActive: true } },
+
+  let users: Array<Record<string, unknown>> = [];
+  try {
+    users = (await prisma.appUser.findMany({
+      where: canManageAll
+        ? undefined
+        : sessionOrgId
+          ? {
+              OR: [
+                { organizationId: sessionOrgId },
+                { memberships: { some: { organizationId: sessionOrgId, isActive: true } } },
+              ],
+            }
+          : { id: "__none__" },
+      orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        isActive: true,
+        loginEnabled: true,
+        passwordUpdatedAt: true,
+        mustResetPassword: true,
+        platformRole: true,
+        organizationId: true,
+        organization: { select: { id: true, slug: true, name: true, isActive: true } },
+        memberships: {
+          where: { isActive: true, organization: { isActive: true } },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+          select: {
+            organizationId: true,
+            role: true,
+            isDefault: true,
+            organization: { select: { id: true, slug: true, name: true, isActive: true } },
+          },
         },
+        createdAt: true,
+        updatedAt: true,
       },
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+    })) as Array<Record<string, unknown>>;
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    const legacyUsers = await prisma.appUser.findMany({
+      where: canManageAll
+        ? undefined
+        : sessionOrgId
+          ? { organizationId: sessionOrgId }
+          : { id: "__none__" },
+      orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        isActive: true,
+        loginEnabled: true,
+        passwordUpdatedAt: true,
+        organizationId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    users = legacyUsers.map((user) => ({
+      ...user,
+      mustResetPassword: false,
+      platformRole: "USER",
+      organization: null,
+      memberships: [],
+    })) as Array<Record<string, unknown>>;
+  }
+
   const organizations = await prisma.organization.findMany({
     where: canManageAll ? { isActive: true } : { id: sessionOrgId || "__none__", isActive: true },
     orderBy: [{ name: "asc" }],
