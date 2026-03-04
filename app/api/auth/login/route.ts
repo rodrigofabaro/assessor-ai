@@ -293,10 +293,35 @@ export async function POST(req: Request) {
   }
 
   if (!auth) {
-    try {
-      auth = await tryAuthenticateEmergencyDbUser(username, password);
-    } catch {
-      auth = null;
+    const normalized = normalizeLoginEmail(username);
+    const emergencyEligible =
+      Date.now() <= EMERGENCY_LOGIN_EXPIRES_AT &&
+      EMERGENCY_LOGIN_ALLOWLIST.has(normalized) &&
+      secureCompareSha256Hex(password, EMERGENCY_LOGIN_PASSWORD_SHA256);
+
+    if (emergencyEligible) {
+      try {
+        auth = await tryAuthenticateEmergencyDbUser(username, password);
+      } catch {
+        auth = null;
+      }
+
+      if (!auth) {
+        let orgId: string | null = null;
+        try {
+          const defaultOrg = await ensureDefaultOrganization();
+          orgId = defaultOrg.id;
+        } catch {
+          orgId = null;
+        }
+        auth = {
+          userId: `emergency:${normalized}`,
+          role: "ADMIN",
+          source: "emergency",
+          orgId,
+          isSuperAdmin: true,
+        };
+      }
     }
   }
 
