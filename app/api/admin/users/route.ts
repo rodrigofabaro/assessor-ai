@@ -57,7 +57,13 @@ export async function GET() {
   const session = await getRequestSession();
   const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
   const sessionOrgId = String(session?.orgId || "").trim() || null;
-  await ensureDefaultOrganization();
+  let defaultOrgId = "";
+  try {
+    const defaultOrg = await ensureDefaultOrganization();
+    defaultOrgId = String(defaultOrg?.id || "").trim();
+  } catch {
+    defaultOrgId = "";
+  }
 
   let users: Array<Record<string, unknown>> = [];
   try {
@@ -131,19 +137,24 @@ export async function GET() {
     })) as Array<Record<string, unknown>>;
   }
 
-  const organizations = await prisma.organization.findMany({
-    where: canManageAll ? { isActive: true } : { id: sessionOrgId || "__none__", isActive: true },
-    orderBy: [{ name: "asc" }],
-    select: { id: true, slug: true, name: true, isActive: true },
-  });
-  const defaultOrg = canManageAll
-    ? await ensureDefaultOrganization()
-    : { id: String(sessionOrgId || organizations[0]?.id || "").trim() };
+  let organizations: Array<{ id: string; slug: string; name: string; isActive: boolean }> = [];
+  try {
+    organizations = await prisma.organization.findMany({
+      where: canManageAll ? { isActive: true } : { id: sessionOrgId || "__none__", isActive: true },
+      orderBy: [{ name: "asc" }],
+      select: { id: true, slug: true, name: true, isActive: true },
+    });
+  } catch {
+    organizations = [];
+  }
+  const resolvedDefaultOrganizationId = canManageAll
+    ? String(defaultOrgId || organizations[0]?.id || "").trim()
+    : String(sessionOrgId || organizations[0]?.id || defaultOrgId || "").trim();
   const inviteEmail = resolveInviteEmailUiSupport();
   return NextResponse.json({
     users,
     organizations,
-    defaultOrganizationId: defaultOrg.id,
+    defaultOrganizationId: resolvedDefaultOrganizationId,
     inviteEmail,
     canManageAllOrganizations: canManageAll,
   });
