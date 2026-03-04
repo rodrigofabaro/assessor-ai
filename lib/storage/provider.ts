@@ -36,6 +36,12 @@ function getWriteRoot() {
   return getEnvRoot(cwd) || getVercelTmpRoot() || cwd;
 }
 
+function getWriteRoots() {
+  const cwd = process.cwd();
+  const roots = [getEnvRoot(cwd), getVercelTmpRoot(), cwd].filter(Boolean) as string[];
+  return Array.from(new Set(roots.map((r) => path.normalize(r))));
+}
+
 function resolveReadCandidate(storagePath: string) {
   const normalized = normalizeInput(storagePath);
   if (!normalized) return null;
@@ -66,11 +72,38 @@ export function storageFileExists(storagePath: string) {
 }
 
 export async function writeStorageFile(storagePath: string, data: Buffer | string) {
-  const abs = resolveReadCandidate(storagePath);
-  if (!abs) throw new Error("Invalid storage path.");
-  await fsp.mkdir(path.dirname(abs), { recursive: true });
-  await fsp.writeFile(abs, data);
-  return { storagePath: normalizeInput(storagePath), absolutePath: abs };
+  const normalized = normalizeInput(storagePath);
+  if (!normalized) throw new Error("Invalid storage path.");
+  if (path.isAbsolute(normalized)) {
+    await fsp.mkdir(path.dirname(normalized), { recursive: true });
+    await fsp.writeFile(normalized, data);
+    return { storagePath: normalized, absolutePath: normalized };
+  }
+
+  let lastError: unknown = null;
+  const roots = getWriteRoots();
+  for (const root of roots) {
+    const abs = path.resolve(root, normalized);
+    try {
+      await fsp.mkdir(path.dirname(abs), { recursive: true });
+      await fsp.writeFile(abs, data);
+      return { storagePath: normalized, absolutePath: abs };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const fallbackAbs = resolveReadCandidate(normalized);
+  if (!fallbackAbs) throw new Error("Invalid storage path.");
+  try {
+    await fsp.mkdir(path.dirname(fallbackAbs), { recursive: true });
+    await fsp.writeFile(fallbackAbs, data);
+    return { storagePath: normalized, absolutePath: fallbackAbs };
+  } catch (error) {
+    lastError = error;
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Failed to persist storage file.");
 }
 
 export function writeStorageFileSync(storagePath: string, data: Buffer | string) {
