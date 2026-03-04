@@ -405,6 +405,8 @@ export default async function LandingPage() {
     );
   }
 
+  const sessionOrgId = String((session as { orgId?: string | null }).orgId || "").trim() || null;
+
   return (
     <div className="grid gap-6">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -414,7 +416,7 @@ export default async function LandingPage() {
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">Welcome back</h1>
             <p className="mt-1 text-sm text-zinc-700">
               Role: {session.role}
-              {session.orgId ? " · Organization scope active" : ""}. Use the shortcuts below to continue operations.
+              {sessionOrgId ? " · Organization scope active" : ""}. Use the shortcuts below to continue operations.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
