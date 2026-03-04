@@ -244,7 +244,7 @@ export default async function LandingPage() {
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">Assessor AI</h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-700 sm:text-base">
-                Clean, controlled workflow from evidence upload to moderated outcome, with locked references and clear audit traceability.
+                Assessor workspace for real internal delivery: manage references, process student submissions, complete QA checks, and keep moderation records in one place.
               </p>
 
               <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -254,7 +254,7 @@ export default async function LandingPage() {
                 >
                   Sign in
                 </Link>
-                <p className="text-xs font-medium text-zinc-600">Built for teams that need consistent, auditable outcomes.</p>
+                <p className="text-xs font-medium text-zinc-600">Built around real assessor and IQA tasks.</p>
               </div>
             </div>
 
@@ -268,15 +268,15 @@ export default async function LandingPage() {
               <div className="mt-2.5 grid gap-2">
                 <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Reference layer</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Versioned specs and briefs with lock controls.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Upload specs/briefs, review extraction, and lock approved versions.</p>
                 </div>
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Assessment flow</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Intake, extraction, grading, and feedback in one path.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Process student evidence from intake through extraction to grading.</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Assurance</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Traceable history for moderation and quality review.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Track QA status, blocked items, and moderation history.</p>
                 </div>
               </div>
             </aside>
@@ -302,23 +302,23 @@ export default async function LandingPage() {
         <section id="features" className="grid auto-rows-fr gap-3 md:grid-cols-3">
           <MarketingCard
             icon="reference"
-            title="Reference Governance"
-            description="Lock approved specs and briefs before grading starts."
-            bullets={["Versioning", "Lock controls"]}
+            title="Reference Setup"
+            description="Prepare and lock the spec/brief set used for grading decisions."
+            bullets={["Upload + extraction", "Lock versions"]}
             accent="indigo"
           />
           <MarketingCard
             icon="submissions"
-            title="Evidence Workflow"
-            description="Run intake, extraction, grading, and feedback in one flow."
-            bullets={["Structured intake", "QA checks"]}
+            title="Submission Processing"
+            description="Handle PDF/DOCX intake, extraction checks, and grading progression."
+            bullets={["Queue tracking", "Status workflow"]}
             accent="emerald"
           />
           <MarketingCard
             icon="audit"
-            title="Moderation Confidence"
-            description="Keep decision history visible for IV, QA, and external review."
-            bullets={["Event history", "Audit readiness"]}
+            title="QA and Moderation Review"
+            description="Keep review actions and history visible for internal QA and moderation."
+            bullets={["QA follow-up", "Event history"]}
             accent="slate"
           />
         </section>
@@ -328,10 +328,10 @@ export default async function LandingPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Why Assessor AI is different</p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
-                Built for defensible assessment operations, not generic automation.
+                It follows how assessor teams already operate internally.
               </h2>
               <p className="mt-2 text-sm leading-7 text-zinc-700">
-                Most tools stop at task automation. Assessor AI is designed for day-to-day delivery quality: fewer moderation disputes, lower QA rework, and clearer accountability across teams.
+                This is not a generic AI shell. It is structured around practical assessor work: preparing reference packs, managing submission queues, and handling QA/moderation checks.
               </p>
             </div>
 
@@ -339,18 +339,18 @@ export default async function LandingPage() {
               {[
                 {
                   icon: "qa" as TinyIconName,
-                  title: "Faster QA task tracking",
-                  text: "QA teams can track checks, follow-ups, and review status in one consistent workflow.",
+                  title: "1. Set active reference pack",
+                  text: "Upload specs and briefs, confirm extraction output, then lock the versions in use.",
                 },
                 {
                   icon: "workflow" as TinyIconName,
-                  title: "Task automation where it helps",
-                  text: "Structured automations reduce manual handoffs across intake, grading, and QA follow-up.",
+                  title: "2. Process learner evidence",
+                  text: "Move submissions through intake, extraction checks, grading, and feedback stages.",
                 },
                 {
                   icon: "users" as TinyIconName,
-                  title: "Consistent delivery at scale",
-                  text: "Multiple teams and organizations can run the same process with predictable outcomes.",
+                  title: "3. Run QA and moderation follow-up",
+                  text: "Use review status, blocked queues, and event history for internal and external checks.",
                 },
               ].map((item, idx) => (
                 <div
