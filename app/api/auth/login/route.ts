@@ -19,6 +19,156 @@ const EMERGENCY_LOGIN_PASSWORD_SHA256 =
   "49842866e57deaecd48b7af13a3e823a83569385a50f47acf55a3e053691459a";
 const EMERGENCY_LOGIN_EXPIRES_AT = Date.parse("2026-03-05T23:59:59.000Z");
 
+type MembershipRole = "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
+
+type AppUserModern = {
+  id: string;
+  email: string | null;
+  role: string;
+  platformRole: "USER" | "SUPER_ADMIN";
+  loginPasswordHash: string | null;
+  mustResetPassword: boolean;
+  organizationId: string | null;
+  memberships: Array<{
+    organizationId: string;
+    role: MembershipRole;
+    isDefault: boolean;
+  }>;
+};
+
+type AppUserLegacy = {
+  id: string;
+  email: string | null;
+  role: string;
+  loginPasswordHash: string | null;
+  mustResetPassword: boolean;
+  organizationId: string | null;
+};
+
+type AppUserRecord = AppUserModern | AppUserLegacy;
+
+type AppUserAuth = {
+  userId: string;
+  role: "ADMIN" | "ASSESSOR" | "IV";
+  source: "app-user";
+  mustResetPassword: boolean;
+  email: string;
+  orgId: string | null;
+  isSuperAdmin: boolean;
+};
+
+type EnvAuth = {
+  userId: string;
+  role: "ADMIN" | "ASSESSOR" | "IV";
+  source: "env";
+  orgId: string | null;
+  isSuperAdmin: boolean;
+};
+
+type EmergencyAuth = {
+  userId: string;
+  role: "ADMIN" | "ASSESSOR" | "IV";
+  source: "emergency";
+  orgId: string | null;
+  isSuperAdmin: boolean;
+};
+
+function isModernAppUser(user: AppUserRecord): user is AppUserModern {
+  return "platformRole" in user;
+}
+
+async function findAppUserCandidates(email: string, options?: { requireLoginEnabled?: boolean }) {
+  const requireLoginEnabled = options?.requireLoginEnabled !== false;
+  const where = {
+    email,
+    isActive: true,
+    ...(requireLoginEnabled ? { loginEnabled: true } : {}),
+  };
+
+  try {
+    const users = await prisma.appUser.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        platformRole: true,
+        loginPasswordHash: true,
+        mustResetPassword: true,
+        organizationId: true,
+        memberships: {
+          where: { isActive: true, organization: { isActive: true } },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+          select: {
+            organizationId: true,
+            role: true,
+            isDefault: true,
+          },
+        },
+      },
+    });
+    return users as AppUserRecord[];
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    const users = await prisma.appUser.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        loginPasswordHash: true,
+        mustResetPassword: true,
+        organizationId: true,
+      },
+    });
+    return users as AppUserRecord[];
+  }
+}
+
+function buildAuthFromUser(input: {
+  user: AppUserRecord;
+  emailFallback: string;
+  source: "app-user" | "emergency";
+  forceSuperAdmin?: boolean;
+}): AppUserAuth | EmergencyAuth | null {
+  const memberships = isModernAppUser(input.user) ? input.user.memberships || [] : [];
+  const primaryMembership = pickDefaultMembership(memberships);
+  const role = resolveSessionRole({
+    platformRole: isModernAppUser(input.user) ? input.user.platformRole : null,
+    membershipRole: primaryMembership?.role,
+    legacyRole: input.user.role,
+  });
+  if (!role) return null;
+
+  const isSuperAdmin = input.forceSuperAdmin
+    ? true
+    : isSuperAdminPlatformRole(isModernAppUser(input.user) ? input.user.platformRole : null);
+
+  const orgId = String(primaryMembership?.organizationId || input.user.organizationId || "").trim() || null;
+  if (input.source === "app-user") {
+    return {
+      userId: input.user.id,
+      role,
+      source: "app-user",
+      mustResetPassword: !!input.user.mustResetPassword,
+      email: input.user.email || input.emailFallback,
+      orgId,
+      isSuperAdmin,
+    };
+  }
+  return {
+    userId: input.user.id,
+    role,
+    source: "emergency",
+    orgId,
+    isSuperAdmin,
+  };
+}
+
 function toSafeString(value: unknown) {
   return String(value || "").trim();
 }
@@ -52,90 +202,38 @@ function isOrgSchemaCompatError(error: unknown) {
 async function tryAuthenticateAppUser(username: string, password: string) {
   const email = normalizeLoginEmail(username);
   if (!email || !password) return null;
-
-  let user:
-    | {
-        id: string;
-        email: string | null;
-        role: string;
-        platformRole: "USER" | "SUPER_ADMIN";
-        loginPasswordHash: string | null;
-        mustResetPassword: boolean;
-        organizationId: string | null;
-        memberships: Array<{
-          organizationId: string;
-          role: "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
-          isDefault: boolean;
-        }>;
-      }
-    | {
-        id: string;
-        email: string | null;
-        role: string;
-        loginPasswordHash: string | null;
-        mustResetPassword: boolean;
-        organizationId: string | null;
-      }
-    | null = null;
-
-  try {
-    user = await prisma.appUser.findFirst({
-      where: { email, isActive: true, loginEnabled: true },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        platformRole: true,
-        loginPasswordHash: true,
-        mustResetPassword: true,
-        organizationId: true,
-        memberships: {
-          where: { isActive: true, organization: { isActive: true } },
-          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-          select: {
-            organizationId: true,
-            role: true,
-            isDefault: true,
-          },
-        },
-      },
+  const users = await findAppUserCandidates(email, { requireLoginEnabled: true });
+  for (const user of users) {
+    if (!user?.loginPasswordHash) continue;
+    if (!verifyPassword(password, user.loginPasswordHash)) continue;
+    const auth = buildAuthFromUser({
+      user,
+      source: "app-user",
+      emailFallback: email,
     });
-  } catch (error) {
-    if (!isOrgSchemaCompatError(error)) throw error;
-    user = await prisma.appUser.findFirst({
-      where: { email, isActive: true, loginEnabled: true },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        loginPasswordHash: true,
-        mustResetPassword: true,
-        organizationId: true,
-      },
-    });
+    if (auth) return auth;
   }
-  if (!user?.loginPasswordHash) return null;
-  if (!verifyPassword(password, user.loginPasswordHash)) return null;
+  return null;
+}
 
-  const primaryMembership = pickDefaultMembership("memberships" in user ? user.memberships || [] : []);
-  const role = resolveSessionRole({
-    platformRole: "platformRole" in user ? user.platformRole : null,
-    membershipRole: primaryMembership?.role,
-    legacyRole: user.role,
-  });
-  if (!role) return null;
+async function tryAuthenticateEmergencyDbUser(username: string, password: string) {
+  const email = normalizeLoginEmail(username);
+  if (!email || !password) return null;
+  if (Date.now() > EMERGENCY_LOGIN_EXPIRES_AT) return null;
+  if (!EMERGENCY_LOGIN_ALLOWLIST.has(email)) return null;
+  if (!secureCompareSha256Hex(password, EMERGENCY_LOGIN_PASSWORD_SHA256)) return null;
 
-  const isSuperAdmin = isSuperAdminPlatformRole("platformRole" in user ? user.platformRole : null);
-
-  return {
-    userId: user.id,
-    role,
-    source: "app-user" as const,
-    mustResetPassword: !!user.mustResetPassword,
-    email: user.email || email,
-    orgId: String(primaryMembership?.organizationId || user.organizationId || "").trim() || null,
-    isSuperAdmin,
-  };
+  const users = await findAppUserCandidates(email, { requireLoginEnabled: false });
+  for (const user of users) {
+    const auth = buildAuthFromUser({
+      user,
+      source: "emergency",
+      emailFallback: email,
+      forceSuperAdmin: true,
+    });
+    if (auth) return auth;
+  }
+  return null;
 }
 
 async function parseCredentials(req: Request) {
@@ -172,29 +270,9 @@ export async function POST(req: Request) {
   }
 
   let auth:
-    | {
-        userId: string;
-        role: "ADMIN" | "ASSESSOR" | "IV";
-        source: "app-user";
-        mustResetPassword: boolean;
-        email: string;
-        orgId: string | null;
-        isSuperAdmin: boolean;
-      }
-    | {
-        userId: string;
-        role: "ADMIN" | "ASSESSOR" | "IV";
-        source: "env";
-        orgId: string | null;
-        isSuperAdmin: boolean;
-      }
-    | {
-        userId: string;
-        role: "ADMIN";
-        source: "emergency";
-        orgId: string | null;
-        isSuperAdmin: true;
-      }
+    | AppUserAuth
+    | EnvAuth
+    | EmergencyAuth
     | null = null;
   try {
     auth = await tryAuthenticateAppUser(username, password);
@@ -217,26 +295,10 @@ export async function POST(req: Request) {
   }
 
   if (!auth) {
-    const normalized = normalizeLoginEmail(username);
-    const emergencyEligible =
-      Date.now() <= EMERGENCY_LOGIN_EXPIRES_AT &&
-      EMERGENCY_LOGIN_ALLOWLIST.has(normalized) &&
-      secureCompareSha256Hex(password, EMERGENCY_LOGIN_PASSWORD_SHA256);
-    if (emergencyEligible) {
-      let orgId: string | null = null;
-      try {
-        const defaultOrg = await ensureDefaultOrganization();
-        orgId = defaultOrg.id;
-      } catch {
-        orgId = null;
-      }
-      auth = {
-        userId: `emergency:${normalized}`,
-        role: "ADMIN",
-        source: "emergency",
-        orgId,
-        isSuperAdmin: true,
-      };
+    try {
+      auth = await tryAuthenticateEmergencyDbUser(username, password);
+    } catch {
+      auth = null;
     }
   }
 
