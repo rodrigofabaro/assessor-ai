@@ -234,17 +234,19 @@ export default async function LandingPage() {
 
   if (!session) {
     return (
-      <div className="grid gap-3 sm:gap-4">
+      <div className="grid gap-4 sm:gap-5">
         <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100/70" />
           <div className="relative grid items-center gap-5 p-5 sm:p-7 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <p className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-                Pearson-ready assessment platform
+                Defensible assessment operations
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">Assessor AI</h1>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">
+                Defensible AI-assisted grading for vocational assessment.
+              </h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-700 sm:text-base">
-                Assessor workspace for internal delivery: lock reference packs, process submissions, run Turnitin-backed QA checks, and generate IV-AD evidence packs.
+                Assessor AI processes submissions, extracts evidence, grades against locked criteria, and produces moderation-ready outputs with a full audit trail.
               </p>
 
               <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -252,9 +254,14 @@ export default async function LandingPage() {
                   href="/login"
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
                 >
-                  Sign in
+                  Start grading submissions
                 </Link>
-                <p className="text-xs font-medium text-zinc-600">Includes AI-assisted workflows, Turnitin checks, and role-based team operations.</p>
+                <Link
+                  href="#how-it-works"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+                >
+                  See how it works
+                </Link>
               </div>
             </div>
 
@@ -268,15 +275,15 @@ export default async function LandingPage() {
               <div className="mt-2.5 grid gap-2">
                 <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Reference layer</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Upload specs/briefs, review extraction, track IV readiness, and lock approved versions.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Lock assessment specifications and briefs so grading always uses the correct criteria version.</p>
                 </div>
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Assessment flow</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Process learner evidence with AI-assisted extraction and grading workflow.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Upload submissions, extract evidence, map to criteria, and generate grading outputs.</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Assurance</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Run Turnitin checks, QA follow-up, and IV-AD generation with audit history.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Maintain audit trail, IV-AD generation, and Turnitin checks for moderation loops.</p>
                 </div>
               </div>
             </aside>
@@ -287,10 +294,10 @@ export default async function LandingPage() {
           <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Built for</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {[
-              "Vocational providers",
-              "Awarding organizations",
-              "Internal quality teams",
-              "Self-employed assessors",
+              "Vocational training providers",
+              "Awarding organisations",
+              "Internal quality assurance teams",
+              "Independent assessors",
             ].map((label) => (
               <span key={label} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
                 {label}
@@ -302,69 +309,75 @@ export default async function LandingPage() {
         <section id="features" className="grid auto-rows-fr gap-3 md:grid-cols-3">
           <MarketingCard
             icon="reference"
-            title="IV and Reference Readiness"
-            description="Prepare active spec/brief context and IV evidence before grading starts."
-            bullets={["IV status", "Lock versions"]}
+            title="Reference Governance"
+            description="Lock assessment specifications and assignment briefs so grading always references the correct criteria version."
+            bullets={["Version control", "Lock controls"]}
             accent="indigo"
           />
           <MarketingCard
             icon="submissions"
-            title="AI-Assisted Submission Processing"
-            description="Handle PDF/DOCX intake with extraction cleanup and grading support."
-            bullets={["AI extraction", "Grading flow"]}
+            title="Evidence Workflow"
+            description="Upload submissions, extract evidence, map it to criteria, and generate feedback in a single grading workflow."
+            bullets={["Evidence extraction", "Criteria mapping"]}
             accent="emerald"
           />
           <MarketingCard
             icon="audit"
-            title="Turnitin, QA, and IV-AD"
-            description="Track QA actions, run Turnitin checks, and generate IV-AD packs from submissions."
-            bullets={["Turnitin actions", "IV-AD outputs"]}
+            title="Moderation Confidence"
+            description="Maintain a full audit trail of grading decisions for internal verification, QA, and external moderation."
+            bullets={["Audit trail", "IV + Turnitin checks"]}
             accent="slate"
           />
         </section>
 
-        <section className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/85 via-white to-orange-50/70 p-4 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-[1fr_1.1fr] md:items-start">
+        <section id="how-it-works" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Why Assessor AI is different</p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
-                It follows how assessor teams already operate internally.
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-zinc-700">
-                This is not a generic AI shell. It is structured for real assessor, IV and IQA operations with policy-driven integrations, role-based teams, and traceable delivery steps.
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Assessment today is messy</p>
+              <div className="mt-2 grid gap-2 text-sm text-zinc-700">
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Submissions arrive in mixed formats</div>
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Criteria mapping is manual and inconsistent</div>
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Moderation evidence is spread across tools</div>
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Audit history is hard to reconstruct</div>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI fixes this with one controlled grading pipeline.</p>
             </div>
 
-            <div className="rounded-xl border border-amber-200 bg-white/80 px-3">
-              {[
-                {
-                  icon: "qa" as TinyIconName,
-                  title: "1. Configure policy and integrations",
-                  text: "Set AI model/mode, Turnitin behavior, and active reference context for the cycle.",
-                },
-                {
-                  icon: "workflow" as TinyIconName,
-                  title: "2. Run submission, QA, and IV workflow",
-                  text: "Process submissions, monitor Turnitin status, and generate IV-AD from reviewed evidence.",
-                },
-                {
-                  icon: "users" as TinyIconName,
-                  title: "3. Coordinate teams and communication",
-                  text: "Assign users by role/organization, issue invite emails, and keep actions visible across handoffs.",
-                },
-              ].map((item, idx) => (
-                <div
-                  key={item.title}
-                  className={"py-3 " + (idx < 2 ? "border-b border-amber-100" : "")}
-                >
-                  <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-700">
-                      <TinyIcon name={item.icon} className="h-3.5 w-3.5" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">How Assessor AI works</p>
+              <ol className="mt-2 grid gap-2 text-sm text-zinc-700">
+                {[
+                  "Upload student submission",
+                  "Extract evidence from the document",
+                  "Link evidence to assignment criteria",
+                  "Generate grading decision and feedback",
+                  "Review and export moderation-ready outputs",
+                ].map((step, idx) => (
+                  <li key={step} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-700">
+                      {idx + 1}
                     </span>
-                    {item.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-zinc-700">{item.text}</p>
-                </div>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-zinc-200 pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Designed for regulated assessment frameworks</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[
+                "Pearson BTEC-style workflows",
+                "Internal verification (IV) operations",
+                "Turnitin integrity checks",
+                "Moderation and audit requirements",
+                "Role and organisation-based access",
+                "Invite-email onboarding for teams",
+              ].map((item) => (
+                <span key={item} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+                  {item}
+                </span>
               ))}
             </div>
           </div>
