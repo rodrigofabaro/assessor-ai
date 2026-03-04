@@ -91,72 +91,6 @@ function MarketingCard({
   );
 }
 
-function WorkflowStep({
-  n,
-  title,
-  description,
-}: {
-  n: number;
-  title: string;
-  description: string;
-}) {
-  const tone =
-    n === 1
-      ? "border-sky-100 bg-sky-50 text-sky-800"
-      : n === 2
-        ? "border-cyan-100 bg-cyan-50 text-cyan-800"
-        : n === 3
-          ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-          : "border-violet-100 bg-violet-50 text-violet-800";
-  return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className={"inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 text-xs font-semibold " + tone}>
-        {n}
-      </div>
-      <h3 className="mt-2 text-sm font-semibold text-zinc-900">{title}</h3>
-      <p className="mt-1 text-sm leading-7 text-zinc-700">{description}</p>
-    </article>
-  );
-}
-
-function EvidenceCard({
-  icon,
-  title,
-  description,
-  accent,
-}: {
-  icon: TinyIconName;
-  title: string;
-  description: string;
-  accent: AccentTone;
-}) {
-  const accentIcon =
-    accent === "emerald"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-      : accent === "cyan"
-        ? "border-cyan-100 bg-cyan-50 text-cyan-800"
-        : accent === "indigo"
-          ? "border-indigo-100 bg-indigo-50 text-indigo-800"
-          : accent === "violet"
-            ? "border-violet-100 bg-violet-50 text-violet-800"
-            : accent === "amber"
-              ? "border-amber-100 bg-amber-50 text-amber-800"
-              : accent === "slate"
-                ? "border-slate-100 bg-slate-50 text-slate-800"
-                : "border-sky-100 bg-sky-50 text-sky-800";
-  return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-        <span className={"inline-flex h-7 w-7 items-center justify-center rounded-lg border " + accentIcon}>
-          <TinyIcon name={icon} className="h-4 w-4" />
-        </span>
-        {title}
-      </h3>
-      <p className="mt-2 text-[15px] leading-7 text-zinc-700">{description}</p>
-    </article>
-  );
-}
-
 function ActionCard({
   icon,
   title,
@@ -212,7 +146,7 @@ async function getDashboardStats() {
       prisma.student.count(),
       prisma.referenceDocument.count({ where: { type: "SPEC", status: "LOCKED" } }),
       prisma.referenceDocument.count({ where: { type: "BRIEF", status: "LOCKED" } }),
-      prisma.submission.count({ where: { status: { in: ["FAILED", "NEEDS_OCR"] as any } } }),
+      prisma.submission.count({ where: { OR: [{ status: "FAILED" }, { status: "NEEDS_OCR" }] } }),
     ]);
     return { specs, briefs, submissions, students, lockedSpecs, lockedBriefs, queueBlocked };
   } catch {
