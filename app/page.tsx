@@ -331,26 +331,26 @@ export default async function LandingPage() {
                 Built for defensible assessment operations, not generic automation.
               </h2>
               <p className="mt-2 text-sm leading-7 text-zinc-700">
-                Most tools automate isolated steps. Assessor AI keeps reference context governed, runs a consistent operational flow, and preserves evidence history for QA and moderation.
+                Most tools stop at task automation. Assessor AI is designed for day-to-day delivery quality: fewer moderation disputes, lower QA rework, and clearer accountability across teams.
               </p>
             </div>
 
             <div className="rounded-xl border border-amber-200 bg-white/80 px-3">
               {[
                 {
-                  icon: "reference" as TinyIconName,
-                  title: "Governed references",
-                  text: "Assessment runs against approved and locked spec/brief context.",
+                  icon: "qa" as TinyIconName,
+                  title: "Less QA rework",
+                  text: "Review teams spend less time chasing missing context and correcting avoidable issues.",
                 },
                 {
-                  icon: "submissions" as TinyIconName,
-                  title: "Operational flow",
-                  text: "Intake, extraction, grading, and feedback run in one controlled journey.",
+                  icon: "users" as TinyIconName,
+                  title: "Faster team ramp-up",
+                  text: "New assessors follow the same operating model, reducing onboarding friction.",
                 },
                 {
-                  icon: "audit" as TinyIconName,
-                  title: "Evidence traceability",
-                  text: "QA and moderation can review decisions without reconstruction work.",
+                  icon: "workflow" as TinyIconName,
+                  title: "Consistent delivery at scale",
+                  text: "Multiple teams and organizations can run the same process with predictable outcomes.",
                 },
               ].map((item, idx) => (
                 <div
