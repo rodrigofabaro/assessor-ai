@@ -281,16 +281,6 @@ export default async function LandingPage() {
               </div>
             </aside>
           </div>
-          <div className="relative border-t border-zinc-200/80 px-5 py-3 sm:px-7">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-              <span className="text-zinc-500">Trusted workflow:</span>
-              {["Spec lock controls", "Submission QA checks", "Audit timeline"].map((item) => (
-                <span key={item} className="inline-flex rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-zinc-700">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
         </section>
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -334,16 +324,23 @@ export default async function LandingPage() {
         </section>
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="max-w-2xl text-sm leading-7 text-zinc-700">
-              Defensible decisions, cleaner quality assurance, and a workflow your assessors can use daily without operational friction.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex h-10 items-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
-            >
-              Sign in
-            </Link>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-zinc-900">Why Assessor AI is different</h2>
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Core USP</span>
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
+              <div className="text-xs font-semibold text-indigo-700">Governed references</div>
+              <p className="mt-0.5 text-sm text-zinc-700">Assessment always runs against approved, locked context.</p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
+              <div className="text-xs font-semibold text-emerald-700">Operational flow</div>
+              <p className="mt-0.5 text-sm text-zinc-700">Intake to feedback in one controlled journey.</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+              <div className="text-xs font-semibold text-slate-700">Evidence traceability</div>
+              <p className="mt-0.5 text-sm text-zinc-700">QA and moderation can review decisions without reconstruction.</p>
+            </div>
           </div>
         </section>
       </div>
