@@ -234,10 +234,10 @@ export default async function LandingPage() {
 
   if (!session) {
     return (
-      <div className="grid gap-4 sm:gap-5">
+      <div className="grid gap-5 sm:gap-6">
         <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100/70" />
-          <div className="relative grid items-center gap-5 p-6 sm:p-9 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="relative grid items-center gap-5 p-7 sm:p-10 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <p className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
                 Defensible assessment operations
@@ -246,7 +246,7 @@ export default async function LandingPage() {
                 Defensible AI-assisted grading for vocational assessment.
               </h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-700 sm:text-base">
-                Upload submissions, extract evidence, grade against locked criteria, and produce moderation-ready outputs with a complete audit trail.
+                Upload submissions, extract evidence, grade against locked criteria, and generate moderation-ready outputs with a complete audit trail.
               </p>
 
               <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -279,7 +279,7 @@ export default async function LandingPage() {
                 </div>
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Assessment flow</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Upload submissions, extract evidence, map it to criteria, and generate grading decisions and feedback.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Upload submissions, extract evidence, map it to assessment criteria, and generate grading decisions and feedback.</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Assurance</div>
@@ -310,21 +310,21 @@ export default async function LandingPage() {
           <MarketingCard
             icon="reference"
             title="Reference Governance"
-            description="Lock assessment specifications and assignment briefs so grading always references the correct criteria version."
+            description="Lock specifications and assignment briefs so grading always references the correct criteria version."
             bullets={["Version control", "Lock controls"]}
             accent="indigo"
           />
           <MarketingCard
             icon="submissions"
             title="Evidence Workflow"
-            description="Extract evidence from submissions, map it to criteria, and generate feedback in one structured grading workflow."
+            description="Extract evidence from submissions, map it to criteria, and generate grading feedback in one structured workflow."
             bullets={["Evidence extraction", "Criteria mapping"]}
             accent="emerald"
           />
           <MarketingCard
             icon="audit"
             title="Moderation Confidence"
-            description="Maintain a full audit trail of grading decisions for internal verification, QA, and external moderation."
+            description="Maintain a complete audit trail of grading decisions for internal verification, QA, and external moderation."
             bullets={["Audit trail", "IV + Turnitin checks"]}
             accent="slate"
           />
@@ -340,7 +340,7 @@ export default async function LandingPage() {
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Moderation evidence is spread across tools</div>
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Audit history is hard to reconstruct</div>
               </div>
-              <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI replaces this with a single controlled grading pipeline.</p>
+              <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI replaces this with a single controlled assessment pipeline.</p>
             </div>
 
             <div>
@@ -350,7 +350,7 @@ export default async function LandingPage() {
                   "Upload student submission",
                   "Extract evidence from the document",
                   "Map evidence to assignment criteria",
-                  "Generate grading decisions and feedback",
+                  "Generate grading decisions and structured feedback",
                   "Review and export moderation-ready outputs",
                 ].map((step, idx) => (
                   <li key={step} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -365,7 +365,7 @@ export default async function LandingPage() {
           </div>
 
           <div className="mt-4 border-t border-zinc-200 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Designed for regulated assessment environments</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Built for regulated assessment environments</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {[
                 "Pearson BTEC-style workflows",
@@ -392,6 +392,7 @@ export default async function LandingPage() {
               "Clear moderation evidence",
               "Reduced QA rework",
               "Complete audit traceability",
+              "Standardised grading across teams",
             ].map((item) => (
               <div key={item} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
                 {item}
