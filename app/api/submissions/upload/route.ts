@@ -5,9 +5,19 @@ import path from "path";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
+import { getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
 type SubmissionRecord = Awaited<ReturnType<typeof prisma.submission.create>>;
+
+function isOrgScopeCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2022") return true; // missing column
+  if (msg.includes("organizationid") && msg.includes("does not exist")) return true;
+  if (msg.includes("unknown argument") && msg.includes("organizationid")) return true;
+  return false;
+}
 
 function getOptionalId(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -23,11 +33,18 @@ function isAllowedFile(filename: string): boolean {
 export async function POST(req: Request) {
   const requestId = makeRequestId();
   try {
+    let organizationId: string | null = null;
+    try {
+      organizationId = await getRequestOrganizationId();
+    } catch {}
     const formData = await req.formData();
 
     const studentId = getOptionalId(formData.get("studentId"));
     const assignmentId = getOptionalId(formData.get("assignmentId"));
-    const actor = await getCurrentAuditActor(getOptionalId(formData.get("actor")));
+    let actor = "system";
+    try {
+      actor = await getCurrentAuditActor(getOptionalId(formData.get("actor")));
+    } catch {}
 
     const files = formData.getAll("files").filter((x): x is File => x instanceof File);
 
@@ -66,31 +83,42 @@ export async function POST(req: Request) {
       const storagePath = toStorageRelativePath("uploads", storedFilename);
       await writeStorageFile(storagePath, buffer);
 
-      const submission = await prisma.submission.create({
-        data: {
-          filename: file.name,
-          storedFilename,
-          storagePath,
-          status: "UPLOADED",
-          studentId,
-          assignmentId,
-          studentLinkedAt: studentId ? new Date() : null,
-          studentLinkedBy: studentId ? actor : null,
-        },
-      });
+      const baseData = {
+        filename: file.name,
+        storedFilename,
+        storagePath,
+        status: "UPLOADED" as const,
+        studentId,
+        assignmentId,
+        studentLinkedAt: studentId ? new Date() : null,
+        studentLinkedBy: studentId ? actor : null,
+      };
+
+      let submission: SubmissionRecord;
+      try {
+        submission = await prisma.submission.create({
+          data: organizationId ? { ...baseData, organizationId } : baseData,
+        });
+      } catch (createErr) {
+        if (!organizationId || !isOrgScopeCompatError(createErr)) throw createErr;
+        // Backward-compatible path while organization column rollout is still being migrated.
+        submission = await prisma.submission.create({ data: baseData });
+      }
 
       if (studentId) {
-        await prisma.submissionAuditEvent.create({
-          data: {
-            submissionId: submission.id,
-            type: "STUDENT_LINKED",
-            actor,
-            meta: {
-              source: "upload",
-              studentId,
+        try {
+          await prisma.submissionAuditEvent.create({
+            data: {
+              submissionId: submission.id,
+              type: "STUDENT_LINKED",
+              actor,
+              meta: {
+                source: "upload",
+                studentId,
+              },
             },
-          },
-        });
+          });
+        } catch {}
       }
 
       created.push(submission);
@@ -111,6 +139,7 @@ export async function POST(req: Request) {
       { headers: { "x-request-id": requestId } }
     );
   } catch (err) {
+    const debugMessage = String((err as { message?: string } | null)?.message || err || "").trim();
     return apiError({
       status: 500,
       code: "UPLOAD_FAILED",
@@ -118,6 +147,7 @@ export async function POST(req: Request) {
       route: "/api/submissions/upload",
       requestId,
       cause: err,
+      details: debugMessage ? { message: debugMessage } : undefined,
     });
   }
 }
