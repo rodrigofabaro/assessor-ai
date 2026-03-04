@@ -325,8 +325,8 @@ export default async function LandingPage() {
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr] md:items-center">
-            <div className="rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50/80 via-white to-indigo-50/60 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Why Assessor AI is different</p>
+            <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Why Assessor AI is different</p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
                 Built for defensible assessment operations, not generic automation.
               </h2>
@@ -337,7 +337,7 @@ export default async function LandingPage() {
                 {["Reference lock controls", "Evidence-first workflow", "QA-ready audit trail"].map((item) => (
                   <span
                     key={item}
-                    className="inline-flex rounded-full border border-sky-100 bg-white px-2.5 py-1 text-xs font-semibold text-sky-800"
+                    className="inline-flex rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800"
                   >
                     {item}
                   </span>
@@ -346,27 +346,27 @@ export default async function LandingPage() {
             </div>
 
             <div className="grid gap-2">
-              <article className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
+              <article className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
                 <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-indigo-100 bg-white text-indigo-700">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-amber-200 bg-white text-amber-700">
                     <TinyIcon name="reference" className="h-3.5 w-3.5" />
                   </span>
                   Governed references
                 </h3>
                 <p className="mt-1 text-sm text-zinc-700">Assessment runs against approved and locked spec/brief context.</p>
               </article>
-              <article className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
+              <article className="rounded-xl border border-orange-200 bg-orange-50/75 p-3">
                 <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-emerald-100 bg-white text-emerald-700">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-orange-200 bg-white text-orange-700">
                     <TinyIcon name="submissions" className="h-3.5 w-3.5" />
                   </span>
                   Operational flow
                 </h3>
                 <p className="mt-1 text-sm text-zinc-700">Intake, extraction, grading, and feedback run in one controlled journey.</p>
               </article>
-              <article className="rounded-xl border border-slate-200 bg-zinc-50 p-3">
+              <article className="rounded-xl border border-amber-200 bg-amber-50/70 p-3">
                 <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-amber-200 bg-white text-amber-700">
                     <TinyIcon name="audit" className="h-3.5 w-3.5" />
                   </span>
                   Evidence traceability
