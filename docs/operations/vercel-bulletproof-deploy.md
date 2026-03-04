@@ -83,6 +83,7 @@ Verify evidence artifact in `docs/evidence/deploy-smoke/`.
 Also confirm:
 1. Runtime file writes are backed by durable object storage (not local ephemeral filesystem).
 2. Deployment release notes link to the smoke evidence artifact.
+3. Baseline grading data exists (at least one assignment available via `/api/assignments`) so full smoke can reach grade/export/replay stages.
 
 ## 7) If deploy fails
 

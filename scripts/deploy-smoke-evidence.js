@@ -173,7 +173,7 @@ async function resolveAssignment(baseUrl, fetchJson) {
   const assignments = Array.isArray(listRes.json) ? listRes.json : [];
   const preferred = assignments.find((a) => String(a?.unitCode || "") === "4017" && String(a?.assignmentRef || "").toUpperCase() === "A1");
   const chosen = preferred || assignments[0];
-  if (!chosen?.id) throw new Error("No assignments available.");
+  if (!chosen?.id) throw new Error("No assignments available. Seed at least one assignment before full deploy smoke.");
   return {
     id: chosen.id,
     unitCode: chosen.unitCode || null,
@@ -258,7 +258,7 @@ async function main() {
     };
     if (!extract.ok) throw new Error(`Extract failed (${extract.status})`);
 
-    const student = await ensureStudent(baseUrl);
+    const student = await ensureStudent(baseUrl, fetchJson);
     evidence.steps.student = student;
 
     const linkStudent = await fetchJson(`${baseUrl}/api/submissions/${submissionId}/link-student`, {
@@ -269,7 +269,7 @@ async function main() {
     evidence.steps.linkStudent = { status: linkStudent.status, ms: linkStudent.ms };
     if (!linkStudent.ok) throw new Error(`Link student failed (${linkStudent.status})`);
 
-    const assignment = await resolveAssignment(baseUrl);
+    const assignment = await resolveAssignment(baseUrl, fetchJson);
     evidence.steps.assignment = assignment;
 
     const linkAssignment = await fetchJson(`${baseUrl}/api/submissions/${submissionId}`, {

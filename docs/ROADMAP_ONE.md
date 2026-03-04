@@ -203,14 +203,18 @@ Still missing (highest impact first):
 - Preview/Development/Production currently share the same DB credential group in Vercel.
 - Must split DB/storage credentials by environment to avoid cross-environment data risk.
 
-3. Post-deploy smoke evidence on each production rollout.
+3. Production baseline seed data for full smoke.
+- Full deploy smoke requires at least one assignment record available through `/api/assignments`.
+- Current production check showed upload/extract/link pass, then grade path blocked by empty assignment list.
+
+4. Post-deploy smoke evidence on each production rollout.
 - Keep `pnpm run ops:deploy-smoke` evidence artifact per release and link in release notes.
 
-4. Backup/restore operational drill evidence.
+5. Backup/restore operational drill evidence.
 - Run one explicit restore simulation following `docs/operations/storage-migration-rollback.md`.
 - Store drill evidence under `docs/evidence/`.
 
-5. Optional provider enablement (deferred by operator decision).
+6. Optional provider enablement (deferred by operator decision).
 - Transactional email sending (`AUTH_INVITE_EMAIL_PROVIDER=resend`) remains deferred.
 
 ### Pre-deploy
