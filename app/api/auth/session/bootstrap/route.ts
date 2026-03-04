@@ -14,6 +14,18 @@ export const runtime = "nodejs";
 const ONE_DAY_SECONDS = 60 * 60 * 24;
 const allowBootstrap = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_BOOTSTRAP_ENABLED || "false").trim());
 
+function isOrgSchemaCompatError(error: unknown) {
+  const message = String((error as { message?: string })?.message || "").toLowerCase();
+  return (
+    message.includes("platformrole") ||
+    message.includes("organizationmembership") ||
+    message.includes("memberships") ||
+    (message.includes("unknown argument") && message.includes("platform")) ||
+    (message.includes("unknown argument") && message.includes("memberships")) ||
+    (message.includes("column") && message.includes("does not exist"))
+  );
+}
+
 export async function POST() {
   if (!allowBootstrap) {
     return NextResponse.json({ error: "Session bootstrap is disabled.", code: "AUTH_BOOTSTRAP_DISABLED" }, { status: 403 });
@@ -27,8 +39,25 @@ export async function POST() {
 
   const cfg = await getOrCreateAppConfig();
   const activeAuditUserId = String(cfg.activeAuditUser?.id || "").trim();
-  const user = activeAuditUserId
-    ? await prisma.appUser.findUnique({
+  let user:
+    | {
+        id: string;
+        isActive: boolean;
+        role: string;
+        platformRole: "USER" | "SUPER_ADMIN";
+        organizationId: string | null;
+        memberships: Array<{ organizationId: string; role: "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER"; isDefault: boolean }>;
+      }
+    | {
+        id: string;
+        isActive: boolean;
+        role: string;
+        organizationId: string | null;
+      }
+    | null = null;
+  if (activeAuditUserId) {
+    try {
+      user = await prisma.appUser.findUnique({
         where: { id: activeAuditUserId },
         select: {
           id: true,
@@ -42,15 +71,27 @@ export async function POST() {
             select: { organizationId: true, role: true, isDefault: true },
           },
         },
-      })
-    : null;
-  const primaryMembership = pickDefaultMembership(user?.memberships || []);
+      });
+    } catch (error) {
+      if (!isOrgSchemaCompatError(error)) throw error;
+      user = await prisma.appUser.findUnique({
+        where: { id: activeAuditUserId },
+        select: {
+          id: true,
+          isActive: true,
+          role: true,
+          organizationId: true,
+        },
+      });
+    }
+  }
+  const primaryMembership = pickDefaultMembership(user && "memberships" in user ? user.memberships || [] : []);
   const role = resolveSessionRole({
-    platformRole: user?.platformRole,
+    platformRole: user && "platformRole" in user ? user.platformRole : null,
     membershipRole: primaryMembership?.role,
     legacyRole: user?.isActive ? user.role : null,
   });
-  const isSuperAdmin = isSuperAdminPlatformRole(user?.platformRole);
+  const isSuperAdmin = isSuperAdminPlatformRole(user && "platformRole" in user ? user.platformRole : null);
   const defaultOrg = await ensureDefaultOrganization();
   const orgId =
     String(primaryMembership?.organizationId || user?.organizationId || defaultOrg.id || "").trim() || null;

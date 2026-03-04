@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeLoginEmail, verifyPassword } from "@/lib/auth/password";
-import { ensureDefaultOrganization } from "@/lib/organizations/defaults";
 
 const EMERGENCY_RECOVERY_ALLOWLIST = new Set([
   "deploy.smoke.admin@assessor-ai.co.uk",
@@ -87,7 +86,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const defaultOrg = await ensureDefaultOrganization();
     const updated = await prisma.appUser.upsert({
       where: { email },
       update: {
@@ -96,39 +94,52 @@ export async function POST(req: Request) {
         loginPasswordHash: nextHash,
         passwordUpdatedAt: new Date(),
         mustResetPassword: false,
-        organizationId: defaultOrg.id,
       },
       create: {
         fullName: "Deployment Smoke Admin",
         email,
         role: "ADMIN",
-        platformRole: "SUPER_ADMIN",
         isActive: true,
         loginEnabled: true,
         loginPasswordHash: nextHash,
         passwordUpdatedAt: new Date(),
         mustResetPassword: false,
-        organizationId: defaultOrg.id,
       },
-      select: { id: true, organizationId: true },
+      select: { id: true },
     });
 
-    await prisma.organizationMembership.upsert({
-      where: {
-        userId_organizationId: {
-          userId: updated.id,
-          organizationId: updated.organizationId || defaultOrg.id,
-        },
-      },
-      update: { role: "ORG_ADMIN", isActive: true, isDefault: true },
-      create: {
-        userId: updated.id,
-        organizationId: updated.organizationId || defaultOrg.id,
-        role: "ORG_ADMIN",
-        isActive: true,
-        isDefault: true,
-      },
-    });
+    try {
+      const anyPrisma = prisma as unknown as {
+        organizationMembership?: {
+          findFirst: (args: unknown) => Promise<{ organizationId: string } | null>;
+          upsert: (args: unknown) => Promise<unknown>;
+        };
+      };
+      const membershipDelegate = anyPrisma.organizationMembership;
+      if (membershipDelegate) {
+        const existingMembership = await membershipDelegate.findFirst({
+          where: { userId: updated.id },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+          select: { organizationId: true },
+        });
+        const existingOrg = existingMembership?.organizationId;
+        if (existingOrg) {
+          await membershipDelegate.upsert({
+            where: { userId_organizationId: { userId: updated.id, organizationId: existingOrg } },
+            update: { role: "ORG_ADMIN", isActive: true, isDefault: true },
+            create: {
+              userId: updated.id,
+              organizationId: existingOrg,
+              role: "ORG_ADMIN",
+              isActive: true,
+              isDefault: true,
+            },
+          });
+        }
+      }
+    } catch {
+      // Legacy schema compatibility: skip membership updates when table/columns are unavailable.
+    }
 
     return NextResponse.json({ ok: true, mode: "emergency-recovery" });
   }

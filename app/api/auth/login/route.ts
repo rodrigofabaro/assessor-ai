@@ -25,43 +25,95 @@ function secureCompare(input: string, expected: string) {
   return crypto.timingSafeEqual(inputHash, expectedHash);
 }
 
+function isOrgSchemaCompatError(error: unknown) {
+  const message = String((error as { message?: string })?.message || "").toLowerCase();
+  return (
+    message.includes("platformrole") ||
+    message.includes("organizationmembership") ||
+    message.includes("memberships") ||
+    (message.includes("unknown argument") && message.includes("platform")) ||
+    (message.includes("unknown argument") && message.includes("memberships")) ||
+    (message.includes("column") && message.includes("does not exist"))
+  );
+}
+
 async function tryAuthenticateAppUser(username: string, password: string) {
   const email = normalizeLoginEmail(username);
   if (!email || !password) return null;
 
-  const user = await prisma.appUser.findFirst({
-    where: { email, isActive: true, loginEnabled: true },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      platformRole: true,
-      loginPasswordHash: true,
-      mustResetPassword: true,
-      organizationId: true,
-      memberships: {
-        where: { isActive: true, organization: { isActive: true } },
-        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-        select: {
-          organizationId: true,
-          role: true,
-          isDefault: true,
+  let user:
+    | {
+        id: string;
+        email: string | null;
+        role: string;
+        platformRole: "USER" | "SUPER_ADMIN";
+        loginPasswordHash: string | null;
+        mustResetPassword: boolean;
+        organizationId: string | null;
+        memberships: Array<{
+          organizationId: string;
+          role: "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
+          isDefault: boolean;
+        }>;
+      }
+    | {
+        id: string;
+        email: string | null;
+        role: string;
+        loginPasswordHash: string | null;
+        mustResetPassword: boolean;
+        organizationId: string | null;
+      }
+    | null = null;
+
+  try {
+    user = await prisma.appUser.findFirst({
+      where: { email, isActive: true, loginEnabled: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        platformRole: true,
+        loginPasswordHash: true,
+        mustResetPassword: true,
+        organizationId: true,
+        memberships: {
+          where: { isActive: true, organization: { isActive: true } },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+          select: {
+            organizationId: true,
+            role: true,
+            isDefault: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    user = await prisma.appUser.findFirst({
+      where: { email, isActive: true, loginEnabled: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        loginPasswordHash: true,
+        mustResetPassword: true,
+        organizationId: true,
+      },
+    });
+  }
   if (!user?.loginPasswordHash) return null;
   if (!verifyPassword(password, user.loginPasswordHash)) return null;
 
-  const primaryMembership = pickDefaultMembership(user.memberships || []);
+  const primaryMembership = pickDefaultMembership("memberships" in user ? user.memberships || [] : []);
   const role = resolveSessionRole({
-    platformRole: user.platformRole,
+    platformRole: "platformRole" in user ? user.platformRole : null,
     membershipRole: primaryMembership?.role,
     legacyRole: user.role,
   });
   if (!role) return null;
 
-  const isSuperAdmin = isSuperAdminPlatformRole(user.platformRole);
+  const isSuperAdmin = isSuperAdminPlatformRole("platformRole" in user ? user.platformRole : null);
 
   return {
     userId: user.id,
