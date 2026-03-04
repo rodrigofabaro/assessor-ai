@@ -86,27 +86,37 @@ export async function POST(req: Request) {
       );
     }
 
-    const updated = await prisma.appUser.upsert({
+    const existing = await prisma.appUser.findFirst({
       where: { email },
-      update: {
-        loginEnabled: true,
-        isActive: true,
-        loginPasswordHash: nextHash,
-        passwordUpdatedAt: new Date(),
-        mustResetPassword: false,
-      },
-      create: {
-        fullName: "Deployment Smoke Admin",
-        email,
-        role: "ADMIN",
-        isActive: true,
-        loginEnabled: true,
-        loginPasswordHash: nextHash,
-        passwordUpdatedAt: new Date(),
-        mustResetPassword: false,
-      },
       select: { id: true },
+      orderBy: { createdAt: "asc" },
     });
+
+    const updated = existing
+      ? await prisma.appUser.update({
+          where: { id: existing.id },
+          data: {
+            loginEnabled: true,
+            isActive: true,
+            loginPasswordHash: nextHash,
+            passwordUpdatedAt: new Date(),
+            mustResetPassword: false,
+          },
+          select: { id: true },
+        })
+      : await prisma.appUser.create({
+          data: {
+            fullName: "Deployment Smoke Admin",
+            email,
+            role: "ADMIN",
+            isActive: true,
+            loginEnabled: true,
+            loginPasswordHash: nextHash,
+            passwordUpdatedAt: new Date(),
+            mustResetPassword: false,
+          },
+          select: { id: true },
+        });
 
     try {
       const anyPrisma = prisma as unknown as {
