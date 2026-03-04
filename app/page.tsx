@@ -234,10 +234,10 @@ export default async function LandingPage() {
 
   if (!session) {
     return (
-      <div className="grid gap-5 sm:gap-6">
+      <div className="grid gap-6 sm:gap-7">
         <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100/70" />
-          <div className="relative grid items-center gap-5 p-7 sm:p-10 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-zinc-50 to-slate-100/80" />
+          <div className="relative grid items-center gap-5 p-8 sm:p-11 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <p className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
                 Defensible assessment operations
