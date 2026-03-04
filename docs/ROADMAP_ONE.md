@@ -1,6 +1,6 @@
 # Assessor-AI Unified Roadmap
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 ## Purpose
 
@@ -15,10 +15,10 @@ Use this doc when the instruction is: "continue the roadmap".
 ## Current status snapshot
 
 1. Completed baseline milestones: M1-M6
-2. Active delivery target: M8 (production deployment readiness)
+2. Active delivery target: M8 (post-go-live deployment hardening)
 3. Parallel tracks in preparation:
    - IV-AD AI review rollout hardening
-   - M8 first production deployment execution
+   - M8 production hardening execution
    - M9 auth and UX hardening foundation
 
 ## Execution lanes
@@ -114,6 +114,13 @@ Use this doc when the instruction is: "continue the roadmap".
 
 1. Full M8 production deployment and cost-ladder scaling
 2. Full M9 auth + UX template rollout + final performance hardening
+3. Email delivery activation for credential invites (deferred by operator)
+- Keep current mode: generated password + copy + `mailto` draft in `Admin -> Users`.
+- Enable when ready:
+  - `AUTH_INVITE_EMAIL_PROVIDER=resend`
+  - `RESEND_API_KEY`
+  - `AUTH_EMAIL_FROM` (verified sender, e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
+  - optional: `AUTH_INVITE_EMAIL_DEFAULT_ON=true`
 
 ## Definition of done by active queue
 
@@ -180,27 +187,31 @@ Canonical environment model:
 2. Pre-merge gate command: `pnpm run ops:prepush-prod` (enforces git policy + local quality checks before merging to `main`)
 
 ## What is still missing before first Vercel deploy (as of 2026-03-03)
+## What is still missing for deployment hardening (as of 2026-03-04)
 
-You already have:
-1. Vercel account
-2. Domain purchased
+Already completed:
+1. Vercel production deployment is live (`www.assessor-ai.co.uk`).
+2. Production PostgreSQL is connected and migrations are being applied.
+3. Auth guards and session login are live in production.
 
-Still required:
-1. Production PostgreSQL database provisioned and connected (`DATABASE_URL` in Vercel project env).
-2. Persistent file/object storage integration completed (current app still writes many files to local disk paths like `uploads/`, `reference_uploads/`, `storage/*`, `submission_marked/`, which is not durable on Vercel runtime).
-3. Minimum production secrets configured in Vercel:
-- `DATABASE_URL`
-- `AUTH_SESSION_SECRET` (32+ chars)
-- OpenAI credentials in use by your runtime profile (`OPENAI_API_KEY` and related keys if used)
-4. Production migration step executed:
-- `pnpm prisma migrate deploy`
-5. First deploy smoke evidence captured against deployed URL:
-- `pnpm run ops:deploy-smoke`
-6. Domain DNS mapped to Vercel project and HTTPS validated.
+Still missing (highest impact first):
+1. Durable object storage backend for production runtime files.
+- Current storage provider still writes to local filesystem paths (`uploads/`, `reference_uploads/`, `storage/*`, `submission_marked/*`).
+- On serverless/runtime restarts this is not durable.
 
-Launch decision:
-1. If you deploy now without item 2, uploads/generated artifacts can be lost between requests/restarts.
-2. First safe production deploy should happen only after storage provider migration for file persistence is complete.
+2. Environment separation cleanup.
+- Preview/Development/Production currently share the same DB credential group in Vercel.
+- Must split DB/storage credentials by environment to avoid cross-environment data risk.
+
+3. Post-deploy smoke evidence on each production rollout.
+- Keep `pnpm run ops:deploy-smoke` evidence artifact per release and link in release notes.
+
+4. Backup/restore operational drill evidence.
+- Run one explicit restore simulation following `docs/operations/storage-migration-rollback.md`.
+- Store drill evidence under `docs/evidence/`.
+
+5. Optional provider enablement (deferred by operator decision).
+- Transactional email sending (`AUTH_INVITE_EMAIL_PROVIDER=resend`) remains deferred.
 
 ### Pre-deploy
 

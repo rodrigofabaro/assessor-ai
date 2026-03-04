@@ -1,6 +1,6 @@
 # Assessor‑AI — Milestones
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 Canonical planning source:
 - `docs/ROADMAP.md` (index)
@@ -28,6 +28,8 @@ Status labels:
 - M8 production deployment and cost-controlled scaling.
 - M9 authentication, UX template system, and final performance hardening.
 - IV-AD AI review rollout tracked in `docs/grading/iv-ad-ai-review-roadmap.md` (supporting feature roadmap).
+- Email invite delivery provider activation is deferred (current fallback: password copy + `mailto` draft).
+- M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production.
 
 ### Bugs and Risks (Stabilization)
 - Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.

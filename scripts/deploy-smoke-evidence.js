@@ -17,6 +17,10 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function toSafeString(value) {
+  return String(value || "").trim();
+}
+
 function toStamp(d) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -27,22 +31,79 @@ function toStamp(d) {
   return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
 }
 
-async function fetchJson(url, init) {
-  const startedAt = Date.now();
-  const res = await fetch(url, init);
-  const text = await res.text();
-  let json = {};
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch {
-    json = { raw: text };
+function createHttpClient() {
+  const cookieJar = new Map();
+
+  function readSetCookieHeaders(res) {
+    if (res?.headers && typeof res.headers.getSetCookie === "function") {
+      return res.headers.getSetCookie();
+    }
+    const single = res?.headers?.get ? res.headers.get("set-cookie") : "";
+    return single ? [single] : [];
   }
-  return {
-    ok: res.ok,
-    status: res.status,
-    json,
-    ms: Date.now() - startedAt,
-  };
+
+  function absorbSetCookie(res) {
+    const rows = readSetCookieHeaders(res);
+    for (const row of rows) {
+      const pair = String(row || "").split(";")[0];
+      const eq = pair.indexOf("=");
+      if (eq <= 0) continue;
+      const name = pair.slice(0, eq).trim();
+      const value = pair.slice(eq + 1).trim();
+      if (!name) continue;
+      if (!value) {
+        cookieJar.delete(name);
+      } else {
+        cookieJar.set(name, value);
+      }
+    }
+  }
+
+  function cookieHeader() {
+    return Array.from(cookieJar.entries())
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+  }
+
+  async function request(url, init = {}) {
+    const startedAt = Date.now();
+    const headers = new Headers(init.headers || {});
+    const cookie = cookieHeader();
+    if (cookie) headers.set("cookie", cookie);
+    const res = await fetch(url, { ...init, headers });
+    absorbSetCookie(res);
+    return { res, ms: Date.now() - startedAt };
+  }
+
+  async function fetchJson(url, init) {
+    const { res, ms } = await request(url, init);
+    const text = await res.text();
+    let json = {};
+    try {
+      json = text ? JSON.parse(text) : {};
+    } catch {
+      json = { raw: text };
+    }
+    return {
+      ok: res.ok,
+      status: res.status,
+      json,
+      ms,
+    };
+  }
+
+  async function fetchBytes(url, init) {
+    const { res, ms } = await request(url, init);
+    const bytes = Buffer.from(await res.arrayBuffer());
+    return {
+      ok: res.ok,
+      status: res.status,
+      bytes,
+      ms,
+    };
+  }
+
+  return { fetchJson, fetchBytes, hasCookie: (name) => cookieJar.has(name) };
 }
 
 function ensureDir(absDir) {
@@ -62,7 +123,7 @@ async function buildSamplePdfBuffer() {
   return Buffer.from(bytes);
 }
 
-async function pollSubmissionReady(baseUrl, submissionId, timeoutMs = 120000) {
+async function pollSubmissionReady(baseUrl, submissionId, fetchJson, timeoutMs = 120000) {
   const started = Date.now();
   let last = null;
   while (Date.now() - started < timeoutMs) {
@@ -84,7 +145,7 @@ async function pollSubmissionReady(baseUrl, submissionId, timeoutMs = 120000) {
   return { ...(last || {}), polledMs: Date.now() - started, timeout: true };
 }
 
-async function ensureStudent(baseUrl) {
+async function ensureStudent(baseUrl, fetchJson) {
   const queryRes = await fetchJson(`${baseUrl}/api/students?query=TS001`, { cache: "no-store" });
   if (!queryRes.ok) throw new Error(`Student query failed (${queryRes.status})`);
   const students = Array.isArray(queryRes.json) ? queryRes.json : [];
@@ -106,7 +167,7 @@ async function ensureStudent(baseUrl) {
   return { id: createRes.json?.id, source: "created" };
 }
 
-async function resolveAssignment(baseUrl) {
+async function resolveAssignment(baseUrl, fetchJson) {
   const listRes = await fetchJson(`${baseUrl}/api/assignments`, { cache: "no-store" });
   if (!listRes.ok) throw new Error(`Assignment list failed (${listRes.status})`);
   const assignments = Array.isArray(listRes.json) ? listRes.json : [];
@@ -134,11 +195,41 @@ async function main() {
   const evidence = {
     generatedAt: nowIso(),
     baseUrl,
+    auth: {
+      attempted: false,
+      authenticated: false,
+    },
     steps: {},
     result: { ok: false, message: "" },
   };
 
   try {
+    const http = createHttpClient();
+    const fetchJson = http.fetchJson;
+    const fetchBytes = http.fetchBytes;
+
+    const authUsername = toSafeString(process.env.DEPLOY_SMOKE_USERNAME || process.env.AUTH_LOGIN_USERNAME);
+    const authPassword = toSafeString(process.env.DEPLOY_SMOKE_PASSWORD || process.env.AUTH_LOGIN_PASSWORD);
+    if (authUsername && authPassword) {
+      evidence.auth.attempted = true;
+      const login = await fetchJson(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: authUsername, password: authPassword }),
+      });
+      evidence.steps.authLogin = {
+        status: login.status,
+        ms: login.ms,
+        ok: login.ok,
+        source: login.json?.source || null,
+        code: login.json?.code || null,
+        error: login.ok ? null : login.json?.error || login.json?.userMessage || null,
+      };
+      if (!login.ok) throw new Error(`Auth login failed (${login.status})`);
+      evidence.auth.authenticated = http.hasCookie("assessor_session");
+      if (!evidence.auth.authenticated) throw new Error("Auth login did not produce session cookie.");
+    }
+
     const pdf = await buildSamplePdfBuffer();
     const filename = `deploy-smoke-${Date.now()}.pdf`;
 
@@ -204,14 +295,12 @@ async function main() {
     };
     if (!grade.ok) throw new Error(`Grade failed (${grade.status})`);
 
-    const ready = await pollSubmissionReady(baseUrl, submissionId, 120000);
+    const ready = await pollSubmissionReady(baseUrl, submissionId, fetchJson, 120000);
     evidence.steps.poll = ready;
 
-    const markedStarted = Date.now();
-    const markedRes = await fetch(`${baseUrl}/api/submissions/${submissionId}/marked-file`, { cache: "no-store" });
-    const markedBytes = Buffer.from(await markedRes.arrayBuffer());
-    evidence.steps.markedPdf = { status: markedRes.status, ms: Date.now() - markedStarted, bytes: markedBytes.byteLength };
-    if (!markedRes.ok || markedBytes.byteLength < 100) throw new Error(`Marked PDF fetch failed (${markedRes.status})`);
+    const markedRes = await fetchBytes(`${baseUrl}/api/submissions/${submissionId}/marked-file`, { cache: "no-store" });
+    evidence.steps.markedPdf = { status: markedRes.status, ms: markedRes.ms, bytes: markedRes.bytes.byteLength };
+    if (!markedRes.ok || markedRes.bytes.byteLength < 100) throw new Error(`Marked PDF fetch failed (${markedRes.status})`);
 
     const pack = await fetchJson(`${baseUrl}/api/submissions/${submissionId}/export`, {
       method: "POST",

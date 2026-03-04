@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 function normalizeInput(p: string) {
@@ -16,16 +17,23 @@ function getEnvRoot(cwd: string) {
   return path.isAbsolute(raw) ? path.normalize(raw) : path.resolve(cwd, raw);
 }
 
+function getVercelTmpRoot() {
+  const isVercel = /^(1|true)$/i.test(String(process.env.VERCEL || "").trim());
+  if (!isVercel) return null;
+  return path.join(os.tmpdir(), "assessor-ai");
+}
+
 function getReadRoots() {
   const cwd = process.cwd();
   const repoRoot = getRepoRootFromCwd(cwd);
   const envRoot = getEnvRoot(cwd);
-  return [cwd, repoRoot, envRoot].filter(Boolean) as string[];
+  const tmpRoot = getVercelTmpRoot();
+  return [tmpRoot, cwd, repoRoot, envRoot].filter(Boolean) as string[];
 }
 
 function getWriteRoot() {
   const cwd = process.cwd();
-  return getEnvRoot(cwd) || cwd;
+  return getEnvRoot(cwd) || getVercelTmpRoot() || cwd;
 }
 
 function resolveReadCandidate(storagePath: string) {

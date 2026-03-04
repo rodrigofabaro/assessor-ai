@@ -1,6 +1,6 @@
 # Deployment Environment Map
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 ## Purpose
 
@@ -49,6 +49,10 @@ Defines how local development, GitHub, Vercel deployments, and data stores work 
 4. Each environment must have its own DB and file storage.
 5. Never point preview/local to production DB.
 
+Current hardening note (2026-03-04):
+1. Environment variables in Vercel must be split by environment before scale-up.
+2. Do not keep Preview/Development using Production DB credentials.
+
 ## Database policy
 
 1. Local uses local DB connection in `.env`.
@@ -63,6 +67,10 @@ Defines how local development, GitHub, Vercel deployments, and data stores work 
 2. Vercel deployments require persistent object storage integration for uploads and generated artifacts.
 3. Preview and production storage must be separated (different buckets/prefixes/credentials).
 4. During migration, provider-managed relative paths can be redirected with `FILE_STORAGE_ROOT`.
+
+Current hardening note (2026-03-04):
+1. Existing provider still resolves to filesystem paths; production-safe durable object storage backend remains required.
+2. Temporary runtime mitigation may use Vercel writable temp storage (`/tmp`) for operational continuity, but this is non-durable and not an end-state.
 
 ## Required Vercel env groups
 

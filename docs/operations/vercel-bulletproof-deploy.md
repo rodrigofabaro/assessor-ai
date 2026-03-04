@@ -1,6 +1,6 @@
 # Vercel Bulletproof Deploy Runbook
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 ## Goal
 
@@ -56,6 +56,10 @@ If hash mismatch:
 3. OpenAI keys in use (`OPENAI_API_KEY` / admin keys)
 4. Turnitin keys (if enabled)
 
+Environment isolation rule:
+1. Production DB/storage credentials must exist only in Production env scope.
+2. Preview and Development must use separate DB/storage credentials.
+
 ## 5) Run DB migrations for target DB
 
 ```powershell
@@ -69,10 +73,16 @@ Run smoke against deployed URL:
 
 ```powershell
 $env:DEPLOY_SMOKE_BASE_URL="https://your-domain.com"
+$env:DEPLOY_SMOKE_USERNAME="your-login-user"
+$env:DEPLOY_SMOKE_PASSWORD="your-login-password"
 pnpm run ops:deploy-smoke
 ```
 
 Verify evidence artifact in `docs/evidence/deploy-smoke/`.
+
+Also confirm:
+1. Runtime file writes are backed by durable object storage (not local ephemeral filesystem).
+2. Deployment release notes link to the smoke evidence artifact.
 
 ## 7) If deploy fails
 
