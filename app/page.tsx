@@ -244,7 +244,7 @@ export default async function LandingPage() {
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">Assessor AI</h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-700 sm:text-base">
-                Assessor workspace for real internal delivery: manage references, process student submissions, complete QA checks, and keep moderation records in one place.
+                Assessor workspace for internal delivery: lock reference packs, process submissions, run Turnitin-backed QA checks, and generate IV-AD evidence packs.
               </p>
 
               <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -254,7 +254,7 @@ export default async function LandingPage() {
                 >
                   Sign in
                 </Link>
-                <p className="text-xs font-medium text-zinc-600">Built around real assessor and IQA tasks.</p>
+                <p className="text-xs font-medium text-zinc-600">Includes AI-assisted workflows, Turnitin checks, and role-based team operations.</p>
               </div>
             </div>
 
@@ -268,15 +268,15 @@ export default async function LandingPage() {
               <div className="mt-2.5 grid gap-2">
                 <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Reference layer</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Upload specs/briefs, review extraction, and lock approved versions.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Upload specs/briefs, review extraction, track IV readiness, and lock approved versions.</p>
                 </div>
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Assessment flow</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Process student evidence from intake through extraction to grading.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Process learner evidence with AI-assisted extraction and grading workflow.</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Assurance</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Track QA status, blocked items, and moderation history.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Run Turnitin checks, QA follow-up, and IV-AD generation with audit history.</p>
                 </div>
               </div>
             </aside>
@@ -302,23 +302,23 @@ export default async function LandingPage() {
         <section id="features" className="grid auto-rows-fr gap-3 md:grid-cols-3">
           <MarketingCard
             icon="reference"
-            title="Reference Setup"
-            description="Prepare and lock the spec/brief set used for grading decisions."
-            bullets={["Upload + extraction", "Lock versions"]}
+            title="IV and Reference Readiness"
+            description="Prepare active spec/brief context and IV evidence before grading starts."
+            bullets={["IV status", "Lock versions"]}
             accent="indigo"
           />
           <MarketingCard
             icon="submissions"
-            title="Submission Processing"
-            description="Handle PDF/DOCX intake, extraction checks, and grading progression."
-            bullets={["Queue tracking", "Status workflow"]}
+            title="AI-Assisted Submission Processing"
+            description="Handle PDF/DOCX intake with extraction cleanup and grading support."
+            bullets={["AI extraction", "Grading flow"]}
             accent="emerald"
           />
           <MarketingCard
             icon="audit"
-            title="QA and Moderation Review"
-            description="Keep review actions and history visible for internal QA and moderation."
-            bullets={["QA follow-up", "Event history"]}
+            title="Turnitin, QA, and IV-AD"
+            description="Track QA actions, run Turnitin checks, and generate IV-AD packs from submissions."
+            bullets={["Turnitin actions", "IV-AD outputs"]}
             accent="slate"
           />
         </section>
@@ -331,7 +331,7 @@ export default async function LandingPage() {
                 It follows how assessor teams already operate internally.
               </h2>
               <p className="mt-2 text-sm leading-7 text-zinc-700">
-                This is not a generic AI shell. It is structured around practical assessor work: preparing reference packs, managing submission queues, and handling QA/moderation checks.
+                This is not a generic AI shell. It is structured for real assessor, IV and IQA operations with policy-driven integrations, role-based teams, and traceable delivery steps.
               </p>
             </div>
 
@@ -339,18 +339,18 @@ export default async function LandingPage() {
               {[
                 {
                   icon: "qa" as TinyIconName,
-                  title: "1. Set active reference pack",
-                  text: "Upload specs and briefs, confirm extraction output, then lock the versions in use.",
+                  title: "1. Configure policy and integrations",
+                  text: "Set AI model/mode, Turnitin behavior, and active reference context for the cycle.",
                 },
                 {
                   icon: "workflow" as TinyIconName,
-                  title: "2. Process learner evidence",
-                  text: "Move submissions through intake, extraction checks, grading, and feedback stages.",
+                  title: "2. Run submission, QA, and IV workflow",
+                  text: "Process submissions, monitor Turnitin status, and generate IV-AD from reviewed evidence.",
                 },
                 {
                   icon: "users" as TinyIconName,
-                  title: "3. Run QA and moderation follow-up",
-                  text: "Use review status, blocked queues, and event history for internal and external checks.",
+                  title: "3. Coordinate teams and communication",
+                  text: "Assign users by role/organization, issue invite emails, and keep actions visible across handoffs.",
                 },
               ].map((item, idx) => (
                 <div
