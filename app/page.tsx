@@ -323,22 +323,21 @@ export default async function LandingPage() {
           />
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-zinc-900">Why Assessor AI is different</h2>
-            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Core USP</span>
+        <section className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-indigo-50/50 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-sky-900">Why Assessor AI is different</h2>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/80 px-3 py-2">
               <div className="text-xs font-semibold text-indigo-700">Governed references</div>
               <p className="mt-0.5 text-sm text-zinc-700">Assessment always runs against approved, locked context.</p>
             </div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2">
               <div className="text-xs font-semibold text-emerald-700">Operational flow</div>
               <p className="mt-0.5 text-sm text-zinc-700">Intake to feedback in one controlled journey.</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <div className="text-xs font-semibold text-slate-700">Evidence traceability</div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/75 px-3 py-2">
+              <div className="text-xs font-semibold text-sky-700">Evidence traceability</div>
               <p className="mt-0.5 text-sm text-zinc-700">QA and moderation can review decisions without reconstruction.</p>
             </div>
           </div>
