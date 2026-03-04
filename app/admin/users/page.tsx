@@ -19,6 +19,20 @@ type AppConfig = {
   activeAuditUserId?: string | null;
 };
 
+type InviteEmailSupport = {
+  provider: string;
+  configured: boolean;
+  enabledByDefault: boolean;
+};
+
+type InviteEmailResult = {
+  attempted: boolean;
+  sent: boolean;
+  provider: string;
+  id?: string;
+  error?: string;
+};
+
 type IssuedCredentials = {
   fullName: string;
   email: string;
@@ -75,12 +89,18 @@ export default function AdminUsersPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [issuedCreds, setIssuedCreds] = useState<IssuedCredentials | null>(null);
+  const [inviteSupport, setInviteSupport] = useState<InviteEmailSupport>({
+    provider: "none",
+    configured: false,
+    enabledByDefault: false,
+  });
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("ADMIN");
   const [loginEnabled, setLoginEnabled] = useState(true);
   const [password, setPassword] = useState("");
+  const [sendInviteEmailNow, setSendInviteEmailNow] = useState(false);
 
   const activeUser = useMemo(() => users.find((u) => u.id === activeAuditUserId) || null, [users, activeAuditUserId]);
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
@@ -102,6 +122,15 @@ export default function AdminUsersPage() {
       const uJson = await uRes.json();
       const cJson = (await cRes.json()) as AppConfig;
       setUsers(Array.isArray(uJson?.users) ? uJson.users : []);
+      if (uJson?.inviteEmail && typeof uJson.inviteEmail === "object") {
+        const ui = uJson.inviteEmail as InviteEmailSupport;
+        setInviteSupport({
+          provider: String(ui.provider || "none"),
+          configured: !!ui.configured,
+          enabledByDefault: !!ui.enabledByDefault,
+        });
+        setSendInviteEmailNow(!!ui.enabledByDefault);
+      }
       setActiveAuditUserId(String(cJson?.activeAuditUserId || ""));
     } catch (e: any) {
       setErr(e?.message || "Failed to load users.");
@@ -117,6 +146,15 @@ export default function AdminUsersPage() {
   function openInviteDraft(mailto: string | null | undefined) {
     if (!mailto) return;
     window.location.href = mailto;
+  }
+
+  function applyInviteEmailResult(result: InviteEmailResult | null | undefined) {
+    if (!result || !result.attempted) return;
+    if (result.sent) {
+      setMsg(`Invite email sent via ${result.provider}.`);
+      return;
+    }
+    setErr(result.error || "Failed to send invite email.");
   }
 
   async function createUser() {
@@ -136,6 +174,7 @@ export default function AdminUsersPage() {
           loginEnabled,
           password: loginEnabled ? password.trim() || undefined : undefined,
           generatePassword: loginEnabled && !password.trim(),
+          sendInviteEmail: loginEnabled && sendInviteEmailNow,
         }),
       });
       const json = await res.json();
@@ -144,6 +183,7 @@ export default function AdminUsersPage() {
         return;
       }
       setMsg("User created.");
+      applyInviteEmailResult((json?.inviteEmail || null) as InviteEmailResult | null);
       if (json?.issuedPassword && json?.user?.email) {
         setIssuedCreds({
           fullName: String(json.user.fullName || ""),
@@ -157,6 +197,7 @@ export default function AdminUsersPage() {
       setEmail("");
       setPassword("");
       setLoginEnabled(true);
+      setSendInviteEmailNow(inviteSupport.enabledByDefault);
       await load();
     } finally {
       setSubmitting(false);
@@ -207,7 +248,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function toggleLogin(u: AppUser) {
+  async function toggleLogin(u: AppUser, sendEmail = false) {
     if (!u.loginEnabled && !u.email) {
       setErr("Cannot enable login for a user without email.");
       return;
@@ -223,6 +264,7 @@ export default function AdminUsersPage() {
         body: JSON.stringify({
           loginEnabled: !u.loginEnabled,
           generatePassword: !u.loginEnabled,
+          sendInviteEmail: !u.loginEnabled && sendEmail,
         }),
       });
       const json = await res.json();
@@ -231,6 +273,7 @@ export default function AdminUsersPage() {
         return;
       }
       setMsg(u.loginEnabled ? "Login access disabled." : "Login access enabled.");
+      applyInviteEmailResult((json?.inviteEmail || null) as InviteEmailResult | null);
       if (json?.issuedPassword && json?.user?.email) {
         setIssuedCreds({
           fullName: String(json.user.fullName || u.fullName),
@@ -246,7 +289,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function resetPassword(u: AppUser) {
+  async function resetPassword(u: AppUser, sendEmail = false) {
     if (!u.email) {
       setErr("Cannot reset password for a user without email.");
       return;
@@ -259,7 +302,7 @@ export default function AdminUsersPage() {
       const res = await fetch(`/api/admin/users/${u.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loginEnabled: true, generatePassword: true }),
+        body: JSON.stringify({ loginEnabled: true, generatePassword: true, sendInviteEmail: sendEmail }),
       });
       const json = await res.json();
       if (!res.ok || !json?.ok) {
@@ -267,6 +310,7 @@ export default function AdminUsersPage() {
         return;
       }
       setMsg("Password reset and login credentials issued.");
+      applyInviteEmailResult((json?.inviteEmail || null) as InviteEmailResult | null);
       if (json?.issuedPassword) {
         setIssuedCreds({
           fullName: String(json.user?.fullName || u.fullName),
@@ -370,6 +414,10 @@ export default function AdminUsersPage() {
 
         <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-sm font-semibold text-slate-900">Create user</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Email provider: <span className="font-medium text-slate-700">{inviteSupport.provider}</span>{" "}
+            {inviteSupport.configured ? "(configured)" : "(not configured)"}
+          </p>
           <div className="mt-3 grid gap-3">
             <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (required for login)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
@@ -388,7 +436,8 @@ export default function AdminUsersPage() {
               Enable login access
             </label>
             {loginEnabled ? (
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <div className="grid gap-3">
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                 <input
                   type="text"
                   value={password}
@@ -403,6 +452,17 @@ export default function AdminUsersPage() {
                 >
                   Generate
                 </button>
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={sendInviteEmailNow}
+                    onChange={(e) => setSendInviteEmailNow(e.target.checked)}
+                    disabled={!inviteSupport.configured}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50"
+                  />
+                  Send invite email with credentials
+                </label>
               </div>
             ) : null}
           </div>
@@ -492,20 +552,40 @@ export default function AdminUsersPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => toggleLogin(u)}
+                        onClick={() => toggleLogin(u, false)}
                         disabled={pendingUserId === u.id}
                         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {u.loginEnabled ? "Disable login" : "Enable login"}
                       </button>
+                      {!u.loginEnabled && inviteSupport.configured ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleLogin(u, true)}
+                          disabled={pendingUserId === u.id}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Enable + email
+                        </button>
+                      ) : null}
                       <button
                         type="button"
-                        onClick={() => resetPassword(u)}
+                        onClick={() => resetPassword(u, false)}
                         disabled={pendingUserId === u.id || !u.email}
                         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Reset password
                       </button>
+                      {inviteSupport.configured ? (
+                        <button
+                          type="button"
+                          onClick={() => resetPassword(u, true)}
+                          disabled={pendingUserId === u.id || !u.email}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Reset + email
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

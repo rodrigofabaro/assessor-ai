@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateRandomPassword, hashPassword, normalizeLoginEmail } from "@/lib/auth/password";
+import { sendInviteEmail } from "@/lib/auth/inviteEmail";
 
 type UserRole = "ADMIN" | "ASSESSOR" | "IV";
 
@@ -41,6 +42,7 @@ export async function PATCH(
   const requestedPassword = body?.password !== undefined ? String(body.password || "") : undefined;
   const generatePassword = body?.generatePassword === true;
   const loginEnabled = typeof body?.loginEnabled === "boolean" ? body.loginEnabled : undefined;
+  const sendInviteEmailNow = body?.sendInviteEmail === true;
 
   if (fullName !== undefined && !fullName) {
     return NextResponse.json({ error: "fullName cannot be empty." }, { status: 400 });
@@ -103,11 +105,29 @@ export async function PATCH(
       },
     });
 
+    let inviteEmailResult:
+      | {
+          attempted: boolean;
+          sent: boolean;
+          provider: string;
+          id?: string;
+          error?: string;
+        }
+      | null = null;
+    if (sendInviteEmailNow && issuedPassword && updated.email) {
+      inviteEmailResult = await sendInviteEmail({
+        to: updated.email,
+        fullName: updated.fullName,
+        password: issuedPassword,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       user: updated,
       issuedPassword,
       inviteMailto: issuedPassword && updated.email ? makeInviteMailto(updated.email, issuedPassword) : null,
+      inviteEmail: inviteEmailResult,
     });
   } catch (error: unknown) {
     const message = String((error as { message?: string })?.message || "");

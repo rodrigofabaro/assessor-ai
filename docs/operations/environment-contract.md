@@ -47,6 +47,7 @@ Current hard-fail defaults:
 
 Primary login mode:
 - DB-backed user credentials managed in `Admin → Users` (email + password hash stored in `AppUser`).
+- Optional invite-email sending for generated credentials is available from `Admin → Users`.
 
 - `AUTH_GUARDS_ENABLED`
   - default: `false` in local/dev; `true` by default in production when unset
@@ -74,6 +75,23 @@ Primary login mode:
   - when `true`, enables legacy auto-bootstrap routes:
     - `POST /api/auth/session/bootstrap`
     - `POST /api/auth/role-sync`
+
+- `AUTH_INVITE_EMAIL_PROVIDER`
+  - default: `none`
+  - options: `none`, `resend`
+  - controls server-side invite email sending for generated credentials
+
+- `AUTH_INVITE_EMAIL_DEFAULT_ON`
+  - default: `false`
+  - when `true`, new-user form defaults to sending invite email
+
+- `RESEND_API_KEY`
+  - required when `AUTH_INVITE_EMAIL_PROVIDER=resend`
+  - API key for Resend
+
+- `AUTH_EMAIL_FROM`
+  - required when `AUTH_INVITE_EMAIL_PROVIDER=resend`
+  - verified sender email address in Resend (e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
 
 ## Storage migration env (M8)
 

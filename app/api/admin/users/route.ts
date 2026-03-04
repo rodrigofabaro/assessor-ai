@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateRandomPassword, hashPassword, normalizeLoginEmail } from "@/lib/auth/password";
+import { resolveInviteEmailUiSupport, sendInviteEmail } from "@/lib/auth/inviteEmail";
 
 type UserRole = "ADMIN" | "ASSESSOR" | "IV";
 
@@ -42,7 +43,8 @@ export async function GET() {
       updatedAt: true,
     },
   });
-  return NextResponse.json({ users });
+  const inviteEmail = resolveInviteEmailUiSupport();
+  return NextResponse.json({ users, inviteEmail });
 }
 
 export async function POST(req: Request) {
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
   const requestedPassword = String(body?.password || "");
   const generatePassword = body?.generatePassword === true;
   const loginEnabled = body?.loginEnabled === true || !!requestedPassword || generatePassword;
+  const sendInviteEmailNow = body?.sendInviteEmail === true;
 
   if (!fullName) {
     return NextResponse.json({ error: "fullName is required." }, { status: 400 });
@@ -91,11 +94,29 @@ export async function POST(req: Request) {
         updatedAt: true,
       },
     });
+    let inviteEmailResult:
+      | {
+          attempted: boolean;
+          sent: boolean;
+          provider: string;
+          id?: string;
+          error?: string;
+        }
+      | null = null;
+    if (sendInviteEmailNow && issuedPassword && user.email) {
+      inviteEmailResult = await sendInviteEmail({
+        to: user.email,
+        fullName: user.fullName,
+        password: issuedPassword,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       user,
       issuedPassword,
       inviteMailto: issuedPassword && user.email ? makeInviteMailto(user.email, issuedPassword) : null,
+      inviteEmail: inviteEmailResult,
     });
   } catch (error: unknown) {
     const message = String((error as { message?: string })?.message || "");
