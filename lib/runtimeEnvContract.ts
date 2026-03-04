@@ -75,8 +75,8 @@ function collectIssues(): EnvIssue[] {
     if (!String(process.env.AUTH_LOGIN_USERNAME || "").trim() || !String(process.env.AUTH_LOGIN_PASSWORD || "").trim()) {
       issues.push({
         code: "ENV_AUTH_LOGIN_CREDENTIALS_MISSING",
-        detail: "AUTH_LOGIN_USERNAME and AUTH_LOGIN_PASSWORD are required when AUTH_GUARDS_ENABLED=true.",
-        hardFail: true,
+        detail: "AUTH_LOGIN_USERNAME/PASSWORD fallback is not configured. DB-backed AppUser login must be enabled for at least one user.",
+        hardFail: false,
       });
     }
   }

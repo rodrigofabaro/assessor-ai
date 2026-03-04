@@ -24,6 +24,7 @@ export function isAuthGuardsEnabled() {
 export function parseRole(value: string | null | undefined): AppRole | null {
   const role = String(value || "").trim().toUpperCase();
   if (role === "ADMIN" || role === "ASSESSOR" || role === "IV") return role;
+  if (role === "TUTOR") return "ASSESSOR";
   return null;
 }
 

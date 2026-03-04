@@ -45,6 +45,9 @@ Current hard-fail defaults:
 
 ## M9 auth scaffold env
 
+Primary login mode:
+- DB-backed user credentials managed in `Admin → Users` (email + password hash stored in `AppUser`).
+
 - `AUTH_GUARDS_ENABLED`
   - default: `false` in local/dev; `true` by default in production when unset
   - effect: enables middleware role checks for `/admin/*` and `/api/admin/*`
@@ -55,16 +58,16 @@ Current hard-fail defaults:
   - minimum recommended length: 32+ characters
 
 - `AUTH_LOGIN_USERNAME`
-  - required when `AUTH_GUARDS_ENABLED=true`
-  - username accepted by `/login`
+  - optional fallback when `AUTH_GUARDS_ENABLED=true`
+  - username accepted by `/login` only when using env fallback login
 
 - `AUTH_LOGIN_PASSWORD`
-  - required when `AUTH_GUARDS_ENABLED=true`
-  - password accepted by `/login` (set only in deployment secrets)
+  - optional fallback when `AUTH_GUARDS_ENABLED=true`
+  - password accepted by `/login` only when using env fallback login
 
 - `AUTH_LOGIN_ROLE`
-  - optional when `AUTH_GUARDS_ENABLED=true`
-  - issued session role (`ADMIN` default)
+  - optional with env fallback login
+  - issued session role for env fallback (`ADMIN` default)
 
 - `AUTH_BOOTSTRAP_ENABLED`
   - default: `false`

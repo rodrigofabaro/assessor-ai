@@ -10,11 +10,21 @@ type AppUser = {
   email?: string | null;
   role: string;
   isActive: boolean;
+  loginEnabled: boolean;
+  passwordUpdatedAt?: string | null;
   createdAt: string;
 };
 
 type AppConfig = {
   activeAuditUserId?: string | null;
+};
+
+type IssuedCredentials = {
+  fullName: string;
+  email: string;
+  password: string;
+  mailto: string | null;
+  source: string;
 };
 
 function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
@@ -27,7 +37,7 @@ function MetricCard({ label, value, hint }: { label: string; value: string | num
   );
 }
 
-function formatCreatedAt(value?: string | null) {
+function formatDate(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
@@ -38,8 +48,22 @@ function roleTone(role: string) {
   const key = String(role || "").toUpperCase();
   if (key === "ADMIN") return "border-amber-200 bg-amber-50 text-amber-900";
   if (key === "IV") return "border-indigo-200 bg-indigo-50 text-indigo-900";
-  if (key === "TUTOR") return "border-sky-200 bg-sky-50 text-sky-900";
-  return "border-slate-200 bg-slate-50 text-slate-800";
+  return "border-sky-200 bg-sky-50 text-sky-900";
+}
+
+function generatePasswordClient(length = 20) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%*_-";
+  const out: string[] = [];
+  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(Math.max(12, Math.min(64, length)));
+    window.crypto.getRandomValues(bytes);
+    for (let i = 0; i < bytes.length; i += 1) out.push(chars[bytes[i] % chars.length]);
+    return out.join("");
+  }
+  for (let i = 0; i < Math.max(12, Math.min(64, length)); i += 1) {
+    out.push(chars[Math.floor(Math.random() * chars.length)]);
+  }
+  return out.join("");
 }
 
 export default function AdminUsersPage() {
@@ -50,13 +74,17 @@ export default function AdminUsersPage() {
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [issuedCreds, setIssuedCreds] = useState<IssuedCredentials | null>(null);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("ADMIN");
+  const [loginEnabled, setLoginEnabled] = useState(true);
+  const [password, setPassword] = useState("");
 
   const activeUser = useMemo(() => users.find((u) => u.id === activeAuditUserId) || null, [users, activeAuditUserId]);
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
+  const loginUsers = useMemo(() => users.filter((u) => u.loginEnabled && u.isActive).length, [users]);
   const byRole = useMemo(() => {
     const map = new Map<string, number>();
     for (const u of users) map.set(u.role, (map.get(u.role) || 0) + 1);
@@ -86,16 +114,29 @@ export default function AdminUsersPage() {
     load();
   }, [load]);
 
+  function openInviteDraft(mailto: string | null | undefined) {
+    if (!mailto) return;
+    window.location.href = mailto;
+  }
+
   async function createUser() {
     if (!fullName.trim()) return;
     setSubmitting(true);
     setErr("");
     setMsg("");
+    setIssuedCreds(null);
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: fullName.trim(), email: email.trim() || null, role: role.trim() || "ADMIN" }),
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          email: email.trim() || null,
+          role: role.trim() || "ADMIN",
+          loginEnabled,
+          password: loginEnabled ? password.trim() || undefined : undefined,
+          generatePassword: loginEnabled && !password.trim(),
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json?.ok) {
@@ -103,8 +144,19 @@ export default function AdminUsersPage() {
         return;
       }
       setMsg("User created.");
+      if (json?.issuedPassword && json?.user?.email) {
+        setIssuedCreds({
+          fullName: String(json.user.fullName || ""),
+          email: String(json.user.email || ""),
+          password: String(json.issuedPassword || ""),
+          mailto: typeof json.inviteMailto === "string" ? json.inviteMailto : null,
+          source: "Created user credentials",
+        });
+      }
       setFullName("");
       setEmail("");
+      setPassword("");
+      setLoginEnabled(true);
       await load();
     } finally {
       setSubmitting(false);
@@ -155,6 +207,81 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function toggleLogin(u: AppUser) {
+    if (!u.loginEnabled && !u.email) {
+      setErr("Cannot enable login for a user without email.");
+      return;
+    }
+    setPendingUserId(u.id);
+    setErr("");
+    setMsg("");
+    setIssuedCreds(null);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loginEnabled: !u.loginEnabled,
+          generatePassword: !u.loginEnabled,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to update login access.");
+        return;
+      }
+      setMsg(u.loginEnabled ? "Login access disabled." : "Login access enabled.");
+      if (json?.issuedPassword && json?.user?.email) {
+        setIssuedCreds({
+          fullName: String(json.user.fullName || u.fullName),
+          email: String(json.user.email || u.email || ""),
+          password: String(json.issuedPassword || ""),
+          mailto: typeof json.inviteMailto === "string" ? json.inviteMailto : null,
+          source: "Generated login credentials",
+        });
+      }
+      await load();
+    } finally {
+      setPendingUserId(null);
+    }
+  }
+
+  async function resetPassword(u: AppUser) {
+    if (!u.email) {
+      setErr("Cannot reset password for a user without email.");
+      return;
+    }
+    setPendingUserId(u.id);
+    setErr("");
+    setMsg("");
+    setIssuedCreds(null);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginEnabled: true, generatePassword: true }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to reset password.");
+        return;
+      }
+      setMsg("Password reset and login credentials issued.");
+      if (json?.issuedPassword) {
+        setIssuedCreds({
+          fullName: String(json.user?.fullName || u.fullName),
+          email: String(json.user?.email || u.email || ""),
+          password: String(json.issuedPassword),
+          mailto: typeof json.inviteMailto === "string" ? json.inviteMailto : null,
+          source: "Password reset credentials",
+        });
+      }
+      await load();
+    } finally {
+      setPendingUserId(null);
+    }
+  }
+
   return (
     <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-5 pb-10">
       <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[radial-gradient(circle_at_0%_0%,#f1f5f9_0%,#ffffff_46%)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
@@ -165,9 +292,9 @@ export default function AdminUsersPage() {
               <TinyIcon name="users" />
               Identity Operations
             </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Users & Audit Identity</h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Users & Login Access</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Manage assessor identities and choose the active audit actor used across grading and feedback records.
+              Create users, issue passwords, reset credentials, and set the active audit actor.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -184,16 +311,13 @@ export default function AdminUsersPage() {
               <TinyIcon name="settings" className="h-3.5 w-3.5" />
               Open app settings
             </Link>
-            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
-              <TinyIcon name="status" className="mr-1 h-3 w-3" />
-              {loading ? "Loading users..." : "Ready"}
-            </span>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Users total" value={users.length} hint="All system user identities." />
           <MetricCard label="Users active" value={activeUsers.length} hint="Users currently available for actor selection." />
+          <MetricCard label="Login enabled" value={loginUsers} hint="Active users with login credentials." />
           <MetricCard label="Roles in use" value={byRole.length} hint="Distinct role groups assigned." />
           <MetricCard label="Active auditor" value={activeUser?.fullName || "system"} hint="Current actor used in audit/grading metadata." />
         </div>
@@ -204,6 +328,33 @@ export default function AdminUsersPage() {
           {err || msg}
         </section>
       )}
+
+      {issuedCreds ? (
+        <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+          <div className="font-semibold">{issuedCreds.source}</div>
+          <div className="mt-1">User: {issuedCreds.fullName}</div>
+          <div>Username: {issuedCreds.email}</div>
+          <div>Password: <span className="font-mono">{issuedCreds.password}</span></div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => navigator.clipboard?.writeText(issuedCreds.password).catch(() => {})}
+              className="inline-flex h-8 items-center rounded-lg border border-sky-300 bg-white px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+            >
+              Copy password
+            </button>
+            {issuedCreds.mailto ? (
+              <button
+                type="button"
+                onClick={() => openInviteDraft(issuedCreds.mailto)}
+                className="inline-flex h-8 items-center rounded-lg border border-sky-300 bg-white px-3 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+              >
+                Open email draft
+              </button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
@@ -221,12 +372,39 @@ export default function AdminUsersPage() {
           <h2 className="text-sm font-semibold text-slate-900">Create user</h2>
           <div className="mt-3 grid gap-3">
             <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (required for login)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
             <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100">
               <option value="ADMIN">ADMIN</option>
-              <option value="TUTOR">TUTOR</option>
+              <option value="ASSESSOR">ASSESSOR</option>
               <option value="IV">IV</option>
             </select>
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={loginEnabled}
+                onChange={(e) => setLoginEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              />
+              Enable login access
+            </label>
+            {loginEnabled ? (
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <input
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password (leave empty to auto-generate)"
+                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPassword(generatePasswordClient())}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                >
+                  Generate
+                </button>
+              </div>
+            ) : null}
           </div>
           <button
             type="button"
@@ -242,7 +420,7 @@ export default function AdminUsersPage() {
       <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="text-sm font-semibold text-slate-900">User directory</div>
-          <div className="text-xs text-slate-600">Set active assessor and enable/disable accounts.</div>
+          <div className="text-xs text-slate-600">Enable login and reset passwords per user.</div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -252,6 +430,7 @@ export default function AdminUsersPage() {
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Email</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Role</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Status</th>
+                <th className="border-b border-slate-200 px-2 py-2 font-semibold">Login</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Created</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Actions</th>
               </tr>
@@ -259,7 +438,7 @@ export default function AdminUsersPage() {
             <tbody>
               {!users.length && !loading ? (
                 <tr>
-                  <td colSpan={6} className="px-2 py-6 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-2 py-6 text-center text-sm text-slate-500">
                     No users found.
                   </td>
                 </tr>
@@ -283,7 +462,11 @@ export default function AdminUsersPage() {
                       {u.isActive ? "Active" : "Disabled"}
                     </span>
                   </td>
-                  <td className="px-2 py-2 text-slate-600">{formatCreatedAt(u.createdAt)}</td>
+                  <td className="px-2 py-2 text-xs text-slate-700">
+                    <div>{u.loginEnabled ? "Enabled" : "Disabled"}</div>
+                    <div className="text-slate-500">Pwd: {formatDate(u.passwordUpdatedAt)}</div>
+                  </td>
+                  <td className="px-2 py-2 text-slate-600">{formatDate(u.createdAt)}</td>
                   <td className="px-2 py-2">
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -306,6 +489,22 @@ export default function AdminUsersPage() {
                         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {pendingUserId === u.id ? "Saving..." : u.isActive ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleLogin(u)}
+                        disabled={pendingUserId === u.id}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {u.loginEnabled ? "Disable login" : "Enable login"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => resetPassword(u)}
+                        disabled={pendingUserId === u.id || !u.email}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Reset password
                       </button>
                     </div>
                   </td>

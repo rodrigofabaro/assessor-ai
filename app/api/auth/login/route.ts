@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createSignedSessionToken, getSessionCookieName, hasSessionSecret } from "@/lib/auth/session";
 import { parseRole } from "@/lib/auth/rbac";
+import { prisma } from "@/lib/prisma";
+import { normalizeLoginEmail, verifyPassword } from "@/lib/auth/password";
 
 export const runtime = "nodejs";
 
@@ -15,6 +17,27 @@ function secureCompare(input: string, expected: string) {
   const inputHash = crypto.createHash("sha256").update(input).digest();
   const expectedHash = crypto.createHash("sha256").update(expected).digest();
   return crypto.timingSafeEqual(inputHash, expectedHash);
+}
+
+async function tryAuthenticateAppUser(username: string, password: string) {
+  const email = normalizeLoginEmail(username);
+  if (!email || !password) return null;
+
+  const user = await prisma.appUser.findFirst({
+    where: { email, isActive: true, loginEnabled: true },
+    select: {
+      id: true,
+      role: true,
+      loginPasswordHash: true,
+    },
+  });
+  if (!user?.loginPasswordHash) return null;
+  if (!verifyPassword(password, user.loginPasswordHash)) return null;
+
+  const role = parseRole(user.role);
+  if (!role) return null;
+
+  return { userId: user.id, role, source: "app-user" as const };
 }
 
 async function parseCredentials(req: Request) {
@@ -39,13 +62,10 @@ async function parseCredentials(req: Request) {
 export async function POST(req: Request) {
   const expectedUsername = toSafeString(process.env.AUTH_LOGIN_USERNAME);
   const expectedPassword = toSafeString(process.env.AUTH_LOGIN_PASSWORD);
-  const role = parseRole(process.env.AUTH_LOGIN_ROLE) || "ADMIN";
+  const envRole = parseRole(process.env.AUTH_LOGIN_ROLE) || "ADMIN";
 
   if (!hasSessionSecret()) {
     return NextResponse.json({ error: "AUTH_SESSION_SECRET is not configured.", code: "AUTH_SESSION_SECRET_MISSING" }, { status: 503 });
-  }
-  if (!expectedUsername || !expectedPassword) {
-    return NextResponse.json({ error: "Login credentials are not configured.", code: "AUTH_LOGIN_CREDENTIALS_MISSING" }, { status: 503 });
   }
 
   const { username, password } = await parseCredentials(req);
@@ -53,18 +73,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Username and password are required.", code: "AUTH_CREDENTIALS_REQUIRED" }, { status: 400 });
   }
 
-  const isValid = secureCompare(username, expectedUsername) && secureCompare(password, expectedPassword);
-  if (!isValid) {
-    return NextResponse.json({ error: "Invalid credentials.", code: "AUTH_INVALID_CREDENTIALS" }, { status: 401 });
+  let auth: { userId: string; role: "ADMIN" | "ASSESSOR" | "IV"; source: "app-user" | "env" } | null = null;
+  try {
+    auth = await tryAuthenticateAppUser(username, password);
+  } catch {
+    auth = null;
+  }
+
+  if (!auth && expectedUsername && expectedPassword) {
+    const isEnvValid = secureCompare(username, expectedUsername) && secureCompare(password, expectedPassword);
+    if (isEnvValid) {
+      auth = { userId: `env:${expectedUsername}`, role: envRole, source: "env" };
+    }
+  }
+
+  if (!auth) {
+    return NextResponse.json(
+      { error: "Invalid credentials.", code: "AUTH_INVALID_CREDENTIALS" },
+      { status: 401 }
+    );
   }
 
   const token = createSignedSessionToken({
-    userId: `env:${expectedUsername}`,
-    role,
+    userId: auth.userId,
+    role: auth.role,
     ttlSeconds: ONE_DAY_SECONDS,
   });
 
-  const res = NextResponse.json({ ok: true, role });
+  const res = NextResponse.json({ ok: true, role: auth.role, source: auth.source });
   res.cookies.set({
     name: getSessionCookieName(),
     value: token,

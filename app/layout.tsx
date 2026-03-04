@@ -5,6 +5,7 @@ import ToastHost from "@/components/ui/ToastHost";
 import DevBuildBadge from "@/components/DevBuildBadge";
 import { validateRuntimeEnvContract } from "@/lib/runtimeEnvContract";
 import AuthRoleSync from "@/components/auth/AuthRoleSync";
+import { isAuthGuardsEnabled } from "@/lib/auth/rbac";
 
 export const metadata = {
   title: "Assessor AI",
@@ -19,7 +20,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   validateRuntimeEnvContract();
   const isDev = process.env.NODE_ENV === "development";
-  const authGuardsEnabled = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_GUARDS_ENABLED || "false").trim());
+  const authGuardsEnabled = isAuthGuardsEnabled();
   const authBootstrapEnabled = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_BOOTSTRAP_ENABLED || "false").trim());
   const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "1.2.0").trim();
   const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "qa-iv-integrated").trim();
