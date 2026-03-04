@@ -237,7 +237,7 @@ export default async function LandingPage() {
       <div className="grid gap-4 sm:gap-5">
         <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100/70" />
-          <div className="relative grid items-center gap-5 p-5 sm:p-7 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="relative grid items-center gap-5 p-6 sm:p-9 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <p className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
                 Defensible assessment operations
@@ -246,7 +246,7 @@ export default async function LandingPage() {
                 Defensible AI-assisted grading for vocational assessment.
               </h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-700 sm:text-base">
-                Assessor AI processes submissions, extracts evidence, grades against locked criteria, and produces moderation-ready outputs with a full audit trail.
+                Upload submissions, extract evidence, grade against locked criteria, and produce moderation-ready outputs with a complete audit trail.
               </p>
 
               <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -275,15 +275,15 @@ export default async function LandingPage() {
               <div className="mt-2.5 grid gap-2">
                 <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Reference layer</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Lock assessment specifications and briefs so grading always uses the correct criteria version.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Lock specifications and assignment briefs so grading always references the correct criteria version.</p>
                 </div>
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Assessment flow</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Upload submissions, extract evidence, map to criteria, and generate grading outputs.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Upload submissions, extract evidence, map it to criteria, and generate grading decisions and feedback.</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Assurance</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Maintain audit trail, IV-AD generation, and Turnitin checks for moderation loops.</p>
+                  <p className="mt-0.5 text-sm text-zinc-700">Maintain a full audit trail with IV-AD generation and Turnitin checks for moderation workflows.</p>
                 </div>
               </div>
             </aside>
@@ -295,7 +295,7 @@ export default async function LandingPage() {
           <div className="mt-2 flex flex-wrap gap-1.5">
             {[
               "Vocational training providers",
-              "Awarding organisations",
+              "Awarding bodies",
               "Internal quality assurance teams",
               "Independent assessors",
             ].map((label) => (
@@ -317,7 +317,7 @@ export default async function LandingPage() {
           <MarketingCard
             icon="submissions"
             title="Evidence Workflow"
-            description="Upload submissions, extract evidence, map it to criteria, and generate feedback in a single grading workflow."
+            description="Extract evidence from submissions, map it to criteria, and generate feedback in one structured grading workflow."
             bullets={["Evidence extraction", "Criteria mapping"]}
             accent="emerald"
           />
@@ -340,7 +340,7 @@ export default async function LandingPage() {
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Moderation evidence is spread across tools</div>
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Audit history is hard to reconstruct</div>
               </div>
-              <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI fixes this with one controlled grading pipeline.</p>
+              <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI replaces this with a single controlled grading pipeline.</p>
             </div>
 
             <div>
@@ -349,8 +349,8 @@ export default async function LandingPage() {
                 {[
                   "Upload student submission",
                   "Extract evidence from the document",
-                  "Link evidence to assignment criteria",
-                  "Generate grading decision and feedback",
+                  "Map evidence to assignment criteria",
+                  "Generate grading decisions and feedback",
                   "Review and export moderation-ready outputs",
                 ].map((step, idx) => (
                   <li key={step} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -365,7 +365,7 @@ export default async function LandingPage() {
           </div>
 
           <div className="mt-4 border-t border-zinc-200 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Designed for regulated assessment frameworks</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Designed for regulated assessment environments</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {[
                 "Pearson BTEC-style workflows",
@@ -380,6 +380,23 @@ export default async function LandingPage() {
                 </span>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">What teams gain with Assessor AI</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              "Faster grading turnaround",
+              "Consistent criteria application",
+              "Clear moderation evidence",
+              "Reduced QA rework",
+              "Complete audit traceability",
+            ].map((item) => (
+              <div key={item} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                {item}
+              </div>
+            ))}
           </div>
         </section>
       </div>
