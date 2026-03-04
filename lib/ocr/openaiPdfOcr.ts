@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { localVisionJson, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
@@ -73,13 +72,9 @@ async function renderPdfPageToPng(pdfPathAbs: string, pageNumber: number) {
   if (typeof createCanvas !== "function") {
     throw new Error("@napi-rs/canvas createCanvas is unavailable.");
   }
-  const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
-  if (pdfjs?.GlobalWorkerOptions) {
-    pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
-  }
 
   const data = new Uint8Array(await fs.readFile(pdfPathAbs));
-  const doc = await pdfjs.getDocument({ data, useSystemFonts: true }).promise;
+  const doc = await pdfjs.getDocument({ data, useSystemFonts: true, disableWorker: true } as any).promise;
   const page = await doc.getPage(pageNumber);
   const viewport = page.getViewport({ scale: 2.0 });
   const width = Math.max(1, Math.floor(viewport.width));

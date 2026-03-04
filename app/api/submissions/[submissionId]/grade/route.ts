@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { prisma } from "@/lib/prisma";
 import { readGradingConfig, resolveFeedbackTemplate } from "@/lib/grading/config";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
@@ -2425,19 +2423,7 @@ async function renderPdfPagesForGrading(input: {
   if (typeof createCanvas !== "function") {
     throw new Error("@napi-rs/canvas createCanvas is unavailable.");
   }
-  const workerPath = path.join(
-    process.cwd(),
-    "node_modules",
-    "pdfjs-dist",
-    "legacy",
-    "build",
-    "pdf.worker.mjs"
-  );
-  if (pdfjs?.GlobalWorkerOptions) {
-    pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
-  }
-
-  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true }).promise;
+  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, disableWorker: true } as any).promise;
   const pageCount = Math.max(1, Number(doc?.numPages || 1));
   const usedPages = Math.min(pageCount, Math.max(1, input.maxPages));
   if (usedPages < pageCount) {
