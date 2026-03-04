@@ -383,8 +383,8 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">What teams gain with Assessor AI</p>
+        <section className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/60 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">What teams gain with Assessor AI</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Faster grading turnaround",
@@ -393,11 +393,19 @@ export default async function LandingPage() {
               "Reduced QA rework",
               "Complete audit traceability",
               "Standardised grading across teams",
-            ].map((item) => (
-              <div key={item} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            ].map((item, idx) => {
+              const tone =
+                idx % 3 === 0
+                  ? "border-amber-200 bg-amber-50/85"
+                  : idx % 3 === 1
+                    ? "border-orange-200 bg-orange-50/80"
+                    : "border-yellow-200 bg-yellow-50/80";
+              return (
+              <div key={item} className={`rounded-lg border px-3 py-2 text-sm text-zinc-700 ${tone}`}>
                 {item}
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </div>
