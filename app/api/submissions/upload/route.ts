@@ -44,11 +44,14 @@ function isAllowedFile(filename: string): boolean {
 
 export async function POST(req: Request) {
   const requestId = makeRequestId();
+  let failStage = "init";
   try {
+    failStage = "resolve_org_scope";
     let organizationId: string | null = null;
     try {
       organizationId = await getRequestOrganizationId();
     } catch {}
+    failStage = "parse_form";
     const formData = await req.formData();
 
     const studentId = getOptionalId(formData.get("studentId"));
@@ -88,11 +91,13 @@ export async function POST(req: Request) {
 
     // Create submissions sequentially (safe + simple). If you want concurrency later, we can add it.
     for (const file of validFiles) {
+      failStage = "read_file_bytes";
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
       const storedFilename = `${uuid()}-${file.name}`;
       const storagePath = toStorageRelativePath("uploads", storedFilename);
+      failStage = "persist_file";
       await writeStorageFile(storagePath, buffer);
 
       const baseData = {
@@ -106,6 +111,7 @@ export async function POST(req: Request) {
 
       let submission: SubmissionRecord;
       const orgScopedData = organizationId ? { ...baseData, organizationId } : baseData;
+      failStage = "create_submission";
       try {
         submission = await prisma.submission.create({ data: orgScopedData });
       } catch (createErr) {
@@ -130,6 +136,7 @@ export async function POST(req: Request) {
 
       if (studentId) {
         try {
+          failStage = "write_audit_event";
           await prisma.submissionAuditEvent.create({
             data: {
               submissionId: submission.id,
@@ -151,6 +158,7 @@ export async function POST(req: Request) {
     const baseUrl = new URL(req.url);
     const origin = `${baseUrl.protocol}//${baseUrl.host}`;
 
+    failStage = "trigger_extract";
     await Promise.allSettled(
       created.map((s) =>
         fetch(`${origin}/api/submissions/${s.id}/extract`, { method: "POST", cache: "no-store" })
@@ -166,7 +174,7 @@ export async function POST(req: Request) {
     return apiError({
       status: 500,
       code: "UPLOAD_FAILED",
-      userMessage: "Upload failed. Please try again.",
+      userMessage: `Upload failed at ${failStage}. Please try again.`,
       route: "/api/submissions/upload",
       requestId,
       cause: err,
