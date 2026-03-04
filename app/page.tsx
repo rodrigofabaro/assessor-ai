@@ -339,16 +339,16 @@ export default async function LandingPage() {
               {[
                 {
                   icon: "qa" as TinyIconName,
-                  title: "Less QA rework",
-                  text: "Review teams spend less time chasing missing context and correcting avoidable issues.",
-                },
-                {
-                  icon: "users" as TinyIconName,
-                  title: "Faster team ramp-up",
-                  text: "New assessors follow the same operating model, reducing onboarding friction.",
+                  title: "Faster QA task tracking",
+                  text: "QA teams can track checks, follow-ups, and review status in one consistent workflow.",
                 },
                 {
                   icon: "workflow" as TinyIconName,
+                  title: "Task automation where it helps",
+                  text: "Structured automations reduce manual handoffs across intake, grading, and QA follow-up.",
+                },
+                {
+                  icon: "users" as TinyIconName,
                   title: "Consistent delivery at scale",
                   text: "Multiple teams and organizations can run the same process with predictable outcomes.",
                 },
