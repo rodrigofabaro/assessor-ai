@@ -68,6 +68,15 @@ Current hardening note (2026-03-04):
 3. Preview and production storage must be separated (different buckets/prefixes/credentials).
 4. During migration, provider-managed relative paths can be redirected with `FILE_STORAGE_ROOT`.
 
+### If no storage env is configured yet
+
+1. Local runtime writes default to repo folders (`uploads/`, `reference_uploads/`, `submission_marked/`, `storage/*`).
+2. Vercel runtime currently falls back to writable temp storage (`/tmp/assessor-ai`), which is non-durable.
+3. Recommended immediate local setting:
+- Set `FILE_STORAGE_ROOT=.local-storage` in local `.env` to keep generated files isolated from repo fixtures.
+4. Recommended production setting:
+- Keep Vercel on DB-only validation until durable object storage credentials are configured.
+
 Current hardening note (2026-03-04):
 1. Existing provider still resolves to filesystem paths; production-safe durable object storage backend remains required.
 2. Temporary runtime mitigation may use Vercel writable temp storage (`/tmp`) for operational continuity, but this is non-durable and not an end-state.

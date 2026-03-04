@@ -32,6 +32,7 @@
     "ops:auth-guard-smoke": "node scripts/auth-guard-smoke.js",
     "ops:release-gate": "node scripts/release-gate-evidence.js",
     "ops:prepush-prod": "pwsh -NoLogo -NoProfile -File scripts/prepush-prod-check.ps1",
+    "ops:local-reset": "pwsh -NoLogo -NoProfile -File scripts/local-reset.ps1",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",

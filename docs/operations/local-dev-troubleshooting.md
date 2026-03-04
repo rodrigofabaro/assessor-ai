@@ -107,3 +107,22 @@ If still slow:
 3. Run a clean dev boot once:
 - `pnpm run dev:clean`
 
+## 6) Reset local data to zero safely
+
+Use this before fresh local testing:
+
+- `pnpm run ops:local-reset`
+
+What it does:
+1. Verifies `DATABASE_URL` points to a local host only.
+2. Runs `prisma migrate reset --force --skip-seed` on local DB.
+3. Cleans untracked runtime files under:
+- `uploads/`
+- `reference_uploads/`
+- `submission_marked/`
+- `storage/`
+
+What it does not do:
+1. It does not touch production DB.
+2. It does not delete tracked repository fixture files.
+
