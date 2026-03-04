@@ -88,7 +88,6 @@ async function findAppUserCandidates(email: string, options?: { requireLoginEnab
   try {
     const users = await prisma.appUser.findMany({
       where,
-      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       take: 20,
       select: {
         id: true,
@@ -114,7 +113,6 @@ async function findAppUserCandidates(email: string, options?: { requireLoginEnab
     if (!isOrgSchemaCompatError(error)) throw error;
     const users = await prisma.appUser.findMany({
       where,
-      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       take: 20,
       select: {
         id: true,
