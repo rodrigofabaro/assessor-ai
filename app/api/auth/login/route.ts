@@ -14,10 +14,6 @@ import {
 export const runtime = "nodejs";
 
 const ONE_DAY_SECONDS = 60 * 60 * 24;
-const EMERGENCY_LOGIN_ALLOWLIST = new Set(["deploy.smoke.admin@assessor-ai.co.uk"]);
-const EMERGENCY_LOGIN_PASSWORD_SHA256 =
-  "49842866e57deaecd48b7af13a3e823a83569385a50f47acf55a3e053691459a";
-const EMERGENCY_LOGIN_EXPIRES_AT = Date.parse("2026-03-05T23:59:59.000Z");
 
 type MembershipRole = "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
 
@@ -52,14 +48,6 @@ type EnvAuth = {
   userId: string;
   role: "ADMIN" | "ASSESSOR" | "IV";
   source: "env";
-  orgId: string | null;
-  isSuperAdmin: boolean;
-};
-
-type EmergencyAuth = {
-  userId: string;
-  role: "ADMIN" | "ASSESSOR" | "IV";
-  source: "emergency";
   orgId: string | null;
   isSuperAdmin: boolean;
 };
@@ -170,9 +158,7 @@ async function findAppUserCandidates(email: string, options?: { requireLoginEnab
 function buildAuthFromUser(input: {
   user: AppUserRecord;
   emailFallback: string;
-  source: "app-user" | "emergency";
-  forceSuperAdmin?: boolean;
-}): AppUserAuth | EmergencyAuth | null {
+}): AppUserAuth | null {
   const memberships = Array.isArray(input.user.memberships) ? input.user.memberships : [];
   const primaryMembership = pickDefaultMembership(memberships);
   const role = resolveSessionRole({
@@ -182,26 +168,15 @@ function buildAuthFromUser(input: {
   });
   if (!role) return null;
 
-  const isSuperAdmin = input.forceSuperAdmin
-    ? true
-    : isSuperAdminPlatformRole(isModernAppUser(input.user) ? input.user.platformRole : null);
+  const isSuperAdmin = isSuperAdminPlatformRole(isModernAppUser(input.user) ? input.user.platformRole : null);
 
   const orgId = String(primaryMembership?.organizationId || input.user.organizationId || "").trim() || null;
-  if (input.source === "app-user") {
-    return {
-      userId: input.user.id,
-      role,
-      source: "app-user",
-      mustResetPassword: !!input.user.mustResetPassword,
-      email: input.user.email || input.emailFallback,
-      orgId,
-      isSuperAdmin,
-    };
-  }
   return {
     userId: input.user.id,
     role,
-    source: "emergency",
+    source: "app-user",
+    mustResetPassword: !!input.user.mustResetPassword,
+    email: input.user.email || input.emailFallback,
     orgId,
     isSuperAdmin,
   };
@@ -215,14 +190,6 @@ function secureCompare(input: string, expected: string) {
   const inputHash = crypto.createHash("sha256").update(input).digest();
   const expectedHash = crypto.createHash("sha256").update(expected).digest();
   return crypto.timingSafeEqual(inputHash, expectedHash);
-}
-
-function secureCompareSha256Hex(input: string, expectedHex: string) {
-  const inputHash = crypto.createHash("sha256").update(String(input || "")).digest("hex");
-  const a = Buffer.from(String(inputHash || ""), "hex");
-  const b = Buffer.from(String(expectedHex || ""), "hex");
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
 }
 
 function isOrgSchemaCompatError(error: unknown) {
@@ -257,28 +224,7 @@ async function tryAuthenticateAppUser(username: string, password: string) {
     if (!verifyPassword(password, user.loginPasswordHash)) continue;
     const auth = buildAuthFromUser({
       user,
-      source: "app-user",
       emailFallback: email,
-    });
-    if (auth) return auth;
-  }
-  return null;
-}
-
-async function tryAuthenticateEmergencyDbUser(username: string, password: string) {
-  const email = normalizeLoginEmail(username);
-  if (!email || !password) return null;
-  if (Date.now() > EMERGENCY_LOGIN_EXPIRES_AT) return null;
-  if (!EMERGENCY_LOGIN_ALLOWLIST.has(email)) return null;
-  if (!secureCompareSha256Hex(password, EMERGENCY_LOGIN_PASSWORD_SHA256)) return null;
-
-  const users = await findAppUserCandidates(email, { requireLoginEnabled: false });
-  for (const user of users) {
-    const auth = buildAuthFromUser({
-      user,
-      source: "emergency",
-      emailFallback: email,
-      forceSuperAdmin: true,
     });
     if (auth) return auth;
   }
@@ -321,7 +267,6 @@ export async function POST(req: Request) {
   let auth:
     | AppUserAuth
     | EnvAuth
-    | EmergencyAuth
     | null = null;
   try {
     auth = await tryAuthenticateAppUser(username, password);
@@ -340,39 +285,6 @@ export async function POST(req: Request) {
         orgId: defaultOrg.id,
         isSuperAdmin: true,
       };
-    }
-  }
-
-  if (!auth) {
-    const normalized = normalizeLoginEmail(username);
-    const emergencyEligible =
-      Date.now() <= EMERGENCY_LOGIN_EXPIRES_AT &&
-      EMERGENCY_LOGIN_ALLOWLIST.has(normalized) &&
-      secureCompareSha256Hex(password, EMERGENCY_LOGIN_PASSWORD_SHA256);
-
-    if (emergencyEligible) {
-      try {
-        auth = await tryAuthenticateEmergencyDbUser(username, password);
-      } catch {
-        auth = null;
-      }
-
-      if (!auth) {
-        let orgId: string | null = null;
-        try {
-          const defaultOrg = await ensureDefaultOrganization();
-          orgId = defaultOrg.id;
-        } catch {
-          orgId = null;
-        }
-        auth = {
-          userId: `emergency:${normalized}`,
-          role: "ADMIN",
-          source: "emergency",
-          orgId,
-          isSuperAdmin: true,
-        };
-      }
     }
   }
 

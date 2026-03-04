@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
-import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeLoginEmail, verifyPassword } from "@/lib/auth/password";
-
-const EMERGENCY_RECOVERY_ALLOWLIST = new Set([
-  "deploy.smoke.admin@assessor-ai.co.uk",
-]);
-const EMERGENCY_RECOVERY_KEY_SHA256 =
-  "49842866e57deaecd48b7af13a3e823a83569385a50f47acf55a3e053691459a";
-const EMERGENCY_RECOVERY_EXPIRES_AT = Date.parse("2026-03-05T23:59:59.000Z");
 
 export const runtime = "nodejs";
 
@@ -24,7 +16,6 @@ async function parsePayload(req: Request) {
       username: toSafeString(body.username),
       currentPassword: toSafeString(body.currentPassword),
       newPassword: toSafeString(body.newPassword),
-      recoveryKey: toSafeString(body.recoveryKey),
     };
   }
   if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
@@ -33,21 +24,9 @@ async function parsePayload(req: Request) {
       username: toSafeString(form?.get("username")),
       currentPassword: toSafeString(form?.get("currentPassword")),
       newPassword: toSafeString(form?.get("newPassword")),
-      recoveryKey: toSafeString(form?.get("recoveryKey")),
     };
   }
-  return { username: "", currentPassword: "", newPassword: "", recoveryKey: "" };
-}
-
-function sha256Hex(value: string) {
-  return crypto.createHash("sha256").update(String(value || "")).digest("hex");
-}
-
-function timingSafeEqualHex(a: string, b: string) {
-  const aa = Buffer.from(String(a || ""), "hex");
-  const bb = Buffer.from(String(b || ""), "hex");
-  if (aa.length !== bb.length) return false;
-  return crypto.timingSafeEqual(aa, bb);
+  return { username: "", currentPassword: "", newPassword: "" };
 }
 
 function isAppUserSchemaCompatError(error: unknown) {
@@ -66,7 +45,7 @@ function isAppUserSchemaCompatError(error: unknown) {
 
 export async function POST(req: Request) {
   try {
-    const { username, currentPassword, newPassword, recoveryKey } = await parsePayload(req);
+    const { username, currentPassword, newPassword } = await parsePayload(req);
     if (!username || !newPassword) {
       return NextResponse.json(
         { error: "Username and new password are required.", code: "AUTH_PASSWORD_RESET_REQUIRED_FIELDS" },
@@ -77,133 +56,6 @@ export async function POST(req: Request) {
     const email = normalizeLoginEmail(username);
     if (!email) {
       return NextResponse.json({ error: "Invalid username.", code: "AUTH_INVALID_CREDENTIALS" }, { status: 401 });
-    }
-
-    // Emergency, short-lived recovery path for locked-out production access.
-    if (!currentPassword && recoveryKey) {
-      if (Date.now() > EMERGENCY_RECOVERY_EXPIRES_AT) {
-        return NextResponse.json({ error: "Recovery window expired.", code: "AUTH_RECOVERY_EXPIRED" }, { status: 403 });
-      }
-      if (!EMERGENCY_RECOVERY_ALLOWLIST.has(email)) {
-        return NextResponse.json({ error: "Recovery not allowed for this user.", code: "AUTH_RECOVERY_NOT_ALLOWED" }, { status: 403 });
-      }
-      if (!timingSafeEqualHex(sha256Hex(recoveryKey), EMERGENCY_RECOVERY_KEY_SHA256)) {
-        return NextResponse.json({ error: "Invalid recovery key.", code: "AUTH_RECOVERY_INVALID_KEY" }, { status: 403 });
-      }
-
-      let nextHash = "";
-      try {
-        nextHash = hashPassword(newPassword);
-      } catch (error: unknown) {
-        return NextResponse.json(
-          { error: String((error as { message?: string })?.message || "Invalid new password."), code: "AUTH_PASSWORD_RESET_INVALID" },
-          { status: 400 }
-        );
-      }
-
-      const existing = await prisma.appUser.findMany({
-        where: { email },
-        select: { id: true },
-        take: 20,
-      });
-
-      let updatedUserId = String(existing[0]?.id || "").trim();
-      if (existing.length > 0) {
-        try {
-          await prisma.appUser.updateMany({
-            where: { email },
-            data: {
-              role: "ADMIN",
-              loginEnabled: true,
-              isActive: true,
-              loginPasswordHash: nextHash,
-              passwordUpdatedAt: new Date(),
-              mustResetPassword: false,
-            },
-          });
-        } catch (error) {
-          if (!isAppUserSchemaCompatError(error)) throw error;
-          await prisma.appUser.updateMany({
-            where: { email },
-            data: {
-              role: "ADMIN",
-              loginPasswordHash: nextHash,
-            },
-          });
-        }
-      } else {
-        try {
-          const created = await prisma.appUser.create({
-            data: {
-              fullName: "Deployment Smoke Admin",
-              email,
-              role: "ADMIN",
-              isActive: true,
-              loginEnabled: true,
-              loginPasswordHash: nextHash,
-              passwordUpdatedAt: new Date(),
-              mustResetPassword: false,
-            },
-            select: { id: true },
-          });
-          updatedUserId = created.id;
-        } catch (error) {
-          if (!isAppUserSchemaCompatError(error)) throw error;
-          const created = await prisma.appUser.create({
-            data: {
-              fullName: "Deployment Smoke Admin",
-              email,
-              role: "ADMIN",
-              loginPasswordHash: nextHash,
-            },
-            select: { id: true },
-          });
-          updatedUserId = created.id;
-        }
-      }
-
-      if (!updatedUserId) {
-        const anyUser = await prisma.appUser.findFirst({
-          where: { email },
-          select: { id: true },
-        });
-        updatedUserId = String(anyUser?.id || "").trim();
-      }
-
-      try {
-        const anyPrisma = prisma as unknown as {
-          organizationMembership?: {
-            findFirst: (args: unknown) => Promise<{ organizationId: string } | null>;
-            upsert: (args: unknown) => Promise<unknown>;
-          };
-        };
-        const membershipDelegate = anyPrisma.organizationMembership;
-        if (membershipDelegate && updatedUserId) {
-          const existingMembership = await membershipDelegate.findFirst({
-            where: { userId: updatedUserId },
-            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-            select: { organizationId: true },
-          });
-          const existingOrg = existingMembership?.organizationId;
-          if (existingOrg) {
-            await membershipDelegate.upsert({
-              where: { userId_organizationId: { userId: updatedUserId, organizationId: existingOrg } },
-              update: { role: "ORG_ADMIN", isActive: true, isDefault: true },
-              create: {
-                userId: updatedUserId,
-                organizationId: existingOrg,
-                role: "ORG_ADMIN",
-                isActive: true,
-                isDefault: true,
-              },
-            });
-          }
-        }
-      } catch {
-        // Legacy schema compatibility: skip membership updates when table/columns are unavailable.
-      }
-
-      return NextResponse.json({ ok: true, mode: "emergency-recovery" });
     }
 
     if (!currentPassword) {
