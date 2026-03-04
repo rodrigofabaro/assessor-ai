@@ -63,7 +63,8 @@ function extractOutputText(responseJson: any): string {
 }
 
 async function renderPdfPageToPng(pdfPathAbs: string, pageNumber: number) {
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjsMod = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjs: any = (pdfjsMod as any).default ?? (pdfjsMod as any);
   const canvasMod: any = await import("@napi-rs/canvas");
   const createCanvas =
     canvasMod?.createCanvas ??
@@ -74,7 +75,12 @@ async function renderPdfPageToPng(pdfPathAbs: string, pageNumber: number) {
   }
 
   const data = new Uint8Array(await fs.readFile(pdfPathAbs));
-  const doc = await pdfjs.getDocument({ data, useSystemFonts: true, disableWorker: true } as any).promise;
+  const loadingTask = pdfjs.getDocument({
+    data,
+    useSystemFonts: true,
+    disableWorker: true,
+  });
+  const doc = await loadingTask.promise;
   const page = await doc.getPage(pageNumber);
   const viewport = page.getViewport({ scale: 2.0 });
   const width = Math.max(1, Math.floor(viewport.width));

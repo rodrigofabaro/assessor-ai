@@ -2414,7 +2414,8 @@ async function renderPdfPagesForGrading(input: {
   const absPath = resolveStorageAbsolutePath(input.pdfPath) || input.pdfPath;
   const bytes = new Uint8Array(await fs.readFile(absPath));
 
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjsMod = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjs: any = (pdfjsMod as any).default ?? (pdfjsMod as any);
   const canvasMod: any = await import("@napi-rs/canvas");
   const createCanvas =
     canvasMod?.createCanvas ??
@@ -2423,7 +2424,12 @@ async function renderPdfPagesForGrading(input: {
   if (typeof createCanvas !== "function") {
     throw new Error("@napi-rs/canvas createCanvas is unavailable.");
   }
-  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, disableWorker: true } as any).promise;
+  const loadingTask = pdfjs.getDocument({
+    data: bytes,
+    useSystemFonts: true,
+    disableWorker: true,
+  });
+  const doc = await loadingTask.promise;
   const pageCount = Math.max(1, Number(doc?.numPages || 1));
   const usedPages = Math.min(pageCount, Math.max(1, input.maxPages));
   if (usedPages < pageCount) {
