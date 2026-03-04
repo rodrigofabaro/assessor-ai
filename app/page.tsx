@@ -332,19 +332,19 @@ export default async function LandingPage() {
 
         <section id="how-it-works" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="grid gap-4 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Assessment today is messy</p>
+            <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-orange-800">Assessment today is messy</p>
               <div className="mt-2 grid gap-2 text-sm text-zinc-700">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Submissions arrive in mixed formats</div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Criteria mapping is manual and inconsistent</div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Moderation evidence is spread across tools</div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">Audit history is hard to reconstruct</div>
+                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Submissions arrive in mixed formats</div>
+                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Criteria mapping is manual and inconsistent</div>
+                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Moderation evidence is spread across tools</div>
+                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Audit history is hard to reconstruct</div>
               </div>
               <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI replaces this with a single controlled assessment pipeline.</p>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">How Assessor AI works</p>
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">How Assessor AI works</p>
               <ol className="mt-2 grid gap-2 text-sm text-zinc-700">
                 {[
                   "Upload student submission",
@@ -353,8 +353,8 @@ export default async function LandingPage() {
                   "Generate grading decisions and structured feedback",
                   "Review and export moderation-ready outputs",
                 ].map((step, idx) => (
-                  <li key={step} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-700">
+                  <li key={step} className="flex items-start gap-2 rounded-lg border border-blue-200 bg-white/80 px-3 py-2">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 bg-blue-100 text-[11px] font-semibold text-blue-700">
                       {idx + 1}
                     </span>
                     <span>{step}</span>
@@ -383,8 +383,8 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/60 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">What teams gain with Assessor AI</p>
+        <section className="rounded-2xl border border-green-200 bg-gradient-to-br from-green-50/80 via-white to-emerald-50/70 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-green-800">What teams gain with Assessor AI</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Faster grading turnaround",
@@ -393,19 +393,11 @@ export default async function LandingPage() {
               "Reduced QA rework",
               "Complete audit traceability",
               "Standardised grading across teams",
-            ].map((item, idx) => {
-              const tone =
-                idx % 3 === 0
-                  ? "border-amber-200 bg-amber-50/85"
-                  : idx % 3 === 1
-                    ? "border-orange-200 bg-orange-50/80"
-                    : "border-yellow-200 bg-yellow-50/80";
-              return (
-              <div key={item} className={`rounded-lg border px-3 py-2 text-sm text-zinc-700 ${tone}`}>
+            ].map((item) => (
+              <div key={item} className="rounded-lg border border-green-200 bg-green-50/85 px-3 py-2 text-sm text-green-900">
                 {item}
               </div>
-              );
-            })}
+            ))}
           </div>
         </section>
       </div>
