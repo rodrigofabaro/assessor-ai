@@ -65,21 +65,30 @@ async function main() {
     },
   });
 
-  const brief = await prisma.assignmentBrief.upsert({
-    where: { unitId_assignmentCode: { unitId: unit.id, assignmentCode: assignmentRef } },
-    update: {
-      title: assignment.title || `${unitCode} ${assignmentRef}`,
-      status: "LOCKED",
-      lockedAt: new Date(),
-    },
-    create: {
-      unitId: unit.id,
-      assignmentCode: assignmentRef,
-      title: assignment.title || `${unitCode} ${assignmentRef}`,
-      status: "LOCKED",
-      lockedAt: new Date(),
-    },
+  const currentBrief = await prisma.assignmentBrief.findFirst({
+    where: { unitId: unit.id, assignmentCode: assignmentRef },
+    orderBy: { version: "desc" },
   });
+
+  const brief = currentBrief
+    ? await prisma.assignmentBrief.update({
+        where: { id: currentBrief.id },
+        data: {
+          title: assignment.title || `${unitCode} ${assignmentRef}`,
+          status: "LOCKED",
+          lockedAt: new Date(),
+        },
+      })
+    : await prisma.assignmentBrief.create({
+        data: {
+          unitId: unit.id,
+          assignmentCode: assignmentRef,
+          title: assignment.title || `${unitCode} ${assignmentRef}`,
+          status: "LOCKED",
+          lockedAt: new Date(),
+          version: 1,
+        },
+      });
 
   await prisma.assignment.update({
     where: { id: assignment.id },

@@ -5,6 +5,7 @@ import { verifySignedSessionTokenEdge } from "@/lib/auth/sessionEdge";
 
 const SESSION_COOKIE_NAME = "assessor_session";
 const ALL_ROLES = ["ADMIN", "ASSESSOR", "IV"] as const;
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 async function resolveRole(req: NextRequest) {
   const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value || "";
@@ -26,8 +27,14 @@ function isPublicPath(pathname: string) {
   return false;
 }
 
+function isLocalhostRequest(req: NextRequest) {
+  return LOCAL_HOSTS.has(String(req.nextUrl.hostname || "").trim().toLowerCase());
+}
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+  // Keep production auth enforcement while removing local login friction.
+  if (isLocalhostRequest(req)) return NextResponse.next();
   if (!isAuthGuardsEnabled()) return NextResponse.next();
 
   const isLoginPath = pathname === "/login" || pathname.startsWith("/login/");
