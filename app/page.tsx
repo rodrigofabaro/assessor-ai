@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifySignedSessionToken } from "@/lib/auth/session";
@@ -273,16 +272,6 @@ export default async function LandingPage() {
             </div>
 
             <aside className="rounded-2xl border border-zinc-200 bg-gradient-to-b from-white to-zinc-50 p-3.5 shadow-sm sm:p-4">
-              <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-                <Image
-                  src="/help/screenshots/submissions-workspace.png"
-                  alt="Assessor AI submissions workspace preview"
-                  width={1200}
-                  height={720}
-                  className="h-auto w-full"
-                  priority
-                />
-              </div>
               <h2 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-700">
                   <TinyIcon name="app" className="h-3.5 w-3.5" />
