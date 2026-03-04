@@ -5,6 +5,8 @@ type SessionPayload = {
   uid: string;
   role: AppRole;
   exp: number;
+  oid?: string;
+  sa?: 1;
 };
 
 const SESSION_COOKIE_NAME = "assessor_session";
@@ -45,6 +47,8 @@ export function hasSessionSecret() {
 export function createSignedSessionToken(input: {
   userId: string;
   role: AppRole;
+  orgId?: string | null;
+  isSuperAdmin?: boolean;
   ttlSeconds?: number;
 }) {
   const secret = getSessionSecret();
@@ -56,6 +60,8 @@ export function createSignedSessionToken(input: {
     uid: String(input.userId || "").trim(),
     role: input.role,
     exp: nowSec + Math.max(300, Number(input.ttlSeconds || 3600 * 8)),
+    ...(String(input.orgId || "").trim() ? { oid: String(input.orgId || "").trim() } : {}),
+    ...(input.isSuperAdmin ? { sa: 1 as const } : {}),
   };
 
   const h = b64urlEncode(JSON.stringify(header));
@@ -83,9 +89,10 @@ export function verifySignedSessionToken(token: string) {
       userId: String(payload.uid),
       role: role as AppRole,
       exp: Number(payload.exp),
+      orgId: String(payload.oid || "").trim() || null,
+      isSuperAdmin: payload.sa === 1,
     };
   } catch {
     return null;
   }
 }
-

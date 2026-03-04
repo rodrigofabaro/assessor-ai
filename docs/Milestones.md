@@ -23,10 +23,12 @@ Status labels:
 ### Priorities (Now)
 - M7 export-pack endpoint/UI and deterministic replay.
 - Next implementation queue (performance, instrumentation, extraction stabilization).
+- M10 multi-organization tenant isolation foundation (global users + org memberships + scoped settings).
 
 ### Developments (Next)
 - M8 production deployment and cost-controlled scaling.
 - M9 authentication, UX template system, and final performance hardening.
+- M10 multi-organization rollout (super admin, org admin, org switch, per-org settings and secrets).
 - IV-AD AI review rollout tracked in `docs/grading/iv-ad-ai-review-roadmap.md` (supporting feature roadmap).
 - Email invite delivery provider activation is deferred (current fallback: password copy + `mailto` draft).
 - M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production + production OpenAI key scopes (`api.responses.write`) for grade/extraction.
@@ -292,6 +294,13 @@ Current update (2026-03-03):
 - Status (2026-03-03): complete. Date-range filters and filtered CSV export are live in `/admin/iv-ad`.
 - Block queue completion if docs for changed behavior are missing.
 
+8. M10 foundation kickoff (multi-organization)
+- Add explicit global role model (`SUPER_ADMIN`) and organization membership model.
+- Enforce active organization session scope for tenant-owned resources.
+- Add org-switch flow for users with memberships in multiple organizations.
+- Add organization-scoped settings foundation (including API key secret storage contract).
+- Status (2026-03-04): started. Roadmap and implementation kickoff approved by operator.
+
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.
 - IV-AD Phase 4 endpoint contract is merged and test-covered.
@@ -407,6 +416,10 @@ Phase 7 progress (2026-03-03):
 - Implement login page and session management.
 - Add role-based access checks for `Admin`, `Assessor`, `IV` routes/actions.
 - Add invite/reset/logout flows and auth audit events.
+- Extend identity model to support:
+  - global role: `SUPER_ADMIN`
+  - organization membership roles: `ORG_ADMIN`, `ASSESSOR`, `IV` (plus optional read-only role).
+  - one user account with memberships in multiple organizations.
 
 2. UX template and layout system
 - Create reusable page scaffolds for:
@@ -442,3 +455,44 @@ Update milestone status only when you can point to:
 - the UI path that proves it
 - the DB tables/fields that store it
 - the audit event or log that would defend it
+
+---
+
+## 🔜 M10 — Multi-Organization Tenant Isolation
+**Outcome**
+- Users can belong to multiple organizations and switch active organization context.
+- All tenant-owned data is isolated by active organization.
+- `SUPER_ADMIN` manages platform-wide orgs/users; `ORG_ADMIN` manages users/settings within their organization.
+
+**Scope**
+1. Identity and membership
+- Add `OrganizationMembership` (`userId`, `organizationId`, `role`, `isDefault`, `isActive`).
+- Keep `AppUser` as global identity; remove one-org-only assumption in APIs/UI.
+- Add global `platformRole` for `SUPER_ADMIN`.
+
+2. Session and org context
+- Session includes active organization id and effective role for that org.
+- Add org switch endpoint and UI control.
+- Validate membership on switch and on scoped API access.
+
+3. Data isolation enforcement
+- Scope reads/writes for tenant data (`specs`, `briefs`, `assignments`, `students`, `submissions`, reference docs, settings) to active org.
+- Prevent cross-org resource access by id.
+- Add cross-org boundary tests.
+
+4. Organization settings and secrets
+- Add per-organization settings storage.
+- Add per-organization encrypted secret storage (API keys and integrations).
+- Add audit logging for setting/secret updates.
+
+5. Migration and compatibility
+- Backfill memberships from existing `AppUser.organizationId`.
+- Keep compatibility fallback during rollout, then enforce membership-first model.
+- Keep deploy smoke and release gate passing during transition.
+
+**Acceptance**
+- A single user can access two organizations without creating two user records.
+- Switching organization changes visible data scope immediately.
+- Org admin can manage users only within own organization.
+- Super admin can manage all organizations/users and inspect cross-org health.
+- Organization settings and keys are stored per org and not visible across org boundaries.

@@ -4,6 +4,12 @@ import { createSignedSessionToken, getSessionCookieName, hasSessionSecret } from
 import { parseRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { normalizeLoginEmail, verifyPassword } from "@/lib/auth/password";
+import { ensureDefaultOrganization } from "@/lib/organizations/defaults";
+import {
+  pickDefaultMembership,
+  resolveSessionRole,
+  isSuperAdminPlatformRole,
+} from "@/lib/organizations/membership";
 
 export const runtime = "nodejs";
 
@@ -29,17 +35,43 @@ async function tryAuthenticateAppUser(username: string, password: string) {
       id: true,
       email: true,
       role: true,
+      platformRole: true,
       loginPasswordHash: true,
       mustResetPassword: true,
+      organizationId: true,
+      memberships: {
+        where: { isActive: true, organization: { isActive: true } },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        select: {
+          organizationId: true,
+          role: true,
+          isDefault: true,
+        },
+      },
     },
   });
   if (!user?.loginPasswordHash) return null;
   if (!verifyPassword(password, user.loginPasswordHash)) return null;
 
-  const role = parseRole(user.role);
+  const primaryMembership = pickDefaultMembership(user.memberships || []);
+  const role = resolveSessionRole({
+    platformRole: user.platformRole,
+    membershipRole: primaryMembership?.role,
+    legacyRole: user.role,
+  });
   if (!role) return null;
 
-  return { userId: user.id, role, source: "app-user" as const, mustResetPassword: !!user.mustResetPassword, email: user.email || email };
+  const isSuperAdmin = isSuperAdminPlatformRole(user.platformRole);
+
+  return {
+    userId: user.id,
+    role,
+    source: "app-user" as const,
+    mustResetPassword: !!user.mustResetPassword,
+    email: user.email || email,
+    orgId: String(primaryMembership?.organizationId || user.organizationId || "").trim() || null,
+    isSuperAdmin,
+  };
 }
 
 async function parseCredentials(req: Request) {
@@ -76,8 +108,22 @@ export async function POST(req: Request) {
   }
 
   let auth:
-    | { userId: string; role: "ADMIN" | "ASSESSOR" | "IV"; source: "app-user"; mustResetPassword: boolean; email: string }
-    | { userId: string; role: "ADMIN" | "ASSESSOR" | "IV"; source: "env" }
+    | {
+        userId: string;
+        role: "ADMIN" | "ASSESSOR" | "IV";
+        source: "app-user";
+        mustResetPassword: boolean;
+        email: string;
+        orgId: string | null;
+        isSuperAdmin: boolean;
+      }
+    | {
+        userId: string;
+        role: "ADMIN" | "ASSESSOR" | "IV";
+        source: "env";
+        orgId: string | null;
+        isSuperAdmin: boolean;
+      }
     | null = null;
   try {
     auth = await tryAuthenticateAppUser(username, password);
@@ -88,7 +134,14 @@ export async function POST(req: Request) {
   if (!auth && expectedUsername && expectedPassword) {
     const isEnvValid = secureCompare(username, expectedUsername) && secureCompare(password, expectedPassword);
     if (isEnvValid) {
-      auth = { userId: `env:${expectedUsername}`, role: envRole, source: "env" };
+      const defaultOrg = await ensureDefaultOrganization();
+      auth = {
+        userId: `env:${expectedUsername}`,
+        role: envRole,
+        source: "env",
+        orgId: defaultOrg.id,
+        isSuperAdmin: true,
+      };
     }
   }
 
@@ -109,10 +162,18 @@ export async function POST(req: Request) {
   const token = createSignedSessionToken({
     userId: auth.userId,
     role: auth.role,
+    orgId: auth.orgId,
+    isSuperAdmin: auth.isSuperAdmin,
     ttlSeconds: ONE_DAY_SECONDS,
   });
 
-  const res = NextResponse.json({ ok: true, role: auth.role, source: auth.source });
+  const res = NextResponse.json({
+    ok: true,
+    role: auth.role,
+    source: auth.source,
+    orgId: auth.orgId,
+    isSuperAdmin: auth.isSuperAdmin,
+  });
   res.cookies.set({
     name: getSessionCookieName(),
     value: token,

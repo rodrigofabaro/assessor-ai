@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LANE } from "@/components/PageContainer";
 import { TinyIcon } from "@/components/ui/TinyIcon";
+import OrganizationSwitcher from "@/components/OrganizationSwitcher";
 
 type MainItem = { label: string; href: string };
 type AdminItem = { label: string; href: string; accent: string };
@@ -135,6 +136,7 @@ export default function TopNav() {
           >
             Admin
           </Link>
+          <OrganizationSwitcher />
 
           {isAdminRoute ? (
             <nav aria-label="Admin sections" className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">

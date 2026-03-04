@@ -1,6 +1,6 @@
 # Release Notes
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 ## Unreleased
 
@@ -138,6 +138,36 @@ Last updated: 2026-03-03
 27. Pre-push gate hardening for Vercel parity:
    - `ops:prepush-prod` now runs `pnpm run build` (after clearing `.next/trace` best-effort) before regression checks
    - this catches Vercel-equivalent Next.js build/type issues before push
+28. M10 multi-organization foundation kickoff:
+   - added roadmap scope for multi-org tenancy in `docs/Milestones.md` and `docs/ROADMAP_ONE.md`
+   - added role model extension docs in `docs/operations/auth-role-matrix.md` (`SUPER_ADMIN`, `ORG_ADMIN`)
+   - added Prisma foundation models + migration:
+     - `PlatformRole` on `AppUser`
+     - `OrganizationMembership` (user-to-org membership with default/active flags)
+     - `OrganizationSetting` (per-org config JSON)
+     - `OrganizationSecret` (per-org encrypted secret storage)
+   - added auth/session membership resolution in:
+     - `POST /api/auth/login`
+     - `POST /api/auth/session/bootstrap`
+   - added organization context APIs:
+     - `GET /api/auth/organizations`
+     - `POST /api/auth/switch-organization`
+   - added org settings/secrets API scaffold:
+     - `GET|PUT /api/admin/organizations/[organizationId]/settings`
+   - updated user admin APIs to seed/update memberships when creating or editing users:
+     - `GET|POST /api/admin/users`
+     - `PATCH /api/admin/users/[userId]`
+29. M10 role boundary + org context UX slice:
+   - added global header organization switcher component (`components/OrganizationSwitcher.tsx`) wired to:
+     - `GET /api/auth/organizations`
+     - `POST /api/auth/switch-organization`
+   - added dedicated organization settings page:
+     - `/admin/settings/organization`
+   - added org settings navigation entry in admin settings workspace
+   - tightened admin API boundaries:
+     - `GET|POST /api/admin/organizations` now super-admin only
+     - non-super admins in `GET|POST /api/admin/users` are scoped to active organization
+     - non-super admins in `PATCH /api/admin/users/[userId]` can only manage users within active organization
 
 ## 1.0.1 (Maintenance)
 

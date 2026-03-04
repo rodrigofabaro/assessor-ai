@@ -2,6 +2,8 @@ type VerifiedSession = {
   userId: string;
   role: "ADMIN" | "ASSESSOR" | "IV";
   exp: number;
+  orgId: string | null;
+  isSuperAdmin: boolean;
 };
 
 function b64urlDecodeToBytes(input: string) {
@@ -48,7 +50,7 @@ export async function verifySignedSessionTokenEdge(token: string, secret: string
     const expected = await sign(`${h}.${p}`, secret);
     if (!timingSafeEqual(sig, expected)) return null;
     const payloadText = new TextDecoder().decode(b64urlDecodeToBytes(p));
-    const payload = JSON.parse(payloadText) as { uid?: string; role?: string; exp?: number };
+    const payload = JSON.parse(payloadText) as { uid?: string; role?: string; exp?: number; oid?: string; sa?: number };
     const nowSec = Math.floor(Date.now() / 1000);
     const role = String(payload?.role || "").toUpperCase();
     if (!payload?.uid || !payload?.exp || payload.exp < nowSec) return null;
@@ -57,9 +59,10 @@ export async function verifySignedSessionTokenEdge(token: string, secret: string
       userId: String(payload.uid),
       role: role as "ADMIN" | "ASSESSOR" | "IV",
       exp: Number(payload.exp),
+      orgId: String(payload.oid || "").trim() || null,
+      isSuperAdmin: payload.sa === 1,
     };
   } catch {
     return null;
   }
 }
-

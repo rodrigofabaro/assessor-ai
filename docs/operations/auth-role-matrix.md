@@ -1,19 +1,27 @@
 # Auth + Role Matrix (M9 Foundation)
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 This is the canonical role access matrix for phased auth rollout.
 
 ## Roles
 
+0. `SUPER_ADMIN` (platform role)
+- Platform-wide control across all organizations, users, and organization configuration.
+
 1. `ADMIN`
 - Full admin + API mutation rights.
+- Transitional app role; target org-level equivalent is `ORG_ADMIN`.
 
 2. `ASSESSOR`
 - Operational grading/submission workflow rights (future enforcement phase).
 
 3. `IV`
 - Internal verification and audit review rights (future enforcement phase).
+
+4. `ORG_ADMIN` (organization membership role, M10 target)
+- Admin rights limited to one organization scope.
+- Can manage users/settings in that organization only.
 
 ## Current scaffold (non-breaking)
 
@@ -73,6 +81,8 @@ Session bootstrap endpoint:
 3. Validate all admin workflows and API calls.
 4. Move from header-based role to real session/cookie-backed role.
 5. Expand matrix to non-admin routes (`/submissions`, `/students`, `/api/submissions/*`) after role contracts are finalized.
+6. M10: move from single `AppUser.organizationId` to membership-based org context and add active-org switch route.
+7. M10: enforce `SUPER_ADMIN` vs `ORG_ADMIN` boundaries in admin APIs.
 
 ## Staging validation command
 

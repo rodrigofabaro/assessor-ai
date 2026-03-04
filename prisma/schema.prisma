@@ -57,6 +57,38 @@ enum GradeBand {
   DISTINCTION
 }
 
+enum PlatformRole {
+  USER
+  SUPER_ADMIN
+}
+
+enum OrganizationRole {
+  ORG_ADMIN
+  ASSESSOR
+  IV
+  VIEWER
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              AppUser[]
+  students           Student[]
+  assignments        Assignment[]
+  submissions        Submission[]
+  referenceDocuments ReferenceDocument[]
+  units              Unit[]
+  assignmentBriefs   AssignmentBrief[]
+  memberships        OrganizationMembership[]
+  settings           OrganizationSetting?
+  secrets            OrganizationSecret[]
+}
+
 model Student {
   id                  String   @id @default(cuid())
   fullName            String
@@ -68,7 +100,12 @@ model Student {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  organizationId      String?
+  organization        Organization? @relation(fields: [organizationId], references: [id])
+
   submissions         Submission[]
+
+  @@index([organizationId])
 }
 
 model AppUser {
@@ -76,6 +113,7 @@ model AppUser {
   fullName  String
   email     String?  @unique
   role      String   @default("ADMIN")
+  platformRole PlatformRole @default(USER)
   isActive  Boolean  @default(true)
   loginEnabled     Boolean   @default(false)
   loginPasswordHash String?
@@ -84,7 +122,59 @@ model AppUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  memberships    OrganizationMembership[]
+
   activeInConfigs AppConfig[]
+
+  @@index([platformRole])
+  @@index([organizationId])
+}
+
+model OrganizationMembership {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrganizationRole @default(ASSESSOR)
+  isDefault      Boolean          @default(false)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user         AppUser       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, isActive])
+  @@index([userId, isActive])
+  @@index([userId, isDefault])
+}
+
+model OrganizationSetting {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  config         Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model OrganizationSecret {
+  id             String   @id @default(cuid())
+  organizationId String
+  secretName     String
+  encryptedValue String
+  meta           Json?
+  rotatedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, secretName])
+  @@index([organizationId])
 }
 
 model AppConfig {
@@ -123,10 +213,14 @@ model Assignment {
   assignmentBriefId String?
   assignmentBrief   AssignmentBrief? @relation(fields: [assignmentBriefId], references: [id])
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   submissions Submission[]
 
   @@index([assignmentBriefId])
   @@index([unitCode, assignmentRef])
+  @@index([organizationId])
 }
 
 model Submission {
@@ -150,6 +244,8 @@ model Submission {
   assignmentId String?
   student      Student?    @relation(fields: [studentId], references: [id])
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Extraction output (Phase 3)
   extractedText  String?
@@ -168,6 +264,7 @@ model Submission {
 
   @@index([studentId])
   @@index([assignmentId])
+  @@index([organizationId])
   @@index([uploadedAt, id])
   @@index([status, uploadedAt])
 }
@@ -256,10 +353,14 @@ model ReferenceDocument {
   sourceMeta         Json?
   lockedAt           DateTime?
   lockedBy           String?
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
 
   // Relations
   unitsAsSpec Unit[]            @relation("SpecDocUnits")
   briefsAsDoc AssignmentBrief[] @relation("BriefDocBriefs")
+
+  @@index([organizationId])
 }
 
 model IvAdTemplate {
@@ -318,9 +419,13 @@ model Unit {
   // Spec doc
   specDocumentId String?
   specDocument   ReferenceDocument? @relation("SpecDocUnits", fields: [specDocumentId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   learningOutcomes LearningOutcome[]
   assignmentBriefs AssignmentBrief[]
+
+  @@index([organizationId])
 }
 
 model LearningOutcome {
@@ -372,6 +477,8 @@ model AssignmentBrief {
 
   unitId String
   unit   Unit   @relation(fields: [unitId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   briefDocumentId String?
   briefDocument   ReferenceDocument? @relation("BriefDocBriefs", fields: [briefDocumentId], references: [id])
@@ -381,6 +488,7 @@ model AssignmentBrief {
 
   @@unique([unitId, assignmentCode, version])
   @@index([unitId, assignmentCode, status, updatedAt])
+  @@index([organizationId])
 }
 
 model AssignmentCriterionMap {

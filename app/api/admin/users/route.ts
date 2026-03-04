@@ -2,14 +2,27 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateRandomPassword, hashPassword, normalizeLoginEmail } from "@/lib/auth/password";
 import { resolveInviteEmailUiSupport, sendInviteEmail } from "@/lib/auth/inviteEmail";
+import { ensureDefaultOrganization, resolveOrganizationId } from "@/lib/organizations/defaults";
+import { getRequestSession } from "@/lib/auth/requestSession";
 
 type UserRole = "ADMIN" | "ASSESSOR" | "IV";
+type PlatformRole = "USER" | "SUPER_ADMIN";
 
 function normalizeRole(value: unknown): UserRole {
   const role = String(value || "").trim().toUpperCase();
   if (role === "IV") return "IV";
   if (role === "ASSESSOR" || role === "TUTOR") return "ASSESSOR";
   return "ADMIN";
+}
+
+function normalizePlatformRole(value: unknown): PlatformRole {
+  return String(value || "").trim().toUpperCase() === "SUPER_ADMIN" ? "SUPER_ADMIN" : "USER";
+}
+
+function toMembershipRole(role: UserRole): "ORG_ADMIN" | "ASSESSOR" | "IV" {
+  if (role === "ADMIN") return "ORG_ADMIN";
+  if (role === "IV") return "IV";
+  return "ASSESSOR";
 }
 
 function makeInviteMailto(email: string, password: string) {
@@ -29,7 +42,21 @@ function makeInviteMailto(email: string, password: string) {
 }
 
 export async function GET() {
+  const session = await getRequestSession();
+  const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
+  const sessionOrgId = String(session?.orgId || "").trim() || null;
+  await ensureDefaultOrganization();
   const users = await prisma.appUser.findMany({
+    where: canManageAll
+      ? undefined
+      : sessionOrgId
+        ? {
+            OR: [
+              { organizationId: sessionOrgId },
+              { memberships: { some: { organizationId: sessionOrgId, isActive: true } } },
+            ],
+          }
+        : { id: "__none__" },
     orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
     select: {
       id: true,
@@ -40,27 +67,67 @@ export async function GET() {
       loginEnabled: true,
       passwordUpdatedAt: true,
       mustResetPassword: true,
+      platformRole: true,
+      organizationId: true,
+      organization: { select: { id: true, slug: true, name: true, isActive: true } },
+      memberships: {
+        where: { isActive: true, organization: { isActive: true } },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        select: {
+          organizationId: true,
+          role: true,
+          isDefault: true,
+          organization: { select: { id: true, slug: true, name: true, isActive: true } },
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },
   });
+  const organizations = await prisma.organization.findMany({
+    where: canManageAll ? { isActive: true } : { id: sessionOrgId || "__none__", isActive: true },
+    orderBy: [{ name: "asc" }],
+    select: { id: true, slug: true, name: true, isActive: true },
+  });
+  const defaultOrg = canManageAll
+    ? await ensureDefaultOrganization()
+    : { id: String(sessionOrgId || organizations[0]?.id || "").trim() };
   const inviteEmail = resolveInviteEmailUiSupport();
-  return NextResponse.json({ users, inviteEmail });
+  return NextResponse.json({
+    users,
+    organizations,
+    defaultOrganizationId: defaultOrg.id,
+    inviteEmail,
+    canManageAllOrganizations: canManageAll,
+  });
 }
 
 export async function POST(req: Request) {
+  const session = await getRequestSession();
+  const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
+  const sessionOrgId = String(session?.orgId || "").trim() || null;
+
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   const fullName = String(body?.fullName || "").trim();
   const emailRaw = normalizeLoginEmail(body?.email);
   const role = normalizeRole(body?.role);
+  const platformRole = canManageAll ? normalizePlatformRole(body?.platformRole) : "USER";
   const isActive = typeof body?.isActive === "boolean" ? body.isActive : true;
   const requestedPassword = String(body?.password || "");
   const generatePassword = body?.generatePassword === true;
   const loginEnabled = body?.loginEnabled === true || !!requestedPassword || generatePassword;
   const sendInviteEmailNow = body?.sendInviteEmail === true;
+  const organizationId = canManageAll
+    ? await resolveOrganizationId(body?.organizationId)
+    : sessionOrgId
+      ? await resolveOrganizationId(sessionOrgId)
+      : null;
 
   if (!fullName) {
     return NextResponse.json({ error: "fullName is required." }, { status: 400 });
+  }
+  if (!organizationId) {
+    return NextResponse.json({ error: "No active organization scope for this user." }, { status: 400 });
   }
 
   if (loginEnabled && !emailRaw) {
@@ -73,29 +140,71 @@ export async function POST(req: Request) {
   }
 
   try {
-    const user = await prisma.appUser.create({
-      data: {
-        fullName,
-        email: emailRaw || null,
-        role,
-        isActive,
-        loginEnabled,
-        loginPasswordHash: issuedPassword ? hashPassword(issuedPassword) : null,
-        passwordUpdatedAt: issuedPassword ? new Date() : null,
-        mustResetPassword: issuedPassword ? true : false,
-      },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
-        isActive: true,
-        loginEnabled: true,
-        passwordUpdatedAt: true,
-        mustResetPassword: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.appUser.create({
+        data: {
+          fullName,
+          email: emailRaw || null,
+          role,
+          platformRole,
+          isActive,
+          loginEnabled,
+          loginPasswordHash: issuedPassword ? hashPassword(issuedPassword) : null,
+          passwordUpdatedAt: issuedPassword ? new Date() : null,
+          mustResetPassword: issuedPassword ? true : false,
+          organizationId,
+        },
+      });
+
+      await tx.organizationMembership.upsert({
+        where: {
+          userId_organizationId: {
+            userId: created.id,
+            organizationId,
+          },
+        },
+        update: {
+          role: toMembershipRole(role),
+          isActive: true,
+          isDefault: true,
+        },
+        create: {
+          userId: created.id,
+          organizationId,
+          role: toMembershipRole(role),
+          isActive: true,
+          isDefault: true,
+        },
+      });
+
+      return tx.appUser.findUniqueOrThrow({
+        where: { id: created.id },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          isActive: true,
+          loginEnabled: true,
+          passwordUpdatedAt: true,
+          mustResetPassword: true,
+          platformRole: true,
+          organizationId: true,
+          organization: { select: { id: true, slug: true, name: true, isActive: true } },
+          memberships: {
+            where: { isActive: true, organization: { isActive: true } },
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            select: {
+              organizationId: true,
+              role: true,
+              isDefault: true,
+              organization: { select: { id: true, slug: true, name: true, isActive: true } },
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     });
     let inviteEmailResult:
       | {

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { createSignedSessionToken, getSessionCookieName, hasSessionSecret } from "@/lib/auth/session";
-import { parseRole } from "@/lib/auth/rbac";
+import { ensureDefaultOrganization } from "@/lib/organizations/defaults";
+import { prisma } from "@/lib/prisma";
+import {
+  isSuperAdminPlatformRole,
+  pickDefaultMembership,
+  resolveSessionRole,
+} from "@/lib/organizations/membership";
 
 export const runtime = "nodejs";
 
@@ -20,13 +26,41 @@ export async function POST() {
   }
 
   const cfg = await getOrCreateAppConfig();
-  const user = cfg.activeAuditUser;
-  const role = parseRole(user?.isActive ? user.role : null);
+  const activeAuditUserId = String(cfg.activeAuditUser?.id || "").trim();
+  const user = activeAuditUserId
+    ? await prisma.appUser.findUnique({
+        where: { id: activeAuditUserId },
+        select: {
+          id: true,
+          isActive: true,
+          role: true,
+          platformRole: true,
+          organizationId: true,
+          memberships: {
+            where: { isActive: true, organization: { isActive: true } },
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            select: { organizationId: true, role: true, isDefault: true },
+          },
+        },
+      })
+    : null;
+  const primaryMembership = pickDefaultMembership(user?.memberships || []);
+  const role = resolveSessionRole({
+    platformRole: user?.platformRole,
+    membershipRole: primaryMembership?.role,
+    legacyRole: user?.isActive ? user.role : null,
+  });
+  const isSuperAdmin = isSuperAdminPlatformRole(user?.platformRole);
+  const defaultOrg = await ensureDefaultOrganization();
+  const orgId =
+    String(primaryMembership?.organizationId || user?.organizationId || defaultOrg.id || "").trim() || null;
 
   const res = NextResponse.json({
     ok: true,
     userId: user?.id || null,
     role: role || null,
+    orgId,
+    isSuperAdmin,
     source: user?.isActive ? "active-audit-user" : "none",
   });
 
@@ -46,6 +80,8 @@ export async function POST() {
   const token = createSignedSessionToken({
     userId: user.id,
     role,
+    orgId,
+    isSuperAdmin,
     ttlSeconds: ONE_DAY_SECONDS,
   });
 

@@ -13,7 +13,23 @@ type AppUser = {
   loginEnabled: boolean;
   passwordUpdatedAt?: string | null;
   mustResetPassword: boolean;
+  organizationId?: string | null;
+  organization?: {
+    id: string;
+    slug: string;
+    name: string;
+    isActive: boolean;
+  } | null;
   createdAt: string;
+};
+
+type Organization = {
+  id: string;
+  slug: string;
+  name: string;
+  isActive: boolean;
+  createdAt?: string;
+  _count?: { users?: number };
 };
 
 type AppConfig = {
@@ -83,6 +99,9 @@ function generatePasswordClient(length = 20) {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [canManageAllOrganizations, setCanManageAllOrganizations] = useState(false);
+  const [defaultOrganizationId, setDefaultOrganizationId] = useState<string>("");
   const [activeAuditUserId, setActiveAuditUserId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -99,9 +118,13 @@ export default function AdminUsersPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("ADMIN");
+  const [organizationId, setOrganizationId] = useState("");
   const [loginEnabled, setLoginEnabled] = useState(true);
   const [password, setPassword] = useState("");
   const [sendInviteEmailNow, setSendInviteEmailNow] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [orgSlug, setOrgSlug] = useState("");
+  const [creatingOrg, setCreatingOrg] = useState(false);
 
   const activeUser = useMemo(() => users.find((u) => u.id === activeAuditUserId) || null, [users, activeAuditUserId]);
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
@@ -123,6 +146,12 @@ export default function AdminUsersPage() {
       const uJson = await uRes.json();
       const cJson = (await cRes.json()) as AppConfig;
       setUsers(Array.isArray(uJson?.users) ? uJson.users : []);
+      setCanManageAllOrganizations(!!uJson?.canManageAllOrganizations);
+      const orgRows = Array.isArray(uJson?.organizations) ? (uJson.organizations as Organization[]) : [];
+      setOrganizations(orgRows);
+      const fallbackOrg = String(uJson?.defaultOrganizationId || orgRows[0]?.id || "");
+      setDefaultOrganizationId(fallbackOrg);
+      setOrganizationId((prev) => prev || fallbackOrg);
       if (uJson?.inviteEmail && typeof uJson.inviteEmail === "object") {
         const ui = uJson.inviteEmail as InviteEmailSupport;
         setInviteSupport({
@@ -172,6 +201,7 @@ export default function AdminUsersPage() {
           fullName: fullName.trim(),
           email: email.trim() || null,
           role: role.trim() || "ADMIN",
+          organizationId: organizationId || defaultOrganizationId || null,
           loginEnabled,
           password: loginEnabled ? password.trim() || undefined : undefined,
           generatePassword: loginEnabled && !password.trim(),
@@ -197,11 +227,42 @@ export default function AdminUsersPage() {
       setFullName("");
       setEmail("");
       setPassword("");
+      setOrganizationId(defaultOrganizationId || organizationId);
       setLoginEnabled(true);
       setSendInviteEmailNow(inviteSupport.enabledByDefault);
       await load();
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function createOrganization() {
+    const name = orgName.trim();
+    if (!name) return;
+    setCreatingOrg(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch("/api/admin/organizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, slug: orgSlug.trim() || undefined }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to create organization.");
+        return;
+      }
+      const created = json?.organization as Organization | undefined;
+      setOrgName("");
+      setOrgSlug("");
+      if (created?.id) {
+        setOrganizationId(created.id);
+      }
+      setMsg("Organization created.");
+      await load();
+    } finally {
+      setCreatingOrg(false);
     }
   }
 
@@ -364,7 +425,7 @@ export default function AdminUsersPage() {
           <MetricCard label="Users active" value={activeUsers.length} hint="Users currently available for actor selection." />
           <MetricCard label="Login enabled" value={loginUsers} hint="Active users with login credentials." />
           <MetricCard label="Roles in use" value={byRole.length} hint="Distinct role groups assigned." />
-          <MetricCard label="Active auditor" value={activeUser?.fullName || "system"} hint="Current actor used in audit/grading metadata." />
+          <MetricCard label="Organizations" value={organizations.length} hint="Active tenant groups available for user assignment." />
         </div>
       </section>
 
@@ -411,6 +472,37 @@ export default function AdminUsersPage() {
               {activeUser ? `${activeUser.fullName} (${activeUser.role})` : "system"}
             </div>
           </div>
+          {canManageAllOrganizations ? (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Organizations</div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <input
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="New organization name"
+                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                />
+                <input
+                  value={orgSlug}
+                  onChange={(e) => setOrgSlug(e.target.value)}
+                  placeholder="Slug (optional)"
+                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                />
+                <button
+                  type="button"
+                  onClick={createOrganization}
+                  disabled={creatingOrg || !orgName.trim()}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {creatingOrg ? "Creating..." : "Add org"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Organization creation is restricted to SUPER_ADMIN.
+            </div>
+          )}
         </article>
 
         <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
@@ -426,6 +518,17 @@ export default function AdminUsersPage() {
               <option value="ADMIN">ADMIN</option>
               <option value="ASSESSOR">ASSESSOR</option>
               <option value="IV">IV</option>
+            </select>
+            <select
+              value={organizationId || defaultOrganizationId}
+              onChange={(e) => setOrganizationId(e.target.value)}
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+            >
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
             </select>
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -489,6 +592,7 @@ export default function AdminUsersPage() {
               <tr className="text-left text-slate-600">
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Name</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Email</th>
+                <th className="border-b border-slate-200 px-2 py-2 font-semibold">Organization</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Role</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Status</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Login</th>
@@ -499,7 +603,7 @@ export default function AdminUsersPage() {
             <tbody>
               {!users.length && !loading ? (
                 <tr>
-                  <td colSpan={7} className="px-2 py-6 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-2 py-6 text-center text-sm text-slate-500">
                     No users found.
                   </td>
                 </tr>
@@ -508,6 +612,7 @@ export default function AdminUsersPage() {
                 <tr key={u.id} className="border-b border-slate-100">
                   <td className="px-2 py-2 font-medium text-slate-900">{u.fullName}</td>
                   <td className="px-2 py-2 text-slate-700">{u.email || "—"}</td>
+                  <td className="px-2 py-2 text-slate-700">{u.organization?.name || "Default"}</td>
                   <td className="px-2 py-2 text-slate-700">
                     <span className={"inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " + roleTone(u.role)}>
                       {u.role}

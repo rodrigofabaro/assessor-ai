@@ -20,6 +20,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - IV-AD AI review rollout hardening
    - M8 production hardening execution
    - M9 auth and UX hardening foundation
+   - M10 multi-organization tenant isolation (super admin + org memberships + org settings)
 
 ## Execution lanes
 
@@ -110,6 +111,13 @@ Use this doc when the instruction is: "continue the roadmap".
 - Session-backed identity scaffold added: `/api/auth/session/bootstrap` + signed `assessor_session` cookie (`AUTH_SESSION_SECRET`) used by middleware.
 - Staging-only guard validation command added: `pnpm run ops:auth-guard-smoke` (kept outside default `ops:release-gate` until enforcement rollout).
 
+5. M10 multi-organization foundation
+- add global user + organization membership model (one user in multiple organizations)
+- add `SUPER_ADMIN` platform role and `ORG_ADMIN` organization role contract
+- add active-organization switch flow and scoped session enforcement
+- add org settings + secret storage foundations (API keys/integrations per organization)
+- keep backward compatibility during migration from single `organizationId` user model
+
 ### Later
 
 1. Full M8 production deployment and cost-ladder scaling
@@ -179,6 +187,15 @@ Progress (2026-03-03):
 6. Deploy smoke evidence captured (2026-03-03): `docs/evidence/deploy-smoke/20260303-140208.json`.
 7. Release gate command added: `pnpm run ops:release-gate` with evidence output in `docs/evidence/release-gate/`.
 8. Release gate evidence captured (2026-03-03): `docs/evidence/release-gate/20260303-142551.json` (includes deploy-smoke pass in same run).
+
+### Queue D - M10 multi-organization foundation
+
+Done when:
+1. `OrganizationMembership` is live and backfilled from legacy user org assignments
+2. login/session resolves active organization from membership and supports organization switching
+3. tenant-owned APIs are org-scoped by active session organization
+4. platform and org role boundaries are enforceable (`SUPER_ADMIN` vs `ORG_ADMIN`)
+5. organization settings/secrets persistence exists with audit-safe update path
 
 ## Production deployment steps (single runbook section)
 
