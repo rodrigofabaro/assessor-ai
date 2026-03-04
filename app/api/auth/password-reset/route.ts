@@ -50,6 +50,20 @@ function timingSafeEqualHex(a: string, b: string) {
   return crypto.timingSafeEqual(aa, bb);
 }
 
+function isAppUserSchemaCompatError(error: unknown) {
+  const message = String((error as { message?: string })?.message || "").toLowerCase();
+  return (
+    message.includes("loginenabled") ||
+    message.includes("mustresetpassword") ||
+    message.includes("passwordupdatedat") ||
+    message.includes("platformrole") ||
+    message.includes("organizationmembership") ||
+    message.includes("memberships") ||
+    message.includes("unknown argument") ||
+    (message.includes("column") && message.includes("does not exist"))
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const { username, currentPassword, newPassword, recoveryKey } = await parsePayload(req);
@@ -87,15 +101,17 @@ export async function POST(req: Request) {
         );
       }
 
-      const existing = await prisma.appUser.findFirst({
+      const existing = await prisma.appUser.findMany({
         where: { email },
         select: { id: true },
-        orderBy: { createdAt: "asc" },
+        take: 20,
       });
 
-      const updated = existing
-        ? await prisma.appUser.update({
-            where: { id: existing.id },
+      let updatedUserId = String(existing[0]?.id || "").trim();
+      if (existing.length > 0) {
+        try {
+          await prisma.appUser.updateMany({
+            where: { email },
             data: {
               role: "ADMIN",
               loginEnabled: true,
@@ -104,9 +120,20 @@ export async function POST(req: Request) {
               passwordUpdatedAt: new Date(),
               mustResetPassword: false,
             },
-            select: { id: true },
-          })
-        : await prisma.appUser.create({
+          });
+        } catch (error) {
+          if (!isAppUserSchemaCompatError(error)) throw error;
+          await prisma.appUser.updateMany({
+            where: { email },
+            data: {
+              role: "ADMIN",
+              loginPasswordHash: nextHash,
+            },
+          });
+        }
+      } else {
+        try {
+          const created = await prisma.appUser.create({
             data: {
               fullName: "Deployment Smoke Admin",
               email,
@@ -119,6 +146,29 @@ export async function POST(req: Request) {
             },
             select: { id: true },
           });
+          updatedUserId = created.id;
+        } catch (error) {
+          if (!isAppUserSchemaCompatError(error)) throw error;
+          const created = await prisma.appUser.create({
+            data: {
+              fullName: "Deployment Smoke Admin",
+              email,
+              role: "ADMIN",
+              loginPasswordHash: nextHash,
+            },
+            select: { id: true },
+          });
+          updatedUserId = created.id;
+        }
+      }
+
+      if (!updatedUserId) {
+        const anyUser = await prisma.appUser.findFirst({
+          where: { email },
+          select: { id: true },
+        });
+        updatedUserId = String(anyUser?.id || "").trim();
+      }
 
       try {
         const anyPrisma = prisma as unknown as {
@@ -128,19 +178,19 @@ export async function POST(req: Request) {
           };
         };
         const membershipDelegate = anyPrisma.organizationMembership;
-        if (membershipDelegate) {
+        if (membershipDelegate && updatedUserId) {
           const existingMembership = await membershipDelegate.findFirst({
-            where: { userId: updated.id },
+            where: { userId: updatedUserId },
             orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
             select: { organizationId: true },
           });
           const existingOrg = existingMembership?.organizationId;
           if (existingOrg) {
             await membershipDelegate.upsert({
-              where: { userId_organizationId: { userId: updated.id, organizationId: existingOrg } },
+              where: { userId_organizationId: { userId: updatedUserId, organizationId: existingOrg } },
               update: { role: "ORG_ADMIN", isActive: true, isDefault: true },
               create: {
-                userId: updated.id,
+                userId: updatedUserId,
                 organizationId: existingOrg,
                 role: "ORG_ADMIN",
                 isActive: true,
@@ -163,10 +213,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await prisma.appUser.findFirst({
-      where: { email, isActive: true, loginEnabled: true },
-      select: { id: true, loginPasswordHash: true },
-    });
+    let user: { id: string; loginPasswordHash: string | null } | null = null;
+    try {
+      user = await prisma.appUser.findFirst({
+        where: { email, isActive: true, loginEnabled: true },
+        select: { id: true, loginPasswordHash: true },
+      });
+    } catch (error) {
+      if (!isAppUserSchemaCompatError(error)) throw error;
+      user = await prisma.appUser.findFirst({
+        where: { email },
+        select: { id: true, loginPasswordHash: true },
+      });
+    }
     if (!user?.loginPasswordHash || !verifyPassword(currentPassword, user.loginPasswordHash)) {
       return NextResponse.json({ error: "Invalid credentials.", code: "AUTH_INVALID_CREDENTIALS" }, { status: 401 });
     }
@@ -187,14 +246,24 @@ export async function POST(req: Request) {
       );
     }
 
-    await prisma.appUser.update({
-      where: { id: user.id },
-      data: {
-        loginPasswordHash: nextHash,
-        passwordUpdatedAt: new Date(),
-        mustResetPassword: false,
-      },
-    });
+    try {
+      await prisma.appUser.update({
+        where: { id: user.id },
+        data: {
+          loginPasswordHash: nextHash,
+          passwordUpdatedAt: new Date(),
+          mustResetPassword: false,
+        },
+      });
+    } catch (error) {
+      if (!isAppUserSchemaCompatError(error)) throw error;
+      await prisma.appUser.update({
+        where: { id: user.id },
+        data: {
+          loginPasswordHash: nextHash,
+        },
+      });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {

@@ -107,34 +107,63 @@ export async function GET() {
     })) as Array<Record<string, unknown>>;
   } catch (error) {
     if (!isOrgSchemaCompatError(error)) throw error;
-    const legacyUsers = await prisma.appUser.findMany({
-      where: canManageAll
-        ? undefined
-        : sessionOrgId
-          ? { organizationId: sessionOrgId }
-          : { id: "__none__" },
-      orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
-        isActive: true,
-        loginEnabled: true,
-        passwordUpdatedAt: true,
-        organizationId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    let legacyUsers: Array<Record<string, unknown>> = [];
+    try {
+      legacyUsers = (await prisma.appUser.findMany({
+        where: canManageAll
+          ? undefined
+          : sessionOrgId
+            ? { organizationId: sessionOrgId }
+            : { id: "__none__" },
+        orderBy: [{ fullName: "asc" }],
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          isActive: true,
+          loginEnabled: true,
+          passwordUpdatedAt: true,
+          organizationId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })) as Array<Record<string, unknown>>;
+    } catch (innerError) {
+      if (!isOrgSchemaCompatError(innerError)) throw innerError;
+      legacyUsers = (await prisma.appUser.findMany({
+        where: canManageAll
+          ? undefined
+          : sessionOrgId
+            ? { organizationId: sessionOrgId }
+            : { id: "__none__" },
+        orderBy: [{ fullName: "asc" }],
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          organizationId: true,
+          createdAt: true,
+        },
+      })) as Array<Record<string, unknown>>;
+    }
 
-    users = legacyUsers.map((user) => ({
-      ...user,
-      mustResetPassword: false,
-      platformRole: "USER",
-      organization: null,
-      memberships: [],
-    })) as Array<Record<string, unknown>>;
+    users = legacyUsers.map((user) => {
+      const hasIsActive = typeof user.isActive === "boolean";
+      const hasLoginEnabled = typeof user.loginEnabled === "boolean";
+      return {
+        ...user,
+        isActive: hasIsActive ? user.isActive : true,
+        loginEnabled: hasLoginEnabled ? user.loginEnabled : true,
+        passwordUpdatedAt: user.passwordUpdatedAt || null,
+        mustResetPassword: false,
+        platformRole: "USER",
+        organization: null,
+        memberships: [],
+        updatedAt: user.updatedAt || user.createdAt || new Date().toISOString(),
+      };
+    }) as Array<Record<string, unknown>>;
   }
 
   let organizations: Array<{ id: string; slug: string; name: string; isActive: boolean }> = [];

@@ -21,31 +21,22 @@ const EMERGENCY_LOGIN_EXPIRES_AT = Date.parse("2026-03-05T23:59:59.000Z");
 
 type MembershipRole = "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
 
-type AppUserModern = {
+type AppUserRecord = {
   id: string;
   email: string | null;
   role: string;
-  platformRole: "USER" | "SUPER_ADMIN";
+  platformRole?: "USER" | "SUPER_ADMIN" | null;
   loginPasswordHash: string | null;
-  mustResetPassword: boolean;
+  mustResetPassword?: boolean | null;
   organizationId: string | null;
-  memberships: Array<{
+  memberships?: Array<{
     organizationId: string;
     role: MembershipRole;
     isDefault: boolean;
   }>;
+  loginEnabled?: boolean | null;
+  isActive?: boolean | null;
 };
-
-type AppUserLegacy = {
-  id: string;
-  email: string | null;
-  role: string;
-  loginPasswordHash: string | null;
-  mustResetPassword: boolean;
-  organizationId: string | null;
-};
-
-type AppUserRecord = AppUserModern | AppUserLegacy;
 
 type AppUserAuth = {
   userId: string;
@@ -73,21 +64,19 @@ type EmergencyAuth = {
   isSuperAdmin: boolean;
 };
 
-function isModernAppUser(user: AppUserRecord): user is AppUserModern {
-  return "platformRole" in user;
+function isModernAppUser(user: AppUserRecord) {
+  return typeof user.platformRole === "string";
 }
 
 async function findAppUserCandidates(email: string, options?: { requireLoginEnabled?: boolean }) {
   const requireLoginEnabled = options?.requireLoginEnabled !== false;
-  const where = {
-    email,
-    isActive: true,
-    ...(requireLoginEnabled ? { loginEnabled: true } : {}),
-  };
+  const whereWithLoginEnabled = { email, isActive: true, ...(requireLoginEnabled ? { loginEnabled: true } : {}) };
+  const whereWithoutLoginEnabled = { email, isActive: true };
+  const whereEmailOnly = { email };
 
   try {
     const users = await prisma.appUser.findMany({
-      where,
+      where: whereWithLoginEnabled,
       take: 20,
       select: {
         id: true,
@@ -111,8 +100,11 @@ async function findAppUserCandidates(email: string, options?: { requireLoginEnab
     return users as AppUserRecord[];
   } catch (error) {
     if (!isOrgSchemaCompatError(error)) throw error;
+  }
+
+  try {
     const users = await prisma.appUser.findMany({
-      where,
+      where: whereWithLoginEnabled,
       take: 20,
       select: {
         id: true,
@@ -121,10 +113,46 @@ async function findAppUserCandidates(email: string, options?: { requireLoginEnab
         loginPasswordHash: true,
         mustResetPassword: true,
         organizationId: true,
+        loginEnabled: true,
+        isActive: true,
       },
     });
     return users as AppUserRecord[];
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
   }
+
+  try {
+    const users = await prisma.appUser.findMany({
+      where: whereWithoutLoginEnabled,
+      take: 20,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        loginPasswordHash: true,
+        mustResetPassword: true,
+        organizationId: true,
+        isActive: true,
+      },
+    });
+    return users as AppUserRecord[];
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+  }
+
+  const users = await prisma.appUser.findMany({
+    where: whereEmailOnly,
+    take: 20,
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      loginPasswordHash: true,
+      organizationId: true,
+    },
+  });
+  return users as AppUserRecord[];
 }
 
 function buildAuthFromUser(input: {
@@ -133,7 +161,7 @@ function buildAuthFromUser(input: {
   source: "app-user" | "emergency";
   forceSuperAdmin?: boolean;
 }): AppUserAuth | EmergencyAuth | null {
-  const memberships = isModernAppUser(input.user) ? input.user.memberships || [] : [];
+  const memberships = Array.isArray(input.user.memberships) ? input.user.memberships : [];
   const primaryMembership = pickDefaultMembership(memberships);
   const role = resolveSessionRole({
     platformRole: isModernAppUser(input.user) ? input.user.platformRole : null,
@@ -189,9 +217,16 @@ function isOrgSchemaCompatError(error: unknown) {
   const message = String((error as { message?: string })?.message || "").toLowerCase();
   return (
     message.includes("platformrole") ||
+    message.includes("loginenabled") ||
+    message.includes("mustresetpassword") ||
+    message.includes("passwordupdatedat") ||
+    message.includes("isactive") ||
     message.includes("organizationmembership") ||
     message.includes("memberships") ||
     (message.includes("unknown argument") && message.includes("platform")) ||
+    (message.includes("unknown argument") && message.includes("login")) ||
+    (message.includes("unknown argument") && message.includes("password")) ||
+    (message.includes("unknown argument") && message.includes("isactive")) ||
     (message.includes("unknown argument") && message.includes("memberships")) ||
     (message.includes("column") && message.includes("does not exist"))
   );
@@ -202,6 +237,8 @@ async function tryAuthenticateAppUser(username: string, password: string) {
   if (!email || !password) return null;
   const users = await findAppUserCandidates(email, { requireLoginEnabled: true });
   for (const user of users) {
+    if (user.isActive === false) continue;
+    if (typeof user.loginEnabled === "boolean" && !user.loginEnabled) continue;
     if (!user?.loginPasswordHash) continue;
     if (!verifyPassword(password, user.loginPasswordHash)) continue;
     const auth = buildAuthFromUser({
