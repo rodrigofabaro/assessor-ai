@@ -12,9 +12,18 @@ function isOrgSchemaCompatError(error: unknown) {
   const message = String((error as { message?: string })?.message || "").toLowerCase();
   return (
     message.includes("platformrole") ||
+    message.includes("organizationid") ||
+    message.includes("loginenabled") ||
+    message.includes("mustresetpassword") ||
+    message.includes("passwordupdatedat") ||
+    message.includes("isactive") ||
     message.includes("organizationmembership") ||
     message.includes("memberships") ||
     (message.includes("unknown argument") && message.includes("platform")) ||
+    (message.includes("unknown argument") && message.includes("organization")) ||
+    (message.includes("unknown argument") && message.includes("login")) ||
+    (message.includes("unknown argument") && message.includes("password")) ||
+    (message.includes("unknown argument") && message.includes("isactive")) ||
     (message.includes("unknown argument") && message.includes("memberships")) ||
     (message.includes("column") && message.includes("does not exist"))
   );
@@ -131,22 +140,37 @@ export async function GET() {
       })) as Array<Record<string, unknown>>;
     } catch (innerError) {
       if (!isOrgSchemaCompatError(innerError)) throw innerError;
-      legacyUsers = (await prisma.appUser.findMany({
-        where: canManageAll
-          ? undefined
-          : sessionOrgId
-            ? { organizationId: sessionOrgId }
-            : { id: "__none__" },
-        orderBy: [{ fullName: "asc" }],
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          role: true,
-          organizationId: true,
-          createdAt: true,
-        },
-      })) as Array<Record<string, unknown>>;
+      try {
+        legacyUsers = (await prisma.appUser.findMany({
+          where: canManageAll
+            ? undefined
+            : sessionOrgId
+              ? { organizationId: sessionOrgId }
+              : { id: "__none__" },
+          orderBy: [{ fullName: "asc" }],
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+            organizationId: true,
+            createdAt: true,
+          },
+        })) as Array<Record<string, unknown>>;
+      } catch (ultraLegacyError) {
+        if (!isOrgSchemaCompatError(ultraLegacyError)) throw ultraLegacyError;
+        legacyUsers = (await prisma.appUser.findMany({
+          where: canManageAll ? undefined : { id: "__none__" },
+          orderBy: [{ fullName: "asc" }],
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
+        })) as Array<Record<string, unknown>>;
+      }
     }
 
     users = legacyUsers.map((user) => {

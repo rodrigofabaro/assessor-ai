@@ -28,7 +28,7 @@ type AppUserRecord = {
   platformRole?: "USER" | "SUPER_ADMIN" | null;
   loginPasswordHash: string | null;
   mustResetPassword?: boolean | null;
-  organizationId: string | null;
+  organizationId?: string | null;
   memberships?: Array<{
     organizationId: string;
     role: MembershipRole;
@@ -151,6 +151,18 @@ async function findAppUserCandidates(email: string, options?: { requireLoginEnab
       loginPasswordHash: true,
       organizationId: true,
     },
+  }).catch(async (error) => {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    return prisma.appUser.findMany({
+      where: whereEmailOnly,
+      take: 20,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        loginPasswordHash: true,
+      },
+    });
   });
   return users as AppUserRecord[];
 }
@@ -217,6 +229,7 @@ function isOrgSchemaCompatError(error: unknown) {
   const message = String((error as { message?: string })?.message || "").toLowerCase();
   return (
     message.includes("platformrole") ||
+    message.includes("organizationid") ||
     message.includes("loginenabled") ||
     message.includes("mustresetpassword") ||
     message.includes("passwordupdatedat") ||
@@ -224,6 +237,7 @@ function isOrgSchemaCompatError(error: unknown) {
     message.includes("organizationmembership") ||
     message.includes("memberships") ||
     (message.includes("unknown argument") && message.includes("platform")) ||
+    (message.includes("unknown argument") && message.includes("organization")) ||
     (message.includes("unknown argument") && message.includes("login")) ||
     (message.includes("unknown argument") && message.includes("password")) ||
     (message.includes("unknown argument") && message.includes("isactive")) ||
