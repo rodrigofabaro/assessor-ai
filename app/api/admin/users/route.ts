@@ -39,6 +39,7 @@ export async function GET() {
       isActive: true,
       loginEnabled: true,
       passwordUpdatedAt: true,
+      mustResetPassword: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
         loginEnabled,
         loginPasswordHash: issuedPassword ? hashPassword(issuedPassword) : null,
         passwordUpdatedAt: issuedPassword ? new Date() : null,
+        mustResetPassword: issuedPassword ? true : false,
       },
       select: {
         id: true,
@@ -90,6 +92,7 @@ export async function POST(req: Request) {
         isActive: true,
         loginEnabled: true,
         passwordUpdatedAt: true,
+        mustResetPassword: true,
         createdAt: true,
         updatedAt: true,
       },

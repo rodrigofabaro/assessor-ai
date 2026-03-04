@@ -12,6 +12,7 @@ type AppUser = {
   isActive: boolean;
   loginEnabled: boolean;
   passwordUpdatedAt?: string | null;
+  mustResetPassword: boolean;
   createdAt: string;
 };
 
@@ -525,6 +526,7 @@ export default function AdminUsersPage() {
                   <td className="px-2 py-2 text-xs text-slate-700">
                     <div>{u.loginEnabled ? "Enabled" : "Disabled"}</div>
                     <div className="text-slate-500">Pwd: {formatDate(u.passwordUpdatedAt)}</div>
+                    {u.mustResetPassword ? <div className="text-amber-700">Reset required</div> : null}
                   </td>
                   <td className="px-2 py-2 text-slate-600">{formatDate(u.createdAt)}</td>
                   <td className="px-2 py-2">

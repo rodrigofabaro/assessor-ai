@@ -27,8 +27,10 @@ async function tryAuthenticateAppUser(username: string, password: string) {
     where: { email, isActive: true, loginEnabled: true },
     select: {
       id: true,
+      email: true,
       role: true,
       loginPasswordHash: true,
+      mustResetPassword: true,
     },
   });
   if (!user?.loginPasswordHash) return null;
@@ -37,7 +39,7 @@ async function tryAuthenticateAppUser(username: string, password: string) {
   const role = parseRole(user.role);
   if (!role) return null;
 
-  return { userId: user.id, role, source: "app-user" as const };
+  return { userId: user.id, role, source: "app-user" as const, mustResetPassword: !!user.mustResetPassword, email: user.email || email };
 }
 
 async function parseCredentials(req: Request) {
@@ -73,7 +75,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Username and password are required.", code: "AUTH_CREDENTIALS_REQUIRED" }, { status: 400 });
   }
 
-  let auth: { userId: string; role: "ADMIN" | "ASSESSOR" | "IV"; source: "app-user" | "env" } | null = null;
+  let auth:
+    | { userId: string; role: "ADMIN" | "ASSESSOR" | "IV"; source: "app-user"; mustResetPassword: boolean; email: string }
+    | { userId: string; role: "ADMIN" | "ASSESSOR" | "IV"; source: "env" }
+    | null = null;
   try {
     auth = await tryAuthenticateAppUser(username, password);
   } catch {
@@ -91,6 +96,13 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "Invalid credentials.", code: "AUTH_INVALID_CREDENTIALS" },
       { status: 401 }
+    );
+  }
+
+  if (auth.source === "app-user" && auth.mustResetPassword) {
+    return NextResponse.json(
+      { error: "Password reset required before sign in.", code: "AUTH_PASSWORD_RESET_REQUIRED", username: auth.email },
+      { status: 403 }
     );
   }
 

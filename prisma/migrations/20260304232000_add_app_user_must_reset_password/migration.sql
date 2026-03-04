@@ -1,0 +1,2 @@
+ALTER TABLE "AppUser"
+ADD COLUMN "mustResetPassword" BOOLEAN NOT NULL DEFAULT false;

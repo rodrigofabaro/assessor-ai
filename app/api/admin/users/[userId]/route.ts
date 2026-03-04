@@ -50,7 +50,7 @@ export async function PATCH(
 
   const existing = await prisma.appUser.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, loginEnabled: true },
+    select: { id: true, email: true, loginEnabled: true, mustResetPassword: true },
   });
   if (!existing) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
@@ -72,12 +72,15 @@ export async function PATCH(
 
   let loginPasswordHash: string | null | undefined;
   let passwordUpdatedAt: Date | null | undefined;
+  let mustResetPassword: boolean | undefined;
   if (issuedPassword !== null) {
     loginPasswordHash = hashPassword(issuedPassword);
     passwordUpdatedAt = new Date();
+    mustResetPassword = true;
   } else if (loginEnabled === false) {
     loginPasswordHash = null;
     passwordUpdatedAt = null;
+    mustResetPassword = false;
   }
 
   try {
@@ -91,6 +94,7 @@ export async function PATCH(
         loginEnabled,
         loginPasswordHash,
         passwordUpdatedAt,
+        mustResetPassword,
       },
       select: {
         id: true,
@@ -100,6 +104,7 @@ export async function PATCH(
         isActive: true,
         loginEnabled: true,
         passwordUpdatedAt: true,
+        mustResetPassword: true,
         createdAt: true,
         updatedAt: true,
       },
