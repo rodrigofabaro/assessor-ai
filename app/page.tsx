@@ -256,19 +256,6 @@ export default async function LandingPage() {
                 </Link>
                 <p className="text-xs font-medium text-zinc-600">Built for teams that need consistent, auditable outcomes.</p>
               </div>
-
-              <div className="mt-3.5 flex flex-wrap gap-1.5">
-                {[
-                  "Vocational providers",
-                  "Awarding organizations",
-                  "Internal quality teams",
-                  "Self-employed assessors",
-                ].map((label) => (
-                  <span key={label} className="inline-flex rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-700">
-                    {label}
-                  </span>
-                ))}
-              </div>
             </div>
 
             <aside className="rounded-2xl border border-zinc-200 bg-gradient-to-b from-white to-zinc-50 p-3.5 shadow-sm sm:p-4">
@@ -303,6 +290,22 @@ export default async function LandingPage() {
                 </span>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Built for</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {[
+              "Vocational providers",
+              "Awarding organizations",
+              "Internal quality teams",
+              "Self-employed assessors",
+            ].map((label) => (
+              <span key={label} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
+                {label}
+              </span>
+            ))}
           </div>
         </section>
 
