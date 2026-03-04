@@ -193,6 +193,7 @@ Already completed:
 1. Vercel production deployment is live (`www.assessor-ai.co.uk`).
 2. Production PostgreSQL is connected and migrations are being applied.
 3. Auth guards and session login are live in production.
+4. Baseline assignment + locked brief seed was created for smoke path (`4017/A1`).
 
 Still missing (highest impact first):
 1. Durable object storage backend for production runtime files.
@@ -203,9 +204,10 @@ Still missing (highest impact first):
 - Preview/Development/Production currently share the same DB credential group in Vercel.
 - Must split DB/storage credentials by environment to avoid cross-environment data risk.
 
-3. Production baseline seed data for full smoke.
-- Full deploy smoke requires at least one assignment record available through `/api/assignments`.
-- Current production check showed upload/extract/link pass, then grade path blocked by empty assignment list.
+3. OpenAI production key scope for grading/extraction.
+- Current deploy smoke now reaches grade model execution, but fails with `GRADE_FAILED` due missing OpenAI scope: `api.responses.write`.
+- Update production OpenAI key to a project key with Responses API write permission (or swap to an unrestricted key).
+- Latest blocker evidence: `docs/evidence/deploy-smoke/20260304-124517.json`.
 
 4. Post-deploy smoke evidence on each production rollout.
 - Keep `pnpm run ops:deploy-smoke` evidence artifact per release and link in release notes.

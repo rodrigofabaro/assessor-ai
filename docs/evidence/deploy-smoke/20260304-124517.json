@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-03-04T12:45:04.273Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 1848,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 892,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2523,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmc14ll90000n5pqiubftfki",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 1858
+    },
+    "assignment": {
+      "id": "seed-smoke-4017-a1",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Deployment Smoke Assignment",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 1477
+    },
+    "grade": {
+      "status": 500,
+      "ms": 3576,
+      "overallGrade": null,
+      "assessmentId": null,
+      "error": "Grading failed: You have insufficient permissions for this operation. Missing scopes: api.responses.write. Check that you have the correct role in your organization (Reader, Writer, Owner) and project (Member, Owner), and if you're using a restricted API key, that it has the necessary scopes.",
+      "code": "GRADE_FAILED"
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Grade failed (500)"
+  },
+  "submissionId": "da5f7c91-c262-4df6-a377-2ba46544be60"
+}

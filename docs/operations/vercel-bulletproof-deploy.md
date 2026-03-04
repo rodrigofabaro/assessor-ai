@@ -53,7 +53,7 @@ If hash mismatch:
 
 1. `DATABASE_URL`
 2. `AUTH_SESSION_SECRET`
-3. OpenAI keys in use (`OPENAI_API_KEY` / admin keys)
+3. OpenAI keys in use (`OPENAI_API_KEY` / admin keys) with Responses API write scope (`api.responses.write`)
 4. Turnitin keys (if enabled)
 
 Environment isolation rule:
@@ -91,3 +91,4 @@ Also confirm:
 2. Compare with `origin/main`.
 3. If mismatch, redeploy correct commit.
 4. If match, fix code on local -> run pre-push gate -> push -> redeploy.
+5. If smoke fails with `GRADE_FAILED` and OpenAI permission message, rotate to a key with `api.responses.write` and redeploy.
