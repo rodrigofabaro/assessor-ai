@@ -823,7 +823,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         suppressErrorToast: true,
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: false }),
+        // Keep extraction non-blocking for operators; lock step still enforces full quality gate.
+        body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: false, allowHardValidationBypass: true }),
       });
       if (res?.document) applyUpdatedDocument(res.document);
 
@@ -838,7 +839,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
             suppressErrorToast: true,
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: true }),
+            body: JSON.stringify({ documentId: selectedDoc.id, runOpenAiCleanup: true, allowHardValidationBypass: true }),
           });
           if (cleanupRes?.document) applyUpdatedDocument(cleanupRes.document);
           notifyToast("success", "Extraction complete with OpenAI cleanup.");
@@ -899,6 +900,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
           forceReextract: true,
           reason,
           runOpenAiCleanup: false,
+          allowHardValidationBypass: true,
           ...(taskNumbers.length ? { taskNumbers } : {}),
         }),
       });
@@ -920,6 +922,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
               forceReextract: true,
               reason,
               runOpenAiCleanup: true,
+              allowHardValidationBypass: true,
               ...(taskNumbers.length ? { taskNumbers } : {}),
             }),
           });
