@@ -6,7 +6,7 @@ import { extractIvAdPreviewFromMarkedPdfBuffer, buildIvAdNarrative, normalizeGra
 import { fillIvAdTemplateDocx } from "@/lib/iv-ad/docxFiller";
 import { writeIvAdBuffer } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 import fs from "fs/promises";
 
 function normalizeText(s: unknown) {
@@ -174,7 +174,7 @@ export async function POST(req: Request) {
       select: { activeAuditUser: { select: { fullName: true, email: true } } },
     });
 
-    const markedAbs = resolveStorageAbsolutePath(markedPdfPath);
+    const markedAbs = await resolveStorageAbsolutePathAsync(markedPdfPath);
     if (!markedAbs) {
       return apiError({
         status: 422,
@@ -240,7 +240,7 @@ export async function POST(req: Request) {
       const specStoragePath = normalizeText(submission.assignment?.assignmentBrief?.unit?.specDocument?.storagePath);
       if (specStoragePath) {
         try {
-          const specAbsPath = resolveStorageAbsolutePath(specStoragePath);
+          const specAbsPath = await resolveStorageAbsolutePathAsync(specStoragePath);
           if (!specAbsPath) throw new Error("SPEC_PATH_UNRESOLVED");
           const specBytes = await fs.readFile(specAbsPath);
           const specPreview = await extractIvAdPreviewFromMarkedPdfBuffer(specBytes);
@@ -274,7 +274,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const templateAbs = resolveStorageAbsolutePath(activeTemplate.storagePath);
+    const templateAbs = await resolveStorageAbsolutePathAsync(activeTemplate.storagePath);
     if (!templateAbs) {
       return apiError({
         status: 500,

@@ -7,7 +7,7 @@ import { fillIvAdTemplateDocx } from "@/lib/iv-ad/docxFiller";
 import { writeIvAdBuffer, writeIvAdUpload } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
 import { ivAdReviewDraftSchema, type IvAdReviewDraft } from "@/lib/iv-ad/reviewDraft";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 import fs from "fs/promises";
 import path from "path";
 
@@ -237,7 +237,7 @@ export async function POST(req: Request) {
       let specExtractedText = "";
       if (selectedSpecDoc?.storagePath) {
         try {
-          const specAbsPath = resolveStorageAbsolutePath(selectedSpecDoc.storagePath);
+          const specAbsPath = await resolveStorageAbsolutePathAsync(selectedSpecDoc.storagePath);
           if (!specAbsPath) throw new Error("SPEC_PATH_UNRESOLVED");
           const specBytes = await fs.readFile(specAbsPath);
           const specPreview = await extractIvAdPreviewFromMarkedPdfBuffer(specBytes);
@@ -271,7 +271,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const templateAbs = resolveStorageAbsolutePath(activeTemplate.storagePath);
+    const templateAbs = await resolveStorageAbsolutePathAsync(activeTemplate.storagePath);
     if (!templateAbs) {
       return apiError({
         status: 500,

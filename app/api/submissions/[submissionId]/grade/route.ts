@@ -32,7 +32,7 @@ import { chooseGradingInputStrategy } from "@/lib/grading/inputStrategy";
 import { extractFile } from "@/lib/extraction";
 import { maybeAutoDetectAiWritingForSubmission } from "@/lib/turnitin/service";
 import { pickTonePhrase, resolveToneProfileFromLegacy, type ToneProfile } from "@/lib/notes/toneDatabase";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -2411,7 +2411,13 @@ async function renderPdfPagesForGrading(input: {
   warnings: string[];
 }> {
   const warnings: string[] = [];
-  const absPath = resolveStorageAbsolutePath(input.pdfPath) || input.pdfPath;
+  const resolvedPath = await resolveStorageAbsolutePathAsync(input.pdfPath);
+  const absPath =
+    resolvedPath ||
+    (/^https?:\/\//i.test(String(input.pdfPath || "").trim()) ? "" : String(input.pdfPath || "").trim());
+  if (!absPath) {
+    throw new Error("Submission PDF path could not be resolved.");
+  }
   const bytes = new Uint8Array(await fs.readFile(absPath));
 
   const pdfjsMod = await import("pdfjs-dist/legacy/build/pdf.mjs");

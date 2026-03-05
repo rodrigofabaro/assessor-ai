@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
-  resolveStorageAbsolutePath,
+  resolveStorageAbsolutePathAsync,
   toStorageRelativePath,
-  writeStorageFileSync,
+  writeStorageFile,
 } from "@/lib/storage/provider";
 
 export type MarkedPdfPayload = {
@@ -130,7 +130,7 @@ function buildFeedbackRenderLines(text: string, maxWidth: number, font: any, siz
 }
 
 export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPayload) {
-  const inputAbs = resolveStorageAbsolutePath(inputPdfPath);
+  const inputAbs = await resolveStorageAbsolutePathAsync(inputPdfPath);
   if (!inputAbs || !fs.existsSync(inputAbs)) {
     throw new Error("Input submission PDF not found for marked output generation.");
   }
@@ -323,7 +323,7 @@ export async function createMarkedPdf(inputPdfPath: string, payload: MarkedPdfPa
   const storagePath = toStorageRelativePath("submission_marked", outFile);
 
   const outBytes = await pdf.save();
-  const saved = writeStorageFileSync(storagePath, Buffer.from(outBytes));
+  const saved = await writeStorageFile(storagePath, Buffer.from(outBytes));
 
   return {
     storagePath,

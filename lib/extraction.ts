@@ -4,7 +4,7 @@ import path from "path";
 import { spawn } from "child_process";
 import { pathToFileURL } from "url";
 import type { PDFPageProxy } from "pdfjs-dist";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 export type ExtractedToken = {
   text: string;
@@ -458,7 +458,7 @@ async function extractDocx(absPath: string): Promise<ExtractFileResult> {
 }
 
 export async function extractFile(storagePath: string, originalFilename?: string): Promise<ExtractFileResult> {
-  const absPath = resolveStorageAbsolutePath(storagePath) || storagePath;
+  const absPath = (await resolveStorageAbsolutePathAsync(storagePath)) || storagePath;
 
   if (!fs.existsSync(absPath)) {
     throw new Error(`File not found: ${storagePath}`);

@@ -112,9 +112,10 @@ export async function POST(req: Request) {
       const buffer = Buffer.from(bytes);
 
       const storedFilename = `${uuid()}-${file.name}`;
-      const storagePath = toStorageRelativePath("uploads", storedFilename);
+      const storagePathRel = toStorageRelativePath("uploads", storedFilename);
       failStage = "persist_file";
-      await writeStorageFile(storagePath, buffer);
+      const saved = await writeStorageFile(storagePathRel, buffer);
+      const storagePath = saved.storagePath;
 
       const baseData = {
         filename: file.name,

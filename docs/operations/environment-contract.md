@@ -100,9 +100,18 @@ Primary login mode:
 
 ## Storage migration env (M8)
 
+- `STORAGE_BACKEND`
+  - default: `filesystem`
+  - options: `filesystem`, `vercel_blob`
+  - selects runtime storage provider for uploads/generated artifacts
+
+- `BLOB_READ_WRITE_TOKEN`
+  - required when `STORAGE_BACKEND=vercel_blob`
+  - Vercel Blob read/write token used for server-side upload/read/delete
+
 - `ENV_CONTRACT_REQUIRE_STORAGE_ROOT`
   - default: `false`
-  - when `true`, deployment gate requires `FILE_STORAGE_ROOT` to be an absolute non-temp path
+  - when `true`, deployment gate requires `FILE_STORAGE_ROOT` to be an absolute non-temp path when `STORAGE_BACKEND=filesystem`
   - intended for preview/production cutover checks to block implicit local/tmp storage fallback
 
 - `FILE_STORAGE_ROOT`

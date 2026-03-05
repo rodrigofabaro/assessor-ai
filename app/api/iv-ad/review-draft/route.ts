@@ -5,7 +5,7 @@ import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { parseIvAdReviewDraftRequest, runIvAdReviewDraft, type IvAdReviewDraftRequest } from "@/lib/iv-ad/reviewDraft";
 import { extractIvAdPreviewFromMarkedPdfBuffer, normalizeGrade } from "@/lib/iv-ad/analysis";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 import fs from "fs/promises";
 import path from "path";
 
@@ -187,7 +187,7 @@ async function resolveInput(req: Request, requestId: string): Promise<{ input: I
         };
       }
       try {
-        const specAbsPath = resolveStorageAbsolutePath(refSpec.storagePath);
+        const specAbsPath = await resolveStorageAbsolutePathAsync(refSpec.storagePath);
         if (!specAbsPath) throw new Error("SPEC_PATH_UNRESOLVED");
         const specBytes = await fs.readFile(specAbsPath);
         const specPreview = await extractIvAdPreviewFromMarkedPdfBuffer(specBytes);

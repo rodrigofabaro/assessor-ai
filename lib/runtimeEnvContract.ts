@@ -62,6 +62,32 @@ function collectIssues(): EnvIssue[] {
       hardFail: requireOpenAi,
     });
   }
+  const storageBackend = String(process.env.STORAGE_BACKEND || "filesystem").trim().toLowerCase();
+  const requireStorageRoot = isTruthy(process.env.ENV_CONTRACT_REQUIRE_STORAGE_ROOT);
+  if (storageBackend !== "filesystem" && storageBackend !== "vercel_blob") {
+    issues.push({
+      code: "ENV_STORAGE_BACKEND_INVALID",
+      detail: "STORAGE_BACKEND must be 'filesystem' or 'vercel_blob'.",
+      hardFail: true,
+    });
+  }
+  if (storageBackend === "vercel_blob" && !String(process.env.BLOB_READ_WRITE_TOKEN || "").trim()) {
+    issues.push({
+      code: "ENV_BLOB_TOKEN_MISSING",
+      detail: "BLOB_READ_WRITE_TOKEN is required when STORAGE_BACKEND=vercel_blob.",
+      hardFail: true,
+    });
+  }
+  if (storageBackend === "filesystem" && requireStorageRoot) {
+    const fileStorageRoot = String(process.env.FILE_STORAGE_ROOT || "").trim();
+    if (!fileStorageRoot) {
+      issues.push({
+        code: "ENV_FILE_STORAGE_ROOT_MISSING",
+        detail: "FILE_STORAGE_ROOT is required when ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true and STORAGE_BACKEND=filesystem.",
+        hardFail: true,
+      });
+    }
+  }
   const authGuardsEnabled = isAuthGuardsEffectivelyEnabled();
   if (authGuardsEnabled) {
     const sessionSecret = String(process.env.AUTH_SESSION_SECRET || "").trim();

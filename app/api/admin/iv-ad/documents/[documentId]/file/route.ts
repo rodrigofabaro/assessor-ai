@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
 import { ivAdDocxContentType } from "@/lib/iv-ad/storage";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 import fs from "fs";
 
 function sanitizeDownloadName(value: string) {
@@ -56,7 +56,7 @@ export async function GET(
       });
     }
 
-    const abs = resolveStorageAbsolutePath(doc.outputDocxPath);
+    const abs = await resolveStorageAbsolutePathAsync(doc.outputDocxPath);
     if (!abs || !fs.existsSync(abs)) {
       return apiError({
         status: 404,

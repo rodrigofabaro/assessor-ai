@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs";
-import { resolveStorageAbsolutePath, toStorageRelativePath } from "@/lib/storage/provider";
+import { readStorageFile, toStorageRelativePath } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -29,13 +28,13 @@ export async function GET(
     }
 
     const rel = toStorageRelativePath("storage", "exports", submissionId, exportId, name);
-    const abs = resolveStorageAbsolutePath(rel);
-    if (!abs || !fs.existsSync(abs)) {
+    let bytes: Buffer;
+    try {
+      bytes = await readStorageFile(rel);
+    } catch {
       return NextResponse.json({ error: "Export file not found." }, { status: 404 });
     }
-
-    const bytes = fs.readFileSync(abs);
-    return new NextResponse(bytes, {
+    return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "content-type": MIME_BY_NAME[name] || "application/octet-stream",
         "content-disposition": `attachment; filename="${name}"`,

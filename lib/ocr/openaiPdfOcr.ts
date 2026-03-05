@@ -3,7 +3,7 @@ import path from "node:path";
 import { recordOpenAiUsage } from "@/lib/openai/usageLog";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
 import { localVisionJson, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 type OcrPage = {
   pageNumber: number;
@@ -187,9 +187,12 @@ export async function ocrPdfWithOpenAi(input: {
   }
 
   try {
-    const pdfPathAbs =
-      resolveStorageAbsolutePath(input.pdfPath) ||
-      (path.isAbsolute(input.pdfPath) ? input.pdfPath : path.join(process.cwd(), input.pdfPath));
+    const resolvedPath = await resolveStorageAbsolutePathAsync(input.pdfPath);
+    const pdfPathRaw = String(input.pdfPath || "").trim();
+    const pdfPathAbs = resolvedPath || (/^https?:\/\//i.test(pdfPathRaw) ? "" : (path.isAbsolute(pdfPathRaw) ? pdfPathRaw : path.join(process.cwd(), pdfPathRaw)));
+    if (!pdfPathAbs) {
+      throw new Error("OCR input PDF path could not be resolved.");
+    }
     const first = await renderPdfPageToPng(pdfPathAbs, 1);
     const pageCount = Math.max(1, Number(first.pageCount || 1));
     const targetPages = Math.min(pageCount, maxPages());

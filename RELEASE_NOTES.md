@@ -27,8 +27,13 @@ Last updated: 2026-03-05
    - added gate command `pnpm run ops:storage-contract`
    - release gate now includes storage deployment contract check before deploy smoke
    - added strict cutover flag `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` to hard-fail when durable `FILE_STORAGE_ROOT` is not configured
+7. M8 storage backend enablement for Vercel durability (deployment roadmap continuation):
+   - added storage provider mode `STORAGE_BACKEND=vercel_blob` with `BLOB_READ_WRITE_TOKEN`
+   - upload/reference/IV write paths now persist provider-returned storage paths (remote URL-safe)
+   - core read paths now resolve remote-backed files through local cache hydration (`resolveStorageAbsolutePathAsync` / `readStorageFile`)
+   - runtime env contract now validates storage backend config (`STORAGE_BACKEND`, `BLOB_READ_WRITE_TOKEN`, `ENV_CONTRACT_REQUIRE_STORAGE_ROOT`)
 
-7. M7 export-pack foundation:
+8. M7 export-pack foundation:
    - added deterministic submission export-pack generation (`assessment-snapshot.json`, `feedback-summary.txt`, `summary.csv`, `marked.pdf`, `manifest.json`)
    - added replay parity verification endpoint for earlier export ids
    - wired submission-detail utilities with `Generate export pack` and `Replay parity check` actions

@@ -107,7 +107,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
 
   const storedFilename = `${uuid()}-${safeName(filename)}`;
   const storagePathRel = toStorageRelativePath("reference_uploads", storedFilename);
-  await writeStorageFile(storagePathRel, buffer);
+  const saved = await writeStorageFile(storagePathRel, buffer);
 
   const ivDoc = await prisma.referenceDocument.create({
     data: {
@@ -117,7 +117,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
       version: 1,
       originalFilename: filename,
       storedFilename,
-      storagePath: storagePathRel,
+      storagePath: saved.storagePath,
       checksumSha256,
     },
   });

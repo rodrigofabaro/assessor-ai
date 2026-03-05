@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 function safeStr(x: unknown) {
   return typeof x === "string" ? x : "";
@@ -50,6 +51,11 @@ export async function resolveStoredFile(doc: {
 
   const tried: string[] = [];
   const seen = new Set<string>();
+
+  if (storagePathRaw) {
+    const resolved = await resolveStorageAbsolutePathAsync(storagePathRaw);
+    if (resolved) return { ok: true as const, path: resolved, tried: [resolved] };
+  }
 
   const pushCandidate = (candidate: string) => {
     if (!candidate) return;

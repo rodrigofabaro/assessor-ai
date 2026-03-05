@@ -121,8 +121,9 @@ What it runs:
 6. `pnpm run ops:deploy-smoke`
 
 Storage deployment contract behavior:
-- If `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
-- Set `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` in deploy/cutover environments to hard-fail when durable storage root is not configured.
+- If `STORAGE_BACKEND=filesystem` and `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
+- If `STORAGE_BACKEND=vercel_blob`, command requires `BLOB_READ_WRITE_TOKEN`.
+- Set `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` in deploy/cutover environments to hard-fail when durable filesystem storage root is not configured.
 
 Password recovery contract behavior:
 - If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.

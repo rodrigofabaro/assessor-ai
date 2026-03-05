@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { pdfToText } from "@/lib/extraction/text/pdfToText";
 import { debugBriefExtraction } from "@/lib/extractors/brief";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Debug extract is only supported for BRIEF documents." }, { status: 400 });
     }
 
-    const filePath = resolveStorageAbsolutePath(doc.storagePath);
+    const filePath = await resolveStorageAbsolutePathAsync(doc.storagePath);
     if (!filePath) {
       return NextResponse.json({ error: "Document file path could not be resolved." }, { status: 404 });
     }

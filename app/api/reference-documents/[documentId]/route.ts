@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
 import { prisma } from "@/lib/prisma";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { deleteStorageFile } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,8 +71,7 @@ export async function DELETE(_req: Request, { params }: { params: { documentId: 
 
   if (doc.storagePath) {
     try {
-      const absPath = resolveStorageAbsolutePath(doc.storagePath);
-      if (absPath && fs.existsSync(absPath)) fs.unlinkSync(absPath);
+      await deleteStorageFile(doc.storagePath);
     } catch (err) {
       console.warn("REFERENCE_DELETE_FILE_FAILED", doc.storagePath, doc.originalFilename, err);
     }

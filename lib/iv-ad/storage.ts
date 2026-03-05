@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import {
+  isRemoteStorageBackend,
   resolveStorageAbsolutePath,
   toStorageRelativePath,
   writeStorageFile,
@@ -28,6 +29,7 @@ export function ivAdToAbsolutePath(storagePath: string) {
 }
 
 export async function ensureIvAdStorageDirs() {
+  if (isRemoteStorageBackend()) return;
   const dirs = [
     path.join(ivAdStorageRootAbs(), "templates"),
     path.join(ivAdStorageRootAbs(), "inputs"),
@@ -47,8 +49,8 @@ export async function writeIvAdBuffer(args: {
   const stem = args.prefix ? `${args.prefix}-` : "";
   const storedFilename = `${stem}${randomUUID()}-${safe}`;
   const rel = toStorageRelativePath(IV_AD_STORAGE_ROOT_REL, args.bucket, storedFilename);
-  await writeStorageFile(rel, args.buffer);
-  return { storagePath: rel, storedFilename };
+  const saved = await writeStorageFile(rel, args.buffer);
+  return { storagePath: saved.storagePath, storedFilename };
 }
 
 export async function writeIvAdUpload(args: {

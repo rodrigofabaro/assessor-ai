@@ -43,6 +43,8 @@ Use this doc when the instruction is: "continue the roadmap".
 - Added deploy gate contract command: `pnpm run ops:storage-contract`.
 - Release gate now includes storage deployment contract check before deploy smoke.
 - Added strict enforcement flag for cutover environments: `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
+- Added provider mode `STORAGE_BACKEND=vercel_blob` with `BLOB_READ_WRITE_TOKEN` support for durable Vercel storage.
+- Upload/reference/IV writers now persist provider-returned storage paths, and read paths now resolve remote-backed storage via local cache hydration.
 - Remaining action: set durable storage root per runtime and capture fresh production deploy-smoke PASS evidence.
 
 2. P0 M9 password recovery email enablement (today)

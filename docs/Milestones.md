@@ -37,6 +37,7 @@ Status labels:
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
 - Password recovery delivery progress (2026-03-05): `POST /api/auth/password-recovery` + login `Forgot password?` + release-gate contract check implemented; production provider activation still pending.
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
+- Storage provider progress (2026-03-05): added `STORAGE_BACKEND=vercel_blob` + `BLOB_READ_WRITE_TOKEN` support with remote-path cache resolution on read paths.
 
 ### Bugs and Risks (Stabilization)
 - Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.

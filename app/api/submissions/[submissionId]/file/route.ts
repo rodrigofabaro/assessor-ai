@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
-import { resolveStorageAbsolutePath } from "@/lib/storage/provider";
+import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 export async function GET(
   _req: Request,
@@ -20,7 +20,7 @@ export async function GET(
   }
 
   const filePath = String(sub.storagePath || "").trim();
-  const absPath = filePath ? resolveStorageAbsolutePath(filePath) : null;
+  const absPath = filePath ? await resolveStorageAbsolutePathAsync(filePath) : null;
   if (!filePath || !absPath || !fs.existsSync(absPath)) {
     return NextResponse.json({ error: "File not found on disk" }, { status: 404 });
   }

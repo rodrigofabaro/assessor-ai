@@ -1,12 +1,11 @@
-import fs from "node:fs";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 import {
-  appendStorageTextSync,
-  resolveStorageAbsolutePath,
+  appendStorageText,
+  readStorageFile,
   toStorageRelativePath,
-  writeStorageFileSync,
+  writeStorageFile,
 } from "@/lib/storage/provider";
 
 type ExportFileRecord = {
@@ -67,8 +66,8 @@ function stableJsonStringify(value: unknown): string {
   return JSON.stringify(walk(value), null, 2);
 }
 
-function writeTextFile(storagePath: string, text: string) {
-  writeStorageFileSync(storagePath, text);
+async function writeTextFile(storagePath: string, text: string) {
+  await writeStorageFile(storagePath, text);
   const bytes = Buffer.byteLength(text, "utf8");
   return { bytes, checksumSha256: sha256(text) };
 }
@@ -192,7 +191,7 @@ async function loadSubmissionAndAssessment(submissionId: string, assessmentId?: 
   return { submission, assessment };
 }
 
-function appendRunLog(submissionId: string, payload: {
+async function appendRunLog(submissionId: string, payload: {
   exportId: string;
   sourceAssessmentId: string;
   sourceAssessmentHash: string;
@@ -200,7 +199,7 @@ function appendRunLog(submissionId: string, payload: {
   requestedAt: string;
 }) {
   const rel = toStorageRelativePath("storage", "exports", submissionId, "export-runs.jsonl");
-  appendStorageTextSync(rel, `${JSON.stringify(payload)}\n`);
+  await appendStorageText(rel, `${JSON.stringify(payload)}\n`);
   return rel;
 }
 
@@ -221,9 +220,12 @@ export async function createSubmissionExportPack(input: {
   const sourceAssessmentHash = sha256(assessmentJsonText);
 
   const markedRel = String(assessment.annotatedPdfPath || "").trim().replace(/\\/g, "/");
-  const markedAbs = resolveStorageAbsolutePath(markedRel);
-  if (!markedAbs || !fs.existsSync(markedAbs)) throw new Error("Marked PDF file not found on disk.");
-  const markedBytes = fs.readFileSync(markedAbs);
+  let markedBytes: Buffer;
+  try {
+    markedBytes = await readStorageFile(markedRel);
+  } catch {
+    throw new Error("Marked PDF file not found on disk.");
+  }
   const markedHash = sha256(markedBytes);
 
   const bundleSeed = stableJsonStringify({
@@ -243,7 +245,7 @@ export async function createSubmissionExportPack(input: {
 
   const assessmentName = "assessment-snapshot.json";
   const assessmentRel = fileRel(baseRel, exportId, assessmentName);
-  const assessmentWrite = writeTextFile(assessmentRel, assessmentJsonText);
+  const assessmentWrite = await writeTextFile(assessmentRel, assessmentJsonText);
   files.push({
     name: assessmentName,
     relativePath: assessmentRel,
@@ -254,7 +256,7 @@ export async function createSubmissionExportPack(input: {
 
   const feedbackName = "feedback-summary.txt";
   const feedbackRel = fileRel(baseRel, exportId, feedbackName);
-  const feedbackWrite = writeTextFile(feedbackRel, `${feedbackSummaryText}\n`);
+  const feedbackWrite = await writeTextFile(feedbackRel, `${feedbackSummaryText}\n`);
   files.push({
     name: feedbackName,
     relativePath: feedbackRel,
@@ -265,7 +267,7 @@ export async function createSubmissionExportPack(input: {
 
   const csvName = "summary.csv";
   const csvRel = fileRel(baseRel, exportId, csvName);
-  const csvWrite = writeTextFile(csvRel, csvText);
+  const csvWrite = await writeTextFile(csvRel, csvText);
   files.push({
     name: csvName,
     relativePath: csvRel,
@@ -276,7 +278,7 @@ export async function createSubmissionExportPack(input: {
 
   const markedName = "marked.pdf";
   const markedOutRel = fileRel(baseRel, exportId, markedName);
-  writeStorageFileSync(markedOutRel, markedBytes);
+  await writeStorageFile(markedOutRel, markedBytes);
   files.push({
     name: markedName,
     relativePath: markedOutRel,
@@ -295,7 +297,7 @@ export async function createSubmissionExportPack(input: {
   };
   const manifestName = "manifest.json";
   const manifestRel = fileRel(baseRel, exportId, manifestName);
-  const manifestWrite = writeTextFile(manifestRel, `${stableJsonStringify(manifest)}\n`);
+  const manifestWrite = await writeTextFile(manifestRel, `${stableJsonStringify(manifest)}\n`);
   files.push({
     name: manifestName,
     relativePath: manifestRel,
@@ -306,7 +308,7 @@ export async function createSubmissionExportPack(input: {
 
   const requestedAt = new Date().toISOString();
   const actor = String(input.actor || "system").trim() || "system";
-  const runLogPath = appendRunLog(input.submissionId, {
+  const runLogPath = await appendRunLog(input.submissionId, {
     exportId,
     sourceAssessmentId: assessment.id,
     sourceAssessmentHash,
@@ -333,10 +335,14 @@ export async function replaySubmissionExportPack(input: {
 }) {
   const baseRel = toStorageRelativePath("storage", "exports", input.submissionId, input.exportId);
   const manifestRel = toStorageRelativePath(baseRel, "manifest.json");
-  const manifestAbs = resolveStorageAbsolutePath(manifestRel);
-  if (!manifestAbs || !fs.existsSync(manifestAbs)) throw new Error("Export manifest not found.");
+  let manifestJson = "";
+  try {
+    manifestJson = (await readStorageFile(manifestRel)).toString("utf8");
+  } catch {
+    throw new Error("Export manifest not found.");
+  }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestAbs, "utf8")) as {
+  const manifest = JSON.parse(manifestJson) as {
     exportId: string;
     submissionId: string;
     sourceAssessmentId: string;

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 function safeName(name: string) {
   // keep it filesystem-safe and predictable
@@ -17,6 +18,11 @@ function clampInt(raw: string | null, fallback: number, min: number, max: number
   const n = Number(raw);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+function cleanMetaValue(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 120);
 }
 
 function summarizeExtractedJson(value: any) {
@@ -89,10 +95,13 @@ function trimExtractionWarnings(value: unknown, keepFull = false) {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
+  const organizationId = await getRequestOrganizationId();
 
   const type = (url.searchParams.get("type") || "").toUpperCase(); // SPEC | BRIEF | RUBRIC
   const status = (url.searchParams.get("status") || "").toUpperCase(); // UPLOADED | EXTRACTED | REVIEWED | LOCKED | FAILED
   const q = (url.searchParams.get("q") || "").trim();
+  const framework = (url.searchParams.get("framework") || "").trim().toLowerCase();
+  const category = (url.searchParams.get("category") || "").trim().toLowerCase();
   const onlyLocked = url.searchParams.get("onlyLocked") === "true";
   const onlyUnlocked = url.searchParams.get("onlyUnlocked") === "true";
   const extractedMode = String(url.searchParams.get("extracted") || "summary").toLowerCase(); // none | summary | full
@@ -127,8 +136,10 @@ export async function GET(req: Request) {
     ];
   }
 
+  const scopedWhere = addOrganizationReadScope(where, organizationId);
+
   const docs = await prisma.referenceDocument.findMany({
-    where,
+    where: scopedWhere as any,
     orderBy: [{ updatedAt: "desc" }, { uploadedAt: "desc" }],
     skip: offset,
     take: limit,
@@ -151,7 +162,7 @@ export async function GET(req: Request) {
     },
   });
 
-  const mappedDocs = docs.map((doc: any) => {
+  let mappedDocs = docs.map((doc: any) => {
     const extractedJson = includeFullExtracted
       ? doc.extractedJson ?? null
       : includeSummaryExtracted
@@ -165,8 +176,15 @@ export async function GET(req: Request) {
     };
   });
 
+  if (framework) {
+    mappedDocs = mappedDocs.filter((doc: any) => String(doc?.sourceMeta?.framework || "").trim().toLowerCase() === framework);
+  }
+  if (category) {
+    mappedDocs = mappedDocs.filter((doc: any) => String(doc?.sourceMeta?.category || "").trim().toLowerCase() === category);
+  }
+
   if (!includeTotal) return NextResponse.json({ documents: mappedDocs });
-  const total = await prisma.referenceDocument.count({ where });
+  const total = await prisma.referenceDocument.count({ where: scopedWhere as any });
   return NextResponse.json({
     documents: mappedDocs,
     page: {
@@ -205,6 +223,7 @@ function parseVersion(raw: FormDataEntryValue | null): { version: number; versio
 
 export async function POST(req: Request) {
   try {
+    const organizationId = await getRequestOrganizationId();
     const formData = await req.formData();
 
     const typeRaw = formData.get("type");
@@ -218,6 +237,8 @@ export async function POST(req: Request) {
     const type = typeof typeRaw === "string" ? typeRaw.toUpperCase() : "";
     const title = typeof titleRaw === "string" ? titleRaw.trim() : "";
     const { version, versionLabel } = parseVersion(versionRaw);
+    const framework = cleanMetaValue(formData.get("framework"));
+    const category = cleanMetaValue(formData.get("category"));
 
     if (!title || !fileEntries.length) {
       return NextResponse.json({ error: "Missing title or file" }, { status: 400 });
@@ -254,7 +275,12 @@ export async function POST(req: Request) {
 
       // Keep DB storage key relative for portability across environments.
       const storagePathRel = toStorageRelativePath("reference_uploads", storedFilename);
-      await writeStorageFile(storagePathRel, buffer);
+      const saved = await writeStorageFile(storagePathRel, buffer);
+
+      const sourceMeta: Record<string, unknown> = {};
+      if (versionLabel) sourceMeta.versionLabel = versionLabel;
+      if (framework) sourceMeta.framework = framework;
+      if (category) sourceMeta.category = category;
 
       const doc = await prisma.referenceDocument.create({
         data: {
@@ -263,9 +289,10 @@ export async function POST(req: Request) {
           version,
           originalFilename: file.name,
           storedFilename,
-          storagePath: storagePathRel,
+          storagePath: saved.storagePath,
           checksumSha256,
-          sourceMeta: versionLabel ? { versionLabel } : undefined,
+          sourceMeta: Object.keys(sourceMeta).length ? (sourceMeta as any) : undefined,
+          organizationId,
         },
       });
 

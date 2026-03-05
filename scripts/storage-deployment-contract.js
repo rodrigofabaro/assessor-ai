@@ -18,14 +18,34 @@ function startsWithPath(target, base) {
 }
 
 function main() {
+  const storageBackend = String(process.env.STORAGE_BACKEND || "filesystem")
+    .trim()
+    .toLowerCase();
   const requireDurableRoot = isTruthy(process.env.ENV_CONTRACT_REQUIRE_STORAGE_ROOT);
   const rawRoot = String(process.env.FILE_STORAGE_ROOT || "").trim();
+  const blobToken = String(process.env.BLOB_READ_WRITE_TOKEN || "").trim();
   const isVercel = isTruthy(process.env.VERCEL);
+
+  if (storageBackend !== "filesystem" && storageBackend !== "vercel_blob") {
+    fail(
+      `storage deployment contract failed: unsupported STORAGE_BACKEND '${storageBackend}'.`
+    );
+  }
+
+  if (storageBackend === "vercel_blob") {
+    if (!blobToken) {
+      fail(
+        "storage deployment contract failed: STORAGE_BACKEND=vercel_blob requires BLOB_READ_WRITE_TOKEN."
+      );
+    }
+    console.log("storage deployment contract passed: vercel_blob backend configured.");
+    process.exit(0);
+  }
 
   if (!rawRoot) {
     if (requireDurableRoot) {
       fail(
-        "storage deployment contract failed: ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true requires FILE_STORAGE_ROOT."
+        "storage deployment contract failed: ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true requires FILE_STORAGE_ROOT when STORAGE_BACKEND=filesystem."
       );
     }
     const mode = isVercel ? "runtime temp fallback (non-durable)" : "local filesystem fallback";

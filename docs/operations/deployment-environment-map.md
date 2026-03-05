@@ -67,6 +67,7 @@ Current hardening note (2026-03-04):
 2. Vercel deployments require persistent object storage integration for uploads and generated artifacts.
 3. Preview and production storage must be separated (different buckets/prefixes/credentials).
 4. During migration, provider-managed relative paths can be redirected with `FILE_STORAGE_ROOT`.
+5. For durable Vercel storage, use `STORAGE_BACKEND=vercel_blob` with `BLOB_READ_WRITE_TOKEN`.
 
 ### If no storage env is configured yet
 
@@ -82,6 +83,10 @@ Current hardening note (2026-03-04):
 2. Temporary runtime mitigation may use Vercel writable temp storage (`/tmp`) for operational continuity, but this is non-durable and not an end-state.
 3. Operator-confirmed (2026-03-04): production storage target locations are not configured yet.
 4. Deployment gate impact: production deploy-smoke currently fails at upload submission-create path until storage target + schema alignment are finalized.
+
+Current update (2026-03-05):
+1. `STORAGE_BACKEND=vercel_blob` is now supported for runtime upload/read/write paths.
+2. Keep `BLOB_READ_WRITE_TOKEN` set in preview/production Vercel environments before enabling `vercel_blob`.
 
 ## Required Vercel env groups
 
