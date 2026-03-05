@@ -143,6 +143,12 @@ type SettingsAuditEvent = {
 };
 
 type SettingsDefaultsPayload = {
+  permissions?: {
+    role?: string;
+    canRead?: boolean;
+    canWrite?: boolean;
+    source?: string;
+  };
   defaults: {
     ai: {
       model: string;
@@ -323,6 +329,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const [settingsAudit, setSettingsAudit] = useState<SettingsAuditEvent[]>([]);
   const [localAi, setLocalAi] = useState<LocalAiSnapshot | null>(null);
   const [defaults, setDefaults] = useState<SettingsDefaultsPayload["defaults"] | null>(null);
+  const [settingsPermissions, setSettingsPermissions] = useState<SettingsDefaultsPayload["permissions"] | null>(null);
   const [batchSaving, setBatchSaving] = useState(false);
   const [batchMsg, setBatchMsg] = useState("");
   const [smokeAiBusy, setSmokeAiBusy] = useState(false);
@@ -468,17 +475,21 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         if (defaultsRes.ok) {
           const defaultsJson = (await defaultsRes.json()) as SettingsDefaultsPayload;
           setDefaults(defaultsJson?.defaults || null);
+          setSettingsPermissions(defaultsJson?.permissions || null);
         } else {
           setDefaults(null);
+          setSettingsPermissions(null);
         }
       } else {
         setDefaults(null);
+        setSettingsPermissions(null);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load settings.");
       setData(null);
       setLocalAi(null);
       setDefaults(null);
+      setSettingsPermissions(null);
       setTurnitinCfg(null);
       setTurnitinApiKeyDraft("");
       setTurnitinClearApiKey(false);
@@ -510,7 +521,10 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
   const activeUsersCount = appUsers.filter((u) => u.isActive).length;
   const activeAuditLabel = appCfg?.activeAuditUser?.fullName || "system";
   const activeAuditRole = String(appCfg?.activeAuditUser?.role || "SYSTEM").toUpperCase();
-  const canWriteSensitive = ["ADMIN", "OWNER", "SUPERADMIN"].includes(activeAuditRole);
+  const sessionSettingsRole = String(settingsPermissions?.role || "").toUpperCase();
+  const canWriteSensitive = typeof settingsPermissions?.canWrite === "boolean"
+    ? !!settingsPermissions.canWrite
+    : ["ADMIN", "OWNER", "SUPERADMIN"].includes(activeAuditRole);
   const aiConnectionLabel = data?.connection?.reachable ? "Connected" : data?.connection ? "Issue" : "Checking";
   const localAiLabel = !localAi
     ? "Unavailable"
@@ -1058,8 +1072,13 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
               Users
             </Link>
           <div className="ml-auto flex items-center gap-2">
+            {sessionSettingsRole ? (
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+                Session: {sessionSettingsRole}
+              </span>
+            ) : null}
             <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
-              Role: {activeAuditRole}
+              Audit role: {activeAuditRole}
             </span>
             {showAi ? (
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
@@ -1084,7 +1103,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </nav>
         {!canWriteSensitive ? (
           <p className="mt-2 text-xs text-amber-700">
-            Read-only mode. Active audit role must be ADMIN/OWNER/SUPERADMIN to change settings.
+            Read-only mode. Signed-in role must be ADMIN or SUPER_ADMIN to change settings.
           </p>
         ) : null}
         {batchMsg ? (

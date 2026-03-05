@@ -1,4 +1,5 @@
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
+import { getRequestSession } from "@/lib/auth/requestSession";
 
 export const SETTINGS_WRITE_ROLES = new Set(["ADMIN", "OWNER", "SUPERADMIN"]);
 export const SETTINGS_READ_ROLES = new Set([
@@ -13,6 +14,18 @@ export const SETTINGS_READ_ROLES = new Set([
 
 export async function getSettingsReadContext() {
   const cfg = await getOrCreateAppConfig();
+  const session = await getRequestSession().catch(() => null);
+  const sessionRole = String(session?.role || "").trim().toUpperCase();
+  const sessionCanRead = !!session && (session?.isSuperAdmin || sessionRole === "ADMIN" || sessionRole === "ASSESSOR" || sessionRole === "IV");
+  if (sessionCanRead) {
+    return {
+      user: cfg.activeAuditUser || null,
+      role: session?.isSuperAdmin ? "SUPER_ADMIN" : sessionRole,
+      canRead: true,
+      source: "session" as const,
+    };
+  }
+
   const user = cfg.activeAuditUser || null;
   const role = String(user?.role || "").trim().toUpperCase();
   // Bootstrap mode: if no active audit user is set yet, allow read-only settings access.
@@ -21,17 +34,20 @@ export async function getSettingsReadContext() {
     user,
     role: role || "SYSTEM",
     canRead,
+    source: user ? "audit-user" : "bootstrap",
   };
 }
 
 export async function getSettingsWriteContext() {
   const cfg = await getOrCreateAppConfig();
   const user = cfg.activeAuditUser || null;
-  const role = String(user?.role || "").trim().toUpperCase();
-  const canWrite = !!(user?.isActive && SETTINGS_WRITE_ROLES.has(role));
+  const session = await getRequestSession().catch(() => null);
+  const sessionRole = String(session?.role || "").trim().toUpperCase();
+  const canWrite = !!session && (session?.isSuperAdmin || sessionRole === "ADMIN");
   return {
     user,
-    role: role || "SYSTEM",
+    role: session?.isSuperAdmin ? "SUPER_ADMIN" : sessionRole || "SYSTEM",
     canWrite,
+    source: session ? "session" : "none",
   };
 }

@@ -70,3 +70,4 @@ Use this order for high-safety changes:
 - `Revert` restores last loaded values.
 - `Reset defaults` applies baseline defaults for that section.
 - Saved values are auditable through settings audit events.
+- Write access is based on signed-in session role (`ADMIN` or `SUPER_ADMIN`), while `active audit user` is attribution context for audit logs.
