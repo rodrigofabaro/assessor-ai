@@ -1,6 +1,9 @@
 # Brief Extraction System
 
-Last updated: 2026-02-19
+Last updated: 2026-03-05
+
+Detailed hardening log:
+- `docs/operations/brief-extraction-hardening-log-2026-03-05.md`
 
 ## Goal
 
