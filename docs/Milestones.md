@@ -22,6 +22,7 @@ Status labels:
 
 ### Priorities (Now)
 - P0: M8 storage deployment setup/fix (set storage target, unblock upload deploy-smoke).
+- P0: M8.2 brief extraction fidelity gate (provenance, fidelity report, evidence-constrained fallback, lock blocker).
 - P0: M9 password recovery email enablement (provider + recovery flow).
 - P1: M8 readiness endpoint and dependency gate (`/api/health/readiness` for DB, storage, email, and OpenAI).
 - P1: M9.1 email architecture hardening (transactional/support/alerts routing + deliverability baseline).
@@ -38,6 +39,7 @@ Status labels:
 - Operator-confirmed (2026-03-04): production storage places are not configured yet.
 - Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
+- Extraction direction (2026-03-05): add fidelity gate with source provenance, evidence-constrained fallback, and lock blocking for unresolved mismatches (see `docs/operations/brief-extraction-hardening-log-2026-03-05.md`).
 - Password recovery delivery progress (2026-03-05): tokenized recovery flow active (`POST /api/auth/password-recovery` + `POST /api/auth/password-recovery/confirm` + `/auth/reset`), provider enabled, and release-gate contract check active.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
 - Email architecture direction (2026-03-05): separate transactional sender, support inbox routing, and operational alert inbox to avoid mixed responsibilities in one mailbox.

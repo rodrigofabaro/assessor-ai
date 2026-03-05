@@ -24,6 +24,7 @@ Use these categories for all planning updates.
 1. Priorities (Now)
    - Active implementation queue in `docs/Milestones.md`:
      - `P0 M8 storage deployment setup/fix`
+     - `P0 M8.2 brief extraction fidelity gate (provenance + fidelity report + lock blocker)`
      - `P0 M9 password recovery email enablement`
      - `P1 M9.1 email architecture hardening (transactional/support/alerts routing + deliverability)`
      - `M10 multi-organization tenant isolation foundation`

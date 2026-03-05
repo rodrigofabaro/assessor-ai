@@ -28,6 +28,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - storage target locations are not configured yet
 5. Today priority update (2026-03-05):
    - P0: set/fix production storage deployment targets and unblock upload deploy-smoke
+   - P0: extraction fidelity gate for briefs (provenance + fidelity report + lock blocker)
    - P0: enable password recovery email flow (no manual recovery path)
    - P1: add runtime readiness endpoint (`/api/health/readiness`) for core dependency gating
    - P1: add auth abuse protection rate limits (login + password recovery)
@@ -57,7 +58,21 @@ Use this doc when the instruction is: "continue the roadmap".
 - Deploy-smoke evidence now captures API `requestId` and server `details` payload (when present) for failed steps.
 - Remaining action: set durable storage root per runtime, ship readiness endpoint, and capture fresh production deploy-smoke PASS evidence.
 
-2. P0 M9 password recovery email enablement (today)
+2. P0 M8.2 brief extraction fidelity gate (today)
+- add provenance metadata in extraction output for displayed blocks (`page`, source snippet, and reference anchor where available)
+- add post-extract fidelity report for BRIEF:
+  - task count parity (`Task 1..N`)
+  - end-matter contamination detection
+  - missing visual evidence signals (figure/chart/table cues without grounded extraction)
+  - math/text corruption signals
+- constrain whole-PDF fallback to evidence-cited output only:
+  - uncited content must be marked `UNKNOWN` / `NEEDS_REVIEW`
+  - no free-form inferred content accepted as clean extraction
+- block brief lock when unresolved fidelity blockers exist
+- add UniCourse template-aware extraction profile (layout-aware first pass) while keeping generic fallback path
+- link implementation notes: `docs/operations/brief-extraction-hardening-log-2026-03-05.md`
+
+3. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)
 - implement/verify password recovery email flow for locked users
 - add rate limiting for login and recovery endpoints (per IP and per identity)
@@ -76,7 +91,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Release gate now includes password-recovery email contract check.
 - Remaining action: configure production provider, set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement, and complete auth rate-limit wiring.
 
-3. P1 M9.1 email architecture hardening
+4. P1 M9.1 email architecture hardening
 - split outbound channels by intent:
   - transactional sender (`AUTH_EMAIL_FROM` with `no-reply@assessor-ai.co.uk`)
   - human-contact inbox (`CONTACT_FORM_TO` -> `support@assessor-ai.co.uk`)
@@ -105,7 +120,7 @@ Use this doc when the instruction is: "continue the roadmap".
   - `docs/operations/email-alert-trigger-matrix.md`
 - Remaining action: DNS/deliverability verification (SPF + DKIM + DMARC) and staging validation evidence.
 
-4. M8 first production deployment blocker removal
+5. M8 first production deployment blocker removal
 - replace direct local filesystem dependency with storage provider abstraction
 - migrate highest-risk write/read paths first (`submissions`, `reference documents`, export artifacts)
 - keep backward-compatible resolver for existing local `storagePath` values
@@ -152,12 +167,12 @@ Use this doc when the instruction is: "continue the roadmap".
 - OpenAI model config now persists via DB (`AppConfig.openaiModelConfig`) with runtime cache hydration + file fallback.
 - Deploy smoke evidence after this slice: `docs/evidence/deploy-smoke/20260303-172621.json`.
 
-5. Extraction and admin performance hardening
+6. Extraction and admin performance hardening
 - brief extraction regression stabilization
 - reference inbox pagination/projection optimization
 - submission detail heavy-panel render optimization
 
-6. QA reliability instrumentation
+7. QA reliability instrumentation
 - preview/commit/regrade latency metrics
 - p50/p95 + retry/failure dashboard cards
 
@@ -309,6 +324,15 @@ Done when:
 3. A documented launch toggle/flag exists to transition from development-mode UI to launch-mode UI without schema or API changes.
 4. Help docs include both pre-launch simplified flow and launch-mode expansion steps.
 5. Post-login home is role-specific for Assessor, `ORG_ADMIN`, and `SUPER_ADMIN`.
+
+### Queue G - Brief extraction fidelity gate
+
+Done when:
+1. Extracted brief blocks shown in UI include source provenance (`page` + source snippet/reference).
+2. A persisted fidelity report exists for each brief extraction run.
+3. Whole-PDF fallback output is evidence-constrained (`UNKNOWN/NEEDS_REVIEW` when uncited).
+4. Lock is blocked when fidelity blockers remain unresolved.
+5. Template-aware profile for UniCourse briefs is enabled and benchmarked against regression fixtures.
 
 ## Production deployment steps (single runbook section)
 
