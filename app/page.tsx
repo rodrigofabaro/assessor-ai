@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -12,29 +11,34 @@ type TinyIconName = "reference" | "submissions" | "audit" | "upload" | "qa" | "u
 const landingWorkflow = [
   {
     title: "Upload submission",
-    detail: "Bring in student work with assignment context and assessor ownership.",
+    detail: "Submission and assignment brief are linked for assessor ownership.",
   },
   {
     title: "Evidence extraction",
-    detail: "Pull structured evidence from files so criteria checks start with real content.",
+    detail: "Evidence snippets are extracted and structured from learner work.",
   },
   {
     title: "Criteria mapping",
-    detail: "Link extracted evidence to locked unit criteria and grading expectations.",
+    detail: "Extracted evidence is mapped to locked Pearson unit criteria.",
   },
   {
     title: "AI grading",
-    detail: "Generate draft decisions and feedback while the assessor stays in control.",
+    detail: "Draft grade decision and feedback are generated for assessor review.",
+  },
+  {
+    title: "QA and integrity checks",
+    detail: "IQA/IV checks grading logic, assessment evidence, and Turnitin signals.",
   },
   {
     title: "Audit-ready output",
-    detail: "Export moderation-ready decisions with traceable rationale and history.",
+    detail: "Moderation pack is exported with rationale, QA sign-off, and history.",
   },
 ] as const;
 
 const workflowAssurancePoints = [
-  "Pearson HN compatible grading structure",
+  "Pearson HN-compatible grading structure",
   "Evidence-linked criteria decisions",
+  "Quality assurance and Turnitin checkpoints",
   "Moderation-ready outputs",
   "Full audit history",
 ] as const;
@@ -44,6 +48,28 @@ const workflowFitTags = [
   "Awarding bodies",
   "Internal quality assurance teams",
   "Independent assessors",
+] as const;
+
+const syntheticCriteriaRows = [
+  { criterion: "P1.1 Define safeguarding duties", evidence: "Section 2.1 + Appendix A", outcome: "Met" },
+  { criterion: "M1.2 Evaluate risk response", evidence: "Section 3.2 + Case table", outcome: "Met" },
+  { criterion: "D1.1 Justify intervention plan", evidence: "Section 4.4 + Reflection", outcome: "Review" },
+] as const;
+
+const syntheticAuditEvents = [
+  "22:31 Upload logged and file integrity verified",
+  "22:32 Evidence extraction completed",
+  "22:34 Criteria mapping snapshot saved",
+  "22:36 AI grading draft generated",
+  "22:38 QA + Turnitin check completed",
+  "22:39 Assessor review accepted and export created",
+] as const;
+
+const syntheticQaChecks = [
+  { label: "Assessment decision aligns to mapped criteria", status: "Pass" },
+  { label: "Evidence references resolve in the submission", status: "Pass" },
+  { label: "Turnitin similarity score 18% vs threshold 15%", status: "Review" },
+  { label: "IQA sample flag for moderation", status: "Required" },
 ] as const;
 
 function StatCard({
@@ -152,8 +178,11 @@ export default async function LandingPage() {
               <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
                 Mark vocational assignments in minutes with a full Pearson-ready audit trail.
               </h1>
+              <p className="mt-3 text-sm font-semibold text-sky-200">
+                Built for end-of-day assessors who need defensible decisions fast.
+              </p>
               <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-200 sm:text-base">
-                AI-assisted grading that keeps assessors in control, maps evidence against locked criteria, and delivers moderation-ready decisions by default.
+                AI-assisted grading that keeps assessors in control, maps evidence against locked criteria, adds QA and Turnitin checks, and delivers moderation-ready decisions by default.
               </p>
               <p className="mt-4 max-w-2xl text-sm text-sky-100">
                 ChatGPT gives an opinion. Assessor AI gives a defensible assessment decision with an audit trail.
@@ -163,13 +192,13 @@ export default async function LandingPage() {
                   href="/login"
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-500 px-4 text-sm font-semibold text-slate-950 hover:bg-sky-400"
                 >
-                  Start grading submissions
+                  Start grading in minutes
                 </Link>
                 <Link
                   href="#how-it-works"
                   className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-600 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800"
                 >
-                  See the workflow
+                  See 6-step workflow
                 </Link>
               </div>
             </div>
@@ -186,6 +215,7 @@ export default async function LandingPage() {
                   "Single controlled workflow from upload to audit output",
                   "Criteria alignment locked to the correct version",
                   "Assessor-reviewable AI suggestions, not black-box automation",
+                  "QA and Turnitin checks happen before final release",
                   "Moderation evidence stays attached to every decision",
                 ].map((point) => (
                   <li key={point} className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2">
@@ -205,21 +235,26 @@ export default async function LandingPage() {
               <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">From submission intake to audit-ready output</h2>
             </div>
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-              One controlled pipeline
+              One controlled 6-step pipeline
             </span>
           </div>
           <div className="mt-5 overflow-x-auto">
-            <ol className="flex min-w-[980px] items-stretch gap-2 pb-1">
+            <ol className="flex min-w-[1280px] items-stretch gap-2 pb-1">
               {landingWorkflow.map((step, idx) => (
-                <li key={step.title} className="flex items-center gap-2">
-                  <div className="w-44 rounded-2xl border border-sky-200 bg-sky-50/80 p-3">
+                <li key={step.title} className="flex shrink-0 items-stretch gap-2">
+                  <div className="flex h-44 w-44 shrink-0 flex-col rounded-2xl border border-sky-200 bg-sky-50/80 p-3">
                     <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-200 bg-white text-xs font-semibold text-sky-700">
                       {idx + 1}
                     </span>
                     <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
                     <p className="mt-1 text-xs leading-5 text-slate-700">{step.detail}</p>
                   </div>
-                  {idx < landingWorkflow.length - 1 ? <span className="text-xl font-semibold text-sky-500">→</span> : null}
+                  {idx < landingWorkflow.length - 1 ? (
+                    <span className="flex w-8 shrink-0 items-center text-sky-500" aria-hidden>
+                      <span className="h-px flex-1 bg-sky-300" />
+                      <span className="-ml-1 text-lg font-semibold">›</span>
+                    </span>
+                  ) : null}
                 </li>
               ))}
             </ol>
@@ -242,7 +277,7 @@ export default async function LandingPage() {
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Operational fit</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Assessor AI behaves like an assessment engine, not a standalone chatbot. It supports the day-to-day operations that teams need for defensible grading.
+              Assessor AI behaves like an assessment engine, not a standalone chatbot. It supports the full operational chain that Pearson-style delivery teams run: assessor decision, IQA/IV check, integrity screening, and moderation evidence.
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {workflowFitTags.map((tag) => (
@@ -263,53 +298,133 @@ export default async function LandingPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Output preview</p>
               <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Show the result, not just the promise</h2>
             </div>
-            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-              Real product screenshots
+            <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              Synthetic demo output (no real learner data)
             </span>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-            <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-              <Image
-                src="/help/screenshots/operations-playbook-submission-detail.png"
-                alt="Submission workspace showing evidence mapping and AI-assisted grading feedback."
-                width={1569}
-                height={966}
-                className="h-auto w-full"
-                priority
-              />
-              <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                AI feedback panel with criteria-linked evidence and assessor decision context.
-              </figcaption>
-            </figure>
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">AI feedback panel</p>
+              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900">Submission: DEMO-014 · Unit 8</p>
+                    <p className="text-[11px] text-slate-600">Brief version locked: BTEC-HN-U8-v3</p>
+                  </div>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    Draft grade: Pass
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[
+                    "Criteria met: 2/3",
+                    "Needs assessor confirmation: D1.1",
+                    "Ready for QA handoff",
+                  ].map((tag) => (
+                    <span key={tag} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                    <p className="text-[11px] font-semibold text-slate-800">P1.1 Safeguarding duties · Mapped evidence</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-slate-600">
+                      Section 2.1 identifies legal duties and escalation path with role-specific examples.
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                    <p className="text-[11px] font-semibold text-slate-800">M1.2 Risk response · Mapped evidence</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-slate-600">
+                      Section 3.2 compares interventions, but D1.1 needs stronger justification depth.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Suggested assessor feedback</p>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-700">
+                    Pass and merit evidence are clear. To reach distinction, expand the rationale for intervention choice with explicit links to case risk factors.
+                  </p>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-600">Assessor can accept, edit, or send back for remap before IQA/IV check.</p>
+              </div>
+            </article>
 
-            <div className="grid gap-3">
-              <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                <Image
-                  src="/help/screenshots/admin-briefs-criteria-mapping.png"
-                  alt="Criteria mapping interface linking assignment tasks to grading criteria."
-                  width={1310}
-                  height={481}
-                  className="h-auto w-full"
-                />
-                <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                  Criteria mapping interface for controlled evidence-to-criterion alignment.
-                </figcaption>
-              </figure>
-              <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                <Image
-                  src="/help/screenshots/operations-playbook-queue.png"
-                  alt="Submission queue view used for moderation and grading operations."
-                  width={1600}
-                  height={2200}
-                  className="h-auto w-full"
-                />
-                <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                  Queue and status controls that support moderation and audit review.
-                </figcaption>
-              </figure>
-            </div>
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Criteria mapping</p>
+              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+                <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <span>Criterion + evidence</span>
+                  <span>Outcome</span>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {syntheticCriteriaRows.map((row) => (
+                    <div key={row.criterion} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-900">{row.criterion}</p>
+                          <p className="text-[11px] text-slate-600">{row.evidence}</p>
+                        </div>
+                        <span
+                          className={
+                            "inline-flex h-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                            (row.outcome === "Met"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700")
+                          }
+                        >
+                          {row.outcome}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
+
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">QA and Turnitin gate</p>
+              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+                <div className="space-y-2">
+                  {syntheticQaChecks.map((check) => (
+                    <div key={check.label} className="flex items-start justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                      <p className="text-[11px] leading-5 text-slate-700">{check.label}</p>
+                      <span
+                        className={
+                          "inline-flex h-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                          (check.status === "Pass"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : check.status === "Review"
+                              ? "border-amber-200 bg-amber-50 text-amber-700"
+                              : "border-indigo-200 bg-indigo-50 text-indigo-700")
+                        }
+                      >
+                        {check.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 border-t border-slate-200 pt-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Audit sequence</p>
+                  <ol className="mt-2 space-y-1.5">
+                    {syntheticAuditEvents.map((event, idx) => (
+                      <li key={event} className="flex items-start gap-2 text-[11px] text-slate-700">
+                        <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-[10px] font-semibold text-slate-600">
+                          {idx + 1}
+                        </span>
+                        <span>{event}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </article>
           </div>
+
+          <p className="mt-3 text-xs text-slate-600">
+            This preview is intentionally synthetic. No student submissions, names, or institutional records are shown on the landing page.
+          </p>
         </section>
       </div>
     );
