@@ -4,26 +4,41 @@ Last updated: 2026-03-05
 
 ## Unreleased
 
-1. Auth recovery + cleanup (production):
+1. M9 password recovery hardening (tokenized flow):
+   - replaced temporary-password recovery with one-time expiring token links
+   - added `PasswordResetToken` model + migration (`prisma/migrations/20260305132000_add_password_reset_tokens`)
+   - added `POST /api/auth/password-recovery/confirm` and `/auth/reset` page
+   - recovery links now use `AUTH_APP_ORIGIN`, token hashing via `RESET_TOKEN_PEPPER`, and configurable TTL (`AUTH_PASSWORD_RECOVERY_TTL_MINUTES`)
+2. Landing page contact email intake:
+   - replaced early-access `mailto` CTA with real contact form submission on `/`
+   - added `POST /api/public/contact` with honeypot + IP-based rate limiting and ops telemetry events
+   - added `CONTACT_FORM_TO` env for contact inbox routing (fallback: `contact@assessor-ai.co.uk`)
+3. Admin user reset email behavior:
+   - `Admin -> Users` now uses tokenized recovery for reset action when provider is configured
+   - row action label now reflects behavior (`Send reset link`)
+4. Email provider operations enabled:
+   - production/preview/development envs configured with Resend-based auth email delivery
+   - verification email sent to `rodrigo@unicourse.org` during rollout validation
+5. Auth recovery + cleanup (production):
    - restored normal DB-backed login for `deploy.smoke.admin@assessor-ai.co.uk` (`source: app-user`)
    - removed temporary emergency login and recovery-key bypass routes after successful recovery
-2. Legacy-schema compatibility hardening:
+6. Legacy-schema compatibility hardening:
    - strengthened auth (`/api/auth/login`, `/api/auth/password-reset`) and user admin API (`/api/admin/users`) fallbacks for older production schema variants
-3. Upload pipeline hardening (in progress):
+7. Upload pipeline hardening (in progress):
    - added storage write-root fallback chain in `lib/storage/provider.ts` (`FILE_STORAGE_ROOT` -> runtime tmp -> cwd)
    - added upload create-submission compatibility fallback paths in `/api/submissions/upload`
    - added stage-level upload diagnostics in API error message
    - upload failures now also include `errorCode`/`errorName` details for faster production triage
-4. Current release blocker (still open):
+8. Current release blocker (still open):
    - production deploy-smoke continues to fail at upload stage: `UPLOAD_FAILED` -> `Upload failed at create_submission`
    - storage target locations/credentials are not configured yet (operator confirmed)
-5. M9 password recovery email enablement (deployment roadmap continuation):
-   - added `POST /api/auth/password-recovery` with temporary-password issue + `mustResetPassword` enforcement
-   - added rollback-on-delivery-failure behavior so user credentials are restored if recovery email send fails
+9. M9 password recovery email enablement (deployment roadmap continuation):
+   - initial implementation shipped with temporary-password issue + `mustResetPassword` enforcement
+   - superseded by tokenized recovery flow in current unreleased changes
    - login form now includes `Forgot password?` flow calling recovery endpoint
    - added gate command `pnpm run ops:password-recovery-contract`
    - release gate now includes password-recovery email contract check before deploy smoke
-6. M8 storage deployment contract hardening (deployment roadmap continuation):
+10. M8 storage deployment contract hardening (deployment roadmap continuation):
    - added gate command `pnpm run ops:storage-contract`
    - release gate now includes storage deployment contract check before deploy smoke
    - added strict cutover flag `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` to hard-fail when durable `FILE_STORAGE_ROOT` is not configured

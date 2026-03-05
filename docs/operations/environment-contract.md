@@ -82,6 +82,19 @@ Primary login mode:
   - options: `none`, `resend`
   - controls server-side invite email sending for generated credentials and password recovery delivery (`POST /api/auth/password-recovery`)
 
+- `AUTH_APP_ORIGIN`
+  - required when password recovery email delivery is enabled (`AUTH_INVITE_EMAIL_PROVIDER=resend` or `AUTH_REQUIRE_RECOVERY_EMAIL=true`)
+  - used to build absolute password recovery links in email (`/auth/reset?rid=...&t=...`)
+
+- `RESET_TOKEN_PEPPER`
+  - required when password recovery email delivery is enabled (`AUTH_INVITE_EMAIL_PROVIDER=resend` or `AUTH_REQUIRE_RECOVERY_EMAIL=true`)
+  - HMAC secret used to hash one-time recovery tokens before DB storage
+
+- `AUTH_PASSWORD_RECOVERY_TTL_MINUTES`
+  - default: `15`
+  - accepted range: `5..60`
+  - controls recovery-link expiry window
+
 - `AUTH_REQUIRE_RECOVERY_EMAIL`
   - default: `false`
   - when `true`, release gate requires active email provider configuration for password-recovery delivery
@@ -97,6 +110,11 @@ Primary login mode:
 - `AUTH_EMAIL_FROM`
   - required when `AUTH_INVITE_EMAIL_PROVIDER=resend`
   - verified sender email address in Resend (e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
+
+- `CONTACT_FORM_TO`
+  - optional
+  - recipient mailbox for landing-page contact form (`POST /api/public/contact`)
+  - default fallback when unset: `contact@assessor-ai.co.uk`
 
 ## Storage migration env (M8)
 

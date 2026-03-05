@@ -30,12 +30,12 @@ Status labels:
 - M9 authentication, UX template system, and final performance hardening.
 - M10 multi-organization rollout (super admin, org admin, org switch, per-org settings and secrets).
 - IV-AD AI review rollout tracked in `docs/grading/iv-ad-ai-review-roadmap.md` (supporting feature roadmap).
-- Email invite delivery provider activation is deferred (current fallback: password copy + `mailto` draft).
 - M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production + production OpenAI key scopes (`api.responses.write`) for grade/extraction.
 - Operator-confirmed (2026-03-04): production storage places are not configured yet.
 - Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
-- Password recovery delivery progress (2026-03-05): `POST /api/auth/password-recovery` + login `Forgot password?` + release-gate contract check implemented; production provider activation still pending.
+- Password recovery delivery progress (2026-03-05): tokenized recovery flow active (`POST /api/auth/password-recovery` + `POST /api/auth/password-recovery/confirm` + `/auth/reset`), provider enabled, and release-gate contract check active.
+- Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
 - Storage provider progress (2026-03-05): added `STORAGE_BACKEND=vercel_blob` + `BLOB_READ_WRITE_TOKEN` support with remote-path cache resolution on read paths.
 

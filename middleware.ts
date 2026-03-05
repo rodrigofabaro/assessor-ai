@@ -30,6 +30,7 @@ function isPublicPath(pathname: string) {
   ) {
     return true;
   }
+  if (pathname === "/api/public/contact") return true;
   if (pathname === "/api/auth/session/bootstrap" || pathname === "/api/auth/role-sync") return true;
   return false;
 }

@@ -2,7 +2,7 @@
 
 Date: 2026-02-20
 Maintenance update: 2026-03-02
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 Roadmap status:
 - Release contract doc (not canonical roadmap).
@@ -66,3 +66,20 @@ This release is considered complete when the workflows listed under **In Scope**
 4. Storage target configuration remains pending:
    - durable production storage locations/credentials are not finalized yet
    - runtime must still be treated as pre-hardening for durable file persistence
+
+## 1.0.3 Maintenance Addendum (2026-03-05)
+
+1. Password recovery moved to one-time token links:
+   - request endpoint: `POST /api/auth/password-recovery`
+   - redeem endpoint: `POST /api/auth/password-recovery/confirm`
+   - user page: `/auth/reset`
+2. Recovery tokens are single-use and expiry-bound:
+   - token hashes are stored (raw token never stored)
+   - expiry controlled by `AUTH_PASSWORD_RECOVERY_TTL_MINUTES`
+   - token hashing secret controlled by `RESET_TOKEN_PEPPER`
+3. Landing page early-access intake now supports server-side email notifications:
+   - public endpoint: `POST /api/public/contact`
+   - inbox target env: `CONTACT_FORM_TO`
+   - fallback direct email option remains available for continuity
+4. Admin user reset UX now defaults to email delivery:
+   - `Admin -> Users -> Send reset link` triggers tokenized recovery email when provider is configured

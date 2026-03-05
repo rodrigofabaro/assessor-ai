@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifySignedSessionToken } from "@/lib/auth/session";
 import { TinyIcon } from "@/components/ui/TinyIcon";
+import ContactEarlyAccessForm from "./ContactEarlyAccessForm";
 
 export const dynamic = "force-dynamic";
 
@@ -434,14 +435,7 @@ export default async function LandingPage() {
             <p className="mt-3 text-sm leading-7 text-slate-700">
               We are working with assessment teams to refine the workflow before broader rollout. If you want to test the platform or join the pilot, contact us and we will schedule onboarding.
             </p>
-            <div className="mt-4">
-              <a
-                href="mailto:contact@assessor-ai.co.uk?subject=Assessor-AI%20Early%20Access"
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-500 px-4 text-sm font-semibold text-slate-950 hover:bg-sky-400"
-              >
-                Contact for early access
-              </a>
-            </div>
+            <ContactEarlyAccessForm />
           </div>
         </section>
       </div>

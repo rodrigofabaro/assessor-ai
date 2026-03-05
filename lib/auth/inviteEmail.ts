@@ -203,3 +203,47 @@ export async function sendAuthTestEmail(input: { to: string }): Promise<InviteEm
     failureMessage: "Test email send failed.",
   });
 }
+
+export async function sendContactLeadEmail(input: {
+  name: string;
+  email: string;
+  organization?: string;
+  message: string;
+  requestIp?: string | null;
+  requestUserAgent?: string | null;
+}): Promise<InviteEmailResult> {
+  const to = String(process.env.CONTACT_FORM_TO || "contact@assessor-ai.co.uk").trim().toLowerCase();
+  const name = String(input.name || "").trim();
+  const email = String(input.email || "").trim().toLowerCase();
+  const organization = String(input.organization || "").trim();
+  const message = String(input.message || "").trim();
+  const requestIp = String(input.requestIp || "").trim();
+  const requestUserAgent = String(input.requestUserAgent || "").trim();
+
+  if (!to || !name || !email || !message) {
+    return { attempted: false, sent: false, provider: resolveProvider(), error: "Missing contact lead details." };
+  }
+
+  const subject = `Assessor AI early access request: ${name}`;
+  const text = [
+    "New landing-page contact request received.",
+    "",
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Organization: ${organization || "-"}`,
+    "",
+    "Message:",
+    message,
+    "",
+    `IP: ${requestIp || "-"}`,
+    `User-Agent: ${requestUserAgent || "-"}`,
+    `Timestamp (UTC): ${new Date().toISOString()}`,
+  ].join("\n");
+
+  return sendCredentialEmail({
+    to,
+    subject,
+    text,
+    failureMessage: "Contact lead email send failed.",
+  });
+}

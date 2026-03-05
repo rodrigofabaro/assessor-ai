@@ -394,7 +394,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function resetPassword(u: AppUser, sendEmail = false) {
+  async function resetPassword(u: AppUser, sendEmail = inviteSupport.configured) {
     if (!u.email) {
       setErr("Cannot reset password for a user without email.");
       return;
@@ -404,6 +404,22 @@ export default function AdminUsersPage() {
     setMsg("");
     setIssuedCreds(null);
     try {
+      if (sendEmail) {
+        const recoveryRes = await fetch("/api/auth/password-recovery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u.email }),
+        });
+        const recoveryJson = await recoveryRes.json().catch(() => ({} as any));
+        if (!recoveryRes.ok) {
+          setErr(recoveryJson?.error || "Failed to send password recovery email.");
+          return;
+        }
+        setMsg("Password recovery email sent.");
+        await load();
+        return;
+      }
+
       const res = await fetch(`/api/admin/users/${u.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -414,7 +430,7 @@ export default function AdminUsersPage() {
         setErr(json?.error || "Failed to reset password.");
         return;
       }
-      setMsg("Password reset and login credentials issued.");
+      setMsg(sendEmail ? "Password reset and login credentials emailed." : "Password reset and login credentials issued.");
       applyInviteEmailResult((json?.inviteEmail || null) as InviteEmailResult | null);
       if (json?.issuedPassword) {
         setIssuedCreds({
@@ -422,7 +438,7 @@ export default function AdminUsersPage() {
           email: String(json.user?.email || u.email || ""),
           password: String(json.issuedPassword),
           mailto: typeof json.inviteMailto === "string" ? json.inviteMailto : null,
-          source: "Password reset credentials",
+          source: sendEmail ? "Password reset credentials (email sent)" : "Password reset credentials",
         });
       }
       await load();
@@ -742,22 +758,12 @@ export default function AdminUsersPage() {
                       ) : null}
                       <button
                         type="button"
-                        onClick={() => resetPassword(u, false)}
+                        onClick={() => resetPassword(u)}
                         disabled={pendingUserId === u.id || !u.email}
                         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Reset password
+                        {inviteSupport.configured ? "Send reset link" : "Reset password"}
                       </button>
-                      {inviteSupport.configured ? (
-                        <button
-                          type="button"
-                          onClick={() => resetPassword(u, true)}
-                          disabled={pendingUserId === u.id || !u.email}
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Reset + email
-                        </button>
-                      ) : null}
                     </div>
                   </td>
                 </tr>
