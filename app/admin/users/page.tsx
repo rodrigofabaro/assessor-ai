@@ -137,6 +137,13 @@ export default function AdminUsersPage() {
   const activeUser = useMemo(() => users.find((u) => u.id === activeAuditUserId) || null, [users, activeAuditUserId]);
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
   const loginUsers = useMemo(() => users.filter((u) => u.loginEnabled && u.isActive).length, [users]);
+  const scopedOrganizationName = useMemo(() => {
+    const selectedId = String(organizationId || defaultOrganizationId || "").trim();
+    const match = organizations.find((org) => org.id === selectedId) || organizations[0];
+    return match?.name || "Current organization";
+  }, [organizationId, defaultOrganizationId, organizations]);
+  const showOrganizationColumn = canManageAllOrganizations;
+  const userTableColumnCount = showOrganizationColumn ? 8 : 7;
   const byRole = useMemo(() => {
     const map = new Map<string, number>();
     for (const u of users) map.set(u.role, (map.get(u.role) || 0) + 1);
@@ -478,7 +485,15 @@ export default function AdminUsersPage() {
           <MetricCard label="Users active" value={activeUsers.length} hint="Users currently available for actor selection." />
           <MetricCard label="Login enabled" value={loginUsers} hint="Active users with login credentials." />
           <MetricCard label="Roles in use" value={byRole.length} hint="Distinct role groups assigned." />
-          <MetricCard label="Organizations" value={organizations.length} hint="Active tenant groups available for user assignment." />
+          <MetricCard
+            label={canManageAllOrganizations ? "Organizations" : "Organization scope"}
+            value={canManageAllOrganizations ? organizations.length : 1}
+            hint={
+              canManageAllOrganizations
+                ? "Active tenant groups available for user assignment."
+                : `Restricted to ${scopedOrganizationName}.`
+            }
+          />
         </div>
       </section>
 
@@ -581,17 +596,24 @@ export default function AdminUsersPage() {
               <option value="ASSESSOR">ASSESSOR</option>
               <option value="IV">IV</option>
             </select>
-            <select
-              value={organizationId || defaultOrganizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-            >
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
+            {canManageAllOrganizations ? (
+              <select
+                value={organizationId || defaultOrganizationId}
+                onChange={(e) => setOrganizationId(e.target.value)}
+                className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+              >
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Organization scope</div>
+                <div className="mt-0.5 font-semibold text-slate-900">{scopedOrganizationName}</div>
+              </div>
+            )}
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
@@ -654,7 +676,9 @@ export default function AdminUsersPage() {
               <tr className="text-left text-slate-600">
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Name</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Email</th>
-                <th className="border-b border-slate-200 px-2 py-2 font-semibold">Organization</th>
+                {showOrganizationColumn ? (
+                  <th className="border-b border-slate-200 px-2 py-2 font-semibold">Organization</th>
+                ) : null}
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Role</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Status</th>
                 <th className="border-b border-slate-200 px-2 py-2 font-semibold">Login</th>
@@ -665,7 +689,7 @@ export default function AdminUsersPage() {
             <tbody>
               {!users.length && !loading ? (
                 <tr>
-                  <td colSpan={8} className="px-2 py-6 text-center text-sm text-slate-500">
+                  <td colSpan={userTableColumnCount} className="px-2 py-6 text-center text-sm text-slate-500">
                     No users found.
                   </td>
                 </tr>
@@ -674,7 +698,9 @@ export default function AdminUsersPage() {
                 <tr key={u.id} className="border-b border-slate-100">
                   <td className="px-2 py-2 font-medium text-slate-900">{u.fullName}</td>
                   <td className="px-2 py-2 text-slate-700">{u.email || "—"}</td>
-                  <td className="px-2 py-2 text-slate-700">{u.organization?.name || "Default"}</td>
+                  {showOrganizationColumn ? (
+                    <td className="px-2 py-2 text-slate-700">{u.organization?.name || "Default"}</td>
+                  ) : null}
                   <td className="px-2 py-2 text-slate-700">
                     <span className={"inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold " + roleTone(u.role)}>
                       {u.role}
