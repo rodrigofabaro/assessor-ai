@@ -47,6 +47,11 @@ Last updated: 2026-03-05
    - added deterministic submission export-pack generation (`assessment-snapshot.json`, `feedback-summary.txt`, `summary.csv`, `marked.pdf`, `manifest.json`)
    - added replay parity verification endpoint for earlier export ids
    - wired submission-detail utilities with `Generate export pack` and `Replay parity check` actions
+11. Organization scope hardening (user/org linkage):
+   - added runtime org-scope self-heal in request session resolution: when signed session has no `orgId`, server now resolves and links user to an org scope before route checks
+   - login/session bootstrap now proactively backfill user org linkage (`organizationId` + default active membership) when missing
+   - `/api/auth/organizations` now self-heals empty membership state and returns a valid active org option
+   - added one-shot backfill command `pnpm run ops:backfill-org-scope` for repairing existing users in bulk
 10. IV-AD Phase 4 API contract:
    - added `POST /api/iv-ad/review-draft` with strict request schema validation
    - added strict AI response schema enforcement for typed review draft JSON

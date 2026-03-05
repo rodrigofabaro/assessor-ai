@@ -8,6 +8,7 @@ import {
   pickDefaultMembership,
   resolveSessionRole,
 } from "@/lib/organizations/membership";
+import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 
 export const runtime = "nodejs";
 
@@ -93,8 +94,23 @@ export async function POST() {
   });
   const isSuperAdmin = isSuperAdminPlatformRole(user && "platformRole" in user ? user.platformRole : null);
   const defaultOrg = await ensureDefaultOrganization();
-  const orgId =
+  let orgId =
     String(primaryMembership?.organizationId || user?.organizationId || defaultOrg.id || "").trim() || null;
+
+  if (user?.isActive && role && !isSuperAdmin) {
+    try {
+      const ensured = await ensureUserOrganizationScope({
+        userId: user.id,
+        appRole: role,
+        preferredOrgId: orgId,
+      });
+      if (String(ensured.orgId || "").trim()) {
+        orgId = String(ensured.orgId || "").trim();
+      }
+    } catch {
+      // keep bootstrap non-blocking
+    }
+  }
 
   const res = NextResponse.json({
     ok: true,

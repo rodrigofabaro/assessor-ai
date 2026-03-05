@@ -1,10 +1,31 @@
 import { cookies } from "next/headers";
 import { getSessionCookieName, verifySignedSessionToken } from "@/lib/auth/session";
+import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 
 export async function getRequestSession() {
   const store = await cookies();
   const token = String(store.get(getSessionCookieName())?.value || "");
-  return verifySignedSessionToken(token);
+  const session = verifySignedSessionToken(token);
+  if (!session?.userId) return session;
+  if (String(session.orgId || "").trim()) return session;
+  if (String(session.userId || "").startsWith("env:")) return session;
+
+  try {
+    const ensured = await ensureUserOrganizationScope({
+      userId: session.userId,
+      appRole: session.role,
+    });
+    if (String(ensured.orgId || "").trim()) {
+      return {
+        ...session,
+        orgId: String(ensured.orgId || "").trim() || null,
+      };
+    }
+  } catch {
+    // keep original session shape if org backfill cannot run in this request path
+  }
+
+  return session;
 }
 
 export async function getRequestOrganizationId() {

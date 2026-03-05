@@ -35,6 +35,7 @@
     "ops:release-gate": "node scripts/release-gate-evidence.js",
     "ops:prepush-prod": "pwsh -NoLogo -NoProfile -File scripts/prepush-prod-check.ps1",
     "ops:local-reset": "pwsh -NoLogo -NoProfile -File scripts/local-reset.ps1",
+    "ops:backfill-org-scope": "node scripts/backfill-org-scope.js",
     "ops:mapping-drift": "node scripts/mapping-drift-check.js",
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",
     "ops:spec-suite-import-once": "node scripts/import-spec-suite-once.cjs",

@@ -10,6 +10,7 @@ import {
   resolveSessionRole,
   isSuperAdminPlatformRole,
 } from "@/lib/organizations/membership";
+import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 
 export const runtime = "nodejs";
 
@@ -300,6 +301,21 @@ export async function POST(req: Request) {
       { error: "Password reset required before sign in.", code: "AUTH_PASSWORD_RESET_REQUIRED", username: auth.email },
       { status: 403 }
     );
+  }
+
+  if (auth.source === "app-user") {
+    try {
+      const ensured = await ensureUserOrganizationScope({
+        userId: auth.userId,
+        appRole: auth.role,
+        preferredOrgId: auth.orgId,
+      });
+      if (String(ensured.orgId || "").trim()) {
+        auth.orgId = String(ensured.orgId || "").trim();
+      }
+    } catch {
+      // Keep login non-blocking; request-session hydration can still repair org context.
+    }
   }
 
   const token = createSignedSessionToken({

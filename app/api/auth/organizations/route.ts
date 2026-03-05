@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getRequestSession } from "@/lib/auth/requestSession";
 import { prisma } from "@/lib/prisma";
 import { isSuperAdminPlatformRole } from "@/lib/organizations/membership";
+import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export async function GET() {
     return NextResponse.json({ error: "Authentication required.", code: "AUTH_REQUIRED" }, { status: 401 });
   }
 
-  const activeOrganizationId = String(session.orgId || "").trim() || null;
+  let activeOrganizationId = String(session.orgId || "").trim() || null;
   const isEnvSession = session.userId.startsWith("env:");
 
   if (isEnvSession) {
@@ -88,6 +89,36 @@ export async function GET() {
       role: "ORG_ADMIN",
       isDefault: true,
     });
+  }
+
+  if (!organizations.length) {
+    try {
+      const ensured = await ensureUserOrganizationScope({
+        userId: user.id,
+        appRole: session.role,
+        preferredOrgId: activeOrganizationId,
+      });
+      const ensuredOrgId = String(ensured.orgId || "").trim();
+      if (ensuredOrgId) {
+        const ensuredOrg = await prisma.organization.findUnique({
+          where: { id: ensuredOrgId },
+          select: { id: true, slug: true, name: true, isActive: true },
+        });
+        if (ensuredOrg?.isActive) {
+          organizations.push({
+            id: ensuredOrg.id,
+            slug: ensuredOrg.slug,
+            name: ensuredOrg.name,
+            isActive: true,
+            role: "ORG_ADMIN",
+            isDefault: true,
+          });
+          if (!activeOrganizationId) activeOrganizationId = ensuredOrg.id;
+        }
+      }
+    } catch {
+      // keep organizations response non-blocking
+    }
   }
 
   return NextResponse.json({
