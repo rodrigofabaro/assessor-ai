@@ -216,7 +216,7 @@ async function getSessionIdentity(session: { userId?: string | null; orgId?: str
 
 export default async function LandingPage() {
   const session = await getSession();
-  const [stats, identity] = await Promise.all([getDashboardStats(), getSessionIdentity(session as any)]);
+  const [stats, identity] = await Promise.all([getDashboardStats(), getSessionIdentity(session)]);
 
   if (!session) {
     return (
@@ -614,7 +614,7 @@ export default async function LandingPage() {
         </article>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <ActionCard
           icon="submissions"
           title="Daily operations"
