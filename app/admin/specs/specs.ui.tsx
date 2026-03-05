@@ -906,6 +906,9 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
     (acc, lo) => acc + (Array.isArray(lo?.criteria) ? lo.criteria.length : 0),
     0
   );
+  const uploadedAt = selectedDoc?.uploadedAt ? new Date(selectedDoc.uploadedAt).toLocaleString() : "—";
+  const framework = String(selectedDoc?.sourceMeta?.framework || "").trim() || "—";
+  const category = String(selectedDoc?.sourceMeta?.category || "").trim() || "—";
 
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
@@ -913,44 +916,60 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
       {!selectedDoc ? (
         <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">Select a unit to inspect metadata.</div>
       ) : (
-        <div className="mt-3 grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
-          <div>
-            <span className="text-zinc-500">Unit:</span>{" "}
-            <span className="font-semibold text-zinc-900">{formatUnitTitle(selectedDoc)}</span>
-          </div>
-          {unitCodeQualifier ? (
-            <div>
-              <span className="text-zinc-500">Unit code (qual):</span>{" "}
-              <span className="font-semibold text-zinc-900">{unitCodeQualifier}</span>
+        <div className="mt-3 grid gap-3 text-sm text-zinc-700">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Unit</div>
+            <div className="mt-1 break-words text-sm font-semibold text-zinc-900">{formatUnitTitle(selectedDoc)}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <StatusPill status={selectedDoc.status} />
+              <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-semibold text-zinc-700">
+                {issue}
+              </span>
+              {unitCodeQualifier ? (
+                <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-semibold text-zinc-700">
+                  Qualifier: {unitCodeQualifier}
+                </span>
+              ) : null}
             </div>
-          ) : null}
-          <div>
-            <span className="text-zinc-500">Issue:</span> <span className="font-semibold text-zinc-900">{issue}</span>
           </div>
-          <div>
-            <span className="text-zinc-500">LO count:</span> <span className="font-semibold text-zinc-900">{learningOutcomes.length}</span>
+
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Learning outcomes</div>
+              <div className="mt-1 text-lg font-semibold text-zinc-900">{learningOutcomes.length}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Criteria</div>
+              <div className="mt-1 text-lg font-semibold text-zinc-900">{criteriaCount}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Framework</div>
+              <div className="mt-1 break-words text-sm font-semibold text-zinc-900">{framework}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Category</div>
+              <div className="mt-1 break-words text-sm font-semibold text-zinc-900">{category}</div>
+            </div>
           </div>
-          <div>
-            <span className="text-zinc-500">Criteria count:</span> <span className="font-semibold text-zinc-900">{criteriaCount}</span>
-          </div>
-          <div>
-            <span className="text-zinc-500">Original file:</span>{" "}
-            <span className="font-semibold text-zinc-900">{selectedDoc.originalFilename || "—"}</span>
-          </div>
-          <div>
-            <span className="text-zinc-500">Stored path:</span>{" "}
-            <span className="font-mono text-xs font-semibold text-zinc-900">{selectedDoc.storagePath || "(managed storage key)"}</span>
-          </div>
-          <div>
-            <span className="text-zinc-500">File:</span>{" "}
-            <a
-              href={`/api/reference-documents/${encodeURIComponent(selectedDoc.id)}/file`}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-800"
-            >
-              Open uploaded PDF
-            </a>
+
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="grid gap-2 sm:grid-cols-[1.3fr_1fr]">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Original file</div>
+                <div className="mt-1 break-words text-sm font-semibold text-zinc-900">{selectedDoc.originalFilename || "—"}</div>
+                <div className="mt-1 text-xs text-zinc-500">Uploaded: {uploadedAt}</div>
+              </div>
+              <div className="flex items-center sm:justify-end">
+                <a
+                  href={`/api/reference-documents/${encodeURIComponent(selectedDoc.id)}/file`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-800 hover:bg-sky-100"
+                >
+                  Open uploaded PDF
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}
