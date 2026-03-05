@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 export const DEFAULT_ORG_ID = "org_default";
 export const DEFAULT_ORG_SLUG = "default";
 export const DEFAULT_ORG_NAME = "Default Organization";
+export const SUPER_ADMIN_DEFAULT_ORG_ID = "org_assessor_ai";
+export const SUPER_ADMIN_DEFAULT_ORG_SLUG = "assessor-ai";
+export const SUPER_ADMIN_DEFAULT_ORG_NAME = "Assessor AI";
 
 let organizationTableAvailable: boolean | null = null;
 
@@ -23,6 +26,15 @@ function fallbackOrganization() {
     id: DEFAULT_ORG_ID,
     slug: DEFAULT_ORG_SLUG,
     name: DEFAULT_ORG_NAME,
+    isActive: true,
+  };
+}
+
+function fallbackSuperAdminOrganization() {
+  return {
+    id: SUPER_ADMIN_DEFAULT_ORG_ID,
+    slug: SUPER_ADMIN_DEFAULT_ORG_SLUG,
+    name: SUPER_ADMIN_DEFAULT_ORG_NAME,
     isActive: true,
   };
 }
@@ -55,6 +67,31 @@ export async function ensureDefaultOrganization() {
     if (!isOrgSchemaCompatError(error)) throw error;
     organizationTableAvailable = false;
     return fallbackOrganization();
+  }
+}
+
+export async function ensureSuperAdminOrganization() {
+  if (organizationTableAvailable === false) return fallbackSuperAdminOrganization();
+  try {
+    const org = await prisma.organization.upsert({
+      where: { slug: SUPER_ADMIN_DEFAULT_ORG_SLUG },
+      update: {
+        name: SUPER_ADMIN_DEFAULT_ORG_NAME,
+        isActive: true,
+      },
+      create: {
+        id: SUPER_ADMIN_DEFAULT_ORG_ID,
+        slug: SUPER_ADMIN_DEFAULT_ORG_SLUG,
+        name: SUPER_ADMIN_DEFAULT_ORG_NAME,
+        isActive: true,
+      },
+    });
+    organizationTableAvailable = true;
+    return org;
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    organizationTableAvailable = false;
+    return fallbackSuperAdminOrganization();
   }
 }
 

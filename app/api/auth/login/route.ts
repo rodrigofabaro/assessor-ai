@@ -4,7 +4,7 @@ import { createSignedSessionToken, getSessionCookieName, hasSessionSecret } from
 import { parseRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { normalizeLoginEmail, verifyPassword } from "@/lib/auth/password";
-import { ensureDefaultOrganization } from "@/lib/organizations/defaults";
+import { ensureDefaultOrganization, ensureSuperAdminOrganization } from "@/lib/organizations/defaults";
 import {
   pickDefaultMembership,
   resolveSessionRole,
@@ -278,12 +278,13 @@ export async function POST(req: Request) {
   if (!auth && expectedUsername && expectedPassword) {
     const isEnvValid = secureCompare(username, expectedUsername) && secureCompare(password, expectedPassword);
     if (isEnvValid) {
+      const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
       const defaultOrg = await ensureDefaultOrganization();
       auth = {
         userId: `env:${expectedUsername}`,
         role: envRole,
         source: "env",
-        orgId: defaultOrg.id,
+        orgId: String(superAdminOrg?.id || defaultOrg.id || "").trim() || null,
         isSuperAdmin: true,
       };
     }
@@ -305,13 +306,24 @@ export async function POST(req: Request) {
 
   if (auth.source === "app-user") {
     try {
+      let preferredOrgId = auth.orgId;
+      let superAdminOrgId: string | null = null;
+      if (auth.isSuperAdmin) {
+        const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
+        superAdminOrgId = String(superAdminOrg?.id || "").trim() || null;
+        preferredOrgId = superAdminOrgId || preferredOrgId;
+      }
       const ensured = await ensureUserOrganizationScope({
         userId: auth.userId,
         appRole: auth.role,
-        preferredOrgId: auth.orgId,
+        preferredOrgId,
       });
-      if (String(ensured.orgId || "").trim()) {
+      if (superAdminOrgId) {
+        auth.orgId = superAdminOrgId;
+      } else if (String(ensured.orgId || "").trim()) {
         auth.orgId = String(ensured.orgId || "").trim();
+      } else if (preferredOrgId) {
+        auth.orgId = preferredOrgId;
       }
     } catch {
       // Keep login non-blocking; request-session hydration can still repair org context.

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { LANE } from "@/components/PageContainer";
 import { TinyIcon } from "@/components/ui/TinyIcon";
 import OrganizationSwitcher from "@/components/OrganizationSwitcher";
@@ -27,6 +28,11 @@ const ADMIN_SETTINGS_ITEM: AdminItem = {
   label: "Settings",
   href: "/admin/settings",
   accent: "slate",
+};
+const ADMIN_DEVELOPER_ITEM: AdminItem = {
+  label: "Developer",
+  href: "/admin/developer",
+  accent: "fuchsia",
 };
 
 function accentClasses(accent: string) {
@@ -64,6 +70,7 @@ function accentFromPath(pathname: string): string {
   if (pathname.startsWith("/admin/specs")) return "cyan";
   if (pathname.startsWith("/admin/briefs")) return "emerald";
   if (pathname.startsWith("/admin/students")) return "violet";
+  if (pathname.startsWith("/admin/developer")) return "fuchsia";
   if (pathname.startsWith("/admin/users")) return "fuchsia";
   if (pathname.startsWith("/admin/settings")) return "slate";
   if (pathname.startsWith("/admin/bindings")) return "orange";
@@ -87,6 +94,28 @@ export default function TopNav() {
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const activeAdminAccent = accentFromPath(pathname);
   const showSignOut = pathname !== "/" && !pathname.startsWith("/help") && !pathname.startsWith("/login");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const adminItems = useMemo(
+    () => (isSuperAdmin ? [...ADMIN_ITEMS, ADMIN_DEVELOPER_ITEM] : ADMIN_ITEMS),
+    [isSuperAdmin]
+  );
+
+  useEffect(() => {
+    if (!isAdminRoute) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/organizations", { cache: "no-store" });
+        const json = await res.json().catch(() => ({} as any));
+        if (!cancelled) setIsSuperAdmin(!!json?.isSuperAdmin);
+      } catch {
+        if (!cancelled) setIsSuperAdmin(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminRoute]);
 
   async function onSignOut() {
     try {
@@ -140,7 +169,7 @@ export default function TopNav() {
 
           {isAdminRoute ? (
             <nav aria-label="Admin sections" className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 md:flex">
-              {ADMIN_ITEMS.map((it) => {
+              {adminItems.map((it) => {
                 const active = isAdminItemActive(pathname, it.href);
                 return (
                   <Link
@@ -204,7 +233,7 @@ export default function TopNav() {
                 </Link>
               );
             })}
-            {ADMIN_ITEMS.map((it) => {
+            {adminItems.map((it) => {
               const active = isAdminItemActive(pathname, it.href);
               return (
                 <Link

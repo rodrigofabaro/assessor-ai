@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestSession, isOrganizationScopeAvailable } from "@/lib/auth/requestSession";
 import { prisma } from "@/lib/prisma";
+import { ensureSuperAdminOrganization } from "@/lib/organizations/defaults";
 import { isSuperAdminPlatformRole } from "@/lib/organizations/membership";
 import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 
@@ -73,10 +74,12 @@ export async function GET() {
   const isEnvSession = session.userId.startsWith("env:");
 
   if (isEnvSession) {
+    const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
+    const preferredOrgId = String(superAdminOrg?.id || "").trim() || null;
     const organizations = await listActiveOrganizationsSafe();
     return NextResponse.json({
       organizations,
-      activeOrganizationId,
+      activeOrganizationId: activeOrganizationId || preferredOrgId,
       isSuperAdmin: true,
       source: "env",
     });
@@ -152,10 +155,12 @@ export async function GET() {
   const isSuperAdmin =
     ("platformRole" in user ? isSuperAdminPlatformRole(user.platformRole) : false) || !!session.isSuperAdmin;
   if (isSuperAdmin) {
+    const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
+    const preferredOrgId = String(superAdminOrg?.id || "").trim() || null;
     const organizations = await listActiveOrganizationsSafe();
     return NextResponse.json({
       organizations,
-      activeOrganizationId,
+      activeOrganizationId: activeOrganizationId || preferredOrgId,
       isSuperAdmin: true,
       source: "super-admin",
     });

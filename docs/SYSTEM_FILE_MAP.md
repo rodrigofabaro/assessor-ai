@@ -1,6 +1,6 @@
 # System File Map
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 ## Purpose
 
@@ -43,6 +43,7 @@ Technical index of what each major file area does, so implementation work stays 
 - `app/admin/layout.tsx`, `app/admin/AdminShell.tsx`: admin layout/nav shell.
 - `app/admin/page.tsx`: admin overview entry.
 - `app/admin/audit/page.tsx`, `app/admin/users/page.tsx`: audit/user administration.
+- `app/admin/developer/page.tsx`, `app/admin/developer/DeveloperPageClient.tsx`: super-admin developer console (organization lifecycle + org config/secrets).
 - `app/admin/settings/*`: settings sections and client wrapper.
 - `app/admin/briefs/*`: brief list/detail workflows, tabs, task editing/override UI, extraction workbench.
 - `app/admin/specs/*`: specs admin view, logic and UI composition.

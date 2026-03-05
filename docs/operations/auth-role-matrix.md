@@ -1,6 +1,6 @@
 # Auth + Role Matrix (M9 Foundation)
 
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 This is the canonical role access matrix for phased auth rollout.
 
@@ -8,6 +8,7 @@ This is the canonical role access matrix for phased auth rollout.
 
 0. `SUPER_ADMIN` (platform role)
 - Platform-wide control across all organizations, users, and organization configuration.
+- Default organization scope target: `assessor-ai` (slug) for session bootstrap/login fallback.
 
 1. `ADMIN`
 - Full admin + API mutation rights.
@@ -54,6 +55,7 @@ Session bootstrap endpoint:
 
 1. `/admin/*`
 - allowed roles: `ADMIN`
+- `SUPER_ADMIN`-specific screens (for example `/admin/developer`) additionally enforce `session.isSuperAdmin` at route level.
 
 2. `/api/admin/*`
 - allowed roles: `ADMIN`

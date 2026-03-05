@@ -1,6 +1,6 @@
 # Help Center Index
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 This folder contains route-by-route operator help.
 
@@ -21,6 +21,7 @@ Canonical references for planning and release status:
 - `docs/help/admin-reference.md` - reference inbox and extract/lock lifecycle
 - `docs/operations/pearson-spec-master-workflow.md` - scripted Pearson engineering suite extract/import/repair/lock runbook
 - `docs/help/admin-settings.md` - AI/grading/app policy controls, audit-safe save flow, and Turnitin config
+- `docs/help/admin-developer.md` - super-admin organization lifecycle and tenant config/secrets console
 - `docs/help/admin-qa.md` - QA analytics plus Turnitin send/status/report workflow
   - includes QA -> IV-AD in-row generation/download workflow and Pearson QA decision checks
 

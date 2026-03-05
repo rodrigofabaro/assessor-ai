@@ -1,6 +1,6 @@
 # `/admin/audit` and `/admin/users` Help
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 
 ## `/admin/audit`
@@ -37,7 +37,13 @@ Manage app users and active audit actor identity.
 - Create/edit active users
 - Set active audit user
 - Monitor active user count and role spread
+- Trigger password recovery emails / credential resets
+- Assign organization when creating users
 
 ### Important behavior
 Assessor identity in grading and feedback workflows is derived from active audit user policy.
+
+Organization lifecycle and per-organization configuration are managed in:
+
+- `/admin/developer` (SUPER_ADMIN only)
 

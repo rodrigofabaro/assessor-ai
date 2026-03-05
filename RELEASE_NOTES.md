@@ -216,11 +216,17 @@ Last updated: 2026-03-05
    - added runtime compatibility guard in `appendOpsEvent` so environments with older Prisma client/missing migration safely fall back to file log
    - deploy smoke pass after guard: `docs/evidence/deploy-smoke/20260303-171515.json`
 27. M8 `must-migrate` execution slice 2 (settings audit):
-   - added Prisma model + migration for settings audit events: `AdminSettingsAuditEvent`
-   - switched `appendSettingsAuditEvent` to DB primary write with file fallback (`.settings-audit.json`)
-   - switched `/api/admin/settings-audit` to DB primary read with file fallback
-   - updated persistence classification and roadmap blocker list to reflect completed migration
-28. M8 `must-migrate` execution slice 3 (OpenAI usage telemetry):
+  - added Prisma model + migration for settings audit events: `AdminSettingsAuditEvent`
+  - switched `appendSettingsAuditEvent` to DB primary write with file fallback (`.settings-audit.json`)
+  - switched `/api/admin/settings-audit` to DB primary read with file fallback
+  - updated persistence classification and roadmap blocker list to reflect completed migration
+28. Super-admin developer console + org scope defaults:
+  - added new super-admin route `/admin/developer` with route-level access guard (`session.isSuperAdmin` / env super-admin)
+  - moved organization lifecycle and per-organization config/secret controls into developer console
+  - updated top admin navigation to surface `Developer` only for super-admin sessions
+  - `/admin/settings/organization` now redirects to `/admin/developer#organization-settings`
+  - added super-admin default organization target `assessor-ai` via `ensureSuperAdminOrganization()` and wired login/session/org APIs to prefer it
+29. M8 `must-migrate` execution slice 3 (OpenAI usage telemetry):
    - added Prisma model + migration for usage telemetry: `OpenAiUsageEvent`
    - switched `recordOpenAiUsage` to DB primary write with file fallback (`.openai-usage-log.jsonl`)
    - switched `readOpenAiUsageHistory` to DB primary read with file fallback and updated `/api/admin/openai-usage` to await async history read

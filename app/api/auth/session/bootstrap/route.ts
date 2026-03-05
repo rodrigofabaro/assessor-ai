@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { createSignedSessionToken, getSessionCookieName, hasSessionSecret } from "@/lib/auth/session";
-import { ensureDefaultOrganization } from "@/lib/organizations/defaults";
+import { ensureDefaultOrganization, ensureSuperAdminOrganization } from "@/lib/organizations/defaults";
 import { prisma } from "@/lib/prisma";
 import {
   isSuperAdminPlatformRole,
@@ -109,15 +109,24 @@ export async function POST() {
   const defaultOrg = await ensureDefaultOrganization();
   let orgId =
     String(primaryMembership?.organizationId || user?.organizationId || defaultOrg.id || "").trim() || null;
+  let superAdminOrgId: string | null = null;
 
-  if (user?.isActive && role && !isSuperAdmin) {
+  if (isSuperAdmin) {
+    const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
+    superAdminOrgId = String(superAdminOrg?.id || "").trim() || null;
+    if (superAdminOrgId) orgId = superAdminOrgId;
+  }
+
+  if (user?.isActive && role) {
     try {
       const ensured = await ensureUserOrganizationScope({
         userId: user.id,
         appRole: role,
         preferredOrgId: orgId,
       });
-      if (String(ensured.orgId || "").trim()) {
+      if (superAdminOrgId) {
+        orgId = superAdminOrgId;
+      } else if (String(ensured.orgId || "").trim()) {
         orgId = String(ensured.orgId || "").trim();
       }
     } catch {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getRequestSession } from "@/lib/auth/requestSession";
 import { QueueTermsCard } from "@/components/submissions/QueueTermsCard";
 
 export const dynamic = "force-dynamic";
@@ -175,6 +176,8 @@ function ActionCard({
 }
 
 export default async function AdminIndex() {
+  const session = await getRequestSession();
+  const isSuperAdmin = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
   const [
     totalSubmissions,
     totalStudents,
@@ -375,6 +378,15 @@ export default async function AdminIndex() {
         <ActionCard title="Audit Log" desc="Inspect trace events for extraction, scope changes, grading runs, and operational overrides." href="/admin/audit" cta="Go to Audit" icon="audit" />
         <ActionCard title="Settings" desc="Adjust global model and policy defaults used by extraction and grading workflows." href="/admin/settings" cta="Open Settings" icon="settings" />
         <ActionCard title="Bindings" desc="Validate assignment-to-brief bindings so grading resolves against the intended locked criteria set." href="/admin/bindings" cta="Open Bindings" icon="bindings" />
+        {isSuperAdmin ? (
+          <ActionCard
+            title="Developer"
+            desc="Platform-level controls for organizations, tenant settings, and encrypted integration keys."
+            href="/admin/developer"
+            cta="Open Developer"
+            icon="settings"
+          />
+        ) : null}
       </section>
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600 shadow-sm">
         Advanced ops pages:{" "}

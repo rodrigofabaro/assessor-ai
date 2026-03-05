@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getSessionCookieName, verifySignedSessionToken } from "@/lib/auth/session";
+import { ensureSuperAdminOrganization } from "@/lib/organizations/defaults";
 import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 import { prisma } from "@/lib/prisma";
 
@@ -45,9 +46,15 @@ export async function getRequestSession() {
   if (String(session.userId || "").startsWith("env:")) return session;
 
   try {
+    let preferredOrgId: string | null = null;
+    if (session.isSuperAdmin) {
+      const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
+      preferredOrgId = String(superAdminOrg?.id || "").trim() || null;
+    }
     const ensured = await ensureUserOrganizationScope({
       userId: session.userId,
       appRole: session.role,
+      preferredOrgId,
     });
     if (String(ensured.orgId || "").trim()) {
       return {

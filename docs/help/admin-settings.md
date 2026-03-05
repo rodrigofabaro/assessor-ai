@@ -1,6 +1,6 @@
 # `/admin/settings` Help
 
-Last updated: 2026-02-21
+Last updated: 2026-03-05
 
 ## Purpose
 
@@ -11,6 +11,10 @@ Configure platform behavior in three scoped sections:
 3. `App`: audit actor, automation policy, branding, and Turnitin
 
 This page is the policy control surface for operations and QA.
+
+Super-admin-only controls (organization lifecycle + per-organization secrets/config) are now in:
+
+- `/admin/developer`
 
 ## Section map
 
