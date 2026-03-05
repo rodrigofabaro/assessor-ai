@@ -1,6 +1,6 @@
 # Assessor-AI Roadmap Index
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 Documentation governance:
 - See `docs/DOCS_SYSTEM.md` for rules on canonical vs supporting docs.
@@ -23,9 +23,9 @@ Use these categories for all planning updates.
 
 1. Priorities (Now)
    - Active implementation queue in `docs/Milestones.md`:
-     - `M7 Export packs`
-     - `Next implementation queue (2026-03-02)`
-     - `Roadmap continuation queue (2026-03-03)`
+     - `P0 M8 storage deployment setup/fix`
+     - `P0 M9 password recovery email enablement`
+     - `M10 multi-organization tenant isolation foundation`
 2. Developments (Next)
    - Planned roadmap milestones in `docs/Milestones.md`:
      - `M8 Production Deployment & Cost-Controlled Scaling`

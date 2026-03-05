@@ -1,6 +1,6 @@
 # Assessor-AI Unified Roadmap
 
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 ## Purpose
 
@@ -26,12 +26,27 @@ Use this doc when the instruction is: "continue the roadmap".
    - temporary emergency auth removed
    - deploy-smoke still blocked at upload `create_submission`
    - storage target locations are not configured yet
+5. Today priority update (2026-03-05):
+   - P0: set/fix production storage deployment targets and unblock upload deploy-smoke
+   - P0: enable password recovery email flow (no manual recovery path)
 
 ## Execution lanes
 
 ### Now (in progress)
 
-1. M8 first production deployment blocker removal
+1. P0 M8 storage deployment finalization (today)
+- define production storage target location/credentials and set runtime envs
+- finalize `FILE_STORAGE_ROOT` strategy per environment (Local/Preview/Production)
+- verify upload create path in production (`/api/submissions/upload`) passes consistently
+- capture fresh deploy-smoke PASS evidence after storage target is set
+
+2. P0 M9 password recovery email enablement (today)
+- enable transactional email provider for password recovery path (not `mailto` fallback)
+- implement/verify password recovery email flow for locked users
+- required envs: `AUTH_INVITE_EMAIL_PROVIDER`, `RESEND_API_KEY`, `AUTH_EMAIL_FROM`
+- add operational check for recovery-email delivery in release gate/runbook
+
+3. M8 first production deployment blocker removal
 - replace direct local filesystem dependency with storage provider abstraction
 - migrate highest-risk write/read paths first (`submissions`, `reference documents`, export artifacts)
 - keep backward-compatible resolver for existing local `storagePath` values
@@ -78,12 +93,12 @@ Use this doc when the instruction is: "continue the roadmap".
 - OpenAI model config now persists via DB (`AppConfig.openaiModelConfig`) with runtime cache hydration + file fallback.
 - Deploy smoke evidence after this slice: `docs/evidence/deploy-smoke/20260303-172621.json`.
 
-2. Extraction and admin performance hardening
+4. Extraction and admin performance hardening
 - brief extraction regression stabilization
 - reference inbox pagination/projection optimization
 - submission detail heavy-panel render optimization
 
-3. QA reliability instrumentation
+5. QA reliability instrumentation
 - preview/commit/regrade latency metrics
 - p50/p95 + retry/failure dashboard cards
 
@@ -247,8 +262,9 @@ Still missing (highest impact first):
 - Run one explicit restore simulation following `docs/operations/storage-migration-rollback.md`.
 - Store drill evidence under `docs/evidence/`.
 
-7. Optional provider enablement (deferred by operator decision).
-- Transactional email sending (`AUTH_INVITE_EMAIL_PROVIDER=resend`) remains deferred.
+7. Password recovery email delivery enablement (now prioritized).
+- Move from deferred state to active implementation.
+- Recovery flow must be operator-free once provider is configured.
 
 ### Pre-deploy
 

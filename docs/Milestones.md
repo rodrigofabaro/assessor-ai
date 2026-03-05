@@ -1,6 +1,6 @@
 # Assessor‑AI — Milestones
 
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 Canonical planning source:
 - `docs/ROADMAP.md` (index)
@@ -21,8 +21,8 @@ Status labels:
 ## Tracking lanes (canonical)
 
 ### Priorities (Now)
-- M7 export-pack endpoint/UI and deterministic replay.
-- Next implementation queue (performance, instrumentation, extraction stabilization).
+- P0: M8 storage deployment setup/fix (set storage target, unblock upload deploy-smoke).
+- P0: M9 password recovery email enablement (provider + recovery flow).
 - M10 multi-organization tenant isolation foundation (global users + org memberships + scoped settings).
 
 ### Developments (Next)
@@ -34,6 +34,7 @@ Status labels:
 - M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production + production OpenAI key scopes (`api.responses.write`) for grade/extraction.
 - Operator-confirmed (2026-03-04): production storage places are not configured yet.
 - Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
+- Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
 
 ### Bugs and Risks (Stabilization)
 - Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.
@@ -423,6 +424,7 @@ Phase 7 progress (2026-03-03):
 - Implement login page and session management.
 - Add role-based access checks for `Admin`, `Assessor`, `IV` routes/actions.
 - Add invite/reset/logout flows and auth audit events.
+- Add password recovery email flow as production-first capability (no manual emergency recovery).
 - Extend identity model to support:
   - global role: `SUPER_ADMIN`
   - organization membership roles: `ORG_ADMIN`, `ASSESSOR`, `IV` (plus optional read-only role).
@@ -454,6 +456,7 @@ Phase 7 progress (2026-03-03):
 - p95 page/API latency targets are defined and met on production-like dataset.
 - Help pages and screenshots match shipped UI.
 - Tutor can run upload-to-marked-output flow without expert intervention.
+- Locked user can recover access via email-driven reset path with auditable token flow.
 
 ---
 
