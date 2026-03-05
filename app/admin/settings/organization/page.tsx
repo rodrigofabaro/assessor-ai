@@ -17,6 +17,7 @@ type OrgSettingsResponse = {
   organization?: { id: string; name: string; slug: string; isActive: boolean };
   settings?: { id: string; config?: Record<string, unknown> | null; updatedAt?: string } | null;
   secrets?: Array<{ secretName: string; rotatedAt?: string | null; updatedAt?: string }>;
+  warning?: string;
 };
 
 function prettyJson(value: unknown) {
@@ -57,8 +58,17 @@ export default function OrganizationSettingsPage() {
         throw new Error("Failed to load organization access.");
       }
       const rows = Array.isArray(json.organizations) ? json.organizations : [];
-      setOrganizations(rows.filter((org) => org.isActive));
-      setSelectedOrgId((prev) => prev || String(json.activeOrganizationId || rows[0]?.id || ""));
+      const activeRows = rows.filter((org) => org.isActive);
+      setOrganizations(activeRows);
+      setSelectedOrgId((prev) => {
+        if (prev && activeRows.some((org) => org.id === prev)) return prev;
+        return String(json.activeOrganizationId || activeRows[0]?.id || "");
+      });
+      if (!activeRows.length) {
+        setConfigDraft("{}");
+        setSecretNames([]);
+        setMessage("No active organization is linked to this account yet.");
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to load organization access.";
       setError(message);
@@ -84,6 +94,9 @@ export default function OrganizationSettingsPage() {
         ? json.secrets.map((row) => String(row.secretName || "").trim()).filter(Boolean)
         : [];
       setSecretNames(names);
+      if (json.warning) {
+        setMessage(String(json.warning));
+      }
       setOpenAiKey("");
       setTurnitinKey("");
       setSmtpKey("");
@@ -171,8 +184,10 @@ export default function OrganizationSettingsPage() {
             <select
               value={selectedOrgId}
               onChange={(event) => setSelectedOrgId(event.target.value)}
+              disabled={!organizations.length}
               className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
             >
+              {!organizations.length ? <option value="">No active organizations</option> : null}
               {organizations.map((org) => (
                 <option key={org.id} value={org.id}>
                   {org.name}
@@ -210,6 +225,7 @@ export default function OrganizationSettingsPage() {
           onChange={(event) => setConfigDraft(event.target.value)}
           rows={12}
           spellCheck={false}
+          disabled={!selectedOrgId}
           className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900"
         />
       </section>
@@ -225,6 +241,7 @@ export default function OrganizationSettingsPage() {
             placeholder="OpenAI API key (leave empty to keep current value)"
             value={openAiKey}
             onChange={(event) => setOpenAiKey(event.target.value)}
+            disabled={!selectedOrgId}
             className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
           />
           <input
@@ -232,6 +249,7 @@ export default function OrganizationSettingsPage() {
             placeholder="Turnitin API key (leave empty to keep current value)"
             value={turnitinKey}
             onChange={(event) => setTurnitinKey(event.target.value)}
+            disabled={!selectedOrgId}
             className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
           />
           <input
@@ -239,6 +257,7 @@ export default function OrganizationSettingsPage() {
             placeholder="SMTP/API key (leave empty to keep current value)"
             value={smtpKey}
             onChange={(event) => setSmtpKey(event.target.value)}
+            disabled={!selectedOrgId}
             className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
           />
         </div>
