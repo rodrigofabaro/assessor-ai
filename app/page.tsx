@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +8,43 @@ import { TinyIcon } from "@/components/ui/TinyIcon";
 export const dynamic = "force-dynamic";
 
 type TinyIconName = "reference" | "submissions" | "audit" | "upload" | "qa" | "users" | "app" | "workflow";
-type AccentTone = "sky" | "cyan" | "emerald" | "indigo" | "violet" | "amber" | "slate";
+
+const landingWorkflow = [
+  {
+    title: "Upload submission",
+    detail: "Bring in student work with assignment context and assessor ownership.",
+  },
+  {
+    title: "Evidence extraction",
+    detail: "Pull structured evidence from files so criteria checks start with real content.",
+  },
+  {
+    title: "Criteria mapping",
+    detail: "Link extracted evidence to locked unit criteria and grading expectations.",
+  },
+  {
+    title: "AI grading",
+    detail: "Generate draft decisions and feedback while the assessor stays in control.",
+  },
+  {
+    title: "Audit-ready output",
+    detail: "Export moderation-ready decisions with traceable rationale and history.",
+  },
+] as const;
+
+const workflowAssurancePoints = [
+  "Pearson HN compatible grading structure",
+  "Evidence-linked criteria decisions",
+  "Moderation-ready outputs",
+  "Full audit history",
+] as const;
+
+const workflowFitTags = [
+  "Vocational training providers",
+  "Awarding bodies",
+  "Internal quality assurance teams",
+  "Independent assessors",
+] as const;
 
 function StatCard({
   label,
@@ -23,70 +60,6 @@ function StatCard({
       <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
       <div className="mt-1 text-2xl font-semibold text-zinc-900">{value || "0"}</div>
       <p className="mt-1 text-xs text-zinc-600">{hint}</p>
-    </article>
-  );
-}
-
-function MarketingCard({
-  icon,
-  title,
-  description,
-  bullets,
-  accent,
-  className = "",
-}: {
-  icon: TinyIconName;
-  title: string;
-  description: string;
-  bullets: string[];
-  accent: AccentTone;
-  className?: string;
-}) {
-  const accentBar =
-    accent === "emerald"
-      ? "bg-emerald-500"
-      : accent === "cyan"
-        ? "bg-cyan-500"
-        : accent === "indigo"
-          ? "bg-indigo-500"
-          : accent === "violet"
-            ? "bg-violet-500"
-            : accent === "amber"
-              ? "bg-amber-500"
-              : accent === "slate"
-                ? "bg-slate-500"
-                : "bg-sky-500";
-  const accentIcon =
-    accent === "emerald"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-      : accent === "cyan"
-        ? "border-cyan-100 bg-cyan-50 text-cyan-800"
-        : accent === "indigo"
-          ? "border-indigo-100 bg-indigo-50 text-indigo-800"
-          : accent === "violet"
-            ? "border-violet-100 bg-violet-50 text-violet-800"
-            : accent === "amber"
-              ? "border-amber-100 bg-amber-50 text-amber-800"
-              : accent === "slate"
-                ? "border-slate-100 bg-slate-50 text-slate-800"
-                : "border-sky-100 bg-sky-50 text-sky-800";
-  return (
-    <article className={`rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm ${className}`.trim()}>
-      <div className={"mb-4 h-1 w-14 rounded-full " + accentBar} />
-      <h2 className="inline-flex items-center gap-2 text-base font-semibold text-zinc-900">
-        <span className={"inline-flex h-8 w-8 items-center justify-center rounded-lg border " + accentIcon}>
-          <TinyIcon name={icon} className="h-4 w-4" />
-        </span>
-        {title}
-      </h2>
-      <p className="mt-3 text-[15px] leading-7 text-zinc-700">{description}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {bullets.map((b) => (
-          <span key={b} className={"inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold " + accentIcon}>
-            {b}
-          </span>
-        ))}
-      </div>
     </article>
   );
 }
@@ -169,170 +142,173 @@ export default async function LandingPage() {
   if (!session) {
     return (
       <div className="grid gap-6 sm:gap-7">
-        <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-zinc-50 to-slate-100/80" />
-          <div className="relative grid items-center gap-5 p-8 sm:p-11 lg:grid-cols-[1.15fr_0.85fr]">
+        <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-sm">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.24),transparent_45%)]" />
+          <div className="relative grid items-start gap-6 p-8 sm:p-11 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
-              <p className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-                Defensible assessment operations
+              <p className="inline-flex rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-200">
+                Assessment infrastructure for vocational education
               </p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">
-                Defensible AI-assisted grading for vocational assessment.
+              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Mark vocational assignments in minutes with a full Pearson-ready audit trail.
               </h1>
-              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-700 sm:text-base">
-                Upload submissions, extract evidence, grade against locked criteria, and generate moderation-ready outputs with a complete audit trail.
+              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-200 sm:text-base">
+                AI-assisted grading that keeps assessors in control, maps evidence against locked criteria, and delivers moderation-ready decisions by default.
               </p>
-
-              <div className="mt-5 flex flex-wrap items-center gap-2.5">
+              <p className="mt-4 max-w-2xl text-sm text-sky-100">
+                ChatGPT gives an opinion. Assessor AI gives a defensible assessment decision with an audit trail.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-2.5">
                 <Link
                   href="/login"
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-500 px-4 text-sm font-semibold text-slate-950 hover:bg-sky-400"
                 >
                   Start grading submissions
                 </Link>
                 <Link
                   href="#how-it-works"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-600 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800"
                 >
-                  See how it works
+                  See the workflow
                 </Link>
               </div>
             </div>
 
-            <aside className="rounded-2xl border border-zinc-200 bg-gradient-to-b from-white to-zinc-50 p-3.5 shadow-sm sm:p-4">
-              <h2 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-700">
-                  <TinyIcon name="app" className="h-3.5 w-3.5" />
+            <aside className="rounded-2xl border border-slate-700 bg-slate-900/90 p-4">
+              <h2 className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-600 bg-slate-800 text-sky-200">
+                  <TinyIcon name="workflow" className="h-4 w-4" />
                 </span>
-                Platform at a glance
+                Tomorrow feels lighter
               </h2>
-              <div className="mt-2.5 grid gap-2">
-                <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Reference layer</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Lock specifications and assignment briefs so grading always references the correct criteria version.</p>
-                </div>
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Assessment flow</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Upload submissions, extract evidence, map it to assessment criteria, and generate grading decisions and feedback.</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">Assurance</div>
-                  <p className="mt-0.5 text-sm text-zinc-700">Maintain a full audit trail with IV-AD generation and Turnitin checks for moderation workflows.</p>
-                </div>
-              </div>
+              <ul className="mt-3 grid gap-2 text-sm text-slate-200">
+                {[
+                  "Single controlled workflow from upload to audit output",
+                  "Criteria alignment locked to the correct version",
+                  "Assessor-reviewable AI suggestions, not black-box automation",
+                  "Moderation evidence stays attached to every decision",
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sky-300" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
             </aside>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Built for</div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {[
-              "Vocational training providers",
-              "Awarding bodies",
-              "Internal quality assurance teams",
-              "Independent assessors",
-            ].map((label) => (
-              <span key={label} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-                {label}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <section id="features" className="grid auto-rows-fr gap-3 md:grid-cols-3">
-          <MarketingCard
-            icon="reference"
-            title="Reference Governance"
-            description="Lock specifications and assignment briefs so grading always references the correct criteria version."
-            bullets={["Version control", "Lock controls"]}
-            accent="indigo"
-          />
-          <MarketingCard
-            icon="submissions"
-            title="Evidence Workflow"
-            description="Extract evidence from submissions, map it to criteria, and generate grading feedback in one structured workflow."
-            bullets={["Evidence extraction", "Criteria mapping"]}
-            accent="emerald"
-          />
-          <MarketingCard
-            icon="audit"
-            title="Moderation Confidence"
-            description="Maintain a complete audit trail of grading decisions for internal verification, QA, and external moderation."
-            bullets={["Audit trail", "IV + Turnitin checks"]}
-            accent="slate"
-          />
-        </section>
-
-        <section id="how-it-works" className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-xl border border-orange-200 bg-orange-50/55 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-orange-800">Assessment today is messy</p>
-              <div className="mt-2 grid gap-2 text-sm text-zinc-700">
-                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Submissions arrive in mixed formats</div>
-                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Criteria mapping is manual and inconsistent</div>
-                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Moderation evidence is spread across tools</div>
-                <div className="rounded-lg border border-orange-200 bg-white/80 px-3 py-2">Audit history is hard to reconstruct</div>
-              </div>
-              <p className="mt-3 text-sm font-semibold text-zinc-900">Assessor AI replaces this with a single controlled assessment pipeline.</p>
+        <section id="how-it-works" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">From submission intake to audit-ready output</h2>
             </div>
-
-            <div className="rounded-xl border border-zinc-200 bg-white p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">How Assessor AI works</p>
-              <ol className="mt-2 grid gap-2 text-sm text-zinc-700">
-                {[
-                  "Upload student submission",
-                  "Extract evidence from the document",
-                  "Map evidence to assignment criteria",
-                  "Generate grading decisions and structured feedback",
-                  "Review and export moderation-ready outputs",
-                ].map((step, idx) => (
-                  <li key={step} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-700">
+            <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              One controlled pipeline
+            </span>
+          </div>
+          <div className="mt-5 overflow-x-auto">
+            <ol className="flex min-w-[980px] items-stretch gap-2 pb-1">
+              {landingWorkflow.map((step, idx) => (
+                <li key={step.title} className="flex items-center gap-2">
+                  <div className="w-44 rounded-2xl border border-sky-200 bg-sky-50/80 p-3">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-200 bg-white text-xs font-semibold text-sky-700">
                       {idx + 1}
                     </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-700">{step.detail}</p>
+                  </div>
+                  {idx < landingWorkflow.length - 1 ? <span className="text-xl font-semibold text-sky-500">→</span> : null}
+                </li>
+              ))}
+            </ol>
           </div>
+        </section>
 
-          <div className="mt-4 border-t border-zinc-200 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Built for regulated assessment environments</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {[
-                "Pearson BTEC-style workflows",
-                "Internal verification (IV) operations",
-                "Turnitin integrity checks",
-                "Moderation and audit requirements",
-                "Role and organisation-based access",
-                "Invite-email onboarding for teams",
-              ].map((item) => (
-                <span key={item} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-                  {item}
+        <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Built for vocational assessment workflows</p>
+            <ul className="mt-3 grid gap-2 text-sm text-slate-700">
+              {workflowAssurancePoints.map((point) => (
+                <li key={point} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sky-500" />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Operational fit</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              Assessor AI behaves like an assessment engine, not a standalone chatbot. It supports the day-to-day operations that teams need for defensible grading.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {workflowFitTags.map((tag) => (
+                <span key={tag} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {tag}
                 </span>
               ))}
             </div>
-          </div>
+            <p className="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-slate-900">
+              ChatGPT gives an opinion. Assessor AI gives a defensible assessment decision with an audit trail.
+            </p>
+          </article>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">What teams gain with Assessor AI</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              "Faster grading turnaround",
-              "Consistent criteria application",
-              "Clear moderation evidence",
-              "Reduced QA rework",
-              "Complete audit traceability",
-              "Standardised grading across teams",
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                <span>{item}</span>
-              </div>
-            ))}
+        <section id="output-preview" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Output preview</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Show the result, not just the promise</h2>
+            </div>
+            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+              Real product screenshots
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+            <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+              <Image
+                src="/help/screenshots/operations-playbook-submission-detail.png"
+                alt="Submission workspace showing evidence mapping and AI-assisted grading feedback."
+                width={1569}
+                height={966}
+                className="h-auto w-full"
+                priority
+              />
+              <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                AI feedback panel with criteria-linked evidence and assessor decision context.
+              </figcaption>
+            </figure>
+
+            <div className="grid gap-3">
+              <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                <Image
+                  src="/help/screenshots/admin-briefs-criteria-mapping.png"
+                  alt="Criteria mapping interface linking assignment tasks to grading criteria."
+                  width={1310}
+                  height={481}
+                  className="h-auto w-full"
+                />
+                <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                  Criteria mapping interface for controlled evidence-to-criterion alignment.
+                </figcaption>
+              </figure>
+              <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                <Image
+                  src="/help/screenshots/operations-playbook-queue.png"
+                  alt="Submission queue view used for moderation and grading operations."
+                  width={1600}
+                  height={2200}
+                  className="h-auto w-full"
+                />
+                <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                  Queue and status controls that support moderation and audit review.
+                </figcaption>
+              </figure>
+            </div>
           </div>
         </section>
       </div>
