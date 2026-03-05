@@ -22,7 +22,7 @@ function isApiPath(pathname: string) {
 function isPublicPath(pathname: string) {
   if (pathname === "/" || pathname === "/login" || pathname.startsWith("/login/")) return true;
   if (pathname === "/api/auth/login" || pathname === "/api/auth/logout") return true;
-  if (pathname === "/api/auth/password-reset") return true;
+  if (pathname === "/api/auth/password-reset" || pathname === "/api/auth/password-recovery") return true;
   if (pathname === "/api/auth/session/bootstrap" || pathname === "/api/auth/role-sync") return true;
   return false;
 }
@@ -41,7 +41,7 @@ export async function middleware(req: NextRequest) {
   const role = await resolveRole(req);
   if (isLoginPath && role) {
     const url = req.nextUrl.clone();
-    url.pathname = "/admin";
+    url.pathname = "/";
     url.search = "";
     return NextResponse.redirect(url);
   }

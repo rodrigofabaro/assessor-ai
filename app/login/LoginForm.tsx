@@ -8,7 +8,7 @@ type LoginFormProps = {
 
 function normalizeNextPath(value: string) {
   const next = String(value || "").trim();
-  if (!next.startsWith("/") || next.startsWith("//")) return "/admin";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/";
   return next;
 }
 
@@ -43,6 +43,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetRequired, setResetRequired] = useState(false);
+  const [recoveryNotice, setRecoveryNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,6 +51,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
     event.preventDefault();
     if (busy) return;
     setError("");
+    setRecoveryNotice("");
     setBusy(true);
     try {
       const { response, payload } = await loginRequest(username, password);
@@ -79,6 +81,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       return;
     }
     setError("");
+    setRecoveryNotice("");
     setBusy(true);
     try {
       const resetRes = await fetch("/api/auth/password-reset", {
@@ -110,6 +113,40 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
     }
   }
 
+  async function onRequestRecovery() {
+    if (busy) return;
+    const email = String(username || "").trim();
+    if (!email) {
+      setError("Enter your username/email first, then request password recovery.");
+      return;
+    }
+    setError("");
+    setRecoveryNotice("");
+    setBusy(true);
+    try {
+      const response = await fetch("/api/auth/password-recovery", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: email }),
+      });
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!response.ok) {
+        setError(readErrorMessage(payload));
+        return;
+      }
+      const message =
+        payload && typeof payload === "object" && typeof (payload as { message?: unknown }).message === "string"
+          ? String((payload as { message: string }).message).trim()
+          : "If the account exists, a recovery email has been sent.";
+      setRecoveryNotice(message);
+    } catch {
+      setError("Network error while requesting password recovery.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-md px-4 py-16">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -130,7 +167,17 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-zinc-700">Password</span>
+            <span className="mb-1 flex items-center justify-between text-sm font-medium text-zinc-700">
+              <span>Password</span>
+              <button
+                type="button"
+                onClick={() => void onRequestRecovery()}
+                disabled={busy}
+                className="text-xs font-semibold text-sky-700 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Forgot password?
+              </button>
+            </span>
             <input
               type="password"
               autoComplete="current-password"
@@ -142,6 +189,9 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           </label>
 
           {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+          {recoveryNotice ? (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{recoveryNotice}</p>
+          ) : null}
 
           {resetRequired ? (
             <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
