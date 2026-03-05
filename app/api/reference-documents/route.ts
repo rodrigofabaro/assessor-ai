@@ -5,6 +5,15 @@ import crypto from "crypto";
 import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
+function isOrgScopeCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2022") return true;
+  if (msg.includes("organizationid") && msg.includes("does not exist")) return true;
+  if (msg.includes("unknown argument") && msg.includes("organizationid")) return true;
+  return false;
+}
+
 function safeName(name: string) {
   // keep it filesystem-safe and predictable
   return (name || "upload")
@@ -282,19 +291,35 @@ export async function POST(req: Request) {
       if (framework) sourceMeta.framework = framework;
       if (category) sourceMeta.category = category;
 
-      const doc = await prisma.referenceDocument.create({
-        data: {
-          type: type as any,
-          title,
-          version,
-          originalFilename: file.name,
-          storedFilename,
-          storagePath: saved.storagePath,
-          checksumSha256,
-          sourceMeta: Object.keys(sourceMeta).length ? (sourceMeta as any) : undefined,
-          organizationId,
-        },
-      });
+      const baseCreateData = {
+        type: type as any,
+        title,
+        version,
+        originalFilename: file.name,
+        storedFilename,
+        storagePath: saved.storagePath,
+        checksumSha256,
+        sourceMeta: Object.keys(sourceMeta).length ? (sourceMeta as any) : undefined,
+      };
+
+      const scopedCreateData = organizationId
+        ? {
+            ...baseCreateData,
+            organizationId,
+          }
+        : baseCreateData;
+
+      let doc: Awaited<ReturnType<typeof prisma.referenceDocument.create>>;
+      try {
+        doc = await prisma.referenceDocument.create({
+          data: scopedCreateData as any,
+        });
+      } catch (createErr) {
+        if (!isOrgScopeCompatError(createErr)) throw createErr;
+        doc = await prisma.referenceDocument.create({
+          data: baseCreateData as any,
+        });
+      }
 
       documents.push(doc);
     }

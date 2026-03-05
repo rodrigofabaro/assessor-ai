@@ -7,6 +7,15 @@ import { getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 const MAX_REFERENCE_UPLOAD_BYTES = 250 * 1024 * 1024; // 250MB
 
+function isOrgScopeCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2022") return true;
+  if (msg.includes("organizationid") && msg.includes("does not exist")) return true;
+  if (msg.includes("unknown argument") && msg.includes("organizationid")) return true;
+  return false;
+}
+
 function safeName(name: string) {
   return (name || "upload")
     .replace(/\s+/g, " ")
@@ -176,19 +185,34 @@ export async function POST(req: Request) {
     if (framework) sourceMeta.framework = framework;
     if (category) sourceMeta.category = category;
 
-    const document = await prisma.referenceDocument.create({
-      data: {
-        type: type as any,
-        title,
-        version,
-        originalFilename,
-        storedFilename,
-        storagePath: blobMeta.url || blobUrl,
-        checksumSha256,
-        sourceMeta: sourceMeta as any,
-        organizationId,
-      },
-    });
+    const baseCreateData = {
+      type: type as any,
+      title,
+      version,
+      originalFilename,
+      storedFilename,
+      storagePath: blobMeta.url || blobUrl,
+      checksumSha256,
+      sourceMeta: sourceMeta as any,
+    };
+    const scopedCreateData = organizationId
+      ? {
+          ...baseCreateData,
+          organizationId,
+        }
+      : baseCreateData;
+
+    let document: Awaited<ReturnType<typeof prisma.referenceDocument.create>>;
+    try {
+      document = await prisma.referenceDocument.create({
+        data: scopedCreateData as any,
+      });
+    } catch (createErr) {
+      if (!isOrgScopeCompatError(createErr)) throw createErr;
+      document = await prisma.referenceDocument.create({
+        data: baseCreateData as any,
+      });
+    }
 
     return NextResponse.json({ document });
   } catch (error) {
@@ -202,4 +226,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
