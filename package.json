@@ -2,6 +2,9 @@
   "name": "assessor-ai-webapp",
   "private": true,
   "version": "0.1.0",
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:clean": "rimraf .next && next dev",
