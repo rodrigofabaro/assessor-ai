@@ -35,6 +35,8 @@ Status labels:
 - Operator-confirmed (2026-03-04): production storage places are not configured yet.
 - Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
+- Password recovery delivery progress (2026-03-05): `POST /api/auth/password-recovery` + login `Forgot password?` + release-gate contract check implemented; production provider activation still pending.
+- Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
 
 ### Bugs and Risks (Stabilization)
 - Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.

@@ -10,6 +10,8 @@ const tests = [
   "scripts/iv-ad-review-draft-schema.test.js",
   "scripts/export-pack-validation.test.js",
   "scripts/auth-scaffold-contract.test.js",
+  "scripts/password-recovery-contract.test.js",
+  "scripts/storage-deployment-contract.test.js",
 ];
 
 let failures = 0;

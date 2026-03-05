@@ -1,6 +1,6 @@
 # Ops Checklist (Reproducible)
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 Roadmap status:
 - Operations execution runbook (not canonical roadmap).
@@ -116,7 +116,17 @@ What it runs:
 1. `pnpm exec tsc --noEmit --incremental false`
 2. `pnpm run test:regression-pack`
 3. `pnpm run test:export-pack-validation`
-4. `pnpm run ops:deploy-smoke`
+4. `pnpm run ops:storage-contract`
+5. `pnpm run ops:password-recovery-contract`
+6. `pnpm run ops:deploy-smoke`
+
+Storage deployment contract behavior:
+- If `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
+- Set `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` in deploy/cutover environments to hard-fail when durable storage root is not configured.
+
+Password recovery contract behavior:
+- If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.
+- Set `AUTH_REQUIRE_RECOVERY_EMAIL=true` in deploy/cutover environments to hard-fail when recovery email provider is not configured.
 
 Output:
 - Writes `docs/evidence/release-gate/YYYYMMDD-HHMMSS.json`

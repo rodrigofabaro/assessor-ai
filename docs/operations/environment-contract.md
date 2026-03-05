@@ -1,6 +1,6 @@
 # Environment Contract
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 This is the canonical environment contract for deployment and runtime startup validation.
 
@@ -32,6 +32,7 @@ Overrides:
 - Force strict mode in any environment: `ENV_CONTRACT_ENFORCE=true`
 - Disable contract checks: `ENV_CONTRACT_DISABLE=true`
 - Require OpenAI key as hard-fail in production runtime: `ENV_CONTRACT_REQUIRE_OPENAI=true`
+- Require explicit durable storage root in deploy/cutover checks: `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`
 
 Current hard-fail defaults:
 - `DATABASE_URL`: hard-fail
@@ -79,7 +80,11 @@ Primary login mode:
 - `AUTH_INVITE_EMAIL_PROVIDER`
   - default: `none`
   - options: `none`, `resend`
-  - controls server-side invite email sending for generated credentials
+  - controls server-side invite email sending for generated credentials and password recovery delivery (`POST /api/auth/password-recovery`)
+
+- `AUTH_REQUIRE_RECOVERY_EMAIL`
+  - default: `false`
+  - when `true`, release gate requires active email provider configuration for password-recovery delivery
 
 - `AUTH_INVITE_EMAIL_DEFAULT_ON`
   - default: `false`
@@ -94,6 +99,11 @@ Primary login mode:
   - verified sender email address in Resend (e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
 
 ## Storage migration env (M8)
+
+- `ENV_CONTRACT_REQUIRE_STORAGE_ROOT`
+  - default: `false`
+  - when `true`, deployment gate requires `FILE_STORAGE_ROOT` to be an absolute non-temp path
+  - intended for preview/production cutover checks to block implicit local/tmp storage fallback
 
 - `FILE_STORAGE_ROOT`
   - optional

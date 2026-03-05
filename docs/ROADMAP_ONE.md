@@ -39,12 +39,26 @@ Use this doc when the instruction is: "continue the roadmap".
 - finalize `FILE_STORAGE_ROOT` strategy per environment (Local/Preview/Production)
 - verify upload create path in production (`/api/submissions/upload`) passes consistently
 - capture fresh deploy-smoke PASS evidence after storage target is set
+- Progress (2026-03-05): storage deployment contract gate in progress.
+- Added deploy gate contract command: `pnpm run ops:storage-contract`.
+- Release gate now includes storage deployment contract check before deploy smoke.
+- Added strict enforcement flag for cutover environments: `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
+- Remaining action: set durable storage root per runtime and capture fresh production deploy-smoke PASS evidence.
 
 2. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)
 - implement/verify password recovery email flow for locked users
 - required envs: `AUTH_INVITE_EMAIL_PROVIDER`, `RESEND_API_KEY`, `AUTH_EMAIL_FROM`
 - add operational check for recovery-email delivery in release gate/runbook
+- Progress (2026-03-05): password recovery flow implementation delivered.
+- Added `POST /api/auth/password-recovery`:
+  - accepts username/email and normalizes to login email
+  - generates temporary password, sets `mustResetPassword=true`, and sends recovery email
+  - rolls credentials back if delivery fails to avoid silent account lock-out
+- Login screen now includes `Forgot password?` flow wired to recovery endpoint.
+- Added deploy gate contract command: `pnpm run ops:password-recovery-contract`.
+- Release gate now includes password-recovery email contract check.
+- Remaining action: configure production provider and set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement.
 
 3. M8 first production deployment blocker removal
 - replace direct local filesystem dependency with storage provider abstraction
@@ -263,8 +277,8 @@ Still missing (highest impact first):
 - Store drill evidence under `docs/evidence/`.
 
 7. Password recovery email delivery enablement (now prioritized).
-- Move from deferred state to active implementation.
-- Recovery flow must be operator-free once provider is configured.
+- Status (2026-03-05): API + login UX + gate contract delivered.
+- Remaining: production Resend key/sender setup and enforcement flag (`AUTH_REQUIRE_RECOVERY_EMAIL=true`) at cutover.
 
 ### Pre-deploy
 
@@ -273,7 +287,7 @@ Still missing (highest impact first):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, deploy smoke)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, password-recovery email contract, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

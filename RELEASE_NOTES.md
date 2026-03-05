@@ -1,6 +1,6 @@
 # Release Notes
 
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 ## Unreleased
 
@@ -13,20 +13,31 @@ Last updated: 2026-03-04
    - added storage write-root fallback chain in `lib/storage/provider.ts` (`FILE_STORAGE_ROOT` -> runtime tmp -> cwd)
    - added upload create-submission compatibility fallback paths in `/api/submissions/upload`
    - added stage-level upload diagnostics in API error message
+   - upload failures now also include `errorCode`/`errorName` details for faster production triage
 4. Current release blocker (still open):
    - production deploy-smoke continues to fail at upload stage: `UPLOAD_FAILED` -> `Upload failed at create_submission`
    - storage target locations/credentials are not configured yet (operator confirmed)
+5. M9 password recovery email enablement (deployment roadmap continuation):
+   - added `POST /api/auth/password-recovery` with temporary-password issue + `mustResetPassword` enforcement
+   - added rollback-on-delivery-failure behavior so user credentials are restored if recovery email send fails
+   - login form now includes `Forgot password?` flow calling recovery endpoint
+   - added gate command `pnpm run ops:password-recovery-contract`
+   - release gate now includes password-recovery email contract check before deploy smoke
+6. M8 storage deployment contract hardening (deployment roadmap continuation):
+   - added gate command `pnpm run ops:storage-contract`
+   - release gate now includes storage deployment contract check before deploy smoke
+   - added strict cutover flag `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` to hard-fail when durable `FILE_STORAGE_ROOT` is not configured
 
-5. M7 export-pack foundation:
+7. M7 export-pack foundation:
    - added deterministic submission export-pack generation (`assessment-snapshot.json`, `feedback-summary.txt`, `summary.csv`, `marked.pdf`, `manifest.json`)
    - added replay parity verification endpoint for earlier export ids
    - wired submission-detail utilities with `Generate export pack` and `Replay parity check` actions
-6. IV-AD Phase 4 API contract:
+7. IV-AD Phase 4 API contract:
    - added `POST /api/iv-ad/review-draft` with strict request schema validation
    - added strict AI response schema enforcement for typed review draft JSON
    - added request-id aware error taxonomy + ops event logging for invalid request/provider/schema failures
    - added `scripts/iv-ad-review-draft-schema.test.js` and included it in `test:regression-pack`
-7. IV-AD Phase 5 kickoff:
+8. IV-AD Phase 5 kickoff:
    - `/admin/iv-ad` now includes `Run AI IV Review` action before final DOCX generation
    - review draft sections are editable in-page (decision/feedback/criteria/integrity/comments/actions)
    - evidence snippets and warning list are rendered from the strict review-draft contract
@@ -34,49 +45,49 @@ Last updated: 2026-03-04
    - final generation now enforces an explicit approval gate (`reviewApproved`, `reviewApprovedBy`) before DOCX output
    - IV-AD document records now persist review draft audit snapshot + approval metadata (`reviewDraftJson`, `reviewDraftApproved*`)
    - `/admin/iv-ad` history now shows review audit status (approved/by/at, source type, warnings/evidence counts)
-8. IV-AD Phase 6 kickoff:
+9. IV-AD Phase 6 kickoff:
    - submission detail now includes a `Generate IV-AD` launch action that opens `/admin/iv-ad` with prefilled context
    - `/admin/iv-ad` now accepts submission-detail query prefill for key fields, grade override, key notes, and approver default
    - launch flow now also carries `referenceSpecId` when available and shows source badges for auto-filled fields in `/admin/iv-ad`
    - missing-context fallback now surfaces `Missing context` badges and a manual-completion prompt list when prefill data is unavailable
-9. IV-AD Phase 7 kickoff:
+10. IV-AD Phase 7 kickoff:
    - added `GET /api/admin/iv-ad/documents/[documentId]` for full audit detail retrieval
    - `/admin/iv-ad` history now supports `View audit` modal to inspect persisted review snapshot, approval metadata, and evidence/warnings detail
    - `/admin/iv-ad` history now supports approval/source filters for faster audit triage
    - `/admin/iv-ad` history now supports date-range filtering (`From`/`To`) and CSV export of the currently filtered audit rows
-10. M7 export-pack operational validation:
+11. M7 export-pack operational validation:
    - added `scripts/export-pack-validation.test.js` to verify export manifest required files + checksum parity against disk artifacts
    - wired export-pack validation into `scripts/regression-pack.js`
    - added package script `pnpm run test:export-pack-validation`
    - added package script `pnpm run ops:export-pack-evidence` to generate+replay export pack and write a versioned evidence artifact in `docs/evidence/export-pack/`
    - live evidence captured on 2026-03-03: `docs/evidence/export-pack/20260303-130826-0226534f-6796-431b-9978-04c32783748a-97e0d665a279f806737d.json`
-11. M8 Phase A (environment contract) start:
+12. M8 Phase A (environment contract) start:
    - added canonical env contract doc: `docs/operations/environment-contract.md`
    - added centralized runtime env validator: `lib/runtimeEnvContract.ts`
    - wired startup validation into `app/layout.tsx` and `lib/prisma.ts`
    - startup checks now cover `DATABASE_URL` and at least one OpenAI credential key
-12. M8 Phase A (storage migration + rollback) start:
+13. M8 Phase A (storage migration + rollback) start:
    - added canonical storage migration runbook: `docs/operations/storage-migration-rollback.md`
    - runbook includes backup hashes, DB restore, file restore/sync, verification gates, rollback triggers, and rollback procedure
-13. M8 Phase A (pre-deploy smoke automation) start:
+14. M8 Phase A (pre-deploy smoke automation) start:
    - added one-command smoke script: `pnpm run ops:deploy-smoke` (`scripts/deploy-smoke-evidence.js`)
    - smoke script performs upload -> extract -> link -> grade -> marked PDF -> export -> replay parity path
    - writes pass/fail evidence artifact to `docs/evidence/deploy-smoke/*.json` with step-level diagnostics
-14. Runtime env contract refinement:
+15. Runtime env contract refinement:
    - adjusted startup contract severity to hard-fail by default only on `DATABASE_URL`
    - OpenAI credential requirement is warning by default and can be hard-failed with `ENV_CONTRACT_REQUIRE_OPENAI=true`
-15. M8 Phase A deploy-smoke evidence:
+16. M8 Phase A deploy-smoke evidence:
    - automated deploy smoke passed on 2026-03-03 via `pnpm run ops:deploy-smoke`
    - evidence artifact: `docs/evidence/deploy-smoke/20260303-140208.json`
-16. M8 Phase A release gate automation:
+17. M8 Phase A release gate automation:
    - added one-command release gate: `pnpm run ops:release-gate` (`scripts/release-gate-evidence.js`)
    - release gate runs: tsc + regression pack + export-pack validation + deploy smoke
    - writes pass/fail artifact to `docs/evidence/release-gate/*.json`
-17. M8 Phase A release gate evidence:
+18. M8 Phase A release gate evidence:
    - release gate passed on 2026-03-03 via `pnpm run ops:release-gate`
    - release gate artifact: `docs/evidence/release-gate/20260303-142551.json`
    - deploy smoke artifact from same gate run: `docs/evidence/deploy-smoke/20260303-142706.json`
-18. M9 foundation (auth scaffolding) start:
+19. M9 foundation (auth scaffolding) start:
    - added feature-flagged RBAC scaffold: `middleware.ts` + `lib/auth/rbac.ts`
    - added canonical role matrix and rollout path: `docs/operations/auth-role-matrix.md`
    - added `AUTH_GUARDS_ENABLED` env toggle (default false) to keep rollout non-breaking

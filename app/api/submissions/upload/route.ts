@@ -31,6 +31,22 @@ function isSubmissionSchemaCompatError(error: unknown) {
   return false;
 }
 
+function getErrorDebugInfo(error: unknown) {
+  const err = (error || {}) as {
+    message?: unknown;
+    code?: unknown;
+    name?: unknown;
+  };
+  const message = String(err.message || error || "").trim();
+  const code = String(err.code || "").trim();
+  const name = String(err.name || "").trim();
+  return {
+    message,
+    code: code || undefined,
+    name: name || undefined,
+  };
+}
+
 function getOptionalId(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const v = value.trim();
@@ -170,7 +186,7 @@ export async function POST(req: Request) {
       { headers: { "x-request-id": requestId } }
     );
   } catch (err) {
-    const debugMessage = String((err as { message?: string } | null)?.message || err || "").trim();
+    const debug = getErrorDebugInfo(err);
     return apiError({
       status: 500,
       code: "UPLOAD_FAILED",
@@ -178,7 +194,15 @@ export async function POST(req: Request) {
       route: "/api/submissions/upload",
       requestId,
       cause: err,
-      details: debugMessage ? { message: debugMessage } : undefined,
+      details:
+        debug.message || debug.code || debug.name
+          ? {
+              stage: failStage,
+              message: debug.message || undefined,
+              errorCode: debug.code,
+              errorName: debug.name,
+            }
+          : { stage: failStage },
     });
   }
 }
