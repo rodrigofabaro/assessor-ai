@@ -5,6 +5,14 @@ import { ReferenceList } from "./components/ReferenceList";
 import { ReferenceToolbar } from "./components/ReferenceToolbar";
 import { TinyIcon } from "@/components/ui/TinyIcon";
 
+function BusySpinner({ className = "h-3.5 w-3.5" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block animate-spin rounded-full border-2 border-current border-t-transparent ${className}`}
+    />
+  );
+}
 
 export default function ReferenceAdminPage() {
   const vm = useReferenceAdmin();
@@ -30,11 +38,33 @@ export default function ReferenceAdminPage() {
             </p>
           </div>
 
-          <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700">
-            <TinyIcon name="status" className="mr-1 h-3 w-3" />
+          <span
+            className={
+              "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold " +
+              (vm.busy
+                ? "border-sky-200 bg-sky-50 text-sky-900"
+                : "border-zinc-200 bg-zinc-50 text-zinc-700")
+            }
+            role="status"
+            aria-live="polite"
+          >
+            {vm.busy ? <BusySpinner className="mr-1.5 h-3 w-3" /> : <TinyIcon name="status" className="mr-1 h-3 w-3" />}
             {vm.busy ? `Working: ${vm.busy}` : "Ready"}
           </span>
         </div>
+
+        {vm.busy ? (
+          <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-sky-900">
+              <BusySpinner className="h-3 w-3" />
+              Processing request...
+            </div>
+            <p className="mt-1 text-xs text-sky-800">{vm.busy}</p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sky-100">
+              <div className="h-full w-1/3 rounded-full bg-sky-600 animate-pulse" />
+            </div>
+          </div>
+        ) : null}
 
         {vm.error ? (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{vm.error}</div>
@@ -54,6 +84,7 @@ export default function ReferenceAdminPage() {
 }
 
 function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
+  const isUploading = /^Uploading/i.test(String(vm.busy || ""));
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold">Upload</h2>
@@ -130,11 +161,12 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
           onClick={vm.uploadDoc}
           disabled={!!vm.busy}
           className={
-            "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+            "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
             (vm.busy ? "cursor-not-allowed bg-zinc-300 text-zinc-600" : "bg-sky-700 text-white hover:bg-sky-800")
           }
         >
-          Upload
+          {isUploading ? <BusySpinner className="h-3.5 w-3.5" /> : null}
+          {isUploading ? "Uploading..." : "Upload"}
         </button>
       </div>
     </section>
@@ -160,6 +192,10 @@ function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
 
 function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   const selectedDoc = vm.selectedDoc;
+  const busyText = String(vm.busy || "");
+  const isExtracting = /^Extracting/i.test(busyText);
+  const isReextracting = /^Re-extracting/i.test(busyText);
+  const isLocking = /^Locking/i.test(busyText);
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -174,13 +210,14 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             onClick={vm.extractSelected}
             disabled={!selectedDoc || !!vm.busy}
             className={
-              "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+              "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
               (!selectedDoc || vm.busy
                 ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                 : "bg-sky-700 text-white hover:bg-sky-800")
             }
           >
-            Extract
+            {isExtracting ? <BusySpinner className="h-3.5 w-3.5" /> : null}
+            {isExtracting ? "Extracting..." : "Extract"}
           </button>
 
           {selectedDoc?.lockedAt ? (
@@ -188,13 +225,14 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
               onClick={vm.reextractSelected}
               disabled={!selectedDoc || !!vm.busy}
               className={
-                "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+                "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
                 (!selectedDoc || vm.busy
                   ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                   : "bg-amber-600 text-white hover:bg-amber-500")
               }
             >
-              Re-extract (overwrite)
+              {isReextracting ? <BusySpinner className="h-3.5 w-3.5" /> : null}
+              {isReextracting ? "Re-extracting..." : "Re-extract (overwrite)"}
             </button>
           ) : null}
 
@@ -202,13 +240,14 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             onClick={vm.lockSelected}
             disabled={!selectedDoc || !!vm.busy}
             className={
-              "h-10 rounded-xl px-4 text-sm font-semibold shadow-sm " +
+              "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
               (!selectedDoc || vm.busy
                 ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                 : "bg-emerald-700 text-white hover:bg-emerald-600")
             }
           >
-            Approve & Lock
+            {isLocking ? <BusySpinner className="h-3.5 w-3.5" /> : null}
+            {isLocking ? "Locking..." : "Approve & Lock"}
           </button>
         </div>
       </div>
