@@ -62,6 +62,17 @@ Environment isolation rule:
 
 ## 5) Run DB migrations for target DB
 
+Preferred (automatic):
+1. In Vercel Project Settings -> Build & Development Settings -> Build Command, set:
+
+```powershell
+pnpm run build:vercel
+```
+
+2. This runs `prisma migrate deploy` automatically in Production builds (`VERCEL_ENV=production`).
+
+Manual fallback:
+
 ```powershell
 pnpm prisma migrate deploy
 pnpm prisma generate --no-engine

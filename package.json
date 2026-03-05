@@ -43,6 +43,7 @@
     "ops:bootstrap-grade-baseline": "node scripts/bootstrap-grade-baseline.cjs",
     "ops:spec-suite-import-once": "node scripts/import-spec-suite-once.cjs",
     "dev:brief-fixtures": "node scripts/dev/brief-fixtures.js",
+    "build:vercel": "node scripts/vercel-build.cjs",
     "prisma:generate": "prisma generate",
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
