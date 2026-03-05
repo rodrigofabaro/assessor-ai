@@ -426,6 +426,24 @@ export default async function LandingPage() {
             This preview is intentionally synthetic. No student submissions, names, or institutional records are shown on the landing page.
           </p>
         </section>
+
+        <section id="early-access" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Early access</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Assessor-AI is still in active development</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-700">
+              We are working with assessment teams to refine the workflow before broader rollout. If you want to test the platform or join the pilot, contact us and we will schedule onboarding.
+            </p>
+            <div className="mt-4">
+              <a
+                href="mailto:contact@assessor-ai.co.uk?subject=Assessor-AI%20Early%20Access"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-500 px-4 text-sm font-semibold text-slate-950 hover:bg-sky-400"
+              >
+                Contact for early access
+              </a>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
