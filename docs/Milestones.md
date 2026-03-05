@@ -32,6 +32,8 @@ Status labels:
 - IV-AD AI review rollout tracked in `docs/grading/iv-ad-ai-review-roadmap.md` (supporting feature roadmap).
 - Email invite delivery provider activation is deferred (current fallback: password copy + `mailto` draft).
 - M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production + production OpenAI key scopes (`api.responses.write`) for grade/extraction.
+- Operator-confirmed (2026-03-04): production storage places are not configured yet.
+- Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
 
 ### Bugs and Risks (Stabilization)
 - Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.
@@ -356,6 +358,11 @@ Phase 7 progress (2026-03-03):
 - Existing local data is available in production (DB + files).
 - Automated smoke checks pass after deploy and after rollback simulation.
 - Monthly spend guardrails defined with threshold-based upgrade rules.
+
+**Current status (2026-03-04)**
+- Production auth recovery completed and emergency bypass removed.
+- Upload deploy-smoke remains blocked at submission create stage.
+- Storage destination configuration is still pending and blocks M8 hardening completion.
 
 **Pre-go-live hardening checklist**
 1. Go-live quality gates

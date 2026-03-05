@@ -2,7 +2,7 @@
 
 Date: 2026-02-20
 Maintenance update: 2026-03-02
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 Roadmap status:
 - Release contract doc (not canonical roadmap).
@@ -54,3 +54,15 @@ This release is considered complete when the workflows listed under **In Scope**
 2. When hard validation fails after native retries, whole-PDF AI fallback is allowed before final fail.
 3. Criterion override updates must keep feedback narrative aligned with final grade.
 4. Admin overview performance regressions should be avoided by minimizing dashboard query fan-out.
+
+## 1.0.2 Maintenance Addendum (2026-03-04)
+
+1. Production login recovery for `deploy.smoke.admin@assessor-ai.co.uk` completed:
+   - normal DB-backed login path restored (`source: app-user`)
+   - temporary emergency login/recovery bypass paths removed after recovery
+2. Multi-organization/auth compatibility hardening shipped for legacy schema variants on production.
+3. Current deployment blocker remains in upload smoke path:
+   - `POST /api/submissions/upload` failing at `create_submission` during production deploy-smoke
+4. Storage target configuration remains pending:
+   - durable production storage locations/credentials are not finalized yet
+   - runtime must still be treated as pre-hardening for durable file persistence

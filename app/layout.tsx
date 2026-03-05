@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const authBootstrapEnabled = /^(1|true|yes|on)$/i.test(String(process.env.AUTH_BOOTSTRAP_ENABLED || "false").trim());
   const appVersion = String(process.env.NEXT_PUBLIC_APP_VERSION || "1.2.0").trim();
   const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "qa-iv-integrated").trim();
+  const storageLabel = String(process.env.NEXT_PUBLIC_STORAGE_LABEL || "storage-target-pending").trim();
 
   return (
     <html lang="en">
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-zinc-200/40 bg-zinc-50">
           <div className={LANE + " py-1.5"}>
             <div className="text-center text-[11px] leading-4 text-zinc-400">
-              Assessor AI · v{appVersion} · {releaseLabel} · © {new Date().getFullYear()} Rodrigo
+              Assessor AI · v{appVersion} · {releaseLabel} · {storageLabel} · © {new Date().getFullYear()} Rodrigo
             </div>
           </div>
         </footer>

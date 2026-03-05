@@ -80,6 +80,8 @@ Current hardening note (2026-03-04):
 Current hardening note (2026-03-04):
 1. Existing provider still resolves to filesystem paths; production-safe durable object storage backend remains required.
 2. Temporary runtime mitigation may use Vercel writable temp storage (`/tmp`) for operational continuity, but this is non-durable and not an end-state.
+3. Operator-confirmed (2026-03-04): production storage target locations are not configured yet.
+4. Deployment gate impact: production deploy-smoke currently fails at upload submission-create path until storage target + schema alignment are finalized.
 
 ## Required Vercel env groups
 

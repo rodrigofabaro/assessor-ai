@@ -21,6 +21,11 @@ Use this doc when the instruction is: "continue the roadmap".
    - M8 production hardening execution
    - M9 auth and UX hardening foundation
    - M10 multi-organization tenant isolation (super admin + org memberships + org settings)
+4. Production recovery update (2026-03-04):
+   - normal login path recovered
+   - temporary emergency auth removed
+   - deploy-smoke still blocked at upload `create_submission`
+   - storage target locations are not configured yet
 
 ## Execution lanes
 
@@ -216,6 +221,8 @@ Still missing (highest impact first):
 1. Durable object storage backend for production runtime files.
 - Current storage provider still writes to local filesystem paths (`uploads/`, `reference_uploads/`, `storage/*`, `submission_marked/*`).
 - On serverless/runtime restarts this is not durable.
+- Operator-confirmed status (2026-03-04): storage places are not set yet in production.
+- Required next action: define and configure production storage target credentials/paths before marking M8 hardening complete.
 
 2. Environment separation cleanup.
 - Preview/Development/Production currently share the same DB credential group in Vercel.
@@ -226,14 +233,21 @@ Still missing (highest impact first):
 - Update production OpenAI key to a project key with Responses API write permission (or swap to an unrestricted key).
 - Latest blocker evidence: `docs/evidence/deploy-smoke/20260304-124517.json`.
 
-4. Post-deploy smoke evidence on each production rollout.
+4. Upload creation blocker in production deploy-smoke.
+- Current failure: `UPLOAD_FAILED` (`Upload failed at create_submission`).
+- Latest evidence artifacts:
+  - `docs/evidence/deploy-smoke/20260304-231125.json`
+  - `docs/evidence/deploy-smoke/20260304-231234.json`
+- Required next action: align production submission schema and storage/runtime config so upload create path passes consistently.
+
+5. Post-deploy smoke evidence on each production rollout.
 - Keep `pnpm run ops:deploy-smoke` evidence artifact per release and link in release notes.
 
-5. Backup/restore operational drill evidence.
+6. Backup/restore operational drill evidence.
 - Run one explicit restore simulation following `docs/operations/storage-migration-rollback.md`.
 - Store drill evidence under `docs/evidence/`.
 
-6. Optional provider enablement (deferred by operator decision).
+7. Optional provider enablement (deferred by operator decision).
 - Transactional email sending (`AUTH_INVITE_EMAIL_PROVIDER=resend`) remains deferred.
 
 ### Pre-deploy
