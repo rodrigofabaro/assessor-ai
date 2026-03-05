@@ -1,14 +1,34 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { canSendInviteEmail, sendPasswordRecoveryEmail } from "@/lib/auth/inviteEmail";
-import { generateRandomPassword, hashPassword, normalizeLoginEmail } from "@/lib/auth/password";
+import { normalizeLoginEmail } from "@/lib/auth/password";
+import {
+  buildPasswordRecoveryUrl,
+  generatePasswordRecoveryToken,
+  getPasswordRecoveryTtlMinutes,
+  hashPasswordRecoveryToken,
+} from "@/lib/auth/passwordRecoveryToken";
 
 export const runtime = "nodejs";
 
 const GENERIC_SUCCESS_MESSAGE = "If the account exists, a recovery email has been sent.";
+const REQUESTS_PER_USER_PER_HOUR = 5;
 
 function toSafeString(value: unknown) {
   return String(value || "").trim();
+}
+
+function pickClientIp(req: Request) {
+  const forwardedFor = toSafeString(req.headers.get("x-forwarded-for"));
+  if (forwardedFor) {
+    const first = forwardedFor.split(",")[0];
+    if (first) return first.trim();
+  }
+  return toSafeString(req.headers.get("x-real-ip")) || null;
+}
+
+function pickClientUserAgent(req: Request) {
+  return toSafeString(req.headers.get("user-agent")) || null;
 }
 
 async function parsePayload(req: Request) {
@@ -36,13 +56,23 @@ function isAppUserSchemaCompatError(error: unknown) {
   );
 }
 
+function isPasswordRecoveryTokenSchemaCompatError(error: unknown) {
+  const message = String((error as { message?: string })?.message || "").toLowerCase();
+  return (
+    message.includes("passwordresettoken") ||
+    message.includes("the table") ||
+    message.includes("does not exist") ||
+    message.includes("unknown argument") ||
+    message.includes("invalid `prisma.passwordresettoken") ||
+    message.includes("p2021")
+  );
+}
+
 type RecoveryUser = {
   id: string;
   email: string | null;
   fullName?: string | null;
   loginPasswordHash: string | null;
-  mustResetPassword?: boolean | null;
-  passwordUpdatedAt?: Date | null;
 };
 
 async function findRecoveryUser(email: string): Promise<RecoveryUser | null> {
@@ -54,8 +84,6 @@ async function findRecoveryUser(email: string): Promise<RecoveryUser | null> {
         email: true,
         fullName: true,
         loginPasswordHash: true,
-        mustResetPassword: true,
-        passwordUpdatedAt: true,
       },
     });
     return (user as RecoveryUser | null) || null;
@@ -90,57 +118,6 @@ async function findRecoveryUser(email: string): Promise<RecoveryUser | null> {
   return (user as RecoveryUser | null) || null;
 }
 
-async function writeRecoveryCredentials(input: { userId: string; nextHash: string }) {
-  try {
-    await prisma.appUser.update({
-      where: { id: input.userId },
-      data: {
-        loginPasswordHash: input.nextHash,
-        mustResetPassword: true,
-        passwordUpdatedAt: new Date(),
-      },
-    });
-    return;
-  } catch (error) {
-    if (!isAppUserSchemaCompatError(error)) throw error;
-  }
-
-  await prisma.appUser.update({
-    where: { id: input.userId },
-    data: {
-      loginPasswordHash: input.nextHash,
-    },
-  });
-}
-
-async function restoreRecoveryCredentials(input: {
-  userId: string;
-  previousHash: string | null;
-  previousMustResetPassword: boolean;
-  previousPasswordUpdatedAt: Date | null;
-}) {
-  try {
-    await prisma.appUser.update({
-      where: { id: input.userId },
-      data: {
-        loginPasswordHash: input.previousHash,
-        mustResetPassword: input.previousMustResetPassword,
-        passwordUpdatedAt: input.previousPasswordUpdatedAt,
-      },
-    });
-    return;
-  } catch (error) {
-    if (!isAppUserSchemaCompatError(error)) throw error;
-  }
-
-  await prisma.appUser.update({
-    where: { id: input.userId },
-    data: {
-      loginPasswordHash: input.previousHash,
-    },
-  });
-}
-
 export async function POST(req: Request) {
   try {
     const { username } = await parsePayload(req);
@@ -171,38 +148,104 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
     }
 
-    const temporaryPassword = generateRandomPassword();
-    const nextHash = hashPassword(temporaryPassword);
-    const previousState = {
-      previousHash: user.loginPasswordHash,
-      previousMustResetPassword: !!user.mustResetPassword,
-      previousPasswordUpdatedAt: user.passwordUpdatedAt || null,
-    };
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    try {
+      const recentRequests = await prisma.passwordResetToken.count({
+        where: {
+          userId: user.id,
+          createdAt: { gt: oneHourAgo },
+        },
+      });
+      if (recentRequests >= REQUESTS_PER_USER_PER_HOUR) {
+        return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
+      }
+    } catch (error) {
+      if (isPasswordRecoveryTokenSchemaCompatError(error)) {
+        return NextResponse.json(
+          {
+            error: "Password recovery is not available yet. Run database migrations.",
+            code: "AUTH_PASSWORD_RECOVERY_STORAGE_UNAVAILABLE",
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
+    }
 
-    await writeRecoveryCredentials({ userId: user.id, nextHash });
+    let tokenHash = "";
+    let rawToken = "";
+    try {
+      rawToken = generatePasswordRecoveryToken();
+      tokenHash = hashPasswordRecoveryToken(rawToken);
+    } catch {
+      return NextResponse.json(
+        {
+          error: "Password recovery token service is not configured.",
+          code: "AUTH_PASSWORD_RECOVERY_UNAVAILABLE",
+        },
+        { status: 503 }
+      );
+    }
+
+    const expiresMinutes = getPasswordRecoveryTtlMinutes();
+    const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
+    const requestedIp = pickClientIp(req);
+    const requestedUa = pickClientUserAgent(req);
+
+    let resetId = "";
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        await tx.passwordResetToken.updateMany({
+          where: { userId: user.id, usedAt: null },
+          data: { usedAt: new Date(), usedIp: requestedIp, usedUa: requestedUa },
+        });
+        return tx.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            tokenHash,
+            expiresAt,
+            requestedIp,
+            requestedUa,
+          },
+          select: { id: true },
+        });
+      });
+      resetId = created.id;
+    } catch (error) {
+      if (isPasswordRecoveryTokenSchemaCompatError(error)) {
+        return NextResponse.json(
+          {
+            error: "Password recovery is not available yet. Run database migrations.",
+            code: "AUTH_PASSWORD_RECOVERY_STORAGE_UNAVAILABLE",
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
+    }
+
+    const resetUrl = buildPasswordRecoveryUrl({
+      request: req,
+      resetId,
+      token: rawToken,
+    });
 
     const sendResult = await sendPasswordRecoveryEmail({
       to: user.email,
       fullName: String(user.fullName || "").trim(),
-      password: temporaryPassword,
+      resetUrl,
+      expiresMinutes,
     });
 
     if (!sendResult.sent) {
       try {
-        await restoreRecoveryCredentials({
-          userId: user.id,
-          ...previousState,
+        await prisma.passwordResetToken.updateMany({
+          where: { id: resetId, usedAt: null },
+          data: { usedAt: new Date(), usedIp: requestedIp, usedUa: requestedUa },
         });
       } catch {
-        // Best-effort rollback. Return explicit failure either way.
+        // best effort: one-time token gets invalidated when delivery fails
       }
-      return NextResponse.json(
-        {
-          error: String(sendResult.error || "Unable to send recovery email.").trim(),
-          code: "AUTH_PASSWORD_RECOVERY_EMAIL_FAILED",
-        },
-        { status: 502 }
-      );
     }
 
     return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });

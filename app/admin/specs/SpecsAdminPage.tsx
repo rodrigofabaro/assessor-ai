@@ -61,6 +61,10 @@ export default function SpecsAdminPage() {
   const toasts = admin.toasts;
   const uploadFiles = admin.uploadFiles;
   const archiveSelected = admin.archiveSelected;
+  const docFramework = admin.docFramework;
+  const setDocFramework = admin.setDocFramework;
+  const docCategory = admin.docCategory;
+  const setDocCategory = admin.setDocCategory;
   const counts = admin.counts;
   const learningOutcomes = admin.learningOutcomes;
   const filters = vm.filters;
@@ -207,6 +211,8 @@ export default function SpecsAdminPage() {
     return docs.map((doc: any) => {
       const unitCode = String((doc.sourceMeta as any)?.unitCode || doc.extractedJson?.unit?.unitCode || "").trim();
       const unitTitle = String((doc.sourceMeta as any)?.unitTitle || doc.extractedJson?.unit?.unitTitle || "").trim();
+      const framework = String((doc.sourceMeta as any)?.framework || "").trim();
+      const category = String((doc.sourceMeta as any)?.category || "").trim();
       const issueLabel = String(
         (doc.sourceMeta as any)?.specVersionLabel ||
           (doc.sourceMeta as any)?.specIssue ||
@@ -228,6 +234,8 @@ export default function SpecsAdminPage() {
         doc,
         unitCode,
         unitTitle,
+        framework,
+        category,
         issueLabel,
         loCount,
         criteriaCount,
@@ -285,8 +293,8 @@ export default function SpecsAdminPage() {
     return {
       lockedCount: locked.length,
       activeSetCount: activeLockedCodes.size,
-      expectedActiveSetCount: expectedActiveCodes.length,
-      missingActiveSetCount: Math.max(0, expectedActiveCodes.length - activeLockedCodes.size),
+      referenceActiveSetCount: expectedActiveCodes.length,
+      activeSetDeltaCount: Math.max(0, expectedActiveCodes.length - activeLockedCodes.size),
       unverifiedPearsonCount: pearsonLocked.filter((r) => !r.pearsonCriteriaVerified).length,
       multiVersionFamilyCount: multiVersionFamilies.length,
       multiVersionFamilies,
@@ -328,7 +336,7 @@ export default function SpecsAdminPage() {
         if (onlyString(catalogExactCode) && exactCodeQuery) {
           return r.unitCode === exactCodeQuery;
         }
-        const hay = `${r.unitCode} ${r.unitTitle} ${r.doc.title || ""} ${r.issueLabel} ${r.importSource}`.toLowerCase();
+        const hay = `${r.unitCode} ${r.unitTitle} ${r.doc.title || ""} ${r.issueLabel} ${r.importSource} ${r.framework} ${r.category}`.toLowerCase();
         return hay.includes(qLower);
       });
     }
@@ -355,7 +363,14 @@ export default function SpecsAdminPage() {
 
   const compareCandidates = useMemo(() => {
     if (!selectedCatalogRow) return [];
-    return catalogRowsAll.filter((r) => r.versionFamilyKey === selectedCatalogRow.versionFamilyKey && r.doc.id !== selectedCatalogRow.doc.id);
+    return catalogRowsAll.filter((r) => {
+      if (r.doc.id === selectedCatalogRow.doc.id) return false;
+      if (r.versionFamilyKey !== selectedCatalogRow.versionFamilyKey) return false;
+      const selectedCategory = String(selectedCatalogRow.category || "").trim().toLowerCase();
+      const candidateCategory = String(r.category || "").trim().toLowerCase();
+      if (selectedCategory && candidateCategory && selectedCategory !== candidateCategory) return false;
+      return true;
+    });
   }, [catalogRowsAll, selectedCatalogRow]);
 
   useEffect(() => {
@@ -379,13 +394,14 @@ export default function SpecsAdminPage() {
     const blockers: string[] = [];
     const warnings: string[] = [];
     const info: string[] = [];
-    if (catalogHealth.missingActiveSetCount > 0) blockers.push(`Missing ${catalogHealth.missingActiveSetCount} active-set unit(s) from locked catalog.`);
     if (catalogHealth.unverifiedPearsonCount > 0) blockers.push(`${catalogHealth.unverifiedPearsonCount} Pearson spec(s) have unverified criterion descriptions.`);
     if (catalogHealth.sameIssueConflictCount > 0) warnings.push(`Same-code + same-issue conflicts detected: ${catalogHealth.sameIssueConflictKeys.join(", ")}.`);
     const emptyRows = catalogRowsAll.filter((r) => (r.doc.lockedAt || String(r.doc.status).toUpperCase() === "LOCKED") && (r.loCount === 0 || r.criteriaCount === 0));
     if (emptyRows.length) blockers.push(`${emptyRows.length} locked spec(s) have empty LO/AC counts.`);
     info.push(`Locked specs: ${catalogHealth.lockedCount}`);
-    info.push(`Expected active set: ${catalogHealth.expectedActiveSetCount}`);
+    info.push(`Reference active-set list count: ${catalogHealth.referenceActiveSetCount}`);
+    info.push(`Locked active-set count: ${catalogHealth.activeSetCount}`);
+    info.push(`Delta to current reference list: ${catalogHealth.activeSetDeltaCount}`);
     if (catalogHealth.multiVersionFamilyCount > 0) info.push(`Multi-version unit families: ${catalogHealth.multiVersionFamilies.join(", ")}.`);
     setCatalogValidationReport({ blockers, warnings, info });
   }, [catalogHealth, catalogRowsAll]);
@@ -403,6 +419,8 @@ export default function SpecsAdminPage() {
         loCount: r.loCount,
         criteriaCount: r.criteriaCount,
         importSource: r.importSource || null,
+        framework: r.framework || null,
+        category: r.category || null,
         pearsonCriteriaVerified: r.pearsonCriteriaVerified,
         isPearsonSet: r.isPearsonSet,
         archived: r.archived,
@@ -471,7 +489,7 @@ export default function SpecsAdminPage() {
   const nextAction = useMemo(() => {
     if (tab === "library") {
       if (catalogHealth.unverifiedPearsonCount > 0) return `Repair ${catalogHealth.unverifiedPearsonCount} Pearson spec${catalogHealth.unverifiedPearsonCount === 1 ? "" : "s"} with unverified criteria text.`;
-      if (catalogHealth.missingActiveSetCount > 0) return `Import and lock ${catalogHealth.missingActiveSetCount} missing active-set spec${catalogHealth.missingActiveSetCount === 1 ? "" : "s"}.`;
+      if (catalogHealth.activeSetDeltaCount > 0) return `Locked active-set count is ${catalogHealth.activeSetDeltaCount} below the current reference list count.`;
       if (catalogHealth.sameIssueConflictCount > 0) return "Review same-code/same-issue conflicts and keep only the intended version active.";
       if (catalogHealth.multiVersionFamilyCount > 0) return "Multiple versions exist for some unit families (including code changes across frameworks). Use version compare to confirm the intended grading version.";
       return "Catalog is healthy. Use filters to review active units and version changes.";
@@ -740,6 +758,26 @@ export default function SpecsAdminPage() {
 
         {uploadOpen ? (
           <div className="mt-4 grid gap-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1">
+                <span className="text-xs font-semibold text-zinc-700">Framework</span>
+                <input
+                  value={docFramework}
+                  onChange={(e) => setDocFramework(e.target.value)}
+                  placeholder="e.g. Pearson Engineering RQF 2024"
+                  className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-semibold text-zinc-700">Category</span>
+                <input
+                  value={docCategory}
+                  onChange={(e) => setDocCategory(e.target.value)}
+                  placeholder="e.g. Engineering"
+                  className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+                />
+              </label>
+            </div>
             <div
               className={"grid gap-2 rounded-2xl border-2 p-6 text-sm transition " + dragTone}
               onDragEnter={(e) => {

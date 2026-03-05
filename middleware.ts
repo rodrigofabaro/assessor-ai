@@ -21,8 +21,15 @@ function isApiPath(pathname: string) {
 
 function isPublicPath(pathname: string) {
   if (pathname === "/" || pathname === "/login" || pathname.startsWith("/login/")) return true;
+  if (pathname === "/auth/reset" || pathname.startsWith("/auth/reset/")) return true;
   if (pathname === "/api/auth/login" || pathname === "/api/auth/logout") return true;
-  if (pathname === "/api/auth/password-reset" || pathname === "/api/auth/password-recovery") return true;
+  if (
+    pathname === "/api/auth/password-reset" ||
+    pathname === "/api/auth/password-recovery" ||
+    pathname === "/api/auth/password-recovery/confirm"
+  ) {
+    return true;
+  }
   if (pathname === "/api/auth/session/bootstrap" || pathname === "/api/auth/role-sync") return true;
   return false;
 }

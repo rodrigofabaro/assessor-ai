@@ -62,6 +62,8 @@ export function useSpecsAdmin() {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [docFramework, setDocFramework] = useState("");
+  const [docCategory, setDocCategory] = useState("");
 
   const extracted = (vm.selectedDoc?.extractedJson || null) as any;
   const isPearsonSuiteBulkImport =
@@ -138,8 +140,8 @@ export function useSpecsAdmin() {
         fd.set("type", "SPEC");
         fd.set("title", file.name);
         fd.set("version", "1");
-        if (vm.docFramework.trim()) fd.set("framework", vm.docFramework.trim());
-        if (vm.docCategory.trim()) fd.set("category", vm.docCategory.trim());
+        if (docFramework.trim()) fd.set("framework", docFramework.trim());
+        if (docCategory.trim()) fd.set("category", docCategory.trim());
         fd.set("file", file);
 
         const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
@@ -162,8 +164,8 @@ export function useSpecsAdmin() {
             type: "SPEC",
             title: file.name,
             version: "1",
-            framework: vm.docFramework.trim(),
-            category: vm.docCategory.trim(),
+            framework: docFramework.trim(),
+            category: docCategory.trim(),
             fileName: file.name,
             fileSize: file.size,
             contentType: file.type || "application/pdf",
@@ -203,8 +205,8 @@ export function useSpecsAdmin() {
             type: "SPEC",
             title: file.name,
             version: "1",
-            framework: vm.docFramework.trim(),
-            category: vm.docCategory.trim(),
+            framework: docFramework.trim(),
+            category: docCategory.trim(),
             originalFilename: file.name,
             storedFilename: tokenJson.storedFilename,
             storagePath: tokenJson.storagePath,
@@ -282,6 +284,10 @@ export function useSpecsAdmin() {
 
   return {
     vm,
+    docFramework,
+    setDocFramework,
+    docCategory,
+    setDocCategory,
     tab,
     setTab,
     uploading,

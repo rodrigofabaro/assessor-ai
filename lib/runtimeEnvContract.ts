@@ -106,6 +106,29 @@ function collectIssues(): EnvIssue[] {
       });
     }
   }
+  const inviteProvider = String(process.env.AUTH_INVITE_EMAIL_PROVIDER || process.env.AUTH_EMAIL_PROVIDER || "none")
+    .trim()
+    .toLowerCase();
+  const recoveryEmailRequired = isTruthy(process.env.AUTH_REQUIRE_RECOVERY_EMAIL);
+  if (inviteProvider === "resend" || recoveryEmailRequired) {
+    if (!String(process.env.RESET_TOKEN_PEPPER || "").trim()) {
+      issues.push({
+        code: "ENV_RESET_TOKEN_PEPPER_MISSING",
+        detail: "RESET_TOKEN_PEPPER is required for password recovery token hashing.",
+        hardFail: recoveryEmailRequired,
+      });
+    }
+    const authOrigin = String(
+      process.env.AUTH_APP_ORIGIN || process.env.NEXT_PUBLIC_APP_ORIGIN || process.env.APP_ORIGIN || ""
+    ).trim();
+    if (!authOrigin) {
+      issues.push({
+        code: "ENV_AUTH_APP_ORIGIN_MISSING",
+        detail: "AUTH_APP_ORIGIN (or NEXT_PUBLIC_APP_ORIGIN/APP_ORIGIN) is required for password recovery links.",
+        hardFail: recoveryEmailRequired,
+      });
+    }
+  }
   return issues;
 }
 

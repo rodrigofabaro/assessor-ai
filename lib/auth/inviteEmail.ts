@@ -143,13 +143,15 @@ export async function sendInviteEmail(input: {
 export async function sendPasswordRecoveryEmail(input: {
   to: string;
   fullName: string;
-  password: string;
+  resetUrl: string;
+  expiresMinutes: number;
 }): Promise<InviteEmailResult> {
   const to = String(input.to || "").trim().toLowerCase();
   const fullName = String(input.fullName || "").trim();
-  const password = String(input.password || "");
-  if (!to || !password) {
-    return { attempted: false, sent: false, provider: resolveProvider(), error: "Missing recipient or password." };
+  const resetUrl = String(input.resetUrl || "").trim();
+  const expiresMinutes = Number(input.expiresMinutes || 0);
+  if (!to || !resetUrl || !Number.isFinite(expiresMinutes) || expiresMinutes < 1) {
+    return { attempted: false, sent: false, provider: resolveProvider(), error: "Missing recipient or reset details." };
   }
 
   const subject = "Assessor AI password recovery";
@@ -157,11 +159,9 @@ export async function sendPasswordRecoveryEmail(input: {
     `Hello ${fullName || "there"},`,
     "",
     "A password recovery request was received for your Assessor AI account.",
-    "Login URL: https://www.assessor-ai.co.uk/login",
-    `Username: ${to}`,
-    `Temporary password: ${password}`,
+    `Reset link (valid for ${Math.floor(expiresMinutes)} minutes): ${resetUrl}`,
     "",
-    "For security, you must set a new password when you sign in.",
+    "The link can be used once and expires automatically.",
     "If you did not request this reset, contact your administrator immediately.",
   ].join("\n");
 
