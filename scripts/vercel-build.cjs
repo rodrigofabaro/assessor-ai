@@ -7,14 +7,16 @@ function run(command) {
 }
 
 const env = String(process.env.VERCEL_ENV || "").toLowerCase();
-const migrateFlag = String(process.env.PRISMA_MIGRATE_ON_BUILD || "");
-const shouldRunMigrations = env === "production" || migrateFlag === "1";
+const migrateFlag = String(process.env.PRISMA_MIGRATE_ON_BUILD || "").toLowerCase().trim();
+const shouldRunMigrations = migrateFlag === "1" || migrateFlag === "true";
 
 if (shouldRunMigrations) {
-  console.log("[vercel-build] Running prisma migrate deploy...");
+  console.log("[vercel-build] Running prisma migrate deploy (PRISMA_MIGRATE_ON_BUILD enabled)...");
   run("pnpm prisma migrate deploy");
 } else {
-  console.log("[vercel-build] Skipping prisma migrate deploy for non-production build.");
+  console.log(
+    `[vercel-build] Skipping prisma migrate deploy (VERCEL_ENV=${env || "unknown"}; set PRISMA_MIGRATE_ON_BUILD=1 to enable).`
+  );
 }
 
 if (!existsSync("node_modules/.prisma/client")) {
