@@ -306,6 +306,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ documents });
   } catch (err) {
     console.error("REFERENCE_UPLOAD_ERROR:", err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    const raw = String((err as { message?: unknown } | null)?.message || err || "").trim();
+    const msgLower = raw.toLowerCase();
+    let userMessage = "Upload failed.";
+    if (msgLower.includes("blob_read_write_token")) {
+      userMessage = "Storage is not configured. Set BLOB_READ_WRITE_TOKEN in Vercel and redeploy.";
+    } else if (msgLower.includes("storage_backend")) {
+      userMessage = "Storage backend is misconfigured. Use STORAGE_BACKEND=filesystem or STORAGE_BACKEND=vercel_blob.";
+    } else if (raw) {
+      userMessage = raw;
+    }
+    return NextResponse.json(
+      {
+        error: userMessage,
+        code: "REFERENCE_UPLOAD_FAILED",
+      },
+      { status: 500 }
+    );
   }
 }
