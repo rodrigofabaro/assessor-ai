@@ -28,6 +28,7 @@ Status labels:
 - P1: M9.1 email architecture hardening (transactional/support/alerts routing + deliverability baseline).
 - P1: M9 auth abuse protection (rate limiting for login/recovery + auth anomaly alerts).
 - P1: M9 role-specific post-login dashboards (Assessor, `ORG_ADMIN`, `SUPER_ADMIN`).
+- P1: M9.2 feedback quality policy hardening (VASCR alignment + realistic annotations + concise holistic summative feedback).
 - M10 multi-organization tenant isolation foundation (global users + org memberships + scoped settings).
 
 ### Developments (Next)
@@ -478,6 +479,17 @@ Phase 7 progress (2026-03-03):
 - Add DNS deliverability baseline checklist (SPF + DKIM + DMARC report mailbox).
 - Add system-alert trigger matrix for critical failures (upload, extraction, grading, auth anomalies).
 
+6. Assessment decision and feedback quality policy (VASCR)
+- Ensure assessment decisions remain aligned to:
+  - Valid
+  - Authentic
+  - Sufficient
+  - Current
+  - Reliable
+- If AI-assisted feedback is used, annotations must read as realistic assessor comments (not generic AI phrasing).
+- Summative feedback must remain concise, holistic, and precise.
+- Add QA checks that flag non-compliant feedback style/length before release.
+
 **Acceptance**
 - Unauthenticated users cannot access protected operational routes.
 - Login/logout/session expiry work end-to-end in production.
@@ -489,6 +501,7 @@ Phase 7 progress (2026-03-03):
 - Login and password recovery endpoints enforce configured rate limits and emit anomaly events.
 - Post-login home renders role-appropriate dashboard content for Assessor, `ORG_ADMIN`, and `SUPER_ADMIN`.
 - Contact/support and transactional emails are routed to distinct mailboxes with auditable configuration.
+- Feedback outputs pass VASCR-aligned QA checks and summative comments stay concise, holistic, and precise.
 
 ---
 

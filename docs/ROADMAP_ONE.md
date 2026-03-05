@@ -33,6 +33,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - P1: add runtime readiness endpoint (`/api/health/readiness`) for core dependency gating
    - P1: add auth abuse protection rate limits (login + password recovery)
    - P1: add role-specific post-login dashboards (Assessor, `ORG_ADMIN`, `SUPER_ADMIN`)
+   - P1: feedback quality policy hardening (VASCR alignment + realistic annotations + concise summative feedback)
    - P1: formalize email routing architecture (transactional vs support vs alert channels)
 
 ## Execution lanes
@@ -175,6 +176,17 @@ Use this doc when the instruction is: "continue the roadmap".
 7. QA reliability instrumentation
 - preview/commit/regrade latency metrics
 - p50/p95 + retry/failure dashboard cards
+
+8. P1 M9.2 feedback quality policy hardening
+- enforce VASCR framing in assessment decisions:
+  - Valid
+  - Authentic
+  - Sufficient
+  - Current
+  - Reliable
+- require AI-assisted annotations to read like realistic assessor annotations.
+- keep summative feedback concise, holistic, and precise.
+- add feedback QA checks in release validation so verbose/generic output is flagged before release.
 
 ### Next (immediately after current queue)
 
