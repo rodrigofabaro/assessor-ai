@@ -83,3 +83,19 @@ This release is considered complete when the workflows listed under **In Scope**
    - fallback direct email option remains available for continuity
 4. Admin user reset UX now defaults to email delivery:
    - `Admin -> Users -> Send reset link` triggers tokenized recovery email when provider is configured
+
+## 1.0.4 Maintenance Addendum (2026-03-05)
+
+1. User administration moved to full CRUD coverage with organization-aware controls:
+   - create/read/update/delete available in `Admin -> Users`
+   - create-user form is collapsed by default and opened only when needed
+2. User directory and metrics are now organization-scoped:
+   - super admin can switch organization scope in-page
+   - counts (`Users total`, `Users active`, `Login enabled`) reflect selected organization scope
+3. Full descriptor import reliability + selection flow improved:
+   - server-side descriptor parsing now forces PDF.js worker-off mode to avoid `pdf.worker.mjs` runtime missing errors on serverless
+   - full descriptor import now supports selecting specific unit codes before job run
+4. Specs library clarity improvements:
+   - removed confusing filename-based title display from unit metadata card
+   - unit metadata card now shows `Original file`, `Stored path`, and direct `Open uploaded PDF` action
+   - removed `Export unit registry JSON` action from `Spec Master Health` surface to keep operator UI focused

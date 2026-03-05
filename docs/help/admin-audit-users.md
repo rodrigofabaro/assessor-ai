@@ -35,10 +35,12 @@ Manage app users and active audit actor identity.
 
 ### Main actions
 - Create/edit active users
+- Delete users
 - Set active audit user
 - Monitor active user count and role spread
 - Trigger password recovery emails / credential resets
-- Assign organization when creating users
+- Assign organization when creating/editing users (SUPER_ADMIN scope)
+- Switch organization scope (SUPER_ADMIN) to view org-level user metrics and directory entries
 
 ### Important behavior
 Assessor identity in grading and feedback workflows is derived from active audit user policy.

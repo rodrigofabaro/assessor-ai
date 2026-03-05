@@ -4,6 +4,23 @@ Last updated: 2026-03-05
 
 ## Unreleased
 
+### Latest additions (2026-03-05)
+
+- User CRUD + org scope completion:
+  - `/admin/users` now supports create/read/update/delete in one workflow
+  - create-user form is collapsed by default and opened on demand
+  - super admin can switch organization scope in-page; metrics and directory results are scoped to selected org
+  - backend additions:
+    - `GET /api/admin/users?organizationId=<id>` scope-aware listing
+    - `DELETE /api/admin/users/[userId]` with org-scope and self-delete guards
+- Full descriptor import hardening:
+  - fixed serverless PDF parsing failure (`Cannot find module .../pdf.worker.mjs`) by forcing worker-off PDF.js mode in suite extraction path
+  - added unit picker to `Admin -> Specs -> Full descriptor import (beta)` so operators can import only selected unit codes
+  - async run endpoint now accepts selected unit codes and propagates requested unit count in job summary
+- Specs library UX cleanup:
+  - removed `Export unit registry JSON` action from `Spec Master Health`
+  - unit metadata card no longer shows confusing filename-based title; now shows original file, storage path, and direct file-open link
+
 1. M9 password recovery hardening (tokenized flow):
    - replaced temporary-password recovery with one-time expiring token links
    - added `PasswordResetToken` model + migration (`prisma/migrations/20260305132000_add_password_reset_tokens`)

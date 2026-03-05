@@ -98,9 +98,20 @@ Important:
 ### In-app full descriptor import notes
 
 - Upload one full descriptor PDF in the `Full descriptor import (beta)` panel.
+- Optional: open unit picker and select a subset of unit codes before starting import.
+- Leave unit selection empty to import all listed units.
 - The app creates an async import job, then splits by detected unit headers and imports/updates `SPEC` reference docs by unit code.
 - Imported docs are saved as `EXTRACTED` and require normal review/lock workflow.
 - Use the job status block to monitor progress and download the JSON import report when complete.
+- Job summary includes requested unit count, created, updated, and missing counts.
+
+### Unit metadata panel notes
+
+- The metadata card focuses on extracted unit identity (unit code/title, issue, LO/criteria counts).
+- File traceability is shown explicitly via:
+  - original uploaded filename
+  - stored storage path key
+  - direct `Open uploaded PDF` link
 
 ## Pearson Criteria Description Safety Guard
 

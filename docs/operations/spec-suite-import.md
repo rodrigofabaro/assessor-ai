@@ -10,6 +10,11 @@ Use:
 
 This path uploads one full descriptor PDF, creates an async import job, splits units server-side, and imports/updates suite `SPEC` documents.
 When the job completes, download the JSON report from the job status block for QA evidence.
+Before starting import, operators can optionally select specific unit codes; if no units are selected, the full configured unit list is imported.
+
+### Serverless runtime note
+
+Suite parser PDF page extraction runs with PDF.js worker disabled in API runtime to avoid serverless worker module resolution issues (`pdf.worker.mjs` path errors).
 
 ## Command
 
