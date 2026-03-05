@@ -51,6 +51,7 @@ function getSpecRowMetrics(doc: any) {
 
 export default function SpecsAdminPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const suiteInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const admin = useSpecsAdmin();
   const { vm } = admin;
@@ -58,8 +59,11 @@ export default function SpecsAdminPage() {
   const setTab = admin.setTab;
   const uploading = admin.uploading;
   const uploadStatus = admin.uploadStatus;
+  const suiteImporting = admin.suiteImporting;
+  const suiteImportStatus = admin.suiteImportStatus;
   const toasts = admin.toasts;
   const uploadFiles = admin.uploadFiles;
+  const importFullSpecSuite = admin.importFullSpecSuite;
   const archiveSelected = admin.archiveSelected;
   const docFramework = admin.docFramework;
   const setDocFramework = admin.setDocFramework;
@@ -605,6 +609,19 @@ export default function SpecsAdminPage() {
           e.target.value = "";
         }}
       />
+      <input
+        ref={suiteInputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="sr-only"
+        onChange={(e) => {
+          const selected = e.target.files?.[0];
+          if (selected) {
+            void importFullSpecSuite(selected);
+          }
+          e.target.value = "";
+        }}
+      />
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 grid gap-2">
         {toasts.map((t) => (
@@ -817,6 +834,30 @@ export default function SpecsAdminPage() {
                 Choose files
               </button>
               <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
+            </div>
+
+            <div className="rounded-2xl border border-cyan-200 bg-cyan-50/40 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-zinc-900">Full descriptor import (beta)</div>
+                  <div className="mt-1 text-xs text-zinc-600">
+                    Upload one full Pearson descriptor PDF and auto-split/import unit specs.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => suiteInputRef.current?.click()}
+                  disabled={uploading || suiteImporting}
+                  className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+                >
+                  {suiteImporting ? "Importing..." : "Import full descriptor PDF"}
+                </button>
+              </div>
+              <div className="mt-2 text-xs text-zinc-600">
+                {suiteImporting
+                  ? suiteImportStatus || "Processing..."
+                  : "This updates existing suite units by unit code and creates missing ones."}
+              </div>
             </div>
           </div>
         ) : (

@@ -1,6 +1,6 @@
 # Admin Specs (`/admin/specs`)
 
-Last updated: 2026-02-24
+Last updated: 2026-03-05
 
 ## Purpose
 
@@ -71,7 +71,10 @@ Use this to confirm what changed between Issue 5 vs Issue 6 (or across framework
 
 ## Pearson Engineering Suite (Bulk "Spec Master")
 
-For Pearson HN Engineering 2024 suite imports, use the scripted flow instead of manual upload-per-unit.
+You now have two options for Pearson HN Engineering 2024 suite imports:
+
+1. In-app (recommended for operators): `Admin > Specs > Extraction Inbox > Full descriptor import (beta)`
+2. Scripted (ops fallback): run the one-time import commands below.
 
 ### Source-of-truth assets (repo)
 
@@ -91,6 +94,12 @@ Important:
 - Run `repair` before `lock` for Pearson imports.
 - Do not run `repair` and `lock` in parallel for the same batch.
 - Pearson assessment tables are 3-column (`Pass / Merit / Distinction`); the repair step reconstructs criterion descriptions column-wise.
+
+### In-app full descriptor import notes
+
+- Upload one full descriptor PDF in the `Full descriptor import (beta)` panel.
+- The app splits by detected unit headers and imports/updates `SPEC` reference docs by unit code.
+- Imported docs are saved as `EXTRACTED` and require normal review/lock workflow.
 
 ## Pearson Criteria Description Safety Guard
 

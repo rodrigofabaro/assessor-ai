@@ -2,6 +2,14 @@
 
 Use this when you receive a full framework PDF (for example the Pearson Engineering descriptor suite) and need to split/import all units into `ReferenceDocument` rows.
 
+## In-app path (preferred)
+
+Use:
+
+`Admin > Specs > Extraction Inbox > Full descriptor import (beta)`
+
+This path uploads one full descriptor PDF, splits units server-side, and imports/updates suite `SPEC` documents.
+
 ## Command
 
 ```bash

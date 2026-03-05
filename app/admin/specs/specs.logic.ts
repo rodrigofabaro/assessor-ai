@@ -32,6 +32,25 @@ type BlobFinalizeResponse = {
   code?: string;
 };
 
+type SpecSuiteBlobTokenResponse = {
+  clientToken: string;
+  storagePath: string;
+  storedFilename: string;
+  maxBytes: number;
+};
+
+type SpecSuiteImportResponse = {
+  ok?: boolean;
+  created?: number;
+  updated?: number;
+  importedCount?: number;
+  missingRequestedCount?: number;
+  missingRequestedCodes?: string[];
+  error?: string;
+  message?: string;
+  code?: string;
+};
+
 class UploadFlowError extends Error {
   code?: string;
   status?: number;
@@ -64,6 +83,8 @@ export function useSpecsAdmin() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [docFramework, setDocFramework] = useState("");
   const [docCategory, setDocCategory] = useState("");
+  const [suiteImporting, setSuiteImporting] = useState(false);
+  const [suiteImportStatus, setSuiteImportStatus] = useState("");
 
   const extracted = (vm.selectedDoc?.extractedJson || null) as any;
   const isPearsonSuiteBulkImport =
@@ -282,6 +303,84 @@ export function useSpecsAdmin() {
     }
   };
 
+  const importFullSpecSuite = async (file: File) => {
+    if (!file || suiteImporting || uploading) return;
+    if (!isPdf(file)) {
+      pushToast("error", "Only PDF files are supported.");
+      return;
+    }
+
+    setSuiteImporting(true);
+    setSuiteImportStatus("Uploading descriptor PDF...");
+
+    try {
+      const tokenRes = await fetch("/api/admin/spec-suite/blob-token", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          contentType: file.type || "application/pdf",
+        }),
+      });
+      const tokenJson = (await tokenRes.json().catch(() => ({}))) as Partial<SpecSuiteBlobTokenResponse> & {
+        error?: string;
+        message?: string;
+        code?: string;
+      };
+
+      if (!tokenRes.ok) {
+        const reason = cleanErrorMessage(tokenJson.error || tokenJson.message, `Suite upload token failed (${tokenRes.status})`);
+        throw new UploadFlowError(reason, tokenJson.code, tokenRes.status);
+      }
+
+      if (!tokenJson.clientToken || !tokenJson.storagePath || !tokenJson.storedFilename) {
+        throw new UploadFlowError("Suite upload token response is incomplete.");
+      }
+
+      const blob = await putBlobClient(tokenJson.storagePath, file, {
+        token: tokenJson.clientToken,
+        access: "private",
+        multipart: file.size >= BLOB_MULTIPART_THRESHOLD_BYTES,
+        contentType: "application/pdf",
+      });
+
+      setSuiteImportStatus("Splitting units and importing specs...");
+      const importRes = await fetch("/api/admin/spec-suite/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sourceBlobUrl: blob.url,
+          sourceBlobPathname: blob.pathname,
+          sourceOriginalFilename: file.name,
+          framework: docFramework.trim() || undefined,
+          category: docCategory.trim() || undefined,
+          cleanupSourceUpload: true,
+        }),
+      });
+      const importJson = (await importRes.json().catch(() => ({}))) as SpecSuiteImportResponse;
+      if (!importRes.ok) {
+        const reason = cleanErrorMessage(importJson.error || importJson.message, `Suite import failed (${importRes.status})`);
+        throw new UploadFlowError(reason, importJson.code, importRes.status);
+      }
+
+      await vm.refreshAll({ keepSelection: false });
+      const created = Number(importJson.created || 0);
+      const updated = Number(importJson.updated || 0);
+      const missing = Number(importJson.missingRequestedCount || 0);
+      pushToast(
+        "success",
+        `Suite import complete: ${created} created, ${updated} updated${missing ? `, ${missing} missing` : ""}.`,
+      );
+    } catch (error) {
+      const e = error as UploadFlowError;
+      pushToast("error", `Suite import failed: ${cleanErrorMessage(e?.message, "Unknown error")}`);
+    } finally {
+      setSuiteImporting(false);
+      setSuiteImportStatus("");
+    }
+  };
+
   return {
     vm,
     docFramework,
@@ -292,12 +391,15 @@ export function useSpecsAdmin() {
     setTab,
     uploading,
     uploadStatus,
+    suiteImporting,
+    suiteImportStatus,
     toasts,
     counts,
     learningOutcomes,
     isPearsonSuiteBulkImport,
     pearsonCriteriaDescriptionsVerified,
     uploadFiles,
+    importFullSpecSuite,
     archiveSelected,
   };
 }
