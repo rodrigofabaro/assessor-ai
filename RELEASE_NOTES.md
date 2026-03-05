@@ -66,9 +66,17 @@ Last updated: 2026-03-05
    - added strict cutover flag `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` to hard-fail when durable `FILE_STORAGE_ROOT` is not configured
 14. Specs full-descriptor in-app import (beta):
    - added admin suite upload token endpoint: `POST /api/admin/spec-suite/blob-token`
-   - added admin suite import endpoint: `POST /api/admin/spec-suite/import`
+   - added admin suite import endpoint: `POST /api/admin/spec-suite/import` (legacy synchronous path)
    - added suite importer service (`lib/specSuite/importFromDescriptor.ts`) to split full Pearson descriptor PDF into unit-level `SPEC` reference docs
    - `/admin/specs` Extraction Inbox now includes `Full descriptor import (beta)` action for one-file suite onboarding
+15. Specs full-descriptor async jobs + report download:
+   - added `SpecSuiteImportJob` model + migration (`prisma/migrations/20260305190000_add_spec_suite_import_jobs`)
+   - added async job endpoints:
+     - `POST /api/admin/spec-suite/jobs` (create queued import job)
+     - `POST /api/admin/spec-suite/jobs/[jobId]/run` (claim + execute import)
+     - `GET /api/admin/spec-suite/jobs/[jobId]` (poll status/progress)
+     - `GET /api/admin/spec-suite/jobs/[jobId]/report` (download JSON import report)
+   - `/admin/specs` now polls async import progress and exposes report download when complete
 7. M8 storage backend enablement for Vercel durability (deployment roadmap continuation):
    - added storage provider mode `STORAGE_BACKEND=vercel_blob` with `BLOB_READ_WRITE_TOKEN`
    - upload/reference/IV write paths now persist provider-returned storage paths (remote URL-safe)

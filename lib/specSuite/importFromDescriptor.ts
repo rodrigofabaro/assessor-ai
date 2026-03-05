@@ -37,7 +37,39 @@ export type SpecSuiteImportSummary = {
   importedCount: number;
   detectedUnitCount: number;
   sourcePageCount: number;
+  requestedUnitCount: number;
   sample: Array<{ unitCode: string; unitTitle: string; action: "created" | "updated" }>;
+};
+
+export type SpecSuiteImportReportRow = {
+  unitCode: string;
+  requestedTitle: string | null;
+  detectedTitle: string | null;
+  resolvedTitle: string | null;
+  action: "created" | "updated" | "missing";
+  startPage: number | null;
+  endPage: number | null;
+  pageCount: number | null;
+  criteriaCount: number | null;
+  warnings: string[];
+};
+
+export type SpecSuiteImportReport = {
+  generatedAt: string;
+  sourceOriginalFilename: string;
+  framework: string;
+  category: string;
+  requestedUnitCount: number;
+  detectedUnitCount: number;
+  sourcePageCount: number;
+  summary: SpecSuiteImportSummary;
+  missingRequestedCodes: string[];
+  rows: SpecSuiteImportReportRow[];
+};
+
+export type SpecSuiteImportResult = {
+  summary: SpecSuiteImportSummary;
+  report: SpecSuiteImportReport;
 };
 
 type ImportParams = {
@@ -46,6 +78,7 @@ type ImportParams = {
   organizationId: string | null;
   framework?: string;
   category?: string;
+  onProgress?: (update: { label: string; percent: number }) => void | Promise<void>;
 };
 
 function isOrgScopeCompatError(error: unknown) {
@@ -277,7 +310,16 @@ async function getExistingImportedDocs(organizationId: string | null) {
   return byUnitCode;
 }
 
-export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promise<SpecSuiteImportSummary> {
+async function emitProgress(
+  cb: ImportParams["onProgress"],
+  label: string,
+  percent: number,
+) {
+  if (!cb) return;
+  await cb({ label, percent: Math.max(0, Math.min(100, Math.round(percent))) });
+}
+
+export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promise<SpecSuiteImportResult> {
   const {
     pdfBytes,
     sourceOriginalFilename,
@@ -286,8 +328,11 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
     category = SPEC_SUITE_DEFAULT_CATEGORY,
   } = params;
 
+  await emitProgress(params.onProgress, "Preparing requested unit list...", 5);
   const requestedUnits = buildRequestedUnits();
+  await emitProgress(params.onProgress, "Reading descriptor pages...", 12);
   const { pageTexts, pageCount } = await extractPageTexts(pdfBytes);
+  await emitProgress(params.onProgress, "Detecting unit page ranges...", 22);
   const detectedUnits = buildDetectedUnitRanges(pageTexts);
   const detectedByCode = new Map<string, DetectedUnit[]>();
   for (const unit of detectedUnits) {
@@ -296,6 +341,7 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
     detectedByCode.set(unit.code, list);
   }
 
+  await emitProgress(params.onProgress, "Loading PDF and existing suite records...", 28);
   const pdfDoc = await PDFDocument.load(pdfBytes);
   const existingByUnitCode = await getExistingImportedDocs(organizationId);
   const importTag = `suite-upload-${Date.now()}`;
@@ -303,12 +349,32 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
   let updated = 0;
   const missingRequestedCodes: string[] = [];
   const sample: Array<{ unitCode: string; unitTitle: string; action: "created" | "updated" }> = [];
+  const reportRows: SpecSuiteImportReportRow[] = [];
 
-  for (const requested of requestedUnits) {
+  for (let i = 0; i < requestedUnits.length; i += 1) {
+    const requested = requestedUnits[i];
+    const loopPercent = 32 + (i / Math.max(1, requestedUnits.length)) * 62;
+    await emitProgress(
+      params.onProgress,
+      `Importing unit ${i + 1}/${requestedUnits.length}: ${requested.code}`,
+      loopPercent,
+    );
     const candidates = detectedByCode.get(requested.code) || [];
     const found = pickBestCandidateForRequest(candidates, requested);
     if (!found) {
       missingRequestedCodes.push(requested.code);
+      reportRows.push({
+        unitCode: requested.code,
+        requestedTitle: requested.title,
+        detectedTitle: null,
+        resolvedTitle: null,
+        action: "missing",
+        startPage: null,
+        endPage: null,
+        pageCount: null,
+        criteriaCount: null,
+        warnings: ["Requested unit code was not detected in uploaded descriptor PDF."],
+      });
       continue;
     }
 
@@ -406,6 +472,18 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
       });
       updated += 1;
       if (sample.length < 8) sample.push({ unitCode, unitTitle, action: "updated" });
+      reportRows.push({
+        unitCode,
+        requestedTitle: requested.title,
+        detectedTitle: found.title,
+        resolvedTitle: unitTitle,
+        action: "updated",
+        startPage: found.startPage,
+        endPage: found.endPage,
+        pageCount: found.pageCount,
+        criteriaCount,
+        warnings,
+      });
       continue;
     }
 
@@ -421,9 +499,21 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
     }
     created += 1;
     if (sample.length < 8) sample.push({ unitCode, unitTitle, action: "created" });
+    reportRows.push({
+      unitCode,
+      requestedTitle: requested.title,
+      detectedTitle: found.title,
+      resolvedTitle: unitTitle,
+      action: "created",
+      startPage: found.startPage,
+      endPage: found.endPage,
+      pageCount: found.pageCount,
+      criteriaCount,
+      warnings,
+    });
   }
 
-  return {
+  const summary: SpecSuiteImportSummary = {
     created,
     updated,
     missingRequestedCount: missingRequestedCodes.length,
@@ -431,6 +521,23 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
     importedCount: created + updated,
     detectedUnitCount: detectedUnits.length,
     sourcePageCount: pageCount,
+    requestedUnitCount: requestedUnits.length,
     sample,
   };
+
+  const report: SpecSuiteImportReport = {
+    generatedAt: new Date().toISOString(),
+    sourceOriginalFilename,
+    framework,
+    category,
+    requestedUnitCount: requestedUnits.length,
+    detectedUnitCount: detectedUnits.length,
+    sourcePageCount: pageCount,
+    summary,
+    missingRequestedCodes,
+    rows: reportRows,
+  };
+
+  await emitProgress(params.onProgress, "Import finished.", 100);
+  return { summary, report };
 }

@@ -98,8 +98,9 @@ Important:
 ### In-app full descriptor import notes
 
 - Upload one full descriptor PDF in the `Full descriptor import (beta)` panel.
-- The app splits by detected unit headers and imports/updates `SPEC` reference docs by unit code.
+- The app creates an async import job, then splits by detected unit headers and imports/updates `SPEC` reference docs by unit code.
 - Imported docs are saved as `EXTRACTED` and require normal review/lock workflow.
+- Use the job status block to monitor progress and download the JSON import report when complete.
 
 ## Pearson Criteria Description Safety Guard
 

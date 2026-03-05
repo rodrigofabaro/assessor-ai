@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     }
 
     const pdfBytes = await downloadBlobBytes(blobMeta.url, token);
-    const summary = await importPearsonSpecSuiteFromPdf({
+    const result = await importPearsonSpecSuiteFromPdf({
       pdfBytes,
       sourceOriginalFilename,
       organizationId,
@@ -118,7 +118,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      ...summary,
+      ...result.summary,
+      report: result.report,
       framework,
       category,
       sourceFile: {

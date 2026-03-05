@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { put as putBlobClient } from "@vercel/blob/client";
 import { useReferenceAdmin } from "../reference/reference.logic";
 
@@ -39,13 +39,24 @@ type SpecSuiteBlobTokenResponse = {
   maxBytes: number;
 };
 
-type SpecSuiteImportResponse = {
-  ok?: boolean;
-  created?: number;
-  updated?: number;
-  importedCount?: number;
-  missingRequestedCount?: number;
-  missingRequestedCodes?: string[];
+type SpecSuiteJob = {
+  id: string;
+  status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+  progressLabel?: string | null;
+  progressPercent?: number | null;
+  resultSummary?: {
+    created?: number;
+    updated?: number;
+    importedCount?: number;
+    missingRequestedCount?: number;
+    missingRequestedCodes?: string[];
+  } | null;
+  errorMessage?: string | null;
+  reportAvailable?: boolean;
+};
+
+type SpecSuiteJobResponse = {
+  job?: SpecSuiteJob;
   error?: string;
   message?: string;
   code?: string;
@@ -85,6 +96,9 @@ export function useSpecsAdmin() {
   const [docCategory, setDocCategory] = useState("");
   const [suiteImporting, setSuiteImporting] = useState(false);
   const [suiteImportStatus, setSuiteImportStatus] = useState("");
+  const [suiteJobId, setSuiteJobId] = useState("");
+  const [suiteJob, setSuiteJob] = useState<SpecSuiteJob | null>(null);
+  const handledSuiteFinalJobIdRef = useRef<string>("");
 
   const extracted = (vm.selectedDoc?.extractedJson || null) as any;
   const isPearsonSuiteBulkImport =
@@ -303,6 +317,70 @@ export function useSpecsAdmin() {
     }
   };
 
+  useEffect(() => {
+    if (!suiteJobId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/admin/spec-suite/jobs/${encodeURIComponent(suiteJobId)}`, {
+          method: "GET",
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => ({}))) as SpecSuiteJobResponse;
+        if (cancelled) return;
+        if (!res.ok || !json.job) {
+          setSuiteImporting(false);
+          setSuiteImportStatus(cleanErrorMessage(json.error || json.message, "Unable to read import job status."));
+          return;
+        }
+
+        const job = json.job;
+        setSuiteJob(job);
+        const label = cleanErrorMessage(job.progressLabel, "");
+        const pct = Number(job.progressPercent);
+        const pctText = Number.isFinite(pct) ? `${Math.max(0, Math.min(100, Math.round(pct)))}%` : "";
+        setSuiteImportStatus([label, pctText].filter(Boolean).join(" · ") || `Job ${job.status.toLowerCase()}`);
+
+        if (job.status === "QUEUED" || job.status === "RUNNING") {
+          setSuiteImporting(true);
+          return;
+        }
+
+        setSuiteImporting(false);
+        if (handledSuiteFinalJobIdRef.current === job.id) return;
+        handledSuiteFinalJobIdRef.current = job.id;
+        if (job.status === "SUCCEEDED") {
+          await vm.refreshAll({ keepSelection: false });
+          const created = Number(job.resultSummary?.created || 0);
+          const updated = Number(job.resultSummary?.updated || 0);
+          const missing = Number(job.resultSummary?.missingRequestedCount || 0);
+          pushToast(
+            "success",
+            `Suite import complete: ${created} created, ${updated} updated${missing ? `, ${missing} missing` : ""}.`,
+          );
+        } else if (job.status === "FAILED") {
+          pushToast("error", `Suite import failed: ${cleanErrorMessage(job.errorMessage, "Unknown error")}`);
+        }
+      } catch {
+        if (cancelled) return;
+        setSuiteImporting(false);
+        setSuiteImportStatus("Unable to poll import job status.");
+      } finally {
+        if (!cancelled) {
+          timer = setTimeout(poll, 2500);
+        }
+      }
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [suiteJobId, vm]);
+
   const importFullSpecSuite = async (file: File) => {
     if (!file || suiteImporting || uploading) return;
     if (!isPdf(file)) {
@@ -312,6 +390,7 @@ export function useSpecsAdmin() {
 
     setSuiteImporting(true);
     setSuiteImportStatus("Uploading descriptor PDF...");
+    let createdJobId = "";
 
     try {
       const tokenRes = await fetch("/api/admin/spec-suite/blob-token", {
@@ -346,7 +425,7 @@ export function useSpecsAdmin() {
       });
 
       setSuiteImportStatus("Splitting units and importing specs...");
-      const importRes = await fetch("/api/admin/spec-suite/import", {
+      const createJobRes = await fetch("/api/admin/spec-suite/jobs", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -358,27 +437,46 @@ export function useSpecsAdmin() {
           cleanupSourceUpload: true,
         }),
       });
-      const importJson = (await importRes.json().catch(() => ({}))) as SpecSuiteImportResponse;
-      if (!importRes.ok) {
-        const reason = cleanErrorMessage(importJson.error || importJson.message, `Suite import failed (${importRes.status})`);
-        throw new UploadFlowError(reason, importJson.code, importRes.status);
+      const createJobJson = (await createJobRes.json().catch(() => ({}))) as SpecSuiteJobResponse;
+      if (!createJobRes.ok || !createJobJson.job) {
+        const reason = cleanErrorMessage(
+          createJobJson.error || createJobJson.message,
+          `Suite import job create failed (${createJobRes.status})`,
+        );
+        throw new UploadFlowError(reason, createJobJson.code, createJobRes.status);
       }
+      setSuiteJob(createJobJson.job);
+      setSuiteJobId(createJobJson.job.id);
+      createdJobId = createJobJson.job.id;
+      setSuiteImportStatus("Job queued. Starting worker...");
 
-      await vm.refreshAll({ keepSelection: false });
-      const created = Number(importJson.created || 0);
-      const updated = Number(importJson.updated || 0);
-      const missing = Number(importJson.missingRequestedCount || 0);
-      pushToast(
-        "success",
-        `Suite import complete: ${created} created, ${updated} updated${missing ? `, ${missing} missing` : ""}.`,
-      );
+      void fetch(`/api/admin/spec-suite/jobs/${encodeURIComponent(createJobJson.job.id)}/run`, {
+        method: "POST",
+      }).catch(() => {
+        // Polling loop will surface terminal status or errors.
+      });
     } catch (error) {
       const e = error as UploadFlowError;
       pushToast("error", `Suite import failed: ${cleanErrorMessage(e?.message, "Unknown error")}`);
+      setSuiteJob(null);
+      setSuiteJobId("");
     } finally {
-      setSuiteImporting(false);
-      setSuiteImportStatus("");
+      if (!createdJobId) {
+        setSuiteImporting(false);
+      }
     }
+  };
+
+  const downloadSuiteImportReport = (jobId?: string) => {
+    const targetId = String(jobId || suiteJob?.id || suiteJobId || "").trim();
+    if (!targetId) return;
+    const link = document.createElement("a");
+    link.href = `/api/admin/spec-suite/jobs/${encodeURIComponent(targetId)}/report`;
+    link.target = "_blank";
+    link.rel = "noreferrer noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   return {
@@ -393,6 +491,7 @@ export function useSpecsAdmin() {
     uploadStatus,
     suiteImporting,
     suiteImportStatus,
+    suiteJob,
     toasts,
     counts,
     learningOutcomes,
@@ -400,6 +499,7 @@ export function useSpecsAdmin() {
     pearsonCriteriaDescriptionsVerified,
     uploadFiles,
     importFullSpecSuite,
+    downloadSuiteImportReport,
     archiveSelected,
   };
 }

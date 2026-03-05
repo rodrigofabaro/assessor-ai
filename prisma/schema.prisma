@@ -69,6 +69,13 @@ enum OrganizationRole {
   VIEWER
 }
 
+enum SpecSuiteImportJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
 model Organization {
   id        String   @id @default(cuid())
   slug      String   @unique
@@ -87,6 +94,7 @@ model Organization {
   memberships        OrganizationMembership[]
   settings           OrganizationSetting?
   secrets            OrganizationSecret[]
+  specSuiteImportJobs SpecSuiteImportJob[]
 }
 
 model Student {
@@ -558,6 +566,34 @@ model OpsRuntimeEvent {
   @@index([ts])
   @@index([type])
   @@index([route, ts])
+}
+
+model SpecSuiteImportJob {
+  id                   String                 @id @default(cuid())
+  status               SpecSuiteImportJobStatus @default(QUEUED)
+  organizationId       String?
+  organization         Organization?          @relation(fields: [organizationId], references: [id])
+  sourceBlobUrl        String
+  sourceBlobPathname   String?
+  sourceOriginalFilename String
+  sourceSizeBytes      Int?
+  framework            String?
+  category             String?
+  cleanupSourceUpload  Boolean                @default(true)
+  createdBy            String?
+  progressLabel        String?
+  progressPercent      Int?
+  resultSummary        Json?
+  reportJson           Json?
+  errorMessage         String?
+  attemptCount         Int                    @default(0)
+  createdAt            DateTime               @default(now())
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  updatedAt            DateTime               @updatedAt
+
+  @@index([status, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 model AdminSettingsAuditEvent {

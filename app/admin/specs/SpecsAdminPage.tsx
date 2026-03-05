@@ -61,9 +61,11 @@ export default function SpecsAdminPage() {
   const uploadStatus = admin.uploadStatus;
   const suiteImporting = admin.suiteImporting;
   const suiteImportStatus = admin.suiteImportStatus;
+  const suiteJob = admin.suiteJob;
   const toasts = admin.toasts;
   const uploadFiles = admin.uploadFiles;
   const importFullSpecSuite = admin.importFullSpecSuite;
+  const downloadSuiteImportReport = admin.downloadSuiteImportReport;
   const archiveSelected = admin.archiveSelected;
   const docFramework = admin.docFramework;
   const setDocFramework = admin.setDocFramework;
@@ -858,6 +860,34 @@ export default function SpecsAdminPage() {
                   ? suiteImportStatus || "Processing..."
                   : "This updates existing suite units by unit code and creates missing ones."}
               </div>
+              {suiteJob ? (
+                <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-zinc-900">
+                      Job status: {suiteJob.status}
+                    </span>
+                    {suiteJob.reportAvailable ? (
+                      <button
+                        type="button"
+                        onClick={() => downloadSuiteImportReport(suiteJob.id)}
+                        className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 hover:bg-zinc-50"
+                      >
+                        Download report
+                      </button>
+                    ) : null}
+                  </div>
+                  {suiteJob.resultSummary ? (
+                    <div className="mt-2">
+                      Created: <span className="font-semibold">{suiteJob.resultSummary.created || 0}</span> · Updated:{" "}
+                      <span className="font-semibold">{suiteJob.resultSummary.updated || 0}</span> · Missing:{" "}
+                      <span className="font-semibold">{suiteJob.resultSummary.missingRequestedCount || 0}</span>
+                    </div>
+                  ) : null}
+                  {suiteJob.errorMessage ? (
+                    <div className="mt-2 text-rose-700">{suiteJob.errorMessage}</div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         ) : (

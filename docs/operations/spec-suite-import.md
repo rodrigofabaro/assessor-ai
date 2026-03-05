@@ -8,7 +8,8 @@ Use:
 
 `Admin > Specs > Extraction Inbox > Full descriptor import (beta)`
 
-This path uploads one full descriptor PDF, splits units server-side, and imports/updates suite `SPEC` documents.
+This path uploads one full descriptor PDF, creates an async import job, splits units server-side, and imports/updates suite `SPEC` documents.
+When the job completes, download the JSON report from the job status block for QA evidence.
 
 ## Command
 
