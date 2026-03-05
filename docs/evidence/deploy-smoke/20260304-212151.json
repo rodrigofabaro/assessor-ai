@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-03-04T21:21:49.755Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": false
+  },
+  "steps": {
+    "authLogin": {
+      "status": 401,
+      "ms": 1491,
+      "ok": false,
+      "source": null,
+      "code": "AUTH_INVALID_CREDENTIALS",
+      "error": "Invalid credentials."
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Auth login failed (401)"
+  }
+}

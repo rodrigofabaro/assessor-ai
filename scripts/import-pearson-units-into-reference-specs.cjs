@@ -160,6 +160,8 @@ async function main() {
         ...(typeof unit === "object" && unit ? { pearsonExtraction: { startPage: unit.startPage, endPage: unit.endPage, pageCount: unit.pageCount } } : {}),
         importSource,
         importTag,
+        framework: "Pearson BTEC Higher Nationals Engineering Suite (2024)",
+        category: "Engineering",
         importedAt: new Date().toISOString(),
         importedFromManifest: path.relative(process.cwd(), manifestPath).replace(/\\/g, "/"),
         unitCode,
@@ -224,4 +226,3 @@ main().catch((err) => {
   process.stderr.write(`import-pearson-units-into-reference-specs failed: ${String(err?.stack || err)}\n`);
   process.exit(1);
 });
-

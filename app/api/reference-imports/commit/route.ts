@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { evaluateBriefLockQuality } from "@/lib/briefs/lockQualityGate";
 import { selectBriefMappingCodes } from "@/lib/briefs/mappingCodes";
+import { getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 import type { ExtractDraft, SpecDraft, BriefDraft, GradeBand } from "@/lib/referenceParser";
 
@@ -59,6 +60,8 @@ export async function POST(req: Request) {
 
     const doc = await prisma.referenceDocument.findUnique({ where: { id: documentId } });
     if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    const fallbackOrgId = await getRequestOrganizationId();
+    const organizationId = String((doc as any)?.organizationId || fallbackOrgId || "").trim() || null;
 
     if (draft.kind === "SPEC") {
       const spec = draft as SpecDraft;
@@ -80,7 +83,7 @@ export async function POST(req: Request) {
 
       // Find existing unit by code; if multiple exist, we pick the newest.
       let unit = await prisma.unit.findFirst({
-        where: { unitCode },
+        where: organizationId ? { unitCode, OR: [{ organizationId }, { organizationId: null }] } : { unitCode },
         orderBy: { createdAt: "desc" },
       });
 
@@ -90,6 +93,7 @@ export async function POST(req: Request) {
             unitCode,
             unitTitle,
             specDocumentId: doc.type === "SPEC" ? doc.id : null,
+            organizationId,
           },
         });
       } else {
@@ -165,7 +169,12 @@ export async function POST(req: Request) {
         unit = await prisma.unit.findUnique({ where: { id: overrideUnitId } });
       }
       if (!unit && brief.unitCodeGuess) {
-        unit = await prisma.unit.findFirst({ where: { unitCode: brief.unitCodeGuess }, orderBy: { createdAt: "desc" } });
+        unit = await prisma.unit.findFirst({
+          where: organizationId
+            ? { unitCode: brief.unitCodeGuess, OR: [{ organizationId }, { organizationId: null }] }
+            : { unitCode: brief.unitCodeGuess },
+          orderBy: { createdAt: "desc" },
+        });
       }
       if (!unit) {
         return NextResponse.json(
@@ -240,6 +249,7 @@ export async function POST(req: Request) {
         : await prisma.assignmentBrief.create({
             data: {
               unitId: unit.id,
+              organizationId,
               assignmentCode,
               title,
               version: 1,

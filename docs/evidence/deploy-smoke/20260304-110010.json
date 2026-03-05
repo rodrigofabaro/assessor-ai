@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-03-04T11:00:06.736Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 558,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 868,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2021,
+      "ok": true,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "fetchJson is not a function"
+  },
+  "submissionId": "a5a78da4-f3f9-461c-8ef3-e3e7c3e1eace"
+}

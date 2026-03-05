@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-03-03T16:47:07.4153022+00:00",
+  "gate": "prepush-prod",
+  "git": {
+    "branch": "main",
+    "dirtyCount": 32,
+    "allowDirty": true,
+    "allowMain": true
+  },
+  "steps": [
+    {
+      "id": "tsc",
+      "command": "pnpm exec tsc --noEmit --incremental false",
+      "startedAt": "2026-03-03T16:47:07.6071903+00:00",
+      "endedAt": "2026-03-03T16:47:19.8690868+00:00",
+      "durationMs": 12262,
+      "status": 0,
+      "ok": true
+    },
+    {
+      "id": "regression_pack",
+      "command": "pnpm run test:regression-pack",
+      "startedAt": "2026-03-03T16:47:19.8906847+00:00",
+      "endedAt": "2026-03-03T16:47:22.5229081+00:00",
+      "durationMs": 2632,
+      "status": 0,
+      "ok": true
+    },
+    {
+      "id": "export_pack_validation",
+      "command": "pnpm run test:export-pack-validation",
+      "startedAt": "2026-03-03T16:47:22.5236953+00:00",
+      "endedAt": "2026-03-03T16:47:23.1359480+00:00",
+      "durationMs": 612,
+      "status": 0,
+      "ok": true
+    }
+  ],
+  "summary": {
+    "ok": true,
+    "failedStep": null,
+    "totalSteps": 3,
+    "passedSteps": 3,
+    "message": "pre-push production checklist passed"
+  },
+  "nextRequiredGates": [
+    "Validate Vercel preview deployment for this branch before merge.",
+    "After merge to main, run pnpm run ops:release-gate and keep evidence artifact.",
+    "After production deploy, run pnpm run ops:deploy-smoke against deployed URL."
+  ]
+}
+

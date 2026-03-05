@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-03-04T23:06:24.370Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 1716,
+      "ok": true,
+      "source": "app-user",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 500,
+      "ms": 541,
+      "error": "Upload failed. Please try again.",
+      "code": "UPLOAD_FAILED"
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Upload failed (500)"
+  }
+}

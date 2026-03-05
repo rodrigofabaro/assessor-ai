@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-03-04T15:47:51.530Z",
+  "baseUrl": "http://localhost:3000",
+  "auth": {
+    "attempted": false,
+    "authenticated": false
+  },
+  "steps": {
+    "upload": {
+      "status": 401,
+      "ms": 148,
+      "error": "Authentication required.",
+      "code": "AUTH_REQUIRED"
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Upload failed (401)"
+  }
+}

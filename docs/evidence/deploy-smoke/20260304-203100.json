@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-03-04T20:30:45.263Z",
+  "baseUrl": "http://localhost:3000",
+  "auth": {
+    "attempted": false,
+    "authenticated": false
+  },
+  "steps": {
+    "upload": {
+      "status": 200,
+      "ms": 12326,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 1088,
+      "ok": true,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Student create failed (500)"
+  },
+  "submissionId": "eba455e7-cd99-42f5-9877-c43c06f2ebd8"
+}

@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-03-04T15:17:09.344Z",
+  "baseUrl": "http://localhost:3000",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 320,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 78,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 255,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmc6k2tf0000bempc2so6mcn",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 20
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "No assignments available. Seed at least one assignment before full deploy smoke."
+  },
+  "submissionId": "448174c9-ff02-4b3a-bf19-d3bf828fd10f"
+}

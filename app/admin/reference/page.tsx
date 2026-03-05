@@ -102,6 +102,27 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
             />
           </label>
         </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">Framework</span>
+            <input
+              value={vm.docFramework}
+              onChange={(e) => vm.setDocFramework(e.target.value)}
+              placeholder="e.g. Pearson Engineering (RQF)"
+              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">Category</span>
+            <input
+              value={vm.docCategory}
+              onChange={(e) => vm.setDocCategory(e.target.value)}
+              placeholder="e.g. Engineering"
+              className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+            />
+          </label>
+        </div>
       </div>
 
       <div className="mt-4">

@@ -1,0 +1,90 @@
+{
+  "generatedAt": "2026-03-04T15:41:37.999Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 683,
+      "ok": true,
+      "source": "app-user",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 1340,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2315,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmc7fn5d0000rgvziuqz6zu0",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 1662
+    },
+    "assignment": {
+      "id": "seed-smoke-4017-a1",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Deployment Smoke Assignment",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 1565
+    },
+    "grade": {
+      "status": 200,
+      "ms": 10526,
+      "overallGrade": "PASS",
+      "assessmentId": "0a13aa0a-5d02-4526-9646-0c61b74994c1",
+      "error": null,
+      "code": null
+    },
+    "poll": {
+      "status": "DONE",
+      "hasExtraction": true,
+      "hasAssessment": true,
+      "hasMarkedPdf": true,
+      "latestAssessmentId": "0a13aa0a-5d02-4526-9646-0c61b74994c1",
+      "polledMs": 1224
+    },
+    "markedPdf": {
+      "status": 200,
+      "ms": 530,
+      "bytes": 5661
+    },
+    "exportPack": {
+      "status": 200,
+      "ms": 1147,
+      "exportId": "928de75bdf12327299c7"
+    },
+    "replay": {
+      "status": 200,
+      "ms": 762,
+      "hashMatch": true,
+      "assessmentHashMatch": true,
+      "fileDiffCount": 4,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": true,
+    "message": "deploy smoke passed"
+  },
+  "submissionId": "7e6456bd-ef7e-4c25-bd1c-ffcb9ab00157"
+}

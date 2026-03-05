@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-03-03T13:55:40.744Z",
+  "baseUrl": "http://localhost:3000",
+  "steps": {
+    "upload": {
+      "status": 500,
+      "ms": 1026,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Upload failed (500)"
+  }
+}

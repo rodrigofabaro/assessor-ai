@@ -12,5 +12,6 @@
   "pageNotesMaxPages": 6,
   "pageNotesMaxLinesPerPage": 3,
   "pageNotesIncludeCriterionCode": true,
-  "updatedAt": "2026-02-20T11:14:38.957Z"
+  "pageNotesAiPolishEnabled": true,
+  "updatedAt": "2026-02-27T15:10:02.234Z"
 }

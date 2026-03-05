@@ -62,6 +62,21 @@ export function ReferenceToolbar({
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
+          <input
+            value={filters.framework}
+            onChange={(e) => setFilters({ ...filters, framework: e.target.value })}
+            placeholder="Framework (e.g. Pearson Engineering)"
+            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+          />
+          <input
+            value={filters.category}
+            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+            placeholder="Category (e.g. Engineering)"
+            className="h-10 rounded-xl border border-zinc-300 px-3 text-sm"
+          />
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
           <label className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
             <input
               type="checkbox"

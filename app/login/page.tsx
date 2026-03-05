@@ -8,10 +8,10 @@ type LoginPageProps = {
 export default function LoginPage({ searchParams }: LoginPageProps) {
   const nextRaw = searchParams?.next;
   const nextValue = Array.isArray(nextRaw) ? nextRaw[0] : nextRaw;
-  const requestedPath = String(nextValue || "/admin").trim();
+  const requestedPath = String(nextValue || "/").trim();
   const nextPath =
     requestedPath.startsWith("/") && !requestedPath.startsWith("//")
       ? requestedPath
-      : "/admin";
+      : "/";
   return <LoginForm nextPath={nextPath} />;
 }

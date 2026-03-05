@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const organizationId = await getRequestOrganizationId();
     const units = await prisma.unit.findMany({
+      where: addOrganizationReadScope({}, organizationId) as any,
       orderBy: [{ unitCode: "asc" }],
       include: {
         specDocument: true,
@@ -35,6 +38,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const organizationId = await getRequestOrganizationId();
     const body = await req.json();
     const unitCode = String(body.unitCode || "").trim();
     const unitTitle = String(body.unitTitle || "").trim();
@@ -52,6 +56,7 @@ export async function POST(req: Request) {
         unitCode,
         unitTitle,
         specDocumentId,
+        organizationId,
       },
     });
 

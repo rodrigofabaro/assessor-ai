@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
+
+function isOrgScopeCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2022") return true;
+  if (msg.includes("organizationid") && msg.includes("does not exist")) return true;
+  if (msg.includes("unknown argument") && msg.includes("organizationid")) return true;
+  return false;
+}
 
 function normEmail(s: string | null | undefined) {
   const t = (s || "").trim().toLowerCase();
@@ -23,6 +33,10 @@ function normCourse(s: string | null | undefined) {
 
 // GET /api/students?query=...
 export async function GET(req: Request) {
+  let organizationId: string | null = null;
+  try {
+    organizationId = await getRequestOrganizationId();
+  } catch {}
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get("query") || "").trim();
 
@@ -37,12 +51,23 @@ export async function GET(req: Request) {
           ],
         };
 
-  const students = await prisma.student.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true, updatedAt: true },
-    take: 250,
-  });
+  let students;
+  try {
+    students = await prisma.student.findMany({
+      where: addOrganizationReadScope(where as any, organizationId) as any,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true, updatedAt: true },
+      take: 250,
+    });
+  } catch (error) {
+    if (!organizationId || !isOrgScopeCompatError(error)) throw error;
+    students = await prisma.student.findMany({
+      where: where as any,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true, updatedAt: true },
+      take: 250,
+    });
+  }
 
   // ✅ Always return an array (prevents ".map is not a function")
   return NextResponse.json(students);
@@ -50,6 +75,10 @@ export async function GET(req: Request) {
 
 // POST /api/students
 export async function POST(req: Request) {
+  let organizationId: string | null = null;
+  try {
+    organizationId = await getRequestOrganizationId();
+  } catch {}
   const body = await req.json().catch(() => ({}));
 
   const fullName = normName(body.fullName ?? body.name);
@@ -61,14 +90,24 @@ export async function POST(req: Request) {
 
   try {
     // Prefer creating with stable keys; duplicates prevented by unique constraints.
-    const created = await prisma.student.create({
-      data: { fullName, email, externalRef, courseName },
-      select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true, updatedAt: true },
-    });
+    const baseData = { fullName, email, externalRef, courseName };
+    let created;
+    try {
+      created = await prisma.student.create({
+        data: organizationId ? { ...baseData, organizationId } : baseData,
+        select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true, updatedAt: true },
+      });
+    } catch (createErr) {
+      if (!organizationId || !isOrgScopeCompatError(createErr)) throw createErr;
+      created = await prisma.student.create({
+        data: baseData,
+        select: { id: true, fullName: true, email: true, externalRef: true, courseName: true, createdAt: true, updatedAt: true },
+      });
+    }
     return NextResponse.json(created);
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Friendly conflict messages
-    const msg = String(e?.message || e);
+    const msg = String((e as { message?: string } | null)?.message || e);
     if (msg.includes("Unique constraint") && msg.includes("email")) {
       return NextResponse.json({ error: "A student with that email already exists." }, { status: 409 });
     }

@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-03-04T11:12:51.225Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 561,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 747,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 1933,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmbxtyil0000tx4f8lqq1ryf",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 1484
+    },
+    "assignment": {
+      "id": "seed-smoke-4017-a1",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Deployment Smoke Assignment",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 1404
+    },
+    "grade": {
+      "status": 422,
+      "ms": 1091,
+      "overallGrade": null,
+      "assessmentId": null,
+      "error": "No mapped assignment brief found for 4017 A1. Map this in Admin > Bindings.",
+      "code": "GRADE_ASSIGNMENT_BINDING_MISSING"
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Grade failed (422)"
+  },
+  "submissionId": "079641e8-060a-4f08-aa6e-6891806a99d1"
+}

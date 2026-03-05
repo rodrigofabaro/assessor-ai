@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-03-03T16:44:58.260Z",
+  "gate": "prepush-prod",
+  "git": {
+    "branch": null,
+    "dirtyCount": -1,
+    "allowDirty": true,
+    "allowMain": true
+  },
+  "steps": [],
+  "summary": {
+    "ok": false,
+    "failedStep": "git_branch",
+    "totalSteps": 3,
+    "passedSteps": 0,
+    "message": "Could not resolve current git branch."
+  },
+  "nextRequiredGates": [
+    "Validate Vercel preview deployment for this branch before merge.",
+    "After merge to main, run pnpm run ops:release-gate and keep evidence artifact.",
+    "After production deploy, run pnpm run ops:deploy-smoke against deployed URL."
+  ]
+}

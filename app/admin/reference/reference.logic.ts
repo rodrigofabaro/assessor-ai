@@ -74,6 +74,8 @@ type InboxFilters = {
   q: string;
   type: "" | ReferenceDocument["type"];
   status: "" | ReferenceDocument["status"];
+  framework: string;
+  category: string;
   onlyLocked: boolean;
   onlyUnlocked: boolean;
   sort: "updated" | "uploaded" | "title";
@@ -231,6 +233,8 @@ function safeParseFilters(): InboxFilters {
       q: typeof parsed.q === "string" ? parsed.q : "",
       type: (parsed.type as any) || "",
       status: (parsed.status as any) || "",
+      framework: typeof parsed.framework === "string" ? parsed.framework : "",
+      category: typeof parsed.category === "string" ? parsed.category : "",
       onlyLocked: !!parsed.onlyLocked,
       onlyUnlocked: !!parsed.onlyUnlocked,
       sort: parsed.sort === "title" || parsed.sort === "uploaded" || parsed.sort === "updated" ? parsed.sort : "updated",
@@ -240,6 +244,8 @@ function safeParseFilters(): InboxFilters {
       q: "",
       type: "",
       status: "",
+      framework: "",
+      category: "",
       onlyLocked: false,
       onlyUnlocked: false,
       sort: "updated",
@@ -258,6 +264,8 @@ function docSearchHaystack(d: ReferenceDocument) {
     meta.assignmentCode ? String(meta.assignmentCode) : "",
     meta.specIssue ? String(meta.specIssue) : "",
     meta.specVersionLabel ? String(meta.specVersionLabel) : "",
+    meta.framework ? String(meta.framework) : "",
+    meta.category ? String(meta.category) : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -304,6 +312,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
   const [docTitle, setDocTitle] = useState("");
   const [docVersion, setDocVersion] = useState("1");
+  const [docFramework, setDocFramework] = useState("");
+  const [docCategory, setDocCategory] = useState("");
   const [docFile, setDocFile] = useState<File | null>(null);
 
   // Selection
@@ -312,7 +322,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   // Inbox filters (persisted)
   const [filters, setFilters] = useState<InboxFilters>(() => {
     if (typeof window === "undefined") {
-      return { q: "", type: "", status: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" };
+      return { q: "", type: "", status: "", framework: "", category: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" };
     }
     return safeParseFilters();
   });
@@ -447,6 +457,14 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     }
 
     if (filters.status) list = list.filter((d) => d.status === filters.status);
+    if (filters.framework) {
+      const target = filters.framework.trim().toLowerCase();
+      list = list.filter((d) => String((d.sourceMeta as any)?.framework || "").trim().toLowerCase() === target);
+    }
+    if (filters.category) {
+      const target = filters.category.trim().toLowerCase();
+      list = list.filter((d) => String((d.sourceMeta as any)?.category || "").trim().toLowerCase() === target);
+    }
 
     if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
     if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
@@ -707,12 +725,16 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       fd.set("type", uploadType);
       fd.set("title", docTitle || fileToUse.name);
       fd.set("version", docVersion || "1");
+      if (docFramework.trim()) fd.set("framework", docFramework.trim());
+      if (docCategory.trim()) fd.set("category", docCategory.trim());
       fd.set("file", fileToUse);
 
       await jsonFetch("/api/reference-documents", { method: "POST", body: fd });
 
       setDocTitle("");
       setDocVersion("1");
+      setDocFramework("");
+      setDocCategory("");
       setDocFile(null);
 
       await refreshAll({ keepSelection: false });
@@ -756,6 +778,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         fd.set("type", uploadType);
         fd.set("title", stripExtension(file.name) || file.name);
         fd.set("version", "1");
+        if (docFramework.trim()) fd.set("framework", docFramework.trim());
+        if (docCategory.trim()) fd.set("category", docCategory.trim());
         fd.set("file", file);
 
         const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
@@ -1171,7 +1195,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   }
 
   function resetFilters() {
-    setFilters({ q: "", type: "", status: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" });
+    setFilters({ q: "", type: "", status: "", framework: "", category: "", onlyLocked: false, onlyUnlocked: false, sort: "updated" });
   }
 
   async function archiveSelectedDocument() {
@@ -1368,6 +1392,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     docType,
     docTitle,
     docVersion,
+    docFramework,
+    docCategory,
     docFile,
 
     // filters
@@ -1388,6 +1414,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setDocType,
     setDocTitle,
     setDocVersion,
+    setDocFramework,
+    setDocCategory,
     setDocFile,
     setBriefUnitId,
     setMapSelected,

@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-03-04T11:03:39.245Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 1851,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 873,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2150,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmbxi64400004ixcojh03oye",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 1647
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "No assignments available. Seed at least one assignment before full deploy smoke."
+  },
+  "submissionId": "b84e1b97-6a69-46d8-8547-bf540a4427d2"
+}

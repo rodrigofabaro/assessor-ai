@@ -120,6 +120,8 @@ export type SpecCatalogRow = {
   unitCode: string;
   unitTitle: string;
   issueLabel: string;
+  framework: string;
+  category: string;
   loCount: number;
   criteriaCount: number;
   importSource: string;
@@ -145,8 +147,8 @@ export function SpecMasterHealthBar({
   health: {
     lockedCount: number;
     activeSetCount: number;
-    expectedActiveSetCount: number;
-    missingActiveSetCount: number;
+    referenceActiveSetCount: number;
+    activeSetDeltaCount: number;
     unverifiedPearsonCount: number;
     multiVersionFamilyCount: number;
     multiVersionFamilies: string[];
@@ -160,7 +162,9 @@ export function SpecMasterHealthBar({
 }) {
   const chips: Array<[string, string | number, string]> = [
     ["Locked specs", health.lockedCount, "zinc"],
-    ["Active set", `${health.activeSetCount}/${health.expectedActiveSetCount}`, health.missingActiveSetCount ? "amber" : "emerald"],
+    ["Active-set locked", health.activeSetCount, "info"],
+    ["Reference list", health.referenceActiveSetCount, "zinc"],
+    ["Reference delta", health.activeSetDeltaCount, health.activeSetDeltaCount ? "amber" : "emerald"],
     ["Unverified criteria", health.unverifiedPearsonCount, health.unverifiedPearsonCount ? "rose" : "emerald"],
     ["Multi-version families", health.multiVersionFamilyCount, health.multiVersionFamilyCount ? "info" : "emerald"],
     ["Version conflicts", health.sameIssueConflictCount, health.sameIssueConflictCount ? "amber" : "emerald"],
@@ -213,9 +217,9 @@ export function SpecMasterHealthBar({
           Same code + same issue conflicts detected: <span className="font-semibold">{health.sameIssueConflictKeys.join(", ")}</span>
         </div>
       ) : null}
-      {health.missingActiveSetCount > 0 ? (
-        <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
-          Active set is incomplete: {health.missingActiveSetCount} expected Pearson unit(s) are missing from the locked catalog.
+      {health.activeSetDeltaCount > 0 ? (
+        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          Locked active-set count is currently {health.activeSetDeltaCount} below the reference list count.
         </div>
       ) : null}
     </section>
@@ -408,6 +412,8 @@ export function SpecCatalogList({
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-zinc-500">
                   {row.isPearsonSet ? <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5">Pearson-set unit</span> : null}
+                  {row.framework ? <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5">{row.framework}</span> : null}
+                  {row.category ? <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5">{row.category}</span> : null}
                   <span>{((d.sourceMeta as any)?.updatedAt || d.uploadedAt) ? new Date(((d.sourceMeta as any)?.updatedAt || d.uploadedAt)).toLocaleDateString() : "Unknown date"}</span>
                 </div>
               </div>
@@ -437,7 +443,7 @@ export function SpecVersionComparePanel({
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-zinc-900">Spec version compare</h2>
-        <span className="text-xs text-zinc-500">Compare specs with same unit code</span>
+        <span className="text-xs text-zinc-500">Compare specs with same unit family/category</span>
       </div>
       {!candidates.length ? (
         <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
@@ -464,6 +470,9 @@ export function SpecVersionComparePanel({
                   <div className="text-xs text-zinc-500">{idx === 0 ? "Current" : "Compare"}</div>
                   <div className="mt-1 text-sm font-semibold text-zinc-900">{row.issueLabel || "Issue —"}</div>
                   <div className="mt-1 text-xs text-zinc-700">{row.unitCode} — {row.unitTitle}</div>
+                  <div className="mt-1 text-[11px] text-zinc-600">
+                    {row.framework || "No framework"} · {row.category || "No category"}
+                  </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                     <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1">LOs: <span className="font-semibold">{row.loCount}</span></div>
                     <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1">ACs: <span className="font-semibold">{row.criteriaCount}</span></div>

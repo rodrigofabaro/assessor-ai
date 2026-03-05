@@ -83,3 +83,5 @@ tmp-ops-sample.pdf
 .codex-dev.log
 .codex-dev.err
 submission_marked/
+
+.vercel

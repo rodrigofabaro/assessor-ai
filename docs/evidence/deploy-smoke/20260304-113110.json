@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-03-04T11:30:58.140Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 2299,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 1085,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2165,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmbyhb7c000014l9glouxzew",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 1792
+    },
+    "assignment": {
+      "id": "seed-smoke-4017-a1",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Deployment Smoke Assignment",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 1519
+    },
+    "grade": {
+      "status": 422,
+      "ms": 2235,
+      "overallGrade": null,
+      "assessmentId": null,
+      "error": "Adaptive grading chose raw PDF mode, but raw document rendering failed and extraction is not ready.",
+      "code": "GRADE_RAW_INPUT_UNAVAILABLE"
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Grade failed (422)"
+  },
+  "submissionId": "7ef29f9a-d605-4e45-b698-033458e025b2"
+}

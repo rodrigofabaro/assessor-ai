@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-03-03T17:13:01.781Z",
+  "baseUrl": "http://localhost:3000",
+  "steps": {
+    "upload": {
+      "status": 200,
+      "ms": 7380,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 21515,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmav9uov0008d6vnka3ozist",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 134
+    },
+    "assignment": {
+      "id": "e130443b-cb7c-45a8-ad8e-01209c786428",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "4017 A1 Baseline",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 143
+    },
+    "grade": {
+      "status": 500,
+      "ms": 33534,
+      "overallGrade": null,
+      "assessmentId": null,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Grade failed (500)"
+  },
+  "submissionId": "40bf5283-0b5b-4cef-99c0-56fb641da281"
+}

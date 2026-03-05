@@ -4,6 +4,7 @@ import { deriveAutomationState } from "@/lib/submissions/automation";
 import { computeExtractionQuality } from "@/lib/submissions/extractionQuality";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 import { readTurnitinSubmissionStateMap } from "@/lib/turnitin/state";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 type SubmissionsView = "workspace" | "qa";
 type TimeframeParam = "today" | "week" | "all";
@@ -349,6 +350,7 @@ function buildQaWhere(opts: {
 }
 
 export async function GET(req: Request) {
+  const organizationId = await getRequestOrganizationId();
   const { searchParams } = new URL(req.url);
   const view: SubmissionsView = String(searchParams.get("view") || "").trim().toLowerCase() === "qa" ? "qa" : "workspace";
   const includeQa = parseBool(searchParams.get("qa"), view === "qa");
@@ -371,7 +373,8 @@ export async function GET(req: Request) {
   const orderBy = buildOrderBy(sortBy, sortDir);
 
   if (view === "qa") {
-    const where = buildQaWhere({
+    const where = addOrganizationReadScope(
+      buildQaWhere({
       q,
       statusFilter,
       timeframe,
@@ -379,7 +382,9 @@ export async function GET(req: Request) {
       unitCode: String(searchParams.get("unitCode") || "").trim(),
       assignmentRef: String(searchParams.get("assignmentRef") || "").trim().toUpperCase(),
       grade: String(searchParams.get("grade") || "").trim(),
-    });
+      }),
+      organizationId
+    );
 
     const [totalItems, rows] = await Promise.all([
       paginate ? prisma.submission.count({ where }) : Promise.resolve(0),
@@ -495,12 +500,15 @@ export async function GET(req: Request) {
     });
   }
 
-  const where = buildWorkspaceWhere({
-    q,
-    statusFilter,
-    unlinkedOnly: parseBool(searchParams.get("unlinked"), false),
-    timeframe,
-  });
+  const where = addOrganizationReadScope(
+    buildWorkspaceWhere({
+      q,
+      statusFilter,
+      unlinkedOnly: parseBool(searchParams.get("unlinked"), false),
+      timeframe,
+    }),
+    organizationId
+  );
 
   const requiresWorkspacePostFilter =
     laneFilter !== "ALL" || readyOnly || handoffOnly || qaReviewOnly || sortBy === "grade";
@@ -576,7 +584,7 @@ export async function GET(req: Request) {
 
     const detailRows = pageIds.length
       ? await prisma.submission.findMany({
-          where: { id: { in: pageIds } },
+          where: addOrganizationReadScope({ id: { in: pageIds } }, organizationId) as any,
           select: {
             id: true,
             filename: true,

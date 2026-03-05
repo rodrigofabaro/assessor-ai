@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-03-03T14:22:01.117Z",
+  "gate": "release",
+  "steps": [
+    {
+      "id": "tsc",
+      "command": "pnpm exec tsc --noEmit --incremental false",
+      "startedAt": "2026-03-03T14:22:01.119Z",
+      "endedAt": "2026-03-03T14:22:01.120Z",
+      "durationMs": 1,
+      "status": 0,
+      "ok": true
+    },
+    {
+      "id": "regression_pack",
+      "command": "pnpm run test:regression-pack",
+      "startedAt": "2026-03-03T14:22:01.120Z",
+      "endedAt": "2026-03-03T14:22:01.121Z",
+      "durationMs": 1,
+      "status": 0,
+      "ok": true
+    },
+    {
+      "id": "export_pack_validation",
+      "command": "pnpm run test:export-pack-validation",
+      "startedAt": "2026-03-03T14:22:01.121Z",
+      "endedAt": "2026-03-03T14:22:01.122Z",
+      "durationMs": 1,
+      "status": 0,
+      "ok": true
+    },
+    {
+      "id": "deploy_smoke",
+      "command": "pnpm run ops:deploy-smoke",
+      "startedAt": "2026-03-03T14:22:01.122Z",
+      "endedAt": "2026-03-03T14:22:01.122Z",
+      "durationMs": 0,
+      "status": 0,
+      "ok": true
+    }
+  ],
+  "summary": {
+    "ok": true,
+    "failedStep": null,
+    "totalSteps": 4,
+    "passedSteps": 4
+  }
+}

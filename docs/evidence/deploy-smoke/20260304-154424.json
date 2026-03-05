@@ -1,0 +1,90 @@
+{
+  "generatedAt": "2026-03-04T15:44:09.651Z",
+  "baseUrl": "http://localhost:3000",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 287,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 65,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 273,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmc6kqip0000fbkvaf2moc6a",
+      "source": "seeded"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 26
+    },
+    "assignment": {
+      "id": "b5d2f983-32f5-4a13-9e55-aaaabbbbcccc",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Quality Control Tools and Costing",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 18
+    },
+    "grade": {
+      "status": 200,
+      "ms": 13748,
+      "overallGrade": "PASS",
+      "assessmentId": "85725ab3-e29c-4ae1-ba28-f9092650ce50",
+      "error": null,
+      "code": null
+    },
+    "poll": {
+      "status": "DONE",
+      "hasExtraction": true,
+      "hasAssessment": true,
+      "hasMarkedPdf": true,
+      "latestAssessmentId": "85725ab3-e29c-4ae1-ba28-f9092650ce50",
+      "polledMs": 28
+    },
+    "markedPdf": {
+      "status": 200,
+      "ms": 70,
+      "bytes": 7831
+    },
+    "exportPack": {
+      "status": 200,
+      "ms": 30,
+      "exportId": "e3e31e2f43ad4c304323"
+    },
+    "replay": {
+      "status": 200,
+      "ms": 24,
+      "hashMatch": true,
+      "assessmentHashMatch": true,
+      "fileDiffCount": 4,
+      "error": null,
+      "code": null
+    }
+  },
+  "result": {
+    "ok": true,
+    "message": "deploy smoke passed"
+  },
+  "submissionId": "26acb065-15ba-416d-833c-6b4c82549a9b"
+}

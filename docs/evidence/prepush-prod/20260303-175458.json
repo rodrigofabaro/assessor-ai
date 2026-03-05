@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-03-03T17:54:56.2504717+00:00",
+  "gate": "prepush-prod",
+  "git": {
+    "branch": "main",
+    "dirtyCount": 34,
+    "allowDirty": true,
+    "allowMain": true
+  },
+  "steps": [
+    {
+      "id": "prisma_generate",
+      "command": "pnpm prisma generate",
+      "startedAt": "2026-03-03T17:54:56.5189147+00:00",
+      "endedAt": "2026-03-03T17:54:58.0243011+00:00",
+      "durationMs": 1505,
+      "status": 1,
+      "ok": false
+    }
+  ],
+  "summary": {
+    "ok": false,
+    "failedStep": "prisma_generate",
+    "totalSteps": 5,
+    "passedSteps": 0,
+    "message": "Failed at step prisma_generate."
+  },
+  "nextRequiredGates": [
+    "Validate Vercel preview deployment for this branch before merge.",
+    "After merge to main, run pnpm run ops:release-gate and keep evidence artifact.",
+    "After production deploy, run pnpm run ops:deploy-smoke against deployed URL."
+  ]
+}
+

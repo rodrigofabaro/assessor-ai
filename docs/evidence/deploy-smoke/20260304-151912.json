@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-03-04T15:19:11.580Z",
+  "baseUrl": "http://localhost:3000",
+  "auth": {
+    "attempted": true,
+    "authenticated": true
+  },
+  "steps": {
+    "authLogin": {
+      "status": 200,
+      "ms": 79,
+      "ok": true,
+      "source": "env",
+      "code": null,
+      "error": null
+    },
+    "upload": {
+      "status": 200,
+      "ms": 34,
+      "error": null,
+      "code": null
+    },
+    "extract": {
+      "status": 200,
+      "ms": 118,
+      "ok": true,
+      "error": null,
+      "code": null
+    },
+    "student": {
+      "id": "cmmc6kqip0000fbkvaf2moc6a",
+      "source": "seeded"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 21
+    },
+    "assignment": {
+      "id": "b5d2f983-32f5-4a13-9e55-aaaabbbbcccc",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Quality Control Tools and Costing",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 18
+    },
+    "grade": {
+      "status": 500,
+      "ms": 865,
+      "overallGrade": null,
+      "assessmentId": null,
+      "error": "Grading failed: Incorrect API key provided: sk-proj-********************************************************************************************************************************************************gFEA. You can find your API key at https://platform.openai.com/account/api-keys.",
+      "code": "GRADE_FAILED"
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Grade failed (500)"
+  },
+  "submissionId": "7c8f7638-dd96-4a11-8f38-e7cf159313bb"
+}
