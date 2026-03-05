@@ -646,7 +646,7 @@ export default function AdminUsersPage() {
             </div>
           </div>
           {canManageAllOrganizations ? (
-            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+            <div id="organization-management" className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Organizations</div>
               <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                 <input

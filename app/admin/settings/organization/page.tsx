@@ -178,6 +178,13 @@ export default function OrganizationSettingsPage() {
       </section>
 
       <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+        <div className="mb-4 rounded-2xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs text-cyan-900">
+          Organization creation is managed in{" "}
+          <Link href="/admin/users#organization-management" className="font-semibold underline">
+            Admin Users
+          </Link>
+          {" "}and requires SUPER_ADMIN access.
+        </div>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Organization</span>

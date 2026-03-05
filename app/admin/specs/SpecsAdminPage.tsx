@@ -838,63 +838,64 @@ export default function SpecsAdminPage() {
               <span className="text-xs text-zinc-500">Uploads start immediately after selection.</span>
             </div>
 
-            <div className="rounded-2xl border border-cyan-200 bg-cyan-50/40 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-zinc-900">Full descriptor import (beta)</div>
-                  <div className="mt-1 text-xs text-zinc-600">
-                    Upload one full Pearson descriptor PDF and auto-split/import unit specs.
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => suiteInputRef.current?.click()}
-                  disabled={uploading || suiteImporting}
-                  className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
-                >
-                  {suiteImporting ? "Importing..." : "Import full descriptor PDF"}
-                </button>
-              </div>
-              <div className="mt-2 text-xs text-zinc-600">
-                {suiteImporting
-                  ? suiteImportStatus || "Processing..."
-                  : "This updates existing suite units by unit code and creates missing ones."}
-              </div>
-              {suiteJob ? (
-                <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-semibold text-zinc-900">
-                      Job status: {suiteJob.status}
-                    </span>
-                    {suiteJob.reportAvailable ? (
-                      <button
-                        type="button"
-                        onClick={() => downloadSuiteImportReport(suiteJob.id)}
-                        className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 hover:bg-zinc-50"
-                      >
-                        Download report
-                      </button>
-                    ) : null}
-                  </div>
-                  {suiteJob.resultSummary ? (
-                    <div className="mt-2">
-                      Created: <span className="font-semibold">{suiteJob.resultSummary.created || 0}</span> · Updated:{" "}
-                      <span className="font-semibold">{suiteJob.resultSummary.updated || 0}</span> · Missing:{" "}
-                      <span className="font-semibold">{suiteJob.resultSummary.missingRequestedCount || 0}</span>
-                    </div>
-                  ) : null}
-                  {suiteJob.errorMessage ? (
-                    <div className="mt-2 text-rose-700">{suiteJob.errorMessage}</div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
             Upload panel collapsed. Click &quot;Upload files&quot; to add specifications.
           </div>
         )}
+
+        <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50/40 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-zinc-900">Full descriptor import (beta)</div>
+              <div className="mt-1 text-xs text-zinc-600">
+                Upload one full Pearson descriptor PDF and auto-split/import unit specs.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => suiteInputRef.current?.click()}
+              disabled={uploading || suiteImporting}
+              className={ui.btnPrimary + " disabled:cursor-not-allowed disabled:bg-zinc-300"}
+            >
+              {suiteImporting ? "Importing..." : "Import full descriptor PDF"}
+            </button>
+          </div>
+          <div className="mt-2 text-xs text-zinc-600">
+            {suiteImporting
+              ? suiteImportStatus || "Processing..."
+              : "This updates existing suite units by unit code and creates missing ones."}
+          </div>
+          {suiteJob ? (
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-zinc-900">
+                  Job status: {suiteJob.status}
+                </span>
+                {suiteJob.reportAvailable ? (
+                  <button
+                    type="button"
+                    onClick={() => downloadSuiteImportReport(suiteJob.id)}
+                    className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Download report
+                  </button>
+                ) : null}
+              </div>
+              {suiteJob.resultSummary ? (
+                <div className="mt-2">
+                  Created: <span className="font-semibold">{suiteJob.resultSummary.created || 0}</span> · Updated:{" "}
+                  <span className="font-semibold">{suiteJob.resultSummary.updated || 0}</span> · Missing:{" "}
+                  <span className="font-semibold">{suiteJob.resultSummary.missingRequestedCount || 0}</span>
+                </div>
+              ) : null}
+              {suiteJob.errorMessage ? (
+                <div className="mt-2 text-rose-700">{suiteJob.errorMessage}</div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </section>
       ) : (
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
