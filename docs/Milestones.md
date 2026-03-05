@@ -23,6 +23,7 @@ Status labels:
 ### Priorities (Now)
 - P0: M8 storage deployment setup/fix (set storage target, unblock upload deploy-smoke).
 - P0: M9 password recovery email enablement (provider + recovery flow).
+- P1: M9.1 email architecture hardening (transactional/support/alerts routing + deliverability baseline).
 - M10 multi-organization tenant isolation foundation (global users + org memberships + scoped settings).
 
 ### Developments (Next)
@@ -36,6 +37,7 @@ Status labels:
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
 - Password recovery delivery progress (2026-03-05): tokenized recovery flow active (`POST /api/auth/password-recovery` + `POST /api/auth/password-recovery/confirm` + `/auth/reset`), provider enabled, and release-gate contract check active.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
+- Email architecture direction (2026-03-05): separate transactional sender, support inbox routing, and operational alert inbox to avoid mixed responsibilities in one mailbox.
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
 - Storage provider progress (2026-03-05): added `STORAGE_BACKEND=vercel_blob` + `BLOB_READ_WRITE_TOKEN` support with remote-path cache resolution on read paths.
 
@@ -452,6 +454,15 @@ Phase 7 progress (2026-03-03):
 - Remove remaining placeholder screenshot TODOs.
 - Align help pages with final route labels and controls.
 
+5. Email architecture hardening
+- Separate channel responsibilities:
+  - transactional sender (`no-reply@assessor-ai.co.uk` via `AUTH_EMAIL_FROM`)
+  - support intake inbox (`support@assessor-ai.co.uk` via `CONTACT_FORM_TO`)
+  - system alert inbox (`alerts@assessor-ai.co.uk` via planned `ALERT_EMAIL_TO`)
+- Ensure contact form notifications set `Reply-To` to submitter email.
+- Add DNS deliverability baseline checklist (SPF + DKIM + DMARC report mailbox).
+- Add system-alert trigger matrix for critical failures (upload, extraction, grading, auth anomalies).
+
 **Acceptance**
 - Unauthenticated users cannot access protected operational routes.
 - Login/logout/session expiry work end-to-end in production.
@@ -460,6 +471,7 @@ Phase 7 progress (2026-03-03):
 - Help pages and screenshots match shipped UI.
 - Tutor can run upload-to-marked-output flow without expert intervention.
 - Locked user can recover access via email-driven reset path with auditable token flow.
+- Contact/support and transactional emails are routed to distinct mailboxes with auditable configuration.
 
 ---
 

@@ -25,6 +25,7 @@ Use these categories for all planning updates.
    - Active implementation queue in `docs/Milestones.md`:
      - `P0 M8 storage deployment setup/fix`
      - `P0 M9 password recovery email enablement`
+     - `P1 M9.1 email architecture hardening (transactional/support/alerts routing + deliverability)`
      - `M10 multi-organization tenant isolation foundation`
 2. Developments (Next)
    - Planned roadmap milestones in `docs/Milestones.md`:

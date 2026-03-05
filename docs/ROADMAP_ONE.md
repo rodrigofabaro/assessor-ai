@@ -29,6 +29,7 @@ Use this doc when the instruction is: "continue the roadmap".
 5. Today priority update (2026-03-05):
    - P0: set/fix production storage deployment targets and unblock upload deploy-smoke
    - P0: enable password recovery email flow (no manual recovery path)
+   - P1: formalize email routing architecture (transactional vs support vs alert channels)
 
 ## Execution lanes
 
@@ -55,14 +56,28 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-05): password recovery flow implementation delivered.
 - Added `POST /api/auth/password-recovery`:
   - accepts username/email and normalizes to login email
-  - generates temporary password, sets `mustResetPassword=true`, and sends recovery email
-  - rolls credentials back if delivery fails to avoid silent account lock-out
+  - creates single-use expiry-bound token links and sends recovery email
+  - stores only token hash (raw token is never stored)
+- Added `POST /api/auth/password-recovery/confirm`:
+  - validates token hash + expiry + one-time use
+  - updates password and consumes token atomically
 - Login screen now includes `Forgot password?` flow wired to recovery endpoint.
 - Added deploy gate contract command: `pnpm run ops:password-recovery-contract`.
 - Release gate now includes password-recovery email contract check.
 - Remaining action: configure production provider and set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement.
 
-3. M8 first production deployment blocker removal
+3. P1 M9.1 email architecture hardening
+- split outbound channels by intent:
+  - transactional sender (`AUTH_EMAIL_FROM` with `no-reply@assessor-ai.co.uk`)
+  - human-contact inbox (`CONTACT_FORM_TO` -> `support@assessor-ai.co.uk`)
+  - operational alerts inbox (new env: `ALERT_EMAIL_TO` -> `alerts@assessor-ai.co.uk`)
+- ensure landing-page contact emails set `Reply-To` to submitter address for direct operator replies.
+- add deliverability baseline checklist:
+  - SPF/DKIM/DMARC alignment for sending domain
+  - DMARC report mailbox (`dmarc@assessor-ai.co.uk`)
+- add alert trigger matrix for P1 failures (upload/extraction/grading/auth anomalies).
+
+4. M8 first production deployment blocker removal
 - replace direct local filesystem dependency with storage provider abstraction
 - migrate highest-risk write/read paths first (`submissions`, `reference documents`, export artifacts)
 - keep backward-compatible resolver for existing local `storagePath` values
@@ -109,12 +124,12 @@ Use this doc when the instruction is: "continue the roadmap".
 - OpenAI model config now persists via DB (`AppConfig.openaiModelConfig`) with runtime cache hydration + file fallback.
 - Deploy smoke evidence after this slice: `docs/evidence/deploy-smoke/20260303-172621.json`.
 
-4. Extraction and admin performance hardening
+5. Extraction and admin performance hardening
 - brief extraction regression stabilization
 - reference inbox pagination/projection optimization
 - submission detail heavy-panel render optimization
 
-5. QA reliability instrumentation
+6. QA reliability instrumentation
 - preview/commit/regrade latency metrics
 - p50/p95 + retry/failure dashboard cards
 
@@ -154,17 +169,19 @@ Use this doc when the instruction is: "continue the roadmap".
 - add org settings + secret storage foundations (API keys/integrations per organization)
 - keep backward compatibility during migration from single `organizationId` user model
 
+6. M9.1 email operations continuation
+- add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures
+- persist landing-page leads in DB (email remains notification channel; DB becomes system of record)
+- add delivery health dashboard cards (sent/failed/bounced) using provider telemetry
+
 ### Later
 
 1. Full M8 production deployment and cost-ladder scaling
 2. Full M9 auth + UX template rollout + final performance hardening
-3. Email delivery activation for credential invites (deferred by operator)
-- Keep current mode: generated password + copy + `mailto` draft in `Admin -> Users`.
-- Enable when ready:
-  - `AUTH_INVITE_EMAIL_PROVIDER=resend`
-  - `RESEND_API_KEY`
-  - `AUTH_EMAIL_FROM` (verified sender, e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
-  - optional: `AUTH_INVITE_EMAIL_DEFAULT_ON=true`
+3. Email architecture phase 2
+- add mailbox routing automation and owner rotation (`support`, `alerts`, `dmarc`)
+- add escalation policies for repeated failure events (email -> dashboard -> incident workflow)
+- add outbound template versioning and approval audit for transactional and contact templates
 
 ## Definition of done by active queue
 
@@ -232,6 +249,14 @@ Done when:
 3. tenant-owned APIs are org-scoped by active session organization
 4. platform and org role boundaries are enforceable (`SUPER_ADMIN` vs `ORG_ADMIN`)
 5. organization settings/secrets persistence exists with audit-safe update path
+
+### Queue E - M9.1 email architecture hardening
+
+Done when:
+1. Transactional sender, support inbox, and alert inbox channels are explicitly configured via env (`AUTH_EMAIL_FROM`, `CONTACT_FORM_TO`, `ALERT_EMAIL_TO`)
+2. Landing-page contact notifications include `Reply-To` submitter header for direct response workflow
+3. DNS/domain deliverability baseline is documented and verified (SPF + DKIM + DMARC with report mailbox)
+4. At least one critical-path system alert is routed through the alert channel and validated in staging
 
 ## Production deployment steps (single runbook section)
 

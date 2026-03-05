@@ -29,7 +29,7 @@ type Organization = {
   name: string;
   isActive: boolean;
   createdAt?: string;
-  _count?: { users?: number };
+  _count?: { users?: number; memberships?: number };
 };
 
 type AppConfig = {
@@ -108,6 +108,7 @@ function generatePasswordClient(length = 20) {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [managedOrganizations, setManagedOrganizations] = useState<Organization[]>([]);
   const [canManageAllOrganizations, setCanManageAllOrganizations] = useState(false);
   const [defaultOrganizationId, setDefaultOrganizationId] = useState<string>("");
   const [activeAuditUserId, setActiveAuditUserId] = useState<string>("");
@@ -136,6 +137,7 @@ export default function AdminUsersPage() {
   const [orgName, setOrgName] = useState("");
   const [orgSlug, setOrgSlug] = useState("");
   const [creatingOrg, setCreatingOrg] = useState(false);
+  const [pendingOrgId, setPendingOrgId] = useState<string | null>(null);
 
   const activeUser = useMemo(() => users.find((u) => u.id === activeAuditUserId) || null, [users, activeAuditUserId]);
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
@@ -161,9 +163,21 @@ export default function AdminUsersPage() {
         eRes.json().catch(() => ({} as any)),
       ]);
       setUsers(Array.isArray(uJson?.users) ? uJson.users : []);
-      setCanManageAllOrganizations(!!uJson?.canManageAllOrganizations);
+      const canManageAll = !!uJson?.canManageAllOrganizations;
+      setCanManageAllOrganizations(canManageAll);
       const orgRows = Array.isArray(uJson?.organizations) ? (uJson.organizations as Organization[]) : [];
       setOrganizations(orgRows);
+      if (canManageAll) {
+        const orgRes = await fetch("/api/admin/organizations", { cache: "no-store" });
+        const orgPayload = await orgRes.json().catch(() => ({} as any));
+        if (orgRes.ok && Array.isArray(orgPayload?.organizations)) {
+          setManagedOrganizations(orgPayload.organizations as Organization[]);
+        } else {
+          setManagedOrganizations(orgRows);
+        }
+      } else {
+        setManagedOrganizations(orgRows);
+      }
       const fallbackOrg = String(uJson?.defaultOrganizationId || orgRows[0]?.id || "");
       setDefaultOrganizationId(fallbackOrg);
       setOrganizationId((prev) => prev || fallbackOrg);
@@ -309,6 +323,80 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function renameOrganization(org: Organization) {
+    const nextName = window.prompt("New organization name", org.name);
+    if (nextName === null) return;
+    const name = String(nextName || "").trim();
+    if (!name || name === org.name) return;
+    setPendingOrgId(org.id);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || !json?.ok) {
+        setErr(String(json?.error || "Failed to rename organization."));
+        return;
+      }
+      setMsg("Organization updated.");
+      await load();
+    } finally {
+      setPendingOrgId(null);
+    }
+  }
+
+  async function toggleOrganizationActive(org: Organization) {
+    const nextActive = !org.isActive;
+    const confirmation = nextActive
+      ? `Reactivate organization "${org.name}"?`
+      : `Deactivate organization "${org.name}"?`;
+    if (!window.confirm(confirmation)) return;
+    setPendingOrgId(org.id);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || !json?.ok) {
+        setErr(String(json?.error || "Failed to update organization status."));
+        return;
+      }
+      setMsg(nextActive ? "Organization reactivated." : "Organization deactivated.");
+      await load();
+    } finally {
+      setPendingOrgId(null);
+    }
+  }
+
+  async function deleteOrganization(org: Organization) {
+    if (!window.confirm(`Delete organization "${org.name}"? This only works when it has no related data.`)) return;
+    setPendingOrgId(org.id);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || !json?.ok) {
+        setErr(String(json?.error || "Failed to delete organization."));
+        return;
+      }
+      setMsg("Organization deleted.");
+      await load();
+    } finally {
+      setPendingOrgId(null);
+    }
+  }
+
   async function setActiveAuditUser(userId: string) {
     setPendingUserId(userId);
     setErr("");
@@ -412,6 +500,32 @@ export default function AdminUsersPage() {
         });
         const recoveryJson = await recoveryRes.json().catch(() => ({} as any));
         if (!recoveryRes.ok) {
+          const recoveryCode = String(recoveryJson?.code || "").trim();
+          if (recoveryCode === "AUTH_PASSWORD_RECOVERY_STORAGE_UNAVAILABLE") {
+            const fallbackRes = await fetch(`/api/admin/users/${u.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ loginEnabled: true, generatePassword: true, sendInviteEmail: true }),
+            });
+            const fallbackJson = await fallbackRes.json().catch(() => ({} as any));
+            if (!fallbackRes.ok || !fallbackJson?.ok) {
+              setErr(fallbackJson?.error || recoveryJson?.error || "Failed to issue fallback reset credentials.");
+              return;
+            }
+            setMsg("Recovery-link storage not migrated yet. Temporary reset credentials were emailed.");
+            applyInviteEmailResult((fallbackJson?.inviteEmail || null) as InviteEmailResult | null);
+            if (fallbackJson?.issuedPassword) {
+              setIssuedCreds({
+                fullName: String(fallbackJson.user?.fullName || u.fullName),
+                email: String(fallbackJson.user?.email || u.email || ""),
+                password: String(fallbackJson.issuedPassword),
+                mailto: typeof fallbackJson.inviteMailto === "string" ? fallbackJson.inviteMailto : null,
+                source: "Fallback password reset credentials",
+              });
+            }
+            await load();
+            return;
+          }
           setErr(recoveryJson?.error || "Failed to send password recovery email.");
           return;
         }
@@ -555,6 +669,56 @@ export default function AdminUsersPage() {
                 >
                   {creatingOrg ? "Creating..." : "Add org"}
                 </button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {managedOrganizations.map((org) => (
+                  <div key={org.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold text-slate-900">
+                        {org.name}{" "}
+                        {!org.isActive ? (
+                          <span className="rounded-full border border-slate-300 bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                            Inactive
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="truncate text-slate-500">
+                        {org.slug} · users {Number(org._count?.users || 0)} · memberships {Number(org._count?.memberships || 0)}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => void renameOrganization(org)}
+                        disabled={pendingOrgId === org.id}
+                        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void toggleOrganizationActive(org)}
+                        disabled={pendingOrgId === org.id}
+                        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        {org.isActive ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void deleteOrganization(org)}
+                        disabled={pendingOrgId === org.id}
+                        className="rounded-md border border-rose-300 bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {!managedOrganizations.length ? (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                    No organizations found.
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : (
