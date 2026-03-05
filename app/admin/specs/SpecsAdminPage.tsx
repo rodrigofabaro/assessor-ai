@@ -441,37 +441,6 @@ export default function SpecsAdminPage() {
     setCatalogValidationReport({ blockers, warnings, info });
   }, [catalogHealth, catalogRowsAll]);
 
-  const exportCatalogRegistry = useCallback(() => {
-    const payload = {
-      generatedAt: new Date().toISOString(),
-      rows: catalogRowsAll.map((r) => ({
-        documentId: r.doc.id,
-        status: r.doc.status,
-        lockedAt: r.doc.lockedAt || null,
-        unitCode: r.unitCode || null,
-        unitTitle: r.unitTitle || null,
-        issueLabel: r.issueLabel || null,
-        loCount: r.loCount,
-        criteriaCount: r.criteriaCount,
-        importSource: r.importSource || null,
-        framework: r.framework || null,
-        category: r.category || null,
-        pearsonCriteriaVerified: r.pearsonCriteriaVerified,
-        isPearsonSet: r.isPearsonSet,
-        archived: r.archived,
-      })),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `spec-library-registry-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, [catalogRowsAll]);
-
   const copyPearsonRepairCommand = useCallback(async () => {
     const cmd = "node scripts/repair-pearson-imported-spec-criteria.cjs && node scripts/lock-imported-pearson-specs.cjs";
     try {
@@ -1014,7 +983,6 @@ export default function SpecsAdminPage() {
           <SpecMasterHealthBar
             health={catalogHealth}
             onValidate={runCatalogValidation}
-            onExport={exportCatalogRegistry}
             onCopyRepairCommand={copyPearsonRepairCommand}
           />
 

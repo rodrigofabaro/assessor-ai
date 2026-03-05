@@ -141,7 +141,6 @@ export type SpecCatalogRow = {
 export function SpecMasterHealthBar({
   health,
   onValidate,
-  onExport,
   onCopyRepairCommand,
 }: {
   health: {
@@ -157,7 +156,6 @@ export function SpecMasterHealthBar({
     archivedCount: number;
   };
   onValidate: () => void;
-  onExport: () => void;
   onCopyRepairCommand: () => void;
 }) {
   const chips: Array<[string, string | number, string]> = [
@@ -188,9 +186,6 @@ export function SpecMasterHealthBar({
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={onValidate} className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
             Validate library integrity
-          </button>
-          <button type="button" onClick={onExport} className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
-            Export unit registry JSON
           </button>
           <button type="button" onClick={onCopyRepairCommand} className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-900 hover:bg-sky-100">
             Copy Pearson repair command
