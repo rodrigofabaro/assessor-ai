@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { verifySignedSessionToken } from "@/lib/auth/session";
+import { getRequestSession } from "@/lib/auth/requestSession";
 import { TinyIcon } from "@/components/ui/TinyIcon";
 import ContactEarlyAccessForm from "./ContactEarlyAccessForm";
 
@@ -142,9 +141,7 @@ function ActionCard({
 }
 
 async function getSession() {
-  const store = await cookies();
-  const token = String(store.get("assessor_session")?.value || "");
-  return verifySignedSessionToken(token);
+  return getRequestSession();
 }
 
 async function getDashboardStats() {
@@ -169,20 +166,57 @@ async function getDashboardStats() {
     return { specs, briefs, submissions, students, lockedSpecs, lockedBriefs, queueBlocked };
   } catch {
     return {
-      specs: "-",
-      briefs: "-",
-      submissions: "-",
-      students: "-",
-      lockedSpecs: "-",
-      lockedBriefs: "-",
-      queueBlocked: "-",
+      specs: 0,
+      briefs: 0,
+      submissions: 0,
+      students: 0,
+      lockedSpecs: 0,
+      lockedBriefs: 0,
+      queueBlocked: 0,
     };
   }
 }
 
+async function getSessionIdentity(session: { userId?: string | null; orgId?: string | null } | null) {
+  if (!session) {
+    return {
+      displayName: "Assessor",
+      organizationName: "Organization scope pending",
+    };
+  }
+
+  const userId = String(session.userId || "").trim();
+  const orgId = String(session.orgId || "").trim();
+  const isEnvUser = userId.startsWith("env:");
+
+  const [user, org] = await Promise.all([
+    !isEnvUser && userId
+      ? prisma.appUser
+          .findUnique({
+            where: { id: userId },
+            select: { fullName: true },
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
+    orgId
+      ? prisma.organization
+          .findUnique({
+            where: { id: orgId },
+            select: { name: true },
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  return {
+    displayName: String(user?.fullName || (isEnvUser ? "Platform Admin" : "Assessor")).trim() || "Assessor",
+    organizationName: String(org?.name || (orgId ? "Organization scope active" : "Global workspace")).trim(),
+  };
+}
+
 export default async function LandingPage() {
   const session = await getSession();
-  const stats = await getDashboardStats();
+  const [stats, identity] = await Promise.all([getDashboardStats(), getSessionIdentity(session as any)]);
 
   if (!session) {
     return (
@@ -493,17 +527,34 @@ export default async function LandingPage() {
   }
 
   const sessionOrgId = String((session as { orgId?: string | null }).orgId || "").trim() || null;
+  const pulseRows = [
+    { label: "Specs locked", value: Number(stats.lockedSpecs || 0), tone: "emerald" as const },
+    { label: "Briefs locked", value: Number(stats.lockedBriefs || 0), tone: "sky" as const },
+    { label: "Queue blocked", value: Number(stats.queueBlocked || 0), tone: "amber" as const },
+    { label: "Submissions", value: Number(stats.submissions || 0), tone: "indigo" as const },
+  ];
+  const pulseMax = Math.max(1, ...pulseRows.map((row) => row.value));
+  const pulseTone = (tone: "emerald" | "sky" | "amber" | "indigo") => {
+    if (tone === "emerald") return "bg-emerald-500";
+    if (tone === "amber") return "bg-amber-500";
+    if (tone === "indigo") return "bg-indigo-500";
+    return "bg-sky-500";
+  };
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-6">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <div className="flex w-full min-w-0 flex-col gap-5">
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_52%),radial-gradient(circle_at_10%_0%,rgba(56,189,248,0.09),transparent_46%),#ffffff] p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_14px_30px_rgba(15,23,42,0.06)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Internal workspace</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">Welcome back</h1>
+            <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-800">
+              Internal workspace
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">Welcome back, {identity.displayName}</h1>
             <p className="mt-1 text-sm text-zinc-700">
-              Role: {session.role}
-              {sessionOrgId ? " · Organization scope active" : ""}. Use the shortcuts below to continue operations.
+              Role: <span className="font-semibold text-zinc-900">{session.role}</span>
+              {" · "}
+              Organization: <span className="font-semibold text-zinc-900">{identity.organizationName}</span>
+              {sessionOrgId ? " · Scoped" : " · Global"}. Use the shortcuts below to continue operations.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -528,6 +579,39 @@ export default async function LandingPage() {
         <StatCard label="Locked Specs" value={stats.lockedSpecs} hint="Specs currently locked for grading" />
         <StatCard label="Locked Briefs" value={stats.lockedBriefs} hint="Briefs currently locked for grading" />
         <StatCard label="Queue Blocked" value={stats.queueBlocked} hint="Submissions requiring intervention" />
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+        <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Operational pulse</h2>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">Live</span>
+          </div>
+          <div className="mt-3 grid gap-3">
+            {pulseRows.map((row) => {
+              const pct = Math.max(6, Math.round((row.value / pulseMax) * 100));
+              return (
+                <div key={row.label}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-700">{row.label}</span>
+                    <span className="font-semibold text-slate-900">{row.value}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div className={`h-full rounded-full ${pulseTone(row.tone)}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+        <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+          <h2 className="text-sm font-semibold text-slate-900">Suggested next actions</h2>
+          <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">Review blocked queue items first to keep grading throughput stable.</li>
+            <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">Confirm spec and brief lock coverage before batch grading cycles.</li>
+            <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">Use QA lane after grading runs to keep moderation decisions defensible.</li>
+          </ul>
+        </article>
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
