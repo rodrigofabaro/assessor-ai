@@ -23,7 +23,10 @@ Status labels:
 ### Priorities (Now)
 - P0: M8 storage deployment setup/fix (set storage target, unblock upload deploy-smoke).
 - P0: M9 password recovery email enablement (provider + recovery flow).
+- P1: M8 readiness endpoint and dependency gate (`/api/health/readiness` for DB, storage, email, and OpenAI).
 - P1: M9.1 email architecture hardening (transactional/support/alerts routing + deliverability baseline).
+- P1: M9 auth abuse protection (rate limiting for login/recovery + auth anomaly alerts).
+- P1: M9 role-specific post-login dashboards (Assessor, `ORG_ADMIN`, `SUPER_ADMIN`).
 - M10 multi-organization tenant isolation foundation (global users + org memberships + scoped settings).
 
 ### Developments (Next)
@@ -355,6 +358,7 @@ Phase 7 progress (2026-03-03):
 3. Production safeguards
 - Secrets management (`DATABASE_URL`, OpenAI, Turnitin, app env).
 - Health checks and smoke routes after deploy.
+- Add `/api/health/readiness` to verify DB, storage provider, outbound email provider, and OpenAI reachability in one probe.
 - Backup + rollback runbook with restore drill.
 
 4. Cost ladder (upgrade by demand)
@@ -366,6 +370,7 @@ Phase 7 progress (2026-03-03):
 - Upload -> extract -> triage -> auto-grade runs online without local disk dependency.
 - Existing local data is available in production (DB + files).
 - Automated smoke checks pass after deploy and after rollback simulation.
+- Readiness endpoint passes in production before smoke execution.
 - Monthly spend guardrails defined with threshold-based upgrade rules.
 
 **Current status (2026-03-04)**
@@ -433,6 +438,7 @@ Phase 7 progress (2026-03-03):
 - Add role-based access checks for `Admin`, `Assessor`, `IV` routes/actions.
 - Add invite/reset/logout flows and auth audit events.
 - Add password recovery email flow as production-first capability (no manual emergency recovery).
+- Add rate limiting for login and password recovery flows (per-IP and per-identity thresholds) with alerting hooks.
 - Extend identity model to support:
   - global role: `SUPER_ADMIN`
   - organization membership roles: `ORG_ADMIN`, `ASSESSOR`, `IV` (plus optional read-only role).
@@ -446,6 +452,10 @@ Phase 7 progress (2026-03-03):
 - Standardize loading/empty/error states and action bars across admin/submissions.
 - Apply responsive/mobile parity checks on all primary operator routes.
 - Add a tutor-focused primary workspace (simple upload -> progress -> output) as default post-login view.
+- Add role-specific post-login dashboards:
+  - Assessor: work queue and grading throughput
+  - `ORG_ADMIN`: users, organization settings, and usage
+  - `SUPER_ADMIN`: platform health, organizations, and alert status
 - Keep expert/admin tools behind role-aware navigation, not in default tutor workflow.
 
 3. Performance hardening pass
@@ -474,6 +484,8 @@ Phase 7 progress (2026-03-03):
 - Help pages and screenshots match shipped UI.
 - Tutor can run upload-to-marked-output flow without expert intervention.
 - Locked user can recover access via email-driven reset path with auditable token flow.
+- Login and password recovery endpoints enforce configured rate limits and emit anomaly events.
+- Post-login home renders role-appropriate dashboard content for Assessor, `ORG_ADMIN`, and `SUPER_ADMIN`.
 - Contact/support and transactional emails are routed to distinct mailboxes with auditable configuration.
 
 ---

@@ -29,6 +29,9 @@ Use this doc when the instruction is: "continue the roadmap".
 5. Today priority update (2026-03-05):
    - P0: set/fix production storage deployment targets and unblock upload deploy-smoke
    - P0: enable password recovery email flow (no manual recovery path)
+   - P1: add runtime readiness endpoint (`/api/health/readiness`) for core dependency gating
+   - P1: add auth abuse protection rate limits (login + password recovery)
+   - P1: add role-specific post-login dashboards (Assessor, `ORG_ADMIN`, `SUPER_ADMIN`)
    - P1: formalize email routing architecture (transactional vs support vs alert channels)
 
 ## Execution lanes
@@ -39,6 +42,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - define production storage target location/credentials and set runtime envs
 - finalize `FILE_STORAGE_ROOT` strategy per environment (Local/Preview/Production)
 - verify upload create path in production (`/api/submissions/upload`) passes consistently
+- add `/api/health/readiness` endpoint and include DB, storage, email, and OpenAI checks
 - capture fresh deploy-smoke PASS evidence after storage target is set
 - Progress (2026-03-05): storage deployment contract gate in progress.
 - Added deploy gate contract command: `pnpm run ops:storage-contract`.
@@ -51,11 +55,12 @@ Use this doc when the instruction is: "continue the roadmap".
   - retry path now strips optional relation/meta fields for partially migrated schemas
   - explicit schema-incompatible error raised when submission create remains incompatible
 - Deploy-smoke evidence now captures API `requestId` and server `details` payload (when present) for failed steps.
-- Remaining action: set durable storage root per runtime and capture fresh production deploy-smoke PASS evidence.
+- Remaining action: set durable storage root per runtime, ship readiness endpoint, and capture fresh production deploy-smoke PASS evidence.
 
 2. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)
 - implement/verify password recovery email flow for locked users
+- add rate limiting for login and recovery endpoints (per IP and per identity)
 - required envs: `AUTH_INVITE_EMAIL_PROVIDER`, `RESEND_API_KEY`, `AUTH_EMAIL_FROM`
 - add operational check for recovery-email delivery in release gate/runbook
 - Progress (2026-03-05): password recovery flow implementation delivered.
@@ -69,7 +74,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Login screen now includes `Forgot password?` flow wired to recovery endpoint.
 - Added deploy gate contract command: `pnpm run ops:password-recovery-contract`.
 - Release gate now includes password-recovery email contract check.
-- Remaining action: configure production provider and set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement.
+- Remaining action: configure production provider, set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement, and complete auth rate-limit wiring.
 
 3. P1 M9.1 email architecture hardening
 - split outbound channels by intent:
@@ -200,6 +205,10 @@ Use this doc when the instruction is: "continue the roadmap".
 7. Pre-launch development-mode UX profile
 - keep architecture complete (`organizations`, `users`, `SUPER_ADMIN`, scoped settings/secrets) to avoid future rework
 - provide a simplified operator-facing UI until launch (hide advanced platform controls by default)
+- implement role-specific post-login dashboards so default home reflects role scope:
+  - Assessor: submissions queue and grading throughput
+  - `ORG_ADMIN`: user/organization controls and usage
+  - `SUPER_ADMIN`: platform health, org fleet, and active alerts
 - surface platform controls only in `Developer` console for super-admin
 - define launch toggle/feature flag to progressively expose advanced tenant operations
 
@@ -263,6 +272,7 @@ Done when:
 1. Deployment preflight checklist is executable end-to-end
 2. Data/file migration plan is documented with rollback path
 3. Smoke checks are scripted and repeatable
+4. `/api/health/readiness` validates DB, storage, email, and OpenAI dependencies and is included in release verification
 
 Progress (2026-03-03):
 1. Environment contract is now canonicalized in `docs/operations/environment-contract.md`.
@@ -298,6 +308,7 @@ Done when:
 2. Day-to-day operator flows (`Upload`, `Submissions`, `QA`, `Users`) remain uncluttered by advanced platform controls.
 3. A documented launch toggle/flag exists to transition from development-mode UI to launch-mode UI without schema or API changes.
 4. Help docs include both pre-launch simplified flow and launch-mode expansion steps.
+5. Post-login home is role-specific for Assessor, `ORG_ADMIN`, and `SUPER_ADMIN`.
 
 ## Production deployment steps (single runbook section)
 
