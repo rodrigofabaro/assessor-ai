@@ -52,6 +52,10 @@ Last updated: 2026-03-05
    - login/session bootstrap now proactively backfill user org linkage (`organizationId` + default active membership) when missing
    - `/api/auth/organizations` now self-heals empty membership state and returns a valid active org option
    - added one-shot backfill command `pnpm run ops:backfill-org-scope` for repairing existing users in bulk
+12. Auth email operations visibility:
+   - added `GET /api/admin/auth/email-health` for provider/readiness checks
+   - added `POST /api/admin/auth/email-test` to send a safe delivery test email
+   - `Admin → Users` now includes email readiness details and a “Send test email” control
 10. IV-AD Phase 4 API contract:
    - added `POST /api/iv-ad/review-draft` with strict request schema validation
    - added strict AI response schema enforcement for typed review draft JSON

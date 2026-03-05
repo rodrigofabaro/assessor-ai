@@ -42,6 +42,14 @@ type InviteEmailSupport = {
   enabledByDefault: boolean;
 };
 
+type AuthEmailHealth = {
+  provider: string;
+  configured: boolean;
+  requireRecoveryEmail: boolean;
+  fromConfigured: boolean;
+  fromPreview?: string | null;
+};
+
 type InviteEmailResult = {
   attempted: boolean;
   sent: boolean;
@@ -114,6 +122,9 @@ export default function AdminUsersPage() {
     configured: false,
     enabledByDefault: false,
   });
+  const [emailHealth, setEmailHealth] = useState<AuthEmailHealth | null>(null);
+  const [testEmailTo, setTestEmailTo] = useState("");
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -139,12 +150,16 @@ export default function AdminUsersPage() {
     setLoading(true);
     setErr("");
     try {
-      const [uRes, cRes] = await Promise.all([
+      const [uRes, cRes, eRes] = await Promise.all([
         fetch("/api/admin/users", { cache: "no-store" }),
         fetch("/api/admin/app-config", { cache: "no-store" }),
+        fetch("/api/admin/auth/email-health", { cache: "no-store" }),
       ]);
-      const uJson = await uRes.json();
-      const cJson = (await cRes.json()) as AppConfig;
+      const [uJson, cJson, eJson] = await Promise.all([
+        uRes.json(),
+        cRes.json() as Promise<AppConfig>,
+        eRes.json().catch(() => ({} as any)),
+      ]);
       setUsers(Array.isArray(uJson?.users) ? uJson.users : []);
       setCanManageAllOrganizations(!!uJson?.canManageAllOrganizations);
       const orgRows = Array.isArray(uJson?.organizations) ? (uJson.organizations as Organization[]) : [];
@@ -161,6 +176,11 @@ export default function AdminUsersPage() {
         });
         setSendInviteEmailNow(!!ui.enabledByDefault);
       }
+      if (eRes.ok && eJson?.readiness) {
+        setEmailHealth(eJson.readiness as AuthEmailHealth);
+      } else {
+        setEmailHealth(null);
+      }
       setActiveAuditUserId(String(cJson?.activeAuditUserId || ""));
     } catch (e: any) {
       setErr(e?.message || "Failed to load users.");
@@ -176,6 +196,29 @@ export default function AdminUsersPage() {
   function openInviteDraft(mailto: string | null | undefined) {
     if (!mailto) return;
     window.location.href = mailto;
+  }
+
+  async function sendEmailTest() {
+    const to = String(testEmailTo || "").trim();
+    if (!to || sendingTestEmail) return;
+    setSendingTestEmail(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch("/api/admin/auth/email-test", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ to }),
+      });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || !json?.ok) {
+        setErr(String(json?.error || "Failed to send test email."));
+        return;
+      }
+      setMsg(`Test email sent via ${String(json?.provider || "provider")}.`);
+    } finally {
+      setSendingTestEmail(false);
+    }
   }
 
   function applyInviteEmailResult(result: InviteEmailResult | null | undefined) {
@@ -511,6 +554,28 @@ export default function AdminUsersPage() {
             Email provider: <span className="font-medium text-slate-700">{inviteSupport.provider}</span>{" "}
             {inviteSupport.configured ? "(configured)" : "(not configured)"}
           </p>
+          {emailHealth ? (
+            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              <div>From: {emailHealth.fromPreview || "not set"}</div>
+              <div>Recovery contract: {emailHealth.requireRecoveryEmail ? "enforced" : "not enforced"}</div>
+            </div>
+          ) : null}
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <input
+              value={testEmailTo}
+              onChange={(e) => setTestEmailTo(e.target.value)}
+              placeholder="Test recipient email"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+            />
+            <button
+              type="button"
+              onClick={sendEmailTest}
+              disabled={!testEmailTo.trim() || sendingTestEmail || !inviteSupport.configured}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sendingTestEmail ? "Sending..." : "Send test email"}
+            </button>
+          </div>
           <div className="mt-3 grid gap-3">
             <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (required for login)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
