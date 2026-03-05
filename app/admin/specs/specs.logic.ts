@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { put as putBlobClient } from "@vercel/blob/client";
 import { useReferenceAdmin } from "../reference/reference.logic";
 
 export type UploadResult = {
@@ -15,8 +16,39 @@ export type ToastMessage = {
   text: string;
 };
 
+const BLOB_MULTIPART_THRESHOLD_BYTES = 5 * 1024 * 1024;
+
+type BlobTokenResponse = {
+  clientToken: string;
+  storagePath: string;
+  storedFilename: string;
+  maxBytes: number;
+};
+
+type BlobFinalizeResponse = {
+  document?: { id: string };
+  error?: string;
+  message?: string;
+  code?: string;
+};
+
+class UploadFlowError extends Error {
+  code?: string;
+  status?: number;
+  constructor(message: string, code?: string, status?: number) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
 function isPdf(file: File): boolean {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function cleanErrorMessage(raw: unknown, fallback: string) {
+  const msg = String(raw || "").trim();
+  return msg || fallback;
 }
 
 export function useSpecsAdmin() {
@@ -98,26 +130,129 @@ export function useSpecsAdmin() {
     setUploadStatus(`Uploading ${valid.length} file${valid.length > 1 ? "s" : ""}...`);
 
     try {
-      const settled = await Promise.all(
-        valid.map(async (file): Promise<UploadResult> => {
-          const fd = new FormData();
-          fd.set("type", "SPEC");
-          fd.set("title", file.name);
-          fd.set("version", "1");
-          fd.set("file", file);
+      const settled: UploadResult[] = [];
+      let blobUploadEnabled: boolean | null = null;
 
-          const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            return {
-              fileName: file.name,
-              ok: false,
-              reason: (data as any)?.error || (data as any)?.message || "Upload failed",
-            };
+      const uploadViaLegacyForm = async (file: File): Promise<UploadResult> => {
+        const fd = new FormData();
+        fd.set("type", "SPEC");
+        fd.set("title", file.name);
+        fd.set("version", "1");
+        if (vm.docFramework.trim()) fd.set("framework", vm.docFramework.trim());
+        if (vm.docCategory.trim()) fd.set("category", vm.docCategory.trim());
+        fd.set("file", file);
+
+        const res = await fetch("/api/reference-documents", { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return {
+            fileName: file.name,
+            ok: false,
+            reason: cleanErrorMessage((data as any)?.error || (data as any)?.message, "Upload failed"),
+          };
+        }
+        return { fileName: file.name, ok: true };
+      };
+
+      const uploadViaBlob = async (file: File): Promise<UploadResult> => {
+        const tokenRes = await fetch("/api/reference-documents/blob-token", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            type: "SPEC",
+            title: file.name,
+            version: "1",
+            framework: vm.docFramework.trim(),
+            category: vm.docCategory.trim(),
+            fileName: file.name,
+            fileSize: file.size,
+            contentType: file.type || "application/pdf",
+          }),
+        });
+
+        const tokenJson = (await tokenRes.json().catch(() => ({}))) as Partial<BlobTokenResponse> & {
+          error?: string;
+          message?: string;
+          code?: string;
+        };
+
+        if (!tokenRes.ok) {
+          const errorCode = cleanErrorMessage(tokenJson.error || tokenJson.code, "BLOB_TOKEN_FAILED");
+          if (errorCode === "CLIENT_BLOB_UPLOAD_DISABLED") {
+            throw new UploadFlowError("Client Blob upload is disabled.", "CLIENT_BLOB_UPLOAD_DISABLED", tokenRes.status);
           }
-          return { fileName: file.name, ok: true };
-        }),
-      );
+          const reason = cleanErrorMessage(tokenJson.error || tokenJson.message, `Upload token failed (${tokenRes.status})`);
+          throw new UploadFlowError(reason, errorCode, tokenRes.status);
+        }
+
+        if (!tokenJson.clientToken || !tokenJson.storagePath || !tokenJson.storedFilename) {
+          throw new UploadFlowError("Upload token response is incomplete.");
+        }
+
+        const blob = await putBlobClient(tokenJson.storagePath, file, {
+          token: tokenJson.clientToken,
+          access: "private",
+          multipart: file.size >= BLOB_MULTIPART_THRESHOLD_BYTES,
+          contentType: "application/pdf",
+        });
+
+        const finalizeRes = await fetch("/api/reference-documents/blob-finalize", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            type: "SPEC",
+            title: file.name,
+            version: "1",
+            framework: vm.docFramework.trim(),
+            category: vm.docCategory.trim(),
+            originalFilename: file.name,
+            storedFilename: tokenJson.storedFilename,
+            storagePath: tokenJson.storagePath,
+            blobUrl: blob.url,
+            blobPathname: blob.pathname,
+            sizeBytes: file.size,
+            contentType: blob.contentType || "application/pdf",
+          }),
+        });
+
+        const finalizeJson = (await finalizeRes.json().catch(() => ({}))) as BlobFinalizeResponse;
+        if (!finalizeRes.ok) {
+          const reason = cleanErrorMessage(finalizeJson.error || finalizeJson.message, `Upload finalize failed (${finalizeRes.status})`);
+          throw new UploadFlowError(reason, finalizeJson.code, finalizeRes.status);
+        }
+
+        return { fileName: file.name, ok: true };
+      };
+
+      for (let i = 0; i < valid.length; i += 1) {
+        const file = valid[i];
+        setUploadStatus(`Uploading ${i + 1}/${valid.length}: ${file.name}`);
+        try {
+          if (blobUploadEnabled !== false) {
+            const result = await uploadViaBlob(file);
+            blobUploadEnabled = true;
+            settled.push(result);
+            continue;
+          }
+        } catch (error) {
+          const e = error as UploadFlowError;
+          if (e.code === "CLIENT_BLOB_UPLOAD_DISABLED") {
+            blobUploadEnabled = false;
+            const fallbackResult = await uploadViaLegacyForm(file);
+            settled.push(fallbackResult);
+            continue;
+          }
+          settled.push({
+            fileName: file.name,
+            ok: false,
+            reason: cleanErrorMessage(e?.message, "Upload failed"),
+          });
+          continue;
+        }
+
+        const fallbackResult = await uploadViaLegacyForm(file);
+        settled.push(fallbackResult);
+      }
 
       const okCount = settled.filter((r) => r.ok).length;
       const failCount = settled.length - okCount;
