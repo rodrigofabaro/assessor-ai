@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { put as putBlobClient } from "@vercel/blob/client";
 import { safeJson, cx } from "@/lib/upload/utils";
 import { useUploadPicklists } from "@/lib/upload/useUploadPicklists";
 import type { Student } from "@/lib/upload/types";
@@ -16,7 +17,54 @@ import { TinyIcon } from "@/components/ui/TinyIcon";
 type UploadResponse = {
   submissions?: unknown[];
   error?: string;
+  code?: string;
 };
+
+const BLOB_MULTIPART_THRESHOLD_BYTES = 5 * 1024 * 1024;
+
+type BlobTokenResponse = {
+  clientToken: string;
+  storagePath: string;
+  storedFilename: string;
+  maxBytes: number;
+  allowedType: "pdf" | "docx";
+};
+
+type SubmissionBlobFinalizeResponse = {
+  submission?: { id: string };
+  error?: string;
+  message?: string;
+  code?: string;
+};
+
+type UploadResult = {
+  fileName: string;
+  ok: boolean;
+  reason?: string;
+};
+
+class UploadFlowError extends Error {
+  code?: string;
+  status?: number;
+  constructor(message: string, code?: string, status?: number) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function guessMimeType(file: File) {
+  if (file.type) return file.type;
+  const lower = String(file.name || "").toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  return "application/octet-stream";
+}
+
+function cleanErrorMessage(raw: unknown, fallback: string) {
+  const msg = String(raw || "").trim();
+  return msg || fallback;
+}
 
 export function UploadPageClient() {
   const sp = useSearchParams();
@@ -57,18 +105,123 @@ export function UploadPageClient() {
     setPicklistErr("");
 
     try {
-      const fd = new FormData();
-      if (studentId) fd.append("studentId", studentId);
-      if (assignmentId) fd.append("assignmentId", assignmentId);
-      files.forEach((f) => fd.append("files", f));
+      const uploadLegacyBatch = async (batch: File[]): Promise<UploadResult[]> => {
+        if (!batch.length) return [];
+        const fd = new FormData();
+        if (studentId) fd.append("studentId", studentId);
+        if (assignmentId) fd.append("assignmentId", assignmentId);
+        batch.forEach((f) => fd.append("files", f));
 
-      const res = await fetch("/api/submissions/upload", { method: "POST", body: fd });
-      const j = (await safeJson(res)) as UploadResponse;
-      if (!res.ok) throw new Error(j?.error || `Upload failed (${res.status})`);
+        const res = await fetch("/api/submissions/upload", { method: "POST", body: fd });
+        const payload = (await safeJson(res)) as UploadResponse;
+        if (!res.ok) {
+          const reason = cleanErrorMessage(payload?.error, `Upload failed (${res.status})`);
+          return batch.map((f) => ({ fileName: f.name, ok: false, reason }));
+        }
+        return batch.map((f) => ({ fileName: f.name, ok: true }));
+      };
 
-      const n = Array.isArray(j?.submissions) ? j.submissions.length : 0;
-      setMsg(`Uploaded ${n} file${n === 1 ? "" : "s"}. Extraction has been queued automatically.`);
-      setFiles([]);
+      const uploadViaBlob = async (file: File): Promise<UploadResult> => {
+        const tokenRes = await fetch("/api/submissions/blob-token", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+          }),
+        });
+        const tokenJson = (await safeJson(tokenRes)) as Partial<BlobTokenResponse> & {
+          error?: string;
+          message?: string;
+          code?: string;
+        };
+        if (!tokenRes.ok) {
+          const errorCode = cleanErrorMessage(tokenJson.error || tokenJson.code, "BLOB_TOKEN_FAILED");
+          if (errorCode === "CLIENT_BLOB_UPLOAD_DISABLED") {
+            throw new UploadFlowError("Client Blob upload is disabled.", "CLIENT_BLOB_UPLOAD_DISABLED", tokenRes.status);
+          }
+          const reason = cleanErrorMessage(tokenJson.error || tokenJson.message, `Upload token failed (${tokenRes.status})`);
+          throw new UploadFlowError(reason, errorCode, tokenRes.status);
+        }
+
+        if (!tokenJson.clientToken || !tokenJson.storagePath || !tokenJson.storedFilename) {
+          throw new UploadFlowError("Upload token response is incomplete.");
+        }
+
+        const mimeType = guessMimeType(file);
+        const blob = await putBlobClient(tokenJson.storagePath, file, {
+          token: tokenJson.clientToken,
+          access: "private",
+          multipart: file.size >= BLOB_MULTIPART_THRESHOLD_BYTES,
+          contentType: mimeType,
+        });
+
+        const finalizeRes = await fetch("/api/submissions/blob-finalize", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            originalFilename: file.name,
+            storedFilename: tokenJson.storedFilename,
+            storagePath: tokenJson.storagePath,
+            blobUrl: blob.url,
+            blobPathname: blob.pathname,
+            contentType: blob.contentType || mimeType,
+            sizeBytes: file.size,
+            studentId: studentId || null,
+            assignmentId: assignmentId || null,
+            sourceLastModifiedAt: Number.isFinite(file.lastModified) && file.lastModified > 0 ? new Date(file.lastModified).toISOString() : null,
+          }),
+        });
+
+        const finalizeJson = (await safeJson(finalizeRes)) as SubmissionBlobFinalizeResponse;
+        if (!finalizeRes.ok) {
+          const reason = cleanErrorMessage(finalizeJson.error || finalizeJson.message, `Upload finalize failed (${finalizeRes.status})`);
+          throw new UploadFlowError(reason, finalizeJson.code, finalizeRes.status);
+        }
+
+        return { fileName: file.name, ok: true };
+      };
+
+      const settled: UploadResult[] = [];
+      let blobUploadEnabled: boolean | null = null;
+
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        if (blobUploadEnabled !== false) {
+          try {
+            const result = await uploadViaBlob(file);
+            blobUploadEnabled = true;
+            settled.push(result);
+            continue;
+          } catch (error) {
+            const e = error as UploadFlowError;
+            if (e.code === "CLIENT_BLOB_UPLOAD_DISABLED") {
+              blobUploadEnabled = false;
+              const remaining = files.slice(i);
+              const fallbackResults = await uploadLegacyBatch(remaining);
+              settled.push(...fallbackResults);
+              break;
+            }
+            settled.push({
+              fileName: file.name,
+              ok: false,
+              reason: cleanErrorMessage(e?.message, "Upload failed"),
+            });
+            continue;
+          }
+        }
+      }
+
+      const okCount = settled.filter((r) => r.ok).length;
+      const failCount = settled.length - okCount;
+      if (okCount > 0 && failCount === 0) {
+        setMsg(`Uploaded ${okCount} file${okCount === 1 ? "" : "s"}. Extraction has been queued automatically.`);
+        setFiles([]);
+      }
+      if (failCount > 0) {
+        const reason = settled.find((r) => !r.ok)?.reason || "Upload failed";
+        throw new Error(reason);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setErr(message);

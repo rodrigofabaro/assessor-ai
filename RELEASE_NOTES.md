@@ -37,8 +37,13 @@ Last updated: 2026-03-05
    - added `POST /api/reference-documents/blob-finalize` to validate uploaded Blob objects and persist `ReferenceDocument` rows
    - specs upload UI now uploads PDFs directly browser -> Vercel Blob (multipart enabled for larger files) and finalizes metadata server-side
    - specs upload automatically falls back to legacy multipart server upload when client Blob upload is disabled (local/filesystem mode)
+9. M8 large-submission upload path (deployment roadmap continuation):
+   - added `POST /api/submissions/blob-token` for short-lived client upload tokens
+   - added `POST /api/submissions/blob-finalize` to validate uploaded Blob objects, create submission records, and trigger extraction
+   - `/upload` workspace now uploads files directly browser -> Vercel Blob (multipart enabled for larger files) and finalizes metadata server-side
+   - `/upload` workspace automatically falls back to legacy `/api/submissions/upload` when client Blob upload is disabled (local/filesystem mode)
 
-9. M7 export-pack foundation:
+10. M7 export-pack foundation:
    - added deterministic submission export-pack generation (`assessment-snapshot.json`, `feedback-summary.txt`, `summary.csv`, `marked.pdf`, `manifest.json`)
    - added replay parity verification endpoint for earlier export ids
    - wired submission-detail utilities with `Generate export pack` and `Replay parity check` actions
