@@ -31,6 +31,7 @@ Use these categories for all planning updates.
    - Planned roadmap milestones in `docs/Milestones.md`:
      - `M8 Production Deployment & Cost-Controlled Scaling`
      - `M9 Authentication, UX Templates, and Final Performance Hardening`
+     - `Pre-launch development-mode UX profile (simple operator UI, full platform architecture retained)`
    - Feature roadmap track:
      - `docs/grading/iv-ad-ai-review-roadmap.md` (Phase 4-7 queue)
 3. Bugs and Risks (Stabilization)

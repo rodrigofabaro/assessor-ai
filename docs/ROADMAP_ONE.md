@@ -197,11 +197,21 @@ Use this doc when the instruction is: "continue the roadmap".
 - persist landing-page leads in DB (email remains notification channel; DB becomes system of record)
 - add delivery health dashboard cards (sent/failed/bounced) using provider telemetry
 
+7. Pre-launch development-mode UX profile
+- keep architecture complete (`organizations`, `users`, `SUPER_ADMIN`, scoped settings/secrets) to avoid future rework
+- provide a simplified operator-facing UI until launch (hide advanced platform controls by default)
+- surface platform controls only in `Developer` console for super-admin
+- define launch toggle/feature flag to progressively expose advanced tenant operations
+
 ### Later
 
 1. Full M8 production deployment and cost-ladder scaling
 2. Full M9 auth + UX template rollout + final performance hardening
-3. Email architecture phase 2
+3. Pre-launch to launch UX transition hardening
+- add explicit launch-mode checklist for enabling advanced tenant controls in production
+- verify operator training/help docs for both development-mode and launch-mode navigation
+- run role-based UAT before widening access to advanced admin flows
+4. Email architecture phase 2
 - add mailbox routing automation and owner rotation (`support`, `alerts`, `dmarc`)
 - add escalation policies for repeated failure events (email -> dashboard -> incident workflow)
 - add outbound template versioning and approval audit for transactional and contact templates
@@ -280,6 +290,14 @@ Done when:
 2. Landing-page contact notifications include `Reply-To` submitter header for direct response workflow
 3. DNS/domain deliverability baseline is documented and verified (SPF + DKIM + DMARC with report mailbox)
 4. At least one critical-path system alert is routed through the alert channel and validated in staging
+
+### Queue F - Pre-launch development-mode UX profile
+
+Done when:
+1. Super-admin platform controls remain centralized in `/admin/developer` and are hidden from non-super-admin navigation.
+2. Day-to-day operator flows (`Upload`, `Submissions`, `QA`, `Users`) remain uncluttered by advanced platform controls.
+3. A documented launch toggle/flag exists to transition from development-mode UI to launch-mode UI without schema or API changes.
+4. Help docs include both pre-launch simplified flow and launch-mode expansion steps.
 
 ## Production deployment steps (single runbook section)
 
