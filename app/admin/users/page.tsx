@@ -66,6 +66,14 @@ type IssuedCredentials = {
   source: string;
 };
 
+type EditUserDraft = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  organizationId: string;
+};
+
 function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.04)]">
@@ -125,6 +133,10 @@ export default function AdminUsersPage() {
   const [emailHealth, setEmailHealth] = useState<AuthEmailHealth | null>(null);
   const [testEmailTo, setTestEmailTo] = useState("");
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [createFormOpen, setCreateFormOpen] = useState(false);
+  const [organizationScopeId, setOrganizationScopeId] = useState("");
+  const [editDraft, setEditDraft] = useState<EditUserDraft | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -138,10 +150,10 @@ export default function AdminUsersPage() {
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
   const loginUsers = useMemo(() => users.filter((u) => u.loginEnabled && u.isActive).length, [users]);
   const scopedOrganizationName = useMemo(() => {
-    const selectedId = String(organizationId || defaultOrganizationId || "").trim();
+    const selectedId = String(organizationScopeId || defaultOrganizationId || "").trim();
     const match = organizations.find((org) => org.id === selectedId) || organizations[0];
     return match?.name || "Current organization";
-  }, [organizationId, defaultOrganizationId, organizations]);
+  }, [organizationScopeId, defaultOrganizationId, organizations]);
   const showOrganizationColumn = canManageAllOrganizations;
   const userTableColumnCount = showOrganizationColumn ? 8 : 7;
   const byRole = useMemo(() => {
@@ -154,8 +166,9 @@ export default function AdminUsersPage() {
     setLoading(true);
     setErr("");
     try {
+      const query = organizationScopeId ? `?organizationId=${encodeURIComponent(organizationScopeId)}` : "";
       const [uRes, cRes, eRes] = await Promise.all([
-        fetch("/api/admin/users", { cache: "no-store" }),
+        fetch(`/api/admin/users${query}`, { cache: "no-store" }),
         fetch("/api/admin/app-config", { cache: "no-store" }),
         fetch("/api/admin/auth/email-health", { cache: "no-store" }),
       ]);
@@ -170,8 +183,10 @@ export default function AdminUsersPage() {
       const orgRows = Array.isArray(uJson?.organizations) ? (uJson.organizations as Organization[]) : [];
       setOrganizations(orgRows);
       const fallbackOrg = String(uJson?.defaultOrganizationId || orgRows[0]?.id || "");
+      const activeOrg = String(uJson?.activeOrganizationId || fallbackOrg || "");
       setDefaultOrganizationId(fallbackOrg);
-      setOrganizationId((prev) => prev || fallbackOrg);
+      setOrganizationScopeId(activeOrg);
+      setOrganizationId((prev) => prev || activeOrg || fallbackOrg);
       if (uJson?.inviteEmail && typeof uJson.inviteEmail === "object") {
         const ui = uJson.inviteEmail as InviteEmailSupport;
         setInviteSupport({
@@ -192,7 +207,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [organizationScopeId]);
 
   useEffect(() => {
     load();
@@ -249,7 +264,7 @@ export default function AdminUsersPage() {
           fullName: fullName.trim(),
           email: email.trim() || null,
           role: role.trim() || "ADMIN",
-          organizationId: organizationId || defaultOrganizationId || null,
+          organizationId: organizationId || organizationScopeId || defaultOrganizationId || null,
           loginEnabled,
           password: loginEnabled ? password.trim() || undefined : undefined,
           generatePassword: loginEnabled && !password.trim(),
@@ -275,9 +290,10 @@ export default function AdminUsersPage() {
       setFullName("");
       setEmail("");
       setPassword("");
-      setOrganizationId(defaultOrganizationId || organizationId);
+      setOrganizationId(organizationScopeId || defaultOrganizationId || organizationId);
       setLoginEnabled(true);
       setSendInviteEmailNow(inviteSupport.enabledByDefault);
+      setCreateFormOpen(false);
       await load();
     } finally {
       setSubmitting(false);
@@ -448,6 +464,77 @@ export default function AdminUsersPage() {
     }
   }
 
+  function openEditUser(u: AppUser) {
+    setErr("");
+    setMsg("");
+    setEditDraft({
+      id: u.id,
+      fullName: u.fullName || "",
+      email: String(u.email || ""),
+      role: String(u.role || "ASSESSOR"),
+      organizationId: String(u.organization?.id || u.organizationId || organizationScopeId || defaultOrganizationId || ""),
+    });
+  }
+
+  async function saveEditUser() {
+    if (!editDraft) return;
+    if (!editDraft.fullName.trim()) {
+      setErr("Full name is required.");
+      return;
+    }
+    setSavingEdit(true);
+    setErr("");
+    setMsg("");
+    try {
+      const payload: Record<string, unknown> = {
+        fullName: editDraft.fullName.trim(),
+        email: editDraft.email.trim() || null,
+        role: editDraft.role,
+      };
+      if (canManageAllOrganizations) {
+        payload.organizationId = editDraft.organizationId || organizationScopeId || defaultOrganizationId || null;
+      }
+      const res = await fetch(`/api/admin/users/${editDraft.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to update user.");
+        return;
+      }
+      setMsg("User profile updated.");
+      setEditDraft(null);
+      await load();
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function deleteUser(u: AppUser) {
+    if (!window.confirm(`Delete ${u.fullName}? This cannot be undone.`)) return;
+    setPendingUserId(u.id);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || !json?.ok) {
+        setErr(json?.error || "Failed to delete user.");
+        return;
+      }
+      if (activeAuditUserId === u.id) setActiveAuditUserId("");
+      if (editDraft?.id === u.id) setEditDraft(null);
+      setMsg("User deleted.");
+      await load();
+    } finally {
+      setPendingUserId(null);
+    }
+  }
+
   return (
     <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-5 pb-10">
       <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[radial-gradient(circle_at_0%_0%,#f1f5f9_0%,#ffffff_46%)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
@@ -462,6 +549,25 @@ export default function AdminUsersPage() {
             <p className="mt-1 text-sm text-slate-600">
               Create users, issue passwords, reset credentials, and set the active audit actor.
             </p>
+            {canManageAllOrganizations ? (
+              <div className="mt-3 flex max-w-xs flex-col gap-1">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Organization scope</label>
+                <select
+                  value={organizationScopeId || defaultOrganizationId}
+                  onChange={(e) => {
+                    setOrganizationScopeId(e.target.value);
+                    setOrganizationId((prev) => prev || e.target.value);
+                  }}
+                  className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                >
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -481,9 +587,21 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <MetricCard label="Users total" value={users.length} hint="All system user identities." />
-          <MetricCard label="Users active" value={activeUsers.length} hint="Users currently available for actor selection." />
-          <MetricCard label="Login enabled" value={loginUsers} hint="Active users with login credentials." />
+          <MetricCard
+            label="Users total"
+            value={users.length}
+            hint={canManageAllOrganizations ? `Users in ${scopedOrganizationName}.` : "All users in your organization."}
+          />
+          <MetricCard
+            label="Users active"
+            value={activeUsers.length}
+            hint={canManageAllOrganizations ? "Active users in the selected organization." : "Users currently available for actor selection."}
+          />
+          <MetricCard
+            label="Login enabled"
+            value={loginUsers}
+            hint={canManageAllOrganizations ? "Active users with login in this organization." : "Active users with login credentials."}
+          />
           <MetricCard label="Roles in use" value={byRole.length} hint="Distinct role groups assigned." />
           <MetricCard
             label={canManageAllOrganizations ? "Organizations" : "Organization scope"}
@@ -561,45 +679,170 @@ export default function AdminUsersPage() {
         </article>
 
         <article className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
-          <h2 className="text-sm font-semibold text-slate-900">Create user</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Email provider: <span className="font-medium text-slate-700">{inviteSupport.provider}</span>{" "}
-            {inviteSupport.configured ? "(configured)" : "(not configured)"}
-          </p>
-          {emailHealth ? (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              <div>From: {emailHealth.fromPreview || "not set"}</div>
-              <div>Recovery contract: {emailHealth.requireRecoveryEmail ? "enforced" : "not enforced"}</div>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Create user</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Email provider: <span className="font-medium text-slate-700">{inviteSupport.provider}</span>{" "}
+                {inviteSupport.configured ? "(configured)" : "(not configured)"}
+              </p>
             </div>
-          ) : null}
-          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input
-              value={testEmailTo}
-              onChange={(e) => setTestEmailTo(e.target.value)}
-              placeholder="Test recipient email"
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-            />
             <button
               type="button"
-              onClick={sendEmailTest}
-              disabled={!testEmailTo.trim() || sendingTestEmail || !inviteSupport.configured}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => setCreateFormOpen((prev) => !prev)}
+              className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 transition hover:bg-slate-50"
             >
-              {sendingTestEmail ? "Sending..." : "Send test email"}
+              {createFormOpen ? "Close form" : "Open form"}
             </button>
           </div>
-          <div className="mt-3 grid gap-3">
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (required for login)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100">
+          {createFormOpen ? (
+            <>
+              {emailHealth ? (
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                  <div>From: {emailHealth.fromPreview || "not set"}</div>
+                  <div>Recovery contract: {emailHealth.requireRecoveryEmail ? "enforced" : "not enforced"}</div>
+                </div>
+              ) : null}
+              <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                <input
+                  value={testEmailTo}
+                  onChange={(e) => setTestEmailTo(e.target.value)}
+                  placeholder="Test recipient email"
+                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                />
+                <button
+                  type="button"
+                  onClick={sendEmailTest}
+                  disabled={!testEmailTo.trim() || sendingTestEmail || !inviteSupport.configured}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sendingTestEmail ? "Sending..." : "Send test email"}
+                </button>
+              </div>
+              <div className="mt-3 grid gap-3">
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
+                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (required for login)" className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100" />
+                <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100">
+                  <option value="ADMIN">ADMIN</option>
+                  <option value="ASSESSOR">ASSESSOR</option>
+                  <option value="IV">IV</option>
+                </select>
+                {canManageAllOrganizations ? (
+                  <select
+                    value={organizationId || organizationScopeId || defaultOrganizationId}
+                    onChange={(e) => setOrganizationId(e.target.value)}
+                    className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                  >
+                    {organizations.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Organization scope</div>
+                    <div className="mt-0.5 font-semibold text-slate-900">{scopedOrganizationName}</div>
+                  </div>
+                )}
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={loginEnabled}
+                    onChange={(e) => setLoginEnabled(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  Enable login access
+                </label>
+                {loginEnabled ? (
+                  <div className="grid gap-3">
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input
+                      type="text"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Password (leave empty to auto-generate)"
+                      className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPassword(generatePasswordClient())}
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                    >
+                      Generate
+                    </button>
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={sendInviteEmailNow}
+                        onChange={(e) => setSendInviteEmailNow(e.target.checked)}
+                        disabled={!inviteSupport.configured}
+                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50"
+                      />
+                      Send invite email with credentials
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={createUser}
+                disabled={!fullName.trim() || submitting}
+                className="mt-3 inline-flex h-10 items-center rounded-xl border border-slate-800 bg-slate-800 px-4 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+              >
+                {submitting ? "Creating..." : "Create user"}
+              </button>
+            </>
+          ) : (
+            <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              The create-user form is hidden by default to keep this page focused. Open it only when needed.
+            </p>
+          )}
+        </article>
+      </section>
+
+      {editDraft ? (
+        <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Edit user</h2>
+              <p className="mt-1 text-xs text-slate-500">Update user identity details and organization scope.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditDraft(null)}
+              className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Close
+            </button>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <input
+              value={editDraft.fullName}
+              onChange={(e) => setEditDraft((prev) => (prev ? { ...prev, fullName: e.target.value } : prev))}
+              placeholder="Full name"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+            />
+            <input
+              value={editDraft.email}
+              onChange={(e) => setEditDraft((prev) => (prev ? { ...prev, email: e.target.value } : prev))}
+              placeholder="Email"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+            />
+            <select
+              value={editDraft.role}
+              onChange={(e) => setEditDraft((prev) => (prev ? { ...prev, role: e.target.value } : prev))}
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+            >
               <option value="ADMIN">ADMIN</option>
               <option value="ASSESSOR">ASSESSOR</option>
               <option value="IV">IV</option>
             </select>
             {canManageAllOrganizations ? (
               <select
-                value={organizationId || defaultOrganizationId}
-                onChange={(e) => setOrganizationId(e.target.value)}
+                value={editDraft.organizationId || organizationScopeId || defaultOrganizationId}
+                onChange={(e) => setEditDraft((prev) => (prev ? { ...prev, organizationId: e.target.value } : prev))}
                 className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
               >
                 {organizations.map((org) => (
@@ -614,56 +857,26 @@ export default function AdminUsersPage() {
                 <div className="mt-0.5 font-semibold text-slate-900">{scopedOrganizationName}</div>
               </div>
             )}
-            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={loginEnabled}
-                onChange={(e) => setLoginEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-              />
-              Enable login access
-            </label>
-            {loginEnabled ? (
-              <div className="grid gap-3">
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                <input
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password (leave empty to auto-generate)"
-                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPassword(generatePasswordClient())}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-                >
-                  Generate
-                </button>
-                </div>
-                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={sendInviteEmailNow}
-                    onChange={(e) => setSendInviteEmailNow(e.target.checked)}
-                    disabled={!inviteSupport.configured}
-                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50"
-                  />
-                  Send invite email with credentials
-                </label>
-              </div>
-            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={createUser}
-            disabled={!fullName.trim() || submitting}
-            className="mt-3 inline-flex h-10 items-center rounded-xl border border-slate-800 bg-slate-800 px-4 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
-          >
-            {submitting ? "Creating..." : "Create user"}
-          </button>
-        </article>
-      </section>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={saveEditUser}
+              disabled={!editDraft.fullName.trim() || savingEdit}
+              className="inline-flex h-10 items-center rounded-xl border border-slate-800 bg-slate-800 px-4 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              {savingEdit ? "Saving..." : "Save changes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditDraft(null)}
+              className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -726,6 +939,14 @@ export default function AdminUsersPage() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
+                        onClick={() => openEditUser(u)}
+                        disabled={pendingUserId === u.id}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setActiveAuditUser(u.id)}
                         disabled={pendingUserId === u.id || !u.isActive}
                         className={
@@ -770,6 +991,14 @@ export default function AdminUsersPage() {
                         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {inviteSupport.configured ? "Send reset link" : "Reset password"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteUser(u)}
+                        disabled={pendingUserId === u.id}
+                        className="rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold text-rose-800 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Delete
                       </button>
                     </div>
                   </td>

@@ -241,3 +241,59 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to update user." }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _req: Request,
+  ctx: { params: Promise<{ userId: string }> }
+) {
+  const { userId } = await ctx.params;
+  const session = await getRequestSession();
+  const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
+  const sessionOrgId = String(session?.orgId || "").trim() || null;
+
+  if (String(session?.userId || "").trim() === userId) {
+    return NextResponse.json({ error: "You cannot delete your own active account." }, { status: 400 });
+  }
+
+  const existing = await prisma.appUser.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      organizationId: true,
+      memberships: {
+        where: { isActive: true },
+        select: { organizationId: true },
+      },
+    },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+
+  if (!canManageAll) {
+    if (!sessionOrgId) {
+      return NextResponse.json({ error: "No active organization scope for this user." }, { status: 400 });
+    }
+    const inScope =
+      String(existing.organizationId || "").trim() === sessionOrgId ||
+      existing.memberships.some((m) => String(m.organizationId || "").trim() === sessionOrgId);
+    if (!inScope) {
+      return NextResponse.json({ error: "You can only manage users within your organization." }, { status: 403 });
+    }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.appConfig.updateMany({
+        where: { activeAuditUserId: userId },
+        data: { activeAuditUserId: null },
+      });
+      await tx.appUser.delete({
+        where: { id: userId },
+      });
+    });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Failed to delete user." }, { status: 500 });
+  }
+}

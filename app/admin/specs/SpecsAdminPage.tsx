@@ -99,6 +99,8 @@ export default function SpecsAdminPage() {
   const [headerBusy, setHeaderBusy] = useState<null | "refresh" | "extract" | "lock">(null);
   const [rowBusy, setRowBusy] = useState<Record<string, "extract" | "lock" | undefined>>({});
   const [hydratedFromUrl, setHydratedFromUrl] = useState(false);
+  const [suiteUnitPickerOpen, setSuiteUnitPickerOpen] = useState(false);
+  const [selectedSuiteUnitCodes, setSelectedSuiteUnitCodes] = useState<string[]>([]);
 
   const selectedDoc = vm.selectedDoc;
   const extractionWarnings = Array.isArray(selectedDoc?.extractionWarnings)
@@ -168,6 +170,33 @@ export default function SpecsAdminPage() {
       )
     ).sort();
   }, []);
+
+  const suiteUnitOptions = useMemo(() => {
+    const combined = [
+      ...((activeUnitsJson as any)?.units || []),
+      ...((extraUnitsJson as any)?.units || []),
+    ];
+    const byCode = new Map<string, { code: string; title: string }>();
+    for (const row of combined) {
+      const code = String(row?.code || "").trim();
+      if (!/^\d{4}$/.test(code)) continue;
+      const title = String(row?.title || "").replace(/\s+/g, " ").trim() || `Unit ${code}`;
+      if (!byCode.has(code)) byCode.set(code, { code, title });
+    }
+    return Array.from(byCode.values()).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  }, []);
+
+  const activeSuiteUnitCodes = useMemo(() => {
+    return Array.from(
+      new Set(
+        (((activeUnitsJson as any)?.units || []) as any[])
+          .map((u: any) => String(u?.code || "").trim())
+          .filter((c: string) => /^\d{4}$/.test(c)),
+      ),
+    ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, []);
+
+  const selectedSuiteUnitSet = useMemo(() => new Set(selectedSuiteUnitCodes), [selectedSuiteUnitCodes]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -619,7 +648,7 @@ export default function SpecsAdminPage() {
         onChange={(e) => {
           const selected = e.target.files?.[0];
           if (selected) {
-            void importFullSpecSuite(selected);
+            void importFullSpecSuite(selected, selectedSuiteUnitCodes);
           }
           e.target.value = "";
         }}
@@ -862,6 +891,70 @@ export default function SpecsAdminPage() {
               {suiteImporting ? "Importing..." : "Import full descriptor PDF"}
             </button>
           </div>
+          <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-700">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                Unit scope:{" "}
+                <span className="font-semibold text-zinc-900">
+                  {selectedSuiteUnitCodes.length
+                    ? `${selectedSuiteUnitCodes.length} selected`
+                    : `All ${suiteUnitOptions.length} listed units`}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSuiteUnitPickerOpen((prev) => !prev)}
+                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                {suiteUnitPickerOpen ? "Hide unit picker" : "Choose units"}
+              </button>
+            </div>
+            {suiteUnitPickerOpen ? (
+              <div className="mt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSuiteUnitCodes([])}
+                    className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Use all units
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSuiteUnitCodes(activeSuiteUnitCodes)}
+                    className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Select active set ({activeSuiteUnitCodes.length})
+                  </button>
+                </div>
+                <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    {suiteUnitOptions.map((unit) => (
+                      <label key={unit.code} className="flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={selectedSuiteUnitSet.has(unit.code)}
+                          onChange={(e) => {
+                            setSelectedSuiteUnitCodes((prev) => {
+                              const set = new Set(prev);
+                              if (e.target.checked) set.add(unit.code);
+                              else set.delete(unit.code);
+                              return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                            });
+                          }}
+                        />
+                        <span className="font-semibold text-zinc-900">{unit.code}</span>
+                        <span className="truncate text-zinc-600">{unit.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-2 text-[11px] text-zinc-500">
+                  Leave selection empty to import all listed units from the descriptor.
+                </div>
+              </div>
+            ) : null}
+          </div>
           <div className="mt-2 text-xs text-zinc-600">
             {suiteImporting
               ? suiteImportStatus || "Processing..."
@@ -887,7 +980,8 @@ export default function SpecsAdminPage() {
                 <div className="mt-2">
                   Created: <span className="font-semibold">{suiteJob.resultSummary.created || 0}</span> · Updated:{" "}
                   <span className="font-semibold">{suiteJob.resultSummary.updated || 0}</span> · Missing:{" "}
-                  <span className="font-semibold">{suiteJob.resultSummary.missingRequestedCount || 0}</span>
+                  <span className="font-semibold">{suiteJob.resultSummary.missingRequestedCount || 0}</span> · Requested:{" "}
+                  <span className="font-semibold">{suiteJob.resultSummary.requestedUnitCount || 0}</span>
                 </div>
               ) : null}
               {suiteJob.errorMessage ? (

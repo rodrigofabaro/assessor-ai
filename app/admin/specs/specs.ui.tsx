@@ -163,8 +163,6 @@ export function SpecMasterHealthBar({
   const chips: Array<[string, string | number, string]> = [
     ["Locked specs", health.lockedCount, "zinc"],
     ["Active-set locked", health.activeSetCount, "info"],
-    ["Reference list", health.referenceActiveSetCount, "zinc"],
-    ["Reference delta", health.activeSetDeltaCount, health.activeSetDeltaCount ? "amber" : "emerald"],
     ["Unverified criteria", health.unverifiedPearsonCount, health.unverifiedPearsonCount ? "rose" : "emerald"],
     ["Multi-version families", health.multiVersionFamilyCount, health.multiVersionFamilyCount ? "info" : "emerald"],
     ["Version conflicts", health.sameIssueConflictCount, health.sameIssueConflictCount ? "amber" : "emerald"],
@@ -215,11 +213,6 @@ export function SpecMasterHealthBar({
       {health.sameIssueConflictKeys.length ? (
         <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           Same code + same issue conflicts detected: <span className="font-semibold">{health.sameIssueConflictKeys.join(", ")}</span>
-        </div>
-      ) : null}
-      {health.activeSetDeltaCount > 0 ? (
-        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          Locked active-set count is currently {health.activeSetDeltaCount} below the reference list count.
         </div>
       ) : null}
     </section>
@@ -927,9 +920,6 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
       ) : (
         <div className="mt-3 grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
           <div>
-            <span className="text-zinc-500">Title:</span> <span className="font-semibold text-zinc-900">{selectedDoc.title}</span>
-          </div>
-          <div>
             <span className="text-zinc-500">Unit:</span>{" "}
             <span className="font-semibold text-zinc-900">{formatUnitTitle(selectedDoc)}</span>
           </div>
@@ -947,6 +937,25 @@ export function UnitEditorPanel({ selectedDoc, learningOutcomes }: { selectedDoc
           </div>
           <div>
             <span className="text-zinc-500">Criteria count:</span> <span className="font-semibold text-zinc-900">{criteriaCount}</span>
+          </div>
+          <div>
+            <span className="text-zinc-500">Original file:</span>{" "}
+            <span className="font-semibold text-zinc-900">{selectedDoc.originalFilename || "—"}</span>
+          </div>
+          <div>
+            <span className="text-zinc-500">Stored path:</span>{" "}
+            <span className="font-mono text-xs font-semibold text-zinc-900">{selectedDoc.storagePath || "(managed storage key)"}</span>
+          </div>
+          <div>
+            <span className="text-zinc-500">File:</span>{" "}
+            <a
+              href={`/api/reference-documents/${encodeURIComponent(selectedDoc.id)}/file`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-800"
+            >
+              Open uploaded PDF
+            </a>
           </div>
         </div>
       )}

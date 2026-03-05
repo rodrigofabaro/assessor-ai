@@ -62,10 +62,11 @@ function makeInviteMailto(email: string, password: string) {
   return `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getRequestSession();
   const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
   const sessionOrgId = String(session?.orgId || "").trim() || null;
+
   let defaultOrgId = "";
   try {
     const defaultOrg = await ensureDefaultOrganization();
@@ -74,19 +75,42 @@ export async function GET() {
     defaultOrgId = "";
   }
 
+  let organizations: Array<{ id: string; slug: string; name: string; isActive: boolean }> = [];
+  try {
+    organizations = await prisma.organization.findMany({
+      where: canManageAll ? { isActive: true } : { id: sessionOrgId || "__none__", isActive: true },
+      orderBy: [{ name: "asc" }],
+      select: { id: true, slug: true, name: true, isActive: true },
+    });
+  } catch {
+    organizations = [];
+  }
+
+  const requestedOrganizationId = String(new URL(req.url).searchParams.get("organizationId") || "").trim();
+  const resolvedOrgId = canManageAll
+    ? await resolveOrganizationId(requestedOrganizationId || defaultOrgId || organizations[0]?.id || null)
+    : String(sessionOrgId || organizations[0]?.id || defaultOrgId || "").trim() || null;
+
+  const orgScopedWhere = resolvedOrgId
+    ? {
+        OR: [
+          { organizationId: resolvedOrgId },
+          { memberships: { some: { organizationId: resolvedOrgId, isActive: true } } },
+        ],
+      }
+    : canManageAll
+      ? undefined
+      : { id: "__none__" };
+  const legacyOrgScopedWhere = resolvedOrgId
+    ? { organizationId: resolvedOrgId }
+    : canManageAll
+      ? undefined
+      : { id: "__none__" };
+
   let users: Array<Record<string, unknown>> = [];
   try {
     users = (await prisma.appUser.findMany({
-      where: canManageAll
-        ? undefined
-        : sessionOrgId
-          ? {
-              OR: [
-                { organizationId: sessionOrgId },
-                { memberships: { some: { organizationId: sessionOrgId, isActive: true } } },
-              ],
-            }
-          : { id: "__none__" },
+      where: orgScopedWhere,
       orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
       select: {
         id: true,
@@ -119,11 +143,7 @@ export async function GET() {
     let legacyUsers: Array<Record<string, unknown>> = [];
     try {
       legacyUsers = (await prisma.appUser.findMany({
-        where: canManageAll
-          ? undefined
-          : sessionOrgId
-            ? { organizationId: sessionOrgId }
-            : { id: "__none__" },
+        where: legacyOrgScopedWhere,
         orderBy: [{ fullName: "asc" }],
         select: {
           id: true,
@@ -142,11 +162,7 @@ export async function GET() {
       if (!isOrgSchemaCompatError(innerError)) throw innerError;
       try {
         legacyUsers = (await prisma.appUser.findMany({
-          where: canManageAll
-            ? undefined
-            : sessionOrgId
-              ? { organizationId: sessionOrgId }
-              : { id: "__none__" },
+          where: legacyOrgScopedWhere,
           orderBy: [{ fullName: "asc" }],
           select: {
             id: true,
@@ -190,16 +206,6 @@ export async function GET() {
     }) as Array<Record<string, unknown>>;
   }
 
-  let organizations: Array<{ id: string; slug: string; name: string; isActive: boolean }> = [];
-  try {
-    organizations = await prisma.organization.findMany({
-      where: canManageAll ? { isActive: true } : { id: sessionOrgId || "__none__", isActive: true },
-      orderBy: [{ name: "asc" }],
-      select: { id: true, slug: true, name: true, isActive: true },
-    });
-  } catch {
-    organizations = [];
-  }
   const resolvedDefaultOrganizationId = canManageAll
     ? String(defaultOrgId || organizations[0]?.id || "").trim()
     : String(sessionOrgId || organizations[0]?.id || defaultOrgId || "").trim();
@@ -207,6 +213,7 @@ export async function GET() {
   return NextResponse.json({
     users,
     organizations,
+    activeOrganizationId: resolvedOrgId,
     defaultOrganizationId: resolvedDefaultOrganizationId,
     inviteEmail,
     canManageAllOrganizations: canManageAll,

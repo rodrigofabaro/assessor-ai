@@ -13,6 +13,8 @@ export type ReferenceDocument = {
   title: string;
   version: number;
   originalFilename: string;
+  storedFilename?: string;
+  storagePath?: string;
   checksumSha256: string;
   uploadedAt: string;
   extractedJson?: any | null;

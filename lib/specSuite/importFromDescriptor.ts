@@ -78,6 +78,7 @@ type ImportParams = {
   organizationId: string | null;
   framework?: string;
   category?: string;
+  requestedUnitCodes?: string[];
   onProgress?: (update: { label: string; percent: number }) => void | Promise<void>;
 };
 
@@ -138,11 +139,12 @@ function pageTextFromTextContent(textContent: any) {
 
 async function extractPageTexts(pdfBytes: Buffer) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const loadingTask = pdfjs.getDocument({
+  const loadingTask = (pdfjs as any).getDocument({
     data: new Uint8Array(pdfBytes),
+    disableWorker: true,
     useWorkerFetch: false,
     isEvalSupported: false,
-  });
+  } as any);
   const doc = await loadingTask.promise;
   const pages: string[] = [];
   for (let p = 1; p <= doc.numPages; p += 1) {
@@ -263,7 +265,17 @@ function pickBestCandidateForRequest(candidates: DetectedUnit[], requested: Requ
   return best.c;
 }
 
-function buildRequestedUnits(): RequestedUnit[] {
+function normalizeRequestedUnitCodes(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const dedup = new Set<string>();
+  for (const raw of input) {
+    const code = String(raw || "").trim();
+    if (/^\d{4}$/.test(code)) dedup.add(code);
+  }
+  return Array.from(dedup).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function buildRequestedUnits(requestedUnitCodes?: string[]): RequestedUnit[] {
   const rows = [
     ...(((activeUnitsJson as any)?.units || []) as any[]),
     ...(((extraUnitsJson as any)?.units || []) as any[]),
@@ -279,7 +291,11 @@ function buildRequestedUnits(): RequestedUnit[] {
       });
     }
   }
-  return Array.from(dedup.values()).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  const all = Array.from(dedup.values()).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  const normalizedCodes = normalizeRequestedUnitCodes(requestedUnitCodes);
+  if (!normalizedCodes.length) return all;
+  const selected = new Set(normalizedCodes);
+  return all.filter((row) => selected.has(row.code));
 }
 
 async function getExistingImportedDocs(organizationId: string | null) {
@@ -329,7 +345,10 @@ export async function importPearsonSpecSuiteFromPdf(params: ImportParams): Promi
   } = params;
 
   await emitProgress(params.onProgress, "Preparing requested unit list...", 5);
-  const requestedUnits = buildRequestedUnits();
+  const requestedUnits = buildRequestedUnits(params.requestedUnitCodes);
+  if (!requestedUnits.length) {
+    throw new Error("No unit codes selected for suite import.");
+  }
   await emitProgress(params.onProgress, "Reading descriptor pages...", 12);
   const { pageTexts, pageCount } = await extractPageTexts(pdfBytes);
   await emitProgress(params.onProgress, "Detecting unit page ranges...", 22);

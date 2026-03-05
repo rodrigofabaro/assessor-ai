@@ -50,6 +50,7 @@ type SpecSuiteJob = {
     importedCount?: number;
     missingRequestedCount?: number;
     missingRequestedCodes?: string[];
+    requestedUnitCount?: number;
   } | null;
   errorMessage?: string | null;
   reportAvailable?: boolean;
@@ -79,6 +80,16 @@ function isPdf(file: File): boolean {
 function cleanErrorMessage(raw: unknown, fallback: string) {
   const msg = String(raw || "").trim();
   return msg || fallback;
+}
+
+function sanitizeUnitCodes(input: string[] | undefined) {
+  if (!Array.isArray(input)) return [];
+  const dedup = new Set<string>();
+  for (const raw of input) {
+    const code = String(raw || "").trim();
+    if (/^\d{4}$/.test(code)) dedup.add(code);
+  }
+  return Array.from(dedup).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
 export function useSpecsAdmin() {
@@ -381,7 +392,7 @@ export function useSpecsAdmin() {
     };
   }, [suiteJobId, vm]);
 
-  const importFullSpecSuite = async (file: File) => {
+  const importFullSpecSuite = async (file: File, requestedUnitCodes?: string[]) => {
     if (!file || suiteImporting || uploading) return;
     if (!isPdf(file)) {
       pushToast("error", "Only PDF files are supported.");
@@ -449,9 +460,14 @@ export function useSpecsAdmin() {
       setSuiteJobId(createJobJson.job.id);
       createdJobId = createJobJson.job.id;
       setSuiteImportStatus("Job queued. Starting worker...");
+      const selectedCodes = sanitizeUnitCodes(requestedUnitCodes);
 
       void fetch(`/api/admin/spec-suite/jobs/${encodeURIComponent(createJobJson.job.id)}/run`, {
         method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          requestedUnitCodes: selectedCodes.length ? selectedCodes : undefined,
+        }),
       }).catch(() => {
         // Polling loop will surface terminal status or errors.
       });

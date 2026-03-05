@@ -43,6 +43,16 @@ function isPdfUpload(fileName: string, contentType: string) {
   return String(contentType || "").toLowerCase() === "application/pdf" || String(fileName || "").toLowerCase().endsWith(".pdf");
 }
 
+function sanitizeRequestedUnitCodes(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const dedup = new Set<string>();
+  for (const raw of input) {
+    const code = String(raw || "").trim();
+    if (/^\d{4}$/.test(code)) dedup.add(code);
+  }
+  return Array.from(dedup).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
 function toResponseJob(job: any) {
   return {
     id: job.id,
@@ -99,7 +109,7 @@ async function findVisibleJob(jobId: string, organizationId: string | null) {
 }
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ jobId: string }> },
 ) {
   const allowed = await isAdminMutationAllowed();
@@ -116,6 +126,8 @@ export async function POST(
     if (!normalizedJobId) {
       return NextResponse.json({ error: "Missing job id." }, { status: 400 });
     }
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const requestedUnitCodes = sanitizeRequestedUnitCodes(body?.requestedUnitCodes);
 
     const organizationId = await getRequestOrganizationId();
     const visibleJob = await findVisibleJob(normalizedJobId, organizationId);
@@ -209,6 +221,7 @@ export async function POST(
       organizationId: runningJob.organizationId || null,
       framework,
       category,
+      requestedUnitCodes: requestedUnitCodes.length ? requestedUnitCodes : undefined,
       onProgress: async (u) => {
         await updateProgress(u.label, u.percent);
       },
@@ -238,6 +251,7 @@ export async function POST(
         created: result.summary.created,
         updated: result.summary.updated,
         missingRequestedCount: result.summary.missingRequestedCount,
+        requestedUnitCount: result.summary.requestedUnitCount,
       },
     });
 
