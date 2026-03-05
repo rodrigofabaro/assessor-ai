@@ -111,10 +111,28 @@ Primary login mode:
   - required when `AUTH_INVITE_EMAIL_PROVIDER=resend`
   - verified sender email address in Resend (e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
 
+- `CONTACT_EMAIL_FROM`
+  - optional
+  - overrides contact-form sender identity; falls back to `AUTH_EMAIL_FROM` when unset
+
 - `CONTACT_FORM_TO`
   - optional
   - recipient mailbox for landing-page contact form (`POST /api/public/contact`)
   - default fallback when unset: `contact@assessor-ai.co.uk`
+
+- `ALERT_EMAIL_FROM`
+  - optional
+  - overrides alert sender identity; falls back to `AUTH_EMAIL_FROM` when unset
+
+- `ALERT_EMAIL_TO`
+  - optional
+  - recipient mailbox for critical runtime alert emails (upload/blob finalize failures)
+  - when unset, alert dispatch is disabled
+
+- `AUTH_REQUIRE_ALERT_EMAIL`
+  - default: `false`
+  - when `true`, alert smoke validation must not skip due to missing provider/sender/recipient config
+  - used with `pnpm run ops:alert-smoke`
 
 ## Storage migration env (M8)
 

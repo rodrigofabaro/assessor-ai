@@ -4,11 +4,26 @@ import { head } from "@vercel/blob";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { toStorageRelativePath } from "@/lib/storage/provider";
 import { getRequestOrganizationId } from "@/lib/auth/requestSession";
+import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
 
 const MAX_SUBMISSION_UPLOAD_BYTES = 250 * 1024 * 1024; // 250MB
 
 const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const PDF_CONTENT_TYPE = "application/pdf";
+const submissionCreateSelect = {
+  id: true,
+  filename: true,
+  storedFilename: true,
+  storagePath: true,
+  status: true,
+  uploadedAt: true,
+  updatedAt: true,
+  studentId: true,
+  assignmentId: true,
+  mimeType: true,
+  sizeBytes: true,
+  sourceLastModifiedAt: true,
+} as const;
 
 function isOrgScopeCompatError(error: unknown) {
   const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
@@ -23,8 +38,10 @@ function isSubmissionSchemaCompatError(error: unknown) {
   const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
   const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
   if (code === "P2022") return true;
+  if (code === "P2011") return true;
   if (msg.includes("studentlinkedat") || msg.includes("studentlinkedby")) return true;
   if (msg.includes("organizationid")) return true;
+  if (msg.includes("violates not-null constraint")) return true;
   if (msg.includes("unknown argument") && msg.includes("studentlinked")) return true;
   if (msg.includes("unknown argument") && msg.includes("organization")) return true;
   if (msg.includes("column") && msg.includes("does not exist")) return true;
@@ -188,15 +205,34 @@ export async function POST(req: Request) {
     };
 
     failStage = "create_submission";
-    let submission: Awaited<ReturnType<typeof prisma.submission.create>>;
+    let submission: {
+      id: string;
+      filename: string;
+      storedFilename: string;
+      storagePath: string;
+      status: string;
+      uploadedAt: Date;
+      updatedAt: Date;
+      studentId: string | null;
+      assignmentId: string | null;
+      mimeType: string | null;
+      sizeBytes: number | null;
+      sourceLastModifiedAt: Date | null;
+    };
     const orgScopedData = organizationId ? { ...baseData, organizationId } : baseData;
     try {
-      submission = await prisma.submission.create({ data: orgScopedData });
+      submission = await prisma.submission.create({
+        data: orgScopedData as any,
+        select: submissionCreateSelect,
+      });
     } catch (createErr) {
       if (!isOrgScopeCompatError(createErr) && !isSubmissionSchemaCompatError(createErr)) throw createErr;
 
       try {
-        submission = await prisma.submission.create({ data: baseData });
+        submission = await prisma.submission.create({
+          data: baseData as any,
+          select: submissionCreateSelect,
+        });
       } catch (legacyErr) {
         if (!isSubmissionSchemaCompatError(legacyErr)) throw legacyErr;
         const minimalData = {
@@ -204,10 +240,18 @@ export async function POST(req: Request) {
           storedFilename,
           storagePath: blobMeta.url || blobUrl,
           status: "UPLOADED" as const,
-          studentId,
-          assignmentId,
         };
-        submission = await prisma.submission.create({ data: minimalData });
+        try {
+          submission = await prisma.submission.create({
+            data: minimalData as any,
+            select: submissionCreateSelect,
+          });
+        } catch (minimalErr) {
+          if (!isSubmissionSchemaCompatError(minimalErr)) throw minimalErr;
+          throw new Error(
+            "UPLOAD_DB_SCHEMA_INCOMPATIBLE: Submission create is incompatible with deployed schema. Run database migrations."
+          );
+        }
       }
     }
 
@@ -239,6 +283,20 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     const raw = String((error as { message?: unknown } | null)?.message || error || "").trim();
+    if (String(process.env.ALERT_EMAIL_TO || "").trim()) {
+      const lines = [
+        "Assessor AI alert: submission blob finalize failed",
+        "",
+        `Route: /api/submissions/blob-finalize`,
+        `Stage: ${failStage}`,
+        `Message: ${raw || "-"}`,
+        `Timestamp (UTC): ${new Date().toISOString()}`,
+      ];
+      void sendOpsAlertEmail({
+        subject: `Assessor AI alert: blob finalize failure at ${failStage}`,
+        text: lines.join("\n"),
+      }).catch(() => {});
+    }
     return NextResponse.json(
       {
         error: raw || `Finalize failed at ${failStage}.`,
@@ -249,4 +307,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

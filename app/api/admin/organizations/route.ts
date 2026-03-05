@@ -9,24 +9,45 @@ function canManageOrganizations(session: Awaited<ReturnType<typeof getRequestSes
   return !!session.isSuperAdmin;
 }
 
+function isOrgSchemaCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const message = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2021" || code === "P2022") return true;
+  return (
+    message.includes("organization") &&
+    ((message.includes("table") && message.includes("does not exist")) ||
+      (message.includes("column") && message.includes("does not exist")) ||
+      message.includes("unknown argument"))
+  );
+}
+
 export async function GET() {
   const session = await getRequestSession();
   if (!canManageOrganizations(session)) {
     return NextResponse.json({ error: "Only SUPER_ADMIN can manage organizations." }, { status: 403 });
   }
-  await ensureDefaultOrganization();
-  const organizations = await prisma.organization.findMany({
-    orderBy: [{ isActive: "desc" }, { name: "asc" }],
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      isActive: true,
-      createdAt: true,
-      _count: { select: { users: true, memberships: true } },
-    },
-  });
-  return NextResponse.json({ organizations });
+  try {
+    await ensureDefaultOrganization();
+    const organizations = await prisma.organization.findMany({
+      orderBy: [{ isActive: "desc" }, { name: "asc" }],
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        isActive: true,
+        createdAt: true,
+        _count: { select: { users: true, memberships: true } },
+      },
+    });
+    return NextResponse.json({ organizations });
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    return NextResponse.json({
+      organizations: [],
+      warning: "Organization table is not available yet in this environment. Run database migrations.",
+      code: "ORG_SCHEMA_MISSING",
+    });
+  }
 }
 
 export async function POST(req: Request) {
@@ -63,6 +84,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, organization: created });
   } catch (error: unknown) {
+    if (isOrgSchemaCompatError(error)) {
+      return NextResponse.json(
+        { error: "Organization table is not available yet in this environment. Run database migrations.", code: "ORG_SCHEMA_MISSING" },
+        { status: 409 },
+      );
+    }
     const message = String((error as { message?: string })?.message || "");
     if (message.toLowerCase().includes("unique") && message.toLowerCase().includes("slug")) {
       return NextResponse.json({ error: "Organization slug already exists." }, { status: 409 });

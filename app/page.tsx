@@ -36,6 +36,24 @@ const landingWorkflow = [
   },
 ] as const;
 
+const workflowToneClasses = [
+  "border-slate-200 bg-slate-50/80",
+  "border-sky-200 bg-sky-50/75",
+  "border-cyan-200 bg-cyan-50/75",
+  "border-teal-200 bg-teal-50/75",
+  "border-emerald-200 bg-emerald-50/75",
+  "border-indigo-200 bg-indigo-50/70",
+] as const;
+
+const workflowStageLabels = [
+  "Intake",
+  "Extraction",
+  "Mapping",
+  "Draft decision",
+  "QA gate",
+  "Final output",
+] as const;
+
 const workflowAssurancePoints = [
   "Pearson HN-compatible grading structure",
   "Evidence-linked criteria decisions",
@@ -168,9 +186,12 @@ export default async function LandingPage() {
 
   if (!session) {
     return (
-      <div className="grid gap-6 sm:gap-7">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-sm">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.24),transparent_45%)]" />
+      <div className="w-full min-w-0 overflow-x-clip">
+        <div className="flex w-full min-w-0 flex-col gap-6 sm:gap-7">
+        <section className="relative w-full min-w-0 overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-sm">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.22),transparent_46%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_6%,rgba(96,165,250,0.18),transparent_54%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_100%,rgba(14,165,233,0.12),transparent_58%)]" />
           <div className="relative grid items-start gap-6 p-8 sm:p-11 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
               <p className="inline-flex rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-200">
@@ -184,9 +205,6 @@ export default async function LandingPage() {
               </p>
               <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-200 sm:text-base">
                 AI-assisted grading that keeps assessors in control, maps evidence against locked criteria, adds QA and Turnitin checks, and delivers moderation-ready decisions by default.
-              </p>
-              <p className="mt-4 max-w-2xl text-sm text-sky-100">
-                ChatGPT gives an opinion. Assessor AI gives a defensible assessment decision with an audit trail.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-2.5">
                 <Link
@@ -202,6 +220,20 @@ export default async function LandingPage() {
                   See 6-step workflow
                 </Link>
               </div>
+              <nav className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-200" aria-label="Landing sections">
+                <a href="#how-it-works" className="rounded-full border border-slate-600/80 bg-slate-900/60 px-3 py-1 hover:bg-slate-800">
+                  Workflow
+                </a>
+                <a href="#positioning" className="rounded-full border border-slate-600/80 bg-slate-900/60 px-3 py-1 hover:bg-slate-800">
+                  Why Assessor-AI
+                </a>
+                <a href="#output-preview" className="rounded-full border border-slate-600/80 bg-slate-900/60 px-3 py-1 hover:bg-slate-800">
+                  Output
+                </a>
+                <a href="#early-access" className="rounded-full border border-slate-600/80 bg-slate-900/60 px-3 py-1 hover:bg-slate-800">
+                  Early access
+                </a>
+              </nav>
             </div>
 
             <aside className="rounded-2xl border border-slate-700 bg-slate-900/90 p-4">
@@ -211,7 +243,7 @@ export default async function LandingPage() {
                 </span>
                 Tomorrow feels lighter
               </h2>
-              <ul className="mt-3 grid gap-2 text-sm text-slate-200">
+              <ul className="mt-3 divide-y divide-slate-700/80 text-sm text-slate-200">
                 {[
                   "Single controlled workflow from upload to audit output",
                   "Criteria alignment locked to the correct version",
@@ -219,7 +251,7 @@ export default async function LandingPage() {
                   "QA and Turnitin checks happen before final release",
                   "Moderation evidence stays attached to every decision",
                 ].map((point) => (
-                  <li key={point} className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2">
+                  <li key={point} className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/75 px-3 py-2 first:mt-0 mt-2">
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sky-300" />
                     <span>{point}</span>
                   </li>
@@ -229,7 +261,7 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        <section id="how-it-works" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <section id="how-it-works" className="w-full min-w-0 scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
@@ -239,31 +271,31 @@ export default async function LandingPage() {
               One controlled 6-step pipeline
             </span>
           </div>
-          <div className="mt-5 overflow-x-auto">
-            <ol className="flex min-w-[1280px] items-stretch gap-2 pb-1">
-              {landingWorkflow.map((step, idx) => (
-                <li key={step.title} className="flex shrink-0 items-stretch gap-2">
-                  <div className="flex h-44 w-44 shrink-0 flex-col rounded-2xl border border-sky-200 bg-sky-50/80 p-3">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-200 bg-white text-xs font-semibold text-sky-700">
-                      {idx + 1}
-                    </span>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-700">{step.detail}</p>
-                  </div>
-                  {idx < landingWorkflow.length - 1 ? (
-                    <span className="flex w-8 shrink-0 items-center text-sky-500" aria-hidden>
-                      <span className="h-px flex-1 bg-sky-300" />
-                      <span className="-ml-1 text-lg font-semibold">›</span>
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          </div>
+          <ol className="mt-5 grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+            {landingWorkflow.map((step, idx) => (
+              <li key={step.title} className="h-full min-w-0">
+                <div
+                  className={
+                    "flex h-full min-h-44 flex-col rounded-2xl border p-3 transition-colors " +
+                    workflowToneClasses[idx]
+                  }
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-sky-200 bg-white text-xs font-semibold text-sky-700">
+                    {idx + 1}
+                  </span>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-700">{step.detail}</p>
+                  <p className="mt-auto pt-3 text-[11px] font-semibold text-slate-500">
+                    {workflowStageLabels[idx]}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="grid w-full min-w-0 items-stretch gap-4 lg:grid-cols-2 xl:grid-cols-[1.1fr_0.9fr]">
+          <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Built for vocational assessment workflows</p>
             <ul className="mt-3 grid gap-2 text-sm text-slate-700">
               {workflowAssurancePoints.map((point) => (
@@ -275,25 +307,39 @@ export default async function LandingPage() {
             </ul>
           </article>
 
-          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Operational fit</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               Assessor AI behaves like an assessment engine, not a standalone chatbot. It supports the full operational chain that Pearson-style delivery teams run: assessor decision, IQA/IV check, integrity screening, and moderation evidence.
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {workflowFitTags.map((tag) => (
-                <span key={tag} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                <span
+                  key={tag}
+                  className="inline-flex max-w-full break-words rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                >
                   {tag}
                 </span>
               ))}
             </div>
-            <p className="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-slate-900">
-              ChatGPT gives an opinion. Assessor AI gives a defensible assessment decision with an audit trail.
-            </p>
           </article>
         </section>
 
-        <section id="output-preview" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <section
+          id="positioning"
+          className="w-full min-w-0 scroll-mt-24 rounded-3xl border border-slate-200 bg-[radial-gradient(circle_at_18%_0%,rgba(14,165,233,0.07),transparent_62%)] p-6 shadow-sm"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Positioning</p>
+          <p className="mt-2 max-w-4xl text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            ChatGPT gives an opinion.
+            <span className="block text-sky-800">Assessor AI gives a defensible assessment decision.</span>
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Structured evidence mapping, QA checks, Turnitin signals, and audit history are part of the same workflow.
+          </p>
+        </section>
+
+        <section id="output-preview" className="w-full min-w-0 overflow-hidden scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Output preview</p>
@@ -304,16 +350,16 @@ export default async function LandingPage() {
             </span>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
-            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+            <article className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">AI feedback panel</p>
               <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-900">Submission: DEMO-014 · Unit 8</p>
                     <p className="text-[11px] text-slate-600">Brief version locked: BTEC-HN-U8-v3</p>
                   </div>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  <span className="shrink-0 rounded-full border border-teal-100 bg-teal-50/70 px-2 py-0.5 text-[11px] font-semibold text-teal-700">
                     Draft grade: Pass
                   </span>
                 </div>
@@ -352,7 +398,7 @@ export default async function LandingPage() {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <article className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Criteria mapping</p>
               <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
                 <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -371,8 +417,8 @@ export default async function LandingPage() {
                           className={
                             "inline-flex h-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
                             (row.outcome === "Met"
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : "border-amber-200 bg-amber-50 text-amber-700")
+                              ? "border-teal-100 bg-teal-50/70 text-teal-700"
+                              : "border-amber-100 bg-amber-50/70 text-amber-700")
                           }
                         >
                           {row.outcome}
@@ -384,21 +430,21 @@ export default async function LandingPage() {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <article className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">QA and Turnitin gate</p>
               <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
                 <div className="space-y-2">
                   {syntheticQaChecks.map((check) => (
                     <div key={check.label} className="flex items-start justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
-                      <p className="text-[11px] leading-5 text-slate-700">{check.label}</p>
+                      <p className="min-w-0 break-words pr-1 text-[11px] leading-5 text-slate-700">{check.label}</p>
                       <span
                         className={
-                          "inline-flex h-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                          "inline-flex h-fit shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
                           (check.status === "Pass"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            ? "border-teal-100 bg-teal-50/70 text-teal-700"
                             : check.status === "Review"
-                              ? "border-amber-200 bg-amber-50 text-amber-700"
-                              : "border-indigo-200 bg-indigo-50 text-indigo-700")
+                              ? "border-amber-100 bg-amber-50/70 text-amber-700"
+                              : "border-indigo-100 bg-indigo-50/70 text-indigo-700")
                         }
                       >
                         {check.status}
@@ -428,16 +474,20 @@ export default async function LandingPage() {
           </p>
         </section>
 
-        <section id="early-access" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+        <section
+          id="early-access"
+          className="w-full min-w-0 scroll-mt-24 rounded-3xl border border-slate-200 bg-[radial-gradient(circle_at_15%_0%,rgba(14,165,233,0.06),rgba(255,255,255,0.96)_62%)] p-6 shadow-sm sm:p-7"
+        >
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Early access</p>
             <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Assessor-AI is still in active development</h2>
             <p className="mt-3 text-sm leading-7 text-slate-700">
-              We are working with assessment teams to refine the workflow before broader rollout. If you want to test the platform or join the pilot, contact us and we will schedule onboarding.
+              We are working with assessment teams to refine the workflow before broader rollout. If you want to test the platform or join the pilot, send a contact request and we will schedule onboarding.
             </p>
             <ContactEarlyAccessForm />
           </div>
         </section>
+        </div>
       </div>
     );
   }
@@ -445,7 +495,7 @@ export default async function LandingPage() {
   const sessionOrgId = String((session as { orgId?: string | null }).orgId || "").trim() || null;
 
   return (
-    <div className="grid gap-6">
+    <div className="flex w-full min-w-0 flex-col gap-6">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

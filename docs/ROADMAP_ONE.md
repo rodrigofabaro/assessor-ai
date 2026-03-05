@@ -46,6 +46,11 @@ Use this doc when the instruction is: "continue the roadmap".
 - Added strict enforcement flag for cutover environments: `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
 - Added provider mode `STORAGE_BACKEND=vercel_blob` with `BLOB_READ_WRITE_TOKEN` support for durable Vercel storage.
 - Upload/reference/IV writers now persist provider-returned storage paths, and read paths now resolve remote-backed storage via local cache hydration.
+- Added create-submission compatibility hardening for upload paths (`/api/submissions/upload`, `/api/submissions/blob-finalize`):
+  - narrowed create return selects to stable columns
+  - retry path now strips optional relation/meta fields for partially migrated schemas
+  - explicit schema-incompatible error raised when submission create remains incompatible
+- Deploy-smoke evidence now captures API `requestId` and server `details` payload (when present) for failed steps.
 - Remaining action: set durable storage root per runtime and capture fresh production deploy-smoke PASS evidence.
 
 2. P0 M9 password recovery email enablement (today)
@@ -76,6 +81,24 @@ Use this doc when the instruction is: "continue the roadmap".
   - SPF/DKIM/DMARC alignment for sending domain
   - DMARC report mailbox (`dmarc@assessor-ai.co.uk`)
 - add alert trigger matrix for P1 failures (upload/extraction/grading/auth anomalies).
+- Progress (2026-03-05): channel plumbing slice delivered.
+- Contact-form email sender now supports `Reply-To` submitter header for direct support response workflow.
+- Added optional sender/inbox env keys:
+  - `CONTACT_EMAIL_FROM`
+  - `CONTACT_FORM_TO`
+  - `ALERT_EMAIL_FROM`
+  - `ALERT_EMAIL_TO`
+- Added operational alert dispatch for critical upload pipeline failures:
+  - `/api/submissions/upload`
+  - `/api/submissions/blob-finalize`
+- Added staging/prod validation command for alert channel:
+  - `pnpm run ops:alert-smoke`
+  - evidence output: `docs/evidence/ops-alert-smoke/*.json`
+- Alert smoke dry-run evidence captured (2026-03-05):
+  - `docs/evidence/ops-alert-smoke/20260305-153440.json`
+- Added operational trigger matrix doc:
+  - `docs/operations/email-alert-trigger-matrix.md`
+- Remaining action: DNS/deliverability verification (SPF + DKIM + DMARC) and staging validation evidence.
 
 4. M8 first production deployment blocker removal
 - replace direct local filesystem dependency with storage provider abstraction

@@ -64,13 +64,24 @@ export async function ensureUserOrganizationScope(input: {
     });
   } catch (error) {
     if (!isOrgScopeCompatError(error)) throw error;
-    user = await prisma.appUser.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        organizationId: true,
-      },
-    });
+    try {
+      user = await prisma.appUser.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          organizationId: true,
+        },
+      });
+    } catch (innerError) {
+      if (!isOrgScopeCompatError(innerError)) throw innerError;
+      const legacyUser = await prisma.appUser.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+        },
+      });
+      user = legacyUser ? { ...legacyUser, organizationId: null } : null;
+    }
   }
 
   if (!user) {
@@ -148,4 +159,3 @@ export async function ensureUserOrganizationScope(input: {
 
   return { orgId: resolvedOrgId, linked };
 }
-

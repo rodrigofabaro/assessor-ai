@@ -40,6 +40,9 @@ Status labels:
 - Email architecture direction (2026-03-05): separate transactional sender, support inbox routing, and operational alert inbox to avoid mixed responsibilities in one mailbox.
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
 - Storage provider progress (2026-03-05): added `STORAGE_BACKEND=vercel_blob` + `BLOB_READ_WRITE_TOKEN` support with remote-path cache resolution on read paths.
+- Upload compatibility progress (2026-03-05): `/api/submissions/upload` and `/api/submissions/blob-finalize` now use schema-tolerant create retries (stable select + minimal fallback) to reduce `create_submission` failures in partially migrated environments.
+- Deploy smoke diagnostics progress (2026-03-05): evidence now includes API `requestId` and `details` payload for failed steps to speed production triage.
+- Alert-channel operations progress (2026-03-05): added `pnpm run ops:alert-smoke` with evidence output and documented trigger matrix (`docs/operations/email-alert-trigger-matrix.md`).
 
 ### Bugs and Risks (Stabilization)
 - Reliability and bottlenecks tracked in `docs/operations/areas-of-improvement.md`.

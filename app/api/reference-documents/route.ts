@@ -147,29 +147,43 @@ export async function GET(req: Request) {
 
   const scopedWhere = addOrganizationReadScope(where, organizationId);
 
-  const docs = await prisma.referenceDocument.findMany({
-    where: scopedWhere as any,
-    orderBy: [{ updatedAt: "desc" }, { uploadedAt: "desc" }],
-    skip: offset,
-    take: limit,
-    select: {
-      id: true,
-      type: true,
-      status: true,
-      title: true,
-      version: true,
-      originalFilename: true,
-      storedFilename: true,
-      storagePath: true,
-      checksumSha256: true,
-      uploadedAt: true,
-      updatedAt: true,
-      lockedAt: true,
-      sourceMeta: true,
-      extractionWarnings: true,
-      extractedJson: includeFullExtracted || includeSummaryExtracted,
-    },
-  });
+  const listSelect = {
+    id: true,
+    type: true,
+    status: true,
+    title: true,
+    version: true,
+    originalFilename: true,
+    storedFilename: true,
+    storagePath: true,
+    checksumSha256: true,
+    uploadedAt: true,
+    updatedAt: true,
+    lockedAt: true,
+    sourceMeta: true,
+    extractionWarnings: true,
+    extractedJson: includeFullExtracted || includeSummaryExtracted,
+  };
+
+  let docs;
+  try {
+    docs = await prisma.referenceDocument.findMany({
+      where: scopedWhere as any,
+      orderBy: [{ updatedAt: "desc" }, { uploadedAt: "desc" }],
+      skip: offset,
+      take: limit,
+      select: listSelect,
+    });
+  } catch (error) {
+    if (!organizationId || !isOrgScopeCompatError(error)) throw error;
+    docs = await prisma.referenceDocument.findMany({
+      where: where as any,
+      orderBy: [{ updatedAt: "desc" }, { uploadedAt: "desc" }],
+      skip: offset,
+      take: limit,
+      select: listSelect,
+    });
+  }
 
   let mappedDocs = docs.map((doc: any) => {
     const extractedJson = includeFullExtracted
@@ -193,7 +207,13 @@ export async function GET(req: Request) {
   }
 
   if (!includeTotal) return NextResponse.json({ documents: mappedDocs });
-  const total = await prisma.referenceDocument.count({ where: scopedWhere as any });
+  let total = 0;
+  try {
+    total = await prisma.referenceDocument.count({ where: scopedWhere as any });
+  } catch (error) {
+    if (!organizationId || !isOrgScopeCompatError(error)) throw error;
+    total = await prisma.referenceDocument.count({ where: where as any });
+  }
   return NextResponse.json({
     documents: mappedDocs,
     page: {

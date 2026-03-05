@@ -48,6 +48,8 @@ async function sendCredentialEmail(input: {
   subject: string;
   text: string;
   failureMessage: string;
+  replyTo?: string | null;
+  from?: string | null;
 }): Promise<InviteEmailResult> {
   const to = String(input.to || "").trim().toLowerCase();
   if (!to) {
@@ -60,7 +62,8 @@ async function sendCredentialEmail(input: {
 
   if (provider === "resend") {
     const apiKey = String(process.env.RESEND_API_KEY || "").trim();
-    const from = String(process.env.AUTH_EMAIL_FROM || "").trim();
+    const from = String(input.from || process.env.AUTH_EMAIL_FROM || "").trim();
+    const replyTo = String(input.replyTo || "").trim().toLowerCase();
     if (!apiKey || !from) {
       return {
         attempted: true,
@@ -82,6 +85,7 @@ async function sendCredentialEmail(input: {
           to: [to],
           subject: input.subject,
           text: input.text,
+          reply_to: replyTo || undefined,
         }),
       });
 
@@ -245,5 +249,26 @@ export async function sendContactLeadEmail(input: {
     subject,
     text,
     failureMessage: "Contact lead email send failed.",
+    replyTo: email,
+    from: String(process.env.CONTACT_EMAIL_FROM || process.env.AUTH_EMAIL_FROM || "").trim(),
+  });
+}
+
+export async function sendOpsAlertEmail(input: {
+  subject: string;
+  text: string;
+}): Promise<InviteEmailResult> {
+  const to = String(process.env.ALERT_EMAIL_TO || "").trim().toLowerCase();
+  const subject = String(input.subject || "").trim();
+  const text = String(input.text || "").trim();
+  if (!to || !subject || !text) {
+    return { attempted: false, sent: false, provider: resolveProvider(), error: "Missing alert email details." };
+  }
+  return sendCredentialEmail({
+    to,
+    subject,
+    text,
+    failureMessage: "Alert email send failed.",
+    from: String(process.env.ALERT_EMAIL_FROM || process.env.AUTH_EMAIL_FROM || "").trim(),
   });
 }

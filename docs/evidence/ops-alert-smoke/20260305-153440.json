@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-03-05T15:34:40.483Z",
+  "gate": "ops-alert-smoke",
+  "provider": "none",
+  "requireAlertEmail": false,
+  "dryRun": true,
+  "target": null,
+  "from": null,
+  "result": {
+    "ok": true,
+    "status": "skipped",
+    "message": "Alert smoke skipped: AUTH_INVITE_EMAIL_PROVIDER is not 'resend'.",
+    "id": null
+  }
+}

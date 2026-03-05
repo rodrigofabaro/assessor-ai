@@ -1,6 +1,6 @@
 # Operations Docs Index
 
-Last updated: 2026-03-03
+Last updated: 2026-03-05
 
 ## Active operations docs
 
@@ -34,6 +34,8 @@ Last updated: 2026-03-03
    - `docs/operations/persistence-classification.md`
 15. Vercel bulletproof deploy runbook:
    - `docs/operations/vercel-bulletproof-deploy.md`
+16. Email alert trigger matrix:
+   - `docs/operations/email-alert-trigger-matrix.md`
 
 ## Archived operations snapshots
 

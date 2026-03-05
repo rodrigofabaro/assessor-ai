@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const releaseLabel = String(process.env.NEXT_PUBLIC_RELEASE_LABEL || "maintenance").trim();
 
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col">
         <TopNav />
         <ToastHost />

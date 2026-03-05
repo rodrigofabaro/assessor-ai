@@ -24,21 +24,43 @@ Last updated: 2026-03-05
    - removed temporary emergency login and recovery-key bypass routes after successful recovery
 6. Legacy-schema compatibility hardening:
    - strengthened auth (`/api/auth/login`, `/api/auth/password-reset`) and user admin API (`/api/admin/users`) fallbacks for older production schema variants
-7. Upload pipeline hardening (in progress):
+7. Upload pipeline hardening (deployment continuation):
    - added storage write-root fallback chain in `lib/storage/provider.ts` (`FILE_STORAGE_ROOT` -> runtime tmp -> cwd)
-   - added upload create-submission compatibility fallback paths in `/api/submissions/upload`
+   - strengthened upload create-submission compatibility in:
+     - `/api/submissions/upload`
+     - `/api/submissions/blob-finalize`
+   - submission create now uses stable return selects and minimal fallback payloads for partially migrated schemas
+   - upload routes now raise explicit schema-incompatible guidance when create remains incompatible after fallback
    - added stage-level upload diagnostics in API error message
    - upload failures now also include `errorCode`/`errorName` details for faster production triage
-8. Current release blocker (still open):
+   - deploy-smoke evidence now captures API `requestId` and `details` payload for failed steps
+8. Email channel hardening (M9.1 slice):
+   - landing contact notifications now set `Reply-To` to the submitter email
+   - added alert dispatch helper + runtime wiring for critical upload failures:
+     - `/api/submissions/upload`
+     - `/api/submissions/blob-finalize`
+   - added env keys in contract/examples:
+     - `CONTACT_EMAIL_FROM`
+     - `ALERT_EMAIL_FROM`
+     - `ALERT_EMAIL_TO`
+9. Contract/script ergonomics:
+   - added alias command `pnpm run ops:password-recovery-email-contract`
+   - added guided one-command production cutover helper: `pnpm run ops:cutover-prod` (`scripts/cutover-prod.ps1`)
+   - added alert-channel smoke command: `pnpm run ops:alert-smoke` with evidence in `docs/evidence/ops-alert-smoke/`
+   - captured smoke dry-run evidence: `docs/evidence/ops-alert-smoke/20260305-153440.json`
+10. Operations alerting docs:
+   - added trigger matrix: `docs/operations/email-alert-trigger-matrix.md`
+   - updated environment contract and ops checklist for alert-channel validation (`AUTH_REQUIRE_ALERT_EMAIL`, smoke flow)
+11. Current release blocker (still open):
    - production deploy-smoke continues to fail at upload stage: `UPLOAD_FAILED` -> `Upload failed at create_submission`
    - storage target locations/credentials are not configured yet (operator confirmed)
-9. M9 password recovery email enablement (deployment roadmap continuation):
+12. M9 password recovery email enablement (deployment roadmap continuation):
    - initial implementation shipped with temporary-password issue + `mustResetPassword` enforcement
    - superseded by tokenized recovery flow in current unreleased changes
    - login form now includes `Forgot password?` flow calling recovery endpoint
    - added gate command `pnpm run ops:password-recovery-contract`
    - release gate now includes password-recovery email contract check before deploy smoke
-10. M8 storage deployment contract hardening (deployment roadmap continuation):
+13. M8 storage deployment contract hardening (deployment roadmap continuation):
    - added gate command `pnpm run ops:storage-contract`
    - release gate now includes storage deployment contract check before deploy smoke
    - added strict cutover flag `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` to hard-fail when durable `FILE_STORAGE_ROOT` is not configured

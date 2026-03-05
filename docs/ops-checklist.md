@@ -133,6 +133,33 @@ Output:
 - Writes `docs/evidence/release-gate/YYYYMMDD-HHMMSS.json`
 - Fails fast and exits non-zero on first failing step
 
+## Production Cutover Assistant (One Command)
+
+For a guided production cutover flow (env sync -> migrate -> deploy -> smoke -> release gate):
+
+```powershell
+pnpm run ops:cutover-prod
+```
+
+What it does:
+1. Prompts for required production secrets/settings (Resend, Blob, DB URL, smoke creds)
+2. Syncs Vercel production envs (`AUTH_*`, `CONTACT_*`, `ALERT_*`, `STORAGE_*`)
+3. Runs `pnpm prisma migrate deploy` against provided production `DATABASE_URL`
+4. Runs `vercel --prod`
+5. Runs `pnpm run ops:deploy-smoke`
+6. Runs `pnpm run ops:release-gate`
+
+Output:
+- Writes `docs/evidence/cutover-prod/YYYYMMDD-HHMMSS.json`
+- Fails on first failed step with evidence reference
+
+Optional skip switches:
+- `-SkipEnvSync`
+- `-SkipMigrate`
+- `-SkipDeploy`
+- `-SkipSmoke`
+- `-SkipReleaseGate`
+
 ## Pre-Push Production Checklist (Before merge to `main`)
 
 Run one command:
@@ -173,6 +200,26 @@ Requirements:
 Output:
 - Writes `docs/evidence/auth-guard-smoke/YYYYMMDD-HHMMSS.json`
 - Verifies 401/403/allow behavior and session-cookie bootstrap path
+
+## Alert Channel Smoke (Staging/Production)
+
+Use this to validate operational alert routing (`ALERT_EMAIL_TO`):
+
+```powershell
+pnpm run ops:alert-smoke
+```
+
+Dry-run mode (no email sent):
+
+```powershell
+pnpm run ops:alert-smoke -- --dry-run
+```
+
+Output:
+- Writes `docs/evidence/ops-alert-smoke/YYYYMMDD-HHMMSS.json`
+- Sends one email through Resend when provider/sender/recipient are configured
+- If alert channel is optional and not configured, command exits pass with `skipped` status
+- Set `AUTH_REQUIRE_ALERT_EMAIL=true` to fail when alert channel is not configured
 
 ## Build Reproducibility Check
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestSession } from "@/lib/auth/requestSession";
+import { getRequestSession, isOrganizationScopeAvailable } from "@/lib/auth/requestSession";
 import { prisma } from "@/lib/prisma";
 import { isSuperAdminPlatformRole } from "@/lib/organizations/membership";
 import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
@@ -40,21 +40,40 @@ function mapAppRoleToMembershipRole(appRole: string | null | undefined) {
   return "ASSESSOR";
 }
 
+async function listActiveOrganizationsSafe() {
+  try {
+    return await prisma.organization.findMany({
+      where: { isActive: true },
+      orderBy: [{ name: "asc" }],
+      select: { id: true, slug: true, name: true, isActive: true },
+    });
+  } catch (error) {
+    if (!isOrgSchemaCompatError(error)) throw error;
+    return [];
+  }
+}
+
 export async function GET() {
   const session = await getRequestSession();
   if (!session?.userId) {
     return NextResponse.json({ error: "Authentication required.", code: "AUTH_REQUIRED" }, { status: 401 });
   }
 
+  const orgScopeAvailable = await isOrganizationScopeAvailable().catch(() => true);
+  if (!orgScopeAvailable) {
+    return NextResponse.json({
+      organizations: [],
+      activeOrganizationId: null,
+      isSuperAdmin: !!session.isSuperAdmin,
+      source: "legacy-schema",
+    });
+  }
+
   let activeOrganizationId = String(session.orgId || "").trim() || null;
   const isEnvSession = session.userId.startsWith("env:");
 
   if (isEnvSession) {
-    const organizations = await prisma.organization.findMany({
-      where: { isActive: true },
-      orderBy: [{ name: "asc" }],
-      select: { id: true, slug: true, name: true, isActive: true },
-    });
+    const organizations = await listActiveOrganizationsSafe();
     return NextResponse.json({
       organizations,
       activeOrganizationId,
@@ -120,10 +139,9 @@ export async function GET() {
         where: { id: session.userId },
         select: {
           id: true,
-          organizationId: true,
         },
       });
-      user = legacyUser ? { ...legacyUser, isActive: true } : null;
+      user = legacyUser ? { ...legacyUser, isActive: true, organizationId: null } : null;
     }
   }
 
@@ -134,11 +152,7 @@ export async function GET() {
   const isSuperAdmin =
     ("platformRole" in user ? isSuperAdminPlatformRole(user.platformRole) : false) || !!session.isSuperAdmin;
   if (isSuperAdmin) {
-    const organizations = await prisma.organization.findMany({
-      where: { isActive: true },
-      orderBy: [{ name: "asc" }],
-      select: { id: true, slug: true, name: true, isActive: true },
-    });
+    const organizations = await listActiveOrganizationsSafe();
     return NextResponse.json({
       organizations,
       activeOrganizationId,
@@ -177,7 +191,10 @@ export async function GET() {
           where: { id: fallbackOrgId },
           select: { id: true, slug: true, name: true, isActive: true },
         })
-        .catch(() => null);
+        .catch((error) => {
+          if (!isOrgSchemaCompatError(error)) throw error;
+          return null;
+        });
       if (scopedOrg?.isActive) {
         organizations.push({
           id: scopedOrg.id,
@@ -201,10 +218,15 @@ export async function GET() {
       });
       const ensuredOrgId = String(ensured.orgId || "").trim();
       if (ensuredOrgId) {
-        const ensuredOrg = await prisma.organization.findUnique({
-          where: { id: ensuredOrgId },
-          select: { id: true, slug: true, name: true, isActive: true },
-        });
+        const ensuredOrg = await prisma.organization
+          .findUnique({
+            where: { id: ensuredOrgId },
+            select: { id: true, slug: true, name: true, isActive: true },
+          })
+          .catch((error) => {
+            if (!isOrgSchemaCompatError(error)) throw error;
+            return null;
+          });
         if (ensuredOrg?.isActive) {
           organizations.push({
             id: ensuredOrg.id,

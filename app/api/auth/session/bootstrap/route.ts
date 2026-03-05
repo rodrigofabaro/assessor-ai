@@ -75,15 +75,28 @@ export async function POST() {
       });
     } catch (error) {
       if (!isOrgSchemaCompatError(error)) throw error;
-      user = await prisma.appUser.findUnique({
-        where: { id: activeAuditUserId },
-        select: {
-          id: true,
-          isActive: true,
-          role: true,
-          organizationId: true,
-        },
-      });
+      try {
+        user = await prisma.appUser.findUnique({
+          where: { id: activeAuditUserId },
+          select: {
+            id: true,
+            isActive: true,
+            role: true,
+            organizationId: true,
+          },
+        });
+      } catch (innerError) {
+        if (!isOrgSchemaCompatError(innerError)) throw innerError;
+        const legacyUser = await prisma.appUser.findUnique({
+          where: { id: activeAuditUserId },
+          select: {
+            id: true,
+            isActive: true,
+            role: true,
+          },
+        });
+        user = legacyUser ? { ...legacyUser, organizationId: null } : null;
+      }
     }
   }
   const primaryMembership = pickDefaultMembership(user && "memberships" in user ? user.memberships || [] : []);

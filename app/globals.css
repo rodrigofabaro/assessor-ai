@@ -16,10 +16,14 @@ body {
 
 body {
   @apply text-zinc-900 antialiased;
-  background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 36%),
-    radial-gradient(circle at top left, rgba(16, 185, 129, 0.06), transparent 32%),
-    #f8fafc;
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(1200px 480px at 50% -120px, rgba(14, 165, 233, 0.09), transparent 68%),
+    radial-gradient(900px 360px at 10% -80px, rgba(16, 185, 129, 0.05), transparent 70%);
+  background-repeat: no-repeat, no-repeat;
+  background-position: top center, top left;
+  background-size: 1300px 520px, 980px 400px;
+  background-attachment: fixed, fixed;
 }
 
 /* Nicer default focus rings for keyboard users */

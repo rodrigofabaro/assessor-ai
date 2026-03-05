@@ -62,6 +62,18 @@ async function loadOrganizationConfigSnapshot(organizationId: string) {
   }
 }
 
+async function loadOrganizationSafe(organizationId: string) {
+  try {
+    return await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true, slug: true, name: true, isActive: true },
+    });
+  } catch (error) {
+    if (!isOrgSettingsCompatError(error)) throw error;
+    return null;
+  }
+}
+
 function normalizeSecretName(input: unknown) {
   return String(input || "")
     .trim()
@@ -135,13 +147,10 @@ export async function GET(_req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: access.error, code: access.code }, { status: access.status });
   }
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: access.organizationId },
-    select: { id: true, slug: true, name: true, isActive: true },
-  });
+  const organization = await loadOrganizationSafe(access.organizationId);
 
   if (!organization) {
-    return NextResponse.json({ error: "Organization not found." }, { status: 404 });
+    return NextResponse.json({ error: "Organization not found or schema unavailable.", code: "ORG_SCHEMA_MISSING" }, { status: 404 });
   }
 
   const snapshot = await loadOrganizationConfigSnapshot(access.organizationId);
@@ -174,12 +183,9 @@ export async function PUT(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "secrets must be an object when provided." }, { status: 400 });
   }
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: access.organizationId },
-    select: { id: true, isActive: true },
-  });
+  const organization = await loadOrganizationSafe(access.organizationId);
   if (!organization?.isActive) {
-    return NextResponse.json({ error: "Organization not found or inactive." }, { status: 404 });
+    return NextResponse.json({ error: "Organization not found, inactive, or schema unavailable.", code: "ORG_SCHEMA_MISSING" }, { status: 404 });
   }
 
   const secretOps = Object.entries((secretsInput || {}) as Record<string, unknown>)

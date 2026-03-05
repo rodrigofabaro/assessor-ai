@@ -21,6 +21,15 @@ function toSafeString(value) {
   return String(value || "").trim();
 }
 
+function pickApiError(json) {
+  const payload = json && typeof json === "object" ? json : {};
+  const error = payload.error || payload.userMessage || null;
+  const code = payload.code || null;
+  const requestId = payload.requestId || null;
+  const details = payload.details || null;
+  return { error, code, requestId, details };
+}
+
 function toStamp(d) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -233,8 +242,7 @@ async function main() {
         ms: login.ms,
         ok: login.ok,
         source: login.json?.source || null,
-        code: login.json?.code || null,
-        error: login.ok ? null : login.json?.error || login.json?.userMessage || null,
+        ...(login.ok ? {} : pickApiError(login.json)),
       };
       if (!login.ok) throw new Error(`Auth login failed (${login.status})`);
       evidence.auth.authenticated = http.hasCookie("assessor_session");
@@ -250,8 +258,7 @@ async function main() {
     evidence.steps.upload = {
       status: upload.status,
       ms: upload.ms,
-      error: upload.ok ? null : upload.json?.error || upload.json?.userMessage || null,
-      code: upload.ok ? null : upload.json?.code || null,
+      ...(upload.ok ? {} : pickApiError(upload.json)),
     };
     if (!upload.ok) throw new Error(`Upload failed (${upload.status})`);
 
@@ -264,8 +271,7 @@ async function main() {
       status: extract.status,
       ms: extract.ms,
       ok: extract.ok,
-      error: extract.ok ? null : extract.json?.error || extract.json?.userMessage || null,
-      code: extract.ok ? null : extract.json?.code || null,
+      ...(extract.ok ? {} : pickApiError(extract.json)),
     };
     if (!extract.ok) throw new Error(`Extract failed (${extract.status})`);
 
@@ -277,7 +283,11 @@ async function main() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ studentId: student.id }),
     });
-    evidence.steps.linkStudent = { status: linkStudent.status, ms: linkStudent.ms };
+    evidence.steps.linkStudent = {
+      status: linkStudent.status,
+      ms: linkStudent.ms,
+      ...(linkStudent.ok ? {} : pickApiError(linkStudent.json)),
+    };
     if (!linkStudent.ok) throw new Error(`Link student failed (${linkStudent.status})`);
 
     const assignment = await resolveAssignment(baseUrl, fetchJson);
@@ -288,7 +298,11 @@ async function main() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ assignmentId: assignment.id }),
     });
-    evidence.steps.linkAssignment = { status: linkAssignment.status, ms: linkAssignment.ms };
+    evidence.steps.linkAssignment = {
+      status: linkAssignment.status,
+      ms: linkAssignment.ms,
+      ...(linkAssignment.ok ? {} : pickApiError(linkAssignment.json)),
+    };
     if (!linkAssignment.ok) throw new Error(`Link assignment failed (${linkAssignment.status})`);
 
     const grade = await fetchJson(`${baseUrl}/api/submissions/${submissionId}/grade`, {
@@ -301,8 +315,7 @@ async function main() {
       ms: grade.ms,
       overallGrade: grade.json?.assessment?.overallGrade || null,
       assessmentId: grade.json?.assessment?.id || null,
-      error: grade.ok ? null : grade.json?.error || grade.json?.userMessage || null,
-      code: grade.ok ? null : grade.json?.code || null,
+      ...(grade.ok ? {} : pickApiError(grade.json)),
     };
     if (!grade.ok) throw new Error(`Grade failed (${grade.status})`);
 
@@ -333,8 +346,7 @@ async function main() {
       hashMatch: Boolean(replay.json?.replay?.hashMatch),
       assessmentHashMatch: Boolean(replay.json?.replay?.assessmentHashMatch),
       fileDiffCount: Array.isArray(replay.json?.replay?.fileDiffs) ? replay.json.replay.fileDiffs.length : 0,
-      error: replay.ok ? null : replay.json?.error || replay.json?.userMessage || null,
-      code: replay.ok ? null : replay.json?.code || null,
+      ...(replay.ok ? {} : pickApiError(replay.json)),
     };
     if (!replay.ok) throw new Error(`Replay failed (${replay.status})`);
     if (!evidence.steps.replay.hashMatch || !evidence.steps.replay.assessmentHashMatch) {

@@ -1,12 +1,46 @@
 import { cookies } from "next/headers";
 import { getSessionCookieName, verifySignedSessionToken } from "@/lib/auth/session";
 import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
+import { prisma } from "@/lib/prisma";
+
+let orgScopeAvailableCache: boolean | null = null;
+
+function isOrgScopeCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const message = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2021" || code === "P2022") return true;
+  return (
+    message.includes("organization") &&
+    ((message.includes("table") && message.includes("does not exist")) ||
+      (message.includes("column") && message.includes("does not exist")) ||
+      message.includes("unknown argument"))
+  );
+}
+
+export async function isOrganizationScopeAvailable() {
+  if (orgScopeAvailableCache !== null) return orgScopeAvailableCache;
+  try {
+    await prisma.appUser.findFirst({
+      select: { id: true, organizationId: true },
+    });
+    orgScopeAvailableCache = true;
+    return true;
+  } catch (error) {
+    if (!isOrgScopeCompatError(error)) throw error;
+    orgScopeAvailableCache = false;
+    return false;
+  }
+}
 
 export async function getRequestSession() {
   const store = await cookies();
   const token = String(store.get(getSessionCookieName())?.value || "");
   const session = verifySignedSessionToken(token);
   if (!session?.userId) return session;
+  const orgScopeAvailable = await isOrganizationScopeAvailable().catch(() => true);
+  if (!orgScopeAvailable) {
+    return { ...session, orgId: null };
+  }
   if (String(session.orgId || "").trim()) return session;
   if (String(session.userId || "").startsWith("env:")) return session;
 
@@ -29,6 +63,8 @@ export async function getRequestSession() {
 }
 
 export async function getRequestOrganizationId() {
+  const orgScopeAvailable = await isOrganizationScopeAvailable().catch(() => true);
+  if (!orgScopeAvailable) return null;
   const session = await getRequestSession();
   return String(session?.orgId || "").trim() || null;
 }
