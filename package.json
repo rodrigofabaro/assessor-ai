@@ -18,6 +18,7 @@
     "test:grading-schema": "node scripts/grading-schema.test.js",
     "test:grading-confidence": "node scripts/grading-confidence.test.js",
     "test:grading-input-strategy": "node scripts/grading-input-strategy.test.js",
+    "test:feedback-vascr-policy": "node scripts/feedback-vascr-policy.test.js",
     "test:extraction-readiness": "node scripts/extraction-readiness.test.js",
     "test:extraction-integrity": "node scripts/extraction-integrity.test.js",
     "test:brief-readiness": "node scripts/brief-readiness.test.js",

@@ -20,6 +20,7 @@ import {
 import { resolvePageNoteBannedKeywords, type PageNoteGenerationContext } from "@/lib/grading/pageNoteSectionMaps";
 import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
+import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -3446,7 +3447,7 @@ export async function POST(
     const feedbackSummaryRaw = templateLooksLikeItGreetsStudent
       ? stripLeadingStudentAddress(String(decision.feedbackSummary || ""), studentFirstName)
       : personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
-    const feedbackSummary = buildFriendlyFeedbackSummary({
+    let feedbackSummary = buildFriendlyFeedbackSummary({
       unitCode: String(brief.unit?.unitCode || ""),
       assignmentCode: String(brief.assignmentCode || ""),
       overallGrade,
@@ -3455,6 +3456,13 @@ export async function POST(
       readableEvidenceLikely,
       noteToneProfile,
     });
+    const vascrSummary = enforceFeedbackVascrPolicy({
+      summary: feedbackSummary,
+      overallGrade,
+      criterionChecks: decision.criterionChecks as any,
+      maxSentences: 4,
+    });
+    feedbackSummary = vascrSummary.summary;
     const baseFeedbackBulletsRaw = sanitizeStudentFeedbackBullets(decision.feedbackBullets, cfg.maxFeedbackBullets);
     const baseFeedbackBullets = readableEvidenceLikely
       ? baseFeedbackBulletsRaw.filter((line) => !containsBlankContentClaim(line))
@@ -3483,6 +3491,11 @@ export async function POST(
       max: Math.max(1, cfg.maxFeedbackBullets),
     });
     const systemNotes: string[] = [];
+    if (vascrSummary.changed) {
+      systemNotes.push(
+        `VASCR summary policy applied (${vascrSummary.adjustments.length} adjustment${vascrSummary.adjustments.length === 1 ? "" : "s"}).`
+      );
+    }
     if (carriedOverrideSummary && carriedOverrideSummary.appliedCount > 0) {
       systemNotes.push(
         `Carried forward ${carriedOverrideSummary.appliedCount} assessor override(s) from prior assessment ${carriedOverrideSummary.carriedFromAssessmentId} (${carriedOverrideSummary.changedCodes.join(", ")}).`

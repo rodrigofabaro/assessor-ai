@@ -1,6 +1,6 @@
 # Pearson-Aligned Feedback Policy (App Rules)
 
-Last updated: 2026-03-03
+Last updated: 2026-03-06
 
 
 This document captures the grading/feedback rules the app should follow when Pearson is the awarding body.
@@ -55,6 +55,10 @@ This document captures the grading/feedback rules the app should follow when Pea
   - softens contradictions between narrative and criterion outcomes
 - `lib/grading/feedbackPearsonPolicyLint.ts`
   - normalizes grade tone, work-focused language, basic command-verb phrasing, and out-of-context spill terms
+- `lib/grading/feedbackVascrPolicy.ts`
+  - enforces concise summative summary behavior (dedupe + sentence cap)
+  - injects evidence/criteria signal language when missing
+  - adds short feed-forward guidance when open criteria remain
 - `lib/grading/pageNotes.ts`
   - page-note relevance rules and template spill guards
 

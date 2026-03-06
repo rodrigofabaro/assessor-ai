@@ -42,6 +42,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - extraction and grading terminal failures now emit operational alert emails
    - brief extraction now persists a fidelity report + task provenance and lock blocks unresolved fidelity blockers
    - post-login dashboard is now role-specific (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions/stats
+   - VASCR summary policy now hardens feedback output (concise, evidence-linked, actionable)
 
 ## Execution lanes
 
