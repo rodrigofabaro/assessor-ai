@@ -449,7 +449,7 @@ export async function GET(req: Request) {
       latestIvByMarkedPath.set(key, { id: doc.id, createdAt: doc.createdAt });
     }
 
-    const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
+    const turnitinStateBySubmissionId = await readTurnitinSubmissionStateMap();
     const submissions = rows.map((s: any) => {
       const latest = s.assessments?.[0] || null;
       const latestJson = includeQa ? (((latest?.resultJson as any) || {}) as Record<string, unknown>) : {};
@@ -641,7 +641,7 @@ export async function GET(req: Request) {
         })
       : [];
 
-    const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
+    const turnitinStateBySubmissionId = await readTurnitinSubmissionStateMap();
     const detailedById = new Map<string, any>(
       detailRows.map((s: any) => [
         String(s.id),
@@ -743,7 +743,7 @@ export async function GET(req: Request) {
       },
     }),
   ]);
-  const turnitinStateBySubmissionId = readTurnitinSubmissionStateMap();
+  const turnitinStateBySubmissionId = await readTurnitinSubmissionStateMap();
 
   const submissions = rows.map((s: any) =>
     mapWorkspaceSubmission(s, {

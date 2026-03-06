@@ -24,6 +24,7 @@ const tests = [
   "scripts/reference-inbox-projection-contract.test.js",
   "scripts/admin-audit-query-budget-contract.test.js",
   "scripts/submission-detail-projection-contract.test.js",
+  "scripts/turnitin-automation-persistence-contract.test.js",
   "scripts/ui-launch-mode-contract.test.js",
 ];
 

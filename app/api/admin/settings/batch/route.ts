@@ -47,7 +47,7 @@ export async function PUT(req: Request) {
   const prevModel = readOpenAiModel();
   const prevGrading = readGradingConfig().config;
   const prevApp = await getOrCreateAppConfig();
-  const prevPolicy = readAutomationPolicy().policy;
+  const prevPolicy = (await readAutomationPolicy()).policy;
 
   let nextAuditUserId: string | null | undefined = undefined;
   if (appRequested && Object.prototype.hasOwnProperty.call(body.app || {}, "activeAuditUserId")) {
@@ -173,7 +173,7 @@ export async function PUT(req: Request) {
 
     let policyResult: AutomationPolicy | null = null;
     if (appRequested && body.app?.automationPolicy && typeof body.app.automationPolicy === "object") {
-      policyResult = writeAutomationPolicy(body.app.automationPolicy);
+      policyResult = await writeAutomationPolicy(body.app.automationPolicy);
       appliedPolicy = true;
       appendSettingsAuditEvent({
         actor: await getCurrentAuditActor(),
@@ -237,7 +237,7 @@ export async function PUT(req: Request) {
     }
     try {
       if (appliedPolicy) {
-        writeAutomationPolicy(prevPolicy);
+        await writeAutomationPolicy(prevPolicy);
       }
     } catch (e) {
       rollbackErrors.push(`Automation policy rollback failed: ${e instanceof Error ? e.message : String(e)}`);

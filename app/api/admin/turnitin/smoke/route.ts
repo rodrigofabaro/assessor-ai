@@ -20,7 +20,7 @@ function parseErrorMessage(raw: string): string {
   return text.replace(/\s+/g, " ").slice(0, 300);
 }
 
-function buildConfigWarnings(cfg: ReturnType<typeof resolveTurnitinRuntimeConfig>) {
+function buildConfigWarnings(cfg: Awaited<ReturnType<typeof resolveTurnitinRuntimeConfig>>) {
   const warnings: string[] = [];
   const ownerUserId = String(cfg.ownerUserId || "").trim();
   const viewerUserId = String(cfg.viewerUserId || "").trim();
@@ -41,7 +41,7 @@ export async function GET() {
     return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
   }
 
-  const cfg = resolveTurnitinRuntimeConfig();
+  const cfg = await resolveTurnitinRuntimeConfig();
   const warnings = buildConfigWarnings(cfg);
   if (!cfg.apiKey) {
     return NextResponse.json(

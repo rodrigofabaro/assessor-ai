@@ -9,9 +9,9 @@ import {
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
-function buildPublicConfig() {
-  const current = readTurnitinConfig();
-  const runtime = resolveTurnitinRuntimeConfig();
+async function buildPublicConfig() {
+  const current = await readTurnitinConfig();
+  const runtime = await resolveTurnitinRuntimeConfig();
   return {
     source: current.source,
     enabled: runtime.enabled,
@@ -36,7 +36,7 @@ export async function GET() {
   if (!readCtx.canRead) {
     return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
   }
-  return NextResponse.json(buildPublicConfig(), {
+  return NextResponse.json(await buildPublicConfig(), {
     headers: { "Cache-Control": "no-store" },
   });
 }
@@ -46,9 +46,9 @@ export async function PUT(req: Request) {
   if (!ctx.canWrite) {
     return NextResponse.json({ error: "Insufficient role for turnitin settings write." }, { status: 403 });
   }
-  const prev = readTurnitinConfig().config;
+  const prev = (await readTurnitinConfig()).config;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  const next = writeTurnitinConfig({
+  const next = await writeTurnitinConfig({
     enabled: typeof body.enabled === "boolean" ? body.enabled : undefined,
     qaOnly: typeof body.qaOnly === "boolean" ? body.qaOnly : undefined,
     autoSendOnExtract: typeof body.autoSendOnExtract === "boolean" ? body.autoSendOnExtract : undefined,
@@ -99,7 +99,7 @@ export async function PUT(req: Request) {
   return NextResponse.json(
     {
       ok: true,
-      config: buildPublicConfig(),
+      config: await buildPublicConfig(),
     },
     { headers: { "Cache-Control": "no-store" } }
   );

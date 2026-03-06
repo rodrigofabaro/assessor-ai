@@ -94,7 +94,7 @@ export async function POST(req: Request) {
         requestId,
       });
     }
-    const automation = readAutomationPolicy().policy;
+    const automation = (await readAutomationPolicy()).policy;
     if (!automation.enabled) {
       return apiError({
         status: 423,

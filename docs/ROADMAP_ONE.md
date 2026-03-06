@@ -170,7 +170,6 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-03): persistence sweep completed.
 - Canonical classification added: `docs/operations/persistence-classification.md`.
 - Remaining `must-migrate` blockers before production-safe go-live:
-  - file-backed runtime settings/state (`.turnitin-config.json`, `.turnitin-submission-state.json`, `.automation-policy.json`)
   - runtime favicon mutation path writing into `public/favicon.ico`
 - Progress (2026-03-03): first `must-migrate` item delivered.
 - Ops events now write/read from DB (`OpsRuntimeEvent`) with temporary file fallback (`.ops-events.jsonl`) for safe transition.
@@ -185,6 +184,10 @@ Use this doc when the instruction is: "continue the roadmap".
 - Grading config now persists via DB (`AppConfig.gradingConfig`) with runtime cache hydration + file fallback.
 - OpenAI model config now persists via DB (`AppConfig.openaiModelConfig`) with runtime cache hydration + file fallback.
 - Deploy smoke evidence after this slice: `docs/evidence/deploy-smoke/20260303-172621.json`.
+- Progress (2026-03-06): runtime policy/state migration slice delivered.
+- Turnitin config now persists via DB (`AppConfig.turnitinConfig`) with file fallback compatibility.
+- Turnitin submission sync state now persists via DB table (`TurnitinSubmissionSyncState`) with file fallback compatibility.
+- Automation policy now persists via DB (`AppConfig.automationPolicy`) with file fallback compatibility.
 
 6. Extraction and admin performance hardening
 - brief extraction regression stabilization

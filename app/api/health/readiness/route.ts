@@ -80,12 +80,15 @@ async function checkSchema(): Promise<CheckResult> {
     "ContactLead",
     "OutboundEmailEvent",
     "EmailProviderEvent",
+    "TurnitinSubmissionSyncState",
   ];
   const requiredColumns: Array<[string, string]> = [
     ["AppUser", "organizationId"],
     ["AppUser", "platformRole"],
     ["ReferenceDocument", "organizationId"],
     ["Unit", "organizationId"],
+    ["AppConfig", "turnitinConfig"],
+    ["AppConfig", "automationPolicy"],
   ];
 
   try {

@@ -22,8 +22,8 @@ export async function GET(
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const { submissionId } = await ctx.params;
-  const capability = readTurnitinCapability();
-  const state = getTurnitinSubmissionState(submissionId);
+  const capability = await readTurnitinCapability();
+  const state = await getTurnitinSubmissionState(submissionId);
   return NextResponse.json({
     ok: true,
     capability,
@@ -49,7 +49,7 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       action,
-      capability: readTurnitinCapability(),
+      capability: await readTurnitinCapability(),
       state,
     });
   } catch (error) {
@@ -62,8 +62,8 @@ export async function POST(
         ok: false,
         action,
         error: String((error as Error)?.message || error || "Turnitin action failed."),
-        capability: readTurnitinCapability(),
-        state: getTurnitinSubmissionState(submissionId),
+        capability: await readTurnitinCapability(),
+        state: await getTurnitinSubmissionState(submissionId),
       },
       { status }
     );

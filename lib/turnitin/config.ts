@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { prisma } from "@/lib/prisma";
 
 export type TurnitinConfig = {
   enabled: boolean;
@@ -75,7 +76,7 @@ function normalize(input: Partial<TurnitinConfig>): TurnitinConfig {
   };
 }
 
-export function readTurnitinConfig(): { config: TurnitinConfig; source: TurnitinConfigSource } {
+function readTurnitinConfigFromFile(): { config: TurnitinConfig; source: TurnitinConfigSource } {
   try {
     if (!fs.existsSync(FILE_PATH)) return { config: defaultTurnitinConfig(), source: "default" };
     const raw = fs.readFileSync(FILE_PATH, "utf8");
@@ -86,22 +87,67 @@ export function readTurnitinConfig(): { config: TurnitinConfig; source: Turnitin
   }
 }
 
-export function writeTurnitinConfig(
+function writeTurnitinConfigToFile(next: TurnitinConfig) {
+  try {
+    fs.writeFileSync(FILE_PATH, JSON.stringify(next, null, 2), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function readTurnitinConfig(): Promise<{ config: TurnitinConfig; source: TurnitinConfigSource }> {
+  const dbModel = (prisma as any)?.appConfig;
+  if (dbModel && typeof dbModel.findUnique === "function") {
+    try {
+      const row = await dbModel.findUnique({
+        where: { id: 1 },
+        select: { turnitinConfig: true },
+      });
+      const raw = row?.turnitinConfig;
+      if (raw && typeof raw === "object") {
+        return { config: normalize(raw as Partial<TurnitinConfig>), source: "settings" };
+      }
+    } catch {
+      // fallback to legacy file path
+    }
+  }
+
+  return readTurnitinConfigFromFile();
+}
+
+export async function writeTurnitinConfig(
   next: Partial<TurnitinConfig> & { clearApiKey?: boolean }
-): TurnitinConfig {
-  const current = readTurnitinConfig().config;
+): Promise<TurnitinConfig> {
+  const current = (await readTurnitinConfig()).config;
   const incomingKey = typeof next.apiKey === "string" ? next.apiKey.trim() : undefined;
   const merged = normalize({
     ...current,
     ...next,
     apiKey: next.clearApiKey ? "" : incomingKey !== undefined ? (incomingKey || current.apiKey) : current.apiKey,
   });
-  fs.writeFileSync(FILE_PATH, JSON.stringify(merged, null, 2), "utf8");
+
+  const dbModel = (prisma as any)?.appConfig;
+  if (dbModel && typeof dbModel.upsert === "function") {
+    try {
+      await dbModel.upsert({
+        where: { id: 1 },
+        create: { id: 1, turnitinConfig: merged },
+        update: { turnitinConfig: merged },
+      });
+      writeTurnitinConfigToFile(merged);
+      return merged;
+    } catch {
+      // fallback to file below
+    }
+  }
+
+  writeTurnitinConfigToFile(merged);
   return merged;
 }
 
-export function resolveTurnitinRuntimeConfig(): ResolvedTurnitinConfig {
-  const loaded = readTurnitinConfig().config;
+export async function resolveTurnitinRuntimeConfig(): Promise<ResolvedTurnitinConfig> {
+  const loaded = (await readTurnitinConfig()).config;
   const envCandidates: Array<{ key: ResolvedTurnitinConfig["apiKeySource"]; value: string }> = [
     { key: "TURNITIN_API_KEY", value: String(process.env.TURNITIN_API_KEY || "").trim() },
     { key: "TURNITIN_TCA_API_KEY", value: String(process.env.TURNITIN_TCA_API_KEY || "").trim() },

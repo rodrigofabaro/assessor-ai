@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: "Insufficient role for settings read." }, { status: 403 });
   }
   const cfg = await getOrCreateAppConfig();
-  const automation = readAutomationPolicy();
+  const automation = await readAutomationPolicy();
   return NextResponse.json({
     id: cfg.id,
     activeAuditUserId: cfg.activeAuditUserId,
@@ -53,7 +53,7 @@ export async function PUT(req: Request) {
   }
 
   const prev = await getOrCreateAppConfig();
-  const prevPolicy = readAutomationPolicy().policy;
+  const prevPolicy = (await readAutomationPolicy()).policy;
   const updated = await prisma.appConfig.upsert({
     where: { id: 1 },
     create: { id: 1, activeAuditUserId: activeAuditUserId || null },
@@ -72,7 +72,7 @@ export async function PUT(req: Request) {
   });
 
   if (body?.automationPolicy && typeof body.automationPolicy === "object") {
-    const nextPolicy = writeAutomationPolicy(body.automationPolicy);
+    const nextPolicy = await writeAutomationPolicy(body.automationPolicy);
     appendSettingsAuditEvent({
       actor: await getCurrentAuditActor(),
       role: ctx.role,

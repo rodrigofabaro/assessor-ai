@@ -69,6 +69,15 @@ enum OrganizationRole {
   VIEWER
 }
 
+enum TurnitinSubmissionSyncStatus {
+  NOT_SENT
+  CREATED
+  UPLOADING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
 enum SpecSuiteImportJobStatus {
   QUEUED
   RUNNING
@@ -210,6 +219,8 @@ model AppConfig {
   faviconUpdatedAt  DateTime?
   openaiModelConfig Json?
   gradingConfig     Json?
+  turnitinConfig    Json?
+  automationPolicy  Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -278,6 +289,7 @@ model Submission {
   extractedText  String?
   extractionRuns SubmissionExtractionRun[]
   assessments    Assessment[]
+  turnitinSyncState TurnitinSubmissionSyncState?
 
   // Extraction provenance (recommended)
   extractedTextHash String?
@@ -294,6 +306,28 @@ model Submission {
   @@index([organizationId])
   @@index([uploadedAt, id])
   @@index([status, uploadedAt])
+}
+
+model TurnitinSubmissionSyncState {
+  submissionId                   String                     @id
+  turnitinSubmissionId           String?
+  status                         TurnitinSubmissionSyncStatus @default(NOT_SENT)
+  aiWritingPercentage            Int?
+  overallMatchPercentage         Int?
+  internetMatchPercentage        Int?
+  publicationMatchPercentage     Int?
+  submittedWorksMatchPercentage  Int?
+  reportRequestedAt              DateTime?
+  reportGeneratedAt              DateTime?
+  viewerUrl                      String?
+  lastError                      String?
+  createdAt                      DateTime                   @default(now())
+  updatedAt                      DateTime                   @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
+  @@index([turnitinSubmissionId])
 }
 
 

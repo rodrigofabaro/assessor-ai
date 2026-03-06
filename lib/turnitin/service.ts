@@ -255,8 +255,8 @@ function withStateUpdate(
   return upsertTurnitinSubmissionState(submissionId, patch);
 }
 
-export function readTurnitinCapability() {
-  const cfg = resolveTurnitinRuntimeConfig();
+export async function readTurnitinCapability() {
+  const cfg = await resolveTurnitinRuntimeConfig();
   return {
     enabled: cfg.enabled,
     qaOnly: cfg.qaOnly,
@@ -271,7 +271,7 @@ export function readTurnitinCapability() {
 }
 
 export async function sendSubmissionToTurnitin(submissionId: string) {
-  const cfg = resolveTurnitinRuntimeConfig();
+  const cfg = await resolveTurnitinRuntimeConfig();
   ensureTurnitinAvailable(cfg);
   const ownerUserId = chooseOwner(cfg);
   if (!ownerUserId) {
@@ -297,7 +297,7 @@ export async function sendSubmissionToTurnitin(submissionId: string) {
       throw new TurnitinServiceError("Turnitin did not return a submission id.", 502);
     }
 
-    withStateUpdate(submissionId, {
+    await withStateUpdate(submissionId, {
       status: "CREATED",
       turnitinSubmissionId,
       aiWritingPercentage: null,
@@ -321,7 +321,7 @@ export async function sendSubmissionToTurnitin(submissionId: string) {
     } catch (error) {
       throw new TurnitinServiceError(`Original upload failed: ${toErrorMessage(error)}`, 400);
     }
-    withStateUpdate(submissionId, {
+    await withStateUpdate(submissionId, {
       status: "UPLOADING",
       turnitinSubmissionId,
       lastError: null,
@@ -333,14 +333,14 @@ export async function sendSubmissionToTurnitin(submissionId: string) {
     } catch (error) {
       throw new TurnitinServiceError(`Similarity request failed: ${toErrorMessage(error)}`, 400);
     }
-    return withStateUpdate(submissionId, {
+    return await withStateUpdate(submissionId, {
       status: "PROCESSING",
       turnitinSubmissionId,
       reportRequestedAt: similarityRequested.requested ? new Date().toISOString() : null,
       lastError: null,
     });
   } catch (error) {
-    return withStateUpdate(submissionId, {
+    return await withStateUpdate(submissionId, {
       status: "FAILED",
       turnitinSubmissionId: turnitinSubmissionId || null,
       lastError: toErrorMessage(error),
@@ -349,10 +349,10 @@ export async function sendSubmissionToTurnitin(submissionId: string) {
 }
 
 export async function refreshTurnitinSubmission(submissionId: string) {
-  const cfg = resolveTurnitinRuntimeConfig();
+  const cfg = await resolveTurnitinRuntimeConfig();
   ensureTurnitinAvailable(cfg);
 
-  const existing = getTurnitinSubmissionState(submissionId);
+  const existing = await getTurnitinSubmissionState(submissionId);
   const turnitinSubmissionId = String(existing?.turnitinSubmissionId || "").trim();
   if (!turnitinSubmissionId) {
     throw new TurnitinServiceError("No Turnitin submission id saved for this submission.", 400);
@@ -362,12 +362,12 @@ export async function refreshTurnitinSubmission(submissionId: string) {
     if (!String(existing?.reportRequestedAt || "").trim()) {
       const similarityRequested = await requestSimilarityWithFallback(cfg, turnitinSubmissionId);
       if (similarityRequested.deferred) {
-        return withStateUpdate(submissionId, {
+        return await withStateUpdate(submissionId, {
           status: "PROCESSING",
           lastError: null,
         });
       }
-      withStateUpdate(submissionId, {
+      await withStateUpdate(submissionId, {
         status: "PROCESSING",
         reportRequestedAt: new Date().toISOString(),
         lastError: null,
@@ -404,19 +404,19 @@ export async function refreshTurnitinSubmission(submissionId: string) {
         // Keep similarity result even if viewer URL request fails.
       }
     }
-    return withStateUpdate(submissionId, next);
+    return await withStateUpdate(submissionId, next);
   } catch (error) {
     if (isInvalidSimilarityMetadataError(error)) {
       // Turnitin can reject refresh for stale/invalid IDs; re-create the submission instead.
       return sendSubmissionToTurnitin(submissionId);
     }
     if (isSimilarityDeferredConflict(error)) {
-      return withStateUpdate(submissionId, {
+      return await withStateUpdate(submissionId, {
         status: "PROCESSING",
         lastError: null,
       });
     }
-    return withStateUpdate(submissionId, {
+    return await withStateUpdate(submissionId, {
       status: "FAILED",
       lastError: toErrorMessage(error),
     });
@@ -424,13 +424,13 @@ export async function refreshTurnitinSubmission(submissionId: string) {
 }
 
 export async function refreshTurnitinViewerUrl(submissionId: string) {
-  const cfg = resolveTurnitinRuntimeConfig();
+  const cfg = await resolveTurnitinRuntimeConfig();
   ensureTurnitinAvailable(cfg);
   const viewerUserId = chooseViewer(cfg);
   if (!viewerUserId) {
     throw new TurnitinServiceError("Turnitin viewer/owner user id is required in settings.", 400);
   }
-  const existing = getTurnitinSubmissionState(submissionId);
+  const existing = await getTurnitinSubmissionState(submissionId);
   const turnitinSubmissionId = String(existing?.turnitinSubmissionId || "").trim();
   if (!turnitinSubmissionId) {
     throw new TurnitinServiceError("No Turnitin submission id saved for this submission.", 400);
@@ -444,19 +444,19 @@ export async function refreshTurnitinViewerUrl(submissionId: string) {
     });
     const viewerUrl = String(viewer?.viewer_url || "").trim();
     if (!viewerUrl) throw new Error("Viewer URL missing in Turnitin response.");
-    return withStateUpdate(submissionId, {
+    return await withStateUpdate(submissionId, {
       viewerUrl,
       lastError: null,
     });
   } catch (error) {
-    return withStateUpdate(submissionId, {
+    return await withStateUpdate(submissionId, {
       lastError: toErrorMessage(error),
     });
   }
 }
 
 export async function syncTurnitinSubmission(submissionId: string) {
-  const existing = getTurnitinSubmissionState(submissionId);
+  const existing = await getTurnitinSubmissionState(submissionId);
   if (shouldCreateFreshTurnitinSubmission(existing)) {
     return sendSubmissionToTurnitin(submissionId);
   }
@@ -464,23 +464,23 @@ export async function syncTurnitinSubmission(submissionId: string) {
 }
 
 export async function maybeAutoSendTurnitinForSubmission(submissionId: string) {
-  const cfg = resolveTurnitinRuntimeConfig();
+  const cfg = await resolveTurnitinRuntimeConfig();
   if (!cfg.enabled || !cfg.autoSendOnExtract) return null;
   if (cfg.qaOnly && !isQaLikeStage()) return null;
-  const existing = getTurnitinSubmissionState(submissionId);
+  const existing = await getTurnitinSubmissionState(submissionId);
   if (existing?.turnitinSubmissionId && !shouldCreateFreshTurnitinSubmission(existing)) return existing;
   return sendSubmissionToTurnitin(submissionId);
 }
 
 export async function maybeAutoDetectAiWritingForSubmission(submissionId: string) {
-  const cfg = resolveTurnitinRuntimeConfig();
+  const cfg = await resolveTurnitinRuntimeConfig();
   if (!cfg.enabled || !cfg.autoDetectAiWritingOnGrade) return null;
   if (cfg.qaOnly && !isQaLikeStage()) return null;
   try {
     return await syncTurnitinSubmission(submissionId);
   } catch (error) {
-    const existing = getTurnitinSubmissionState(submissionId);
-    return withStateUpdate(submissionId, {
+    const existing = await getTurnitinSubmissionState(submissionId);
+    return await withStateUpdate(submissionId, {
       status: existing?.status || "FAILED",
       turnitinSubmissionId: existing?.turnitinSubmissionId || null,
       lastError: toErrorMessage(error),

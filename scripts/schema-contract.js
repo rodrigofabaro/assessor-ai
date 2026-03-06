@@ -77,6 +77,7 @@ async function main() {
     "ContactLead",
     "OutboundEmailEvent",
     "EmailProviderEvent",
+    "TurnitinSubmissionSyncState",
   ];
 
   const requiredColumns = [
@@ -84,6 +85,8 @@ async function main() {
     ["AppUser", "platformRole"],
     ["ReferenceDocument", "organizationId"],
     ["Unit", "organizationId"],
+    ["AppConfig", "turnitinConfig"],
+    ["AppConfig", "automationPolicy"],
   ];
 
   const missingTables = [];
@@ -125,4 +128,3 @@ async function main() {
 main().catch((error) => {
   fail(`schema contract crashed: ${String(error?.message || error)}`);
 });
-

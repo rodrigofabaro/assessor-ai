@@ -1,6 +1,6 @@
 # Persistence Classification (Deployment Readiness)
 
-Last updated: 2026-03-03
+Last updated: 2026-03-06
 
 ## Purpose
 
@@ -33,19 +33,22 @@ Classify remaining local filesystem persistence and define what must move before
 - Remaining hardening: remove file fallback after production confidence window.
 
 3. Turnitin config (`lib/turnitin/config.ts`, `.turnitin-config.json`)
-- Status: `must-migrate`
+- Status: `migrated` (DB primary + file fallback)
 - Risk: integration config inconsistency after restart/scale-out.
-- Target: DB-backed secure settings + secrets in env.
+- Delivered: `AppConfig.turnitinConfig` JSON persistence with env-secret fallback for API key resolution.
+- Remaining hardening: remove file fallback after production confidence window.
 
 4. Turnitin submission sync state (`lib/turnitin/state.ts`, `.turnitin-submission-state.json`)
-- Status: `must-migrate`
+- Status: `migrated` (DB primary + file fallback)
 - Risk: duplicate sync work or missed state transitions.
-- Target: DB table keyed by submission/integration id.
+- Delivered: `TurnitinSubmissionSyncState` table keyed by `submissionId` with status/report fields.
+- Remaining hardening: remove file fallback after production confidence window.
 
 5. Automation policy (`lib/admin/automationPolicy.ts`, `.automation-policy.json`)
-- Status: `must-migrate`
+- Status: `migrated` (DB primary + file fallback)
 - Risk: policy resets and inconsistent behavior between instances.
-- Target: DB-backed policy row/versioning.
+- Delivered: `AppConfig.automationPolicy` JSON persistence.
+- Remaining hardening: remove file fallback after production confidence window.
 
 ## C) Audit/telemetry persistence
 
@@ -89,8 +92,8 @@ Classify remaining local filesystem persistence and define what must move before
 1. DB-backed settings/state:
 - grading config
 - model config
-- turnitin config/state
-- automation policy
+- turnitin config/state (completed)
+- automation policy (completed)
 
 2. DB-backed audit/telemetry:
 - ops events

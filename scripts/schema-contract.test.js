@@ -21,6 +21,9 @@ function main() {
   expectContains(script, "Organization", "schema contract script");
   expectContains(script, "AppUser", "schema contract script");
   expectContains(script, "ReferenceDocument", "schema contract script");
+  expectContains(script, "TurnitinSubmissionSyncState", "schema contract script");
+  expectContains(script, "AppConfig\", \"turnitinConfig", "schema contract script");
+  expectContains(script, "AppConfig\", \"automationPolicy", "schema contract script");
   expectContains(script, "AUTH_REQUIRE_SCHEMA_CONTRACT", "schema contract script");
 
   expectContains(packageJson, "ops:schema-contract", "package.json");
@@ -31,4 +34,3 @@ function main() {
 }
 
 main();
-

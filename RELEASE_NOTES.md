@@ -64,6 +64,14 @@ Last updated: 2026-03-06
   - added `NEXT_PUBLIC_UI_LAUNCH_MODE` to control progressive exposure of tenant operations in admin navigation
   - when enabled, `/admin/users` is surfaced in primary admin nav while existing routes/APIs remain unchanged
   - updated admin help to document pre-launch vs launch-mode navigation behavior (`docs/help/admin-index.md`)
+- Runtime state persistence migration (deployment hardening slice):
+  - added migration `prisma/migrations/20260306200000_add_turnitin_automation_persistence`:
+    - `AppConfig.turnitinConfig` JSON
+    - `AppConfig.automationPolicy` JSON
+    - `TurnitinSubmissionSyncState` table
+  - switched Turnitin config, Turnitin submission sync state, and automation policy to DB-primary persistence with compatibility fallback to legacy local files
+  - updated readiness/schema contract checks to include the new table/columns
+  - added regression contract: `scripts/turnitin-automation-persistence-contract.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 
