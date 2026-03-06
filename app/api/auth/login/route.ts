@@ -6,6 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { normalizeLoginEmail, verifyPassword } from "@/lib/auth/password";
 import { ensureDefaultOrganization, ensureSuperAdminOrganization } from "@/lib/organizations/defaults";
 import {
+  buildAuthRateActor,
+  checkAuthRateLimit,
+  pickClientIp,
+  recordAuthRateEvent,
+} from "@/lib/security/authRateLimit";
+import {
   pickDefaultMembership,
   resolveSessionRole,
   isSuperAdminPlatformRole,
@@ -15,6 +21,9 @@ import { ensureUserOrganizationScope } from "@/lib/organizations/userScope";
 export const runtime = "nodejs";
 
 const ONE_DAY_SECONDS = 60 * 60 * 24;
+const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_RATE_LIMIT_IP = Number(process.env.AUTH_RATE_LIMIT_LOGIN_IP || 30);
+const LOGIN_RATE_LIMIT_ACCOUNT = Number(process.env.AUTH_RATE_LIMIT_LOGIN_ACCOUNT || 8);
 
 type MembershipRole = "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
 
@@ -264,6 +273,62 @@ export async function POST(req: Request) {
   if (!username || !password) {
     return NextResponse.json({ error: "Username and password are required.", code: "AUTH_CREDENTIALS_REQUIRED" }, { status: 400 });
   }
+  const clientIp = pickClientIp(req);
+  const normalizedEmail = normalizeLoginEmail(username);
+  const ipActor = buildAuthRateActor("auth-login-ip", clientIp);
+  const accountActor = normalizedEmail
+    ? buildAuthRateActor("auth-login-account", normalizedEmail, clientIp || "unknown")
+    : null;
+
+  if (ipActor) {
+    const ipGate = await checkAuthRateLimit({
+      eventType: "AUTH_LOGIN_FAILED_IP",
+      actor: ipActor,
+      limit: LOGIN_RATE_LIMIT_IP,
+      windowMs: LOGIN_RATE_WINDOW_MS,
+    });
+    if (ipGate.limited) {
+      recordAuthRateEvent({
+        eventType: "AUTH_LOGIN_RATE_LIMITED_IP",
+        actor: ipActor,
+        windowMs: LOGIN_RATE_WINDOW_MS,
+        route: "/api/auth/login",
+        status: 429,
+        details: { count: ipGate.count, limit: LOGIN_RATE_LIMIT_IP },
+      });
+      const res = NextResponse.json(
+        { error: "Too many login attempts. Please wait and try again.", code: "AUTH_RATE_LIMITED" },
+        { status: 429 }
+      );
+      res.headers.set("Retry-After", String(ipGate.retryAfterSeconds || 60));
+      return res;
+    }
+  }
+
+  if (accountActor) {
+    const accountGate = await checkAuthRateLimit({
+      eventType: "AUTH_LOGIN_FAILED_ACCOUNT",
+      actor: accountActor,
+      limit: LOGIN_RATE_LIMIT_ACCOUNT,
+      windowMs: LOGIN_RATE_WINDOW_MS,
+    });
+    if (accountGate.limited) {
+      recordAuthRateEvent({
+        eventType: "AUTH_LOGIN_RATE_LIMITED_ACCOUNT",
+        actor: accountActor,
+        windowMs: LOGIN_RATE_WINDOW_MS,
+        route: "/api/auth/login",
+        status: 429,
+        details: { count: accountGate.count, limit: LOGIN_RATE_LIMIT_ACCOUNT },
+      });
+      const res = NextResponse.json(
+        { error: "Too many login attempts. Please wait and try again.", code: "AUTH_RATE_LIMITED" },
+        { status: 429 }
+      );
+      res.headers.set("Retry-After", String(accountGate.retryAfterSeconds || 60));
+      return res;
+    }
+  }
 
   let auth:
     | AppUserAuth
@@ -291,6 +356,24 @@ export async function POST(req: Request) {
   }
 
   if (!auth) {
+    if (ipActor) {
+      recordAuthRateEvent({
+        eventType: "AUTH_LOGIN_FAILED_IP",
+        actor: ipActor,
+        windowMs: LOGIN_RATE_WINDOW_MS,
+        route: "/api/auth/login",
+        status: 401,
+      });
+    }
+    if (accountActor) {
+      recordAuthRateEvent({
+        eventType: "AUTH_LOGIN_FAILED_ACCOUNT",
+        actor: accountActor,
+        windowMs: LOGIN_RATE_WINDOW_MS,
+        route: "/api/auth/login",
+        status: 401,
+      });
+    }
     return NextResponse.json(
       { error: "Invalid credentials.", code: "AUTH_INVALID_CREDENTIALS" },
       { status: 401 }
@@ -298,6 +381,14 @@ export async function POST(req: Request) {
   }
 
   if (auth.source === "app-user" && auth.mustResetPassword) {
+    if (ipActor) {
+      recordAuthRateEvent({
+        eventType: "AUTH_LOGIN_MUST_RESET",
+        actor: ipActor,
+        route: "/api/auth/login",
+        status: 403,
+      });
+    }
     return NextResponse.json(
       { error: "Password reset required before sign in.", code: "AUTH_PASSWORD_RESET_REQUIRED", username: auth.email },
       { status: 403 }
@@ -364,5 +455,21 @@ export async function POST(req: Request) {
     path: "/",
     maxAge: 0,
   });
+  if (ipActor) {
+    recordAuthRateEvent({
+      eventType: "AUTH_LOGIN_SUCCESS_IP",
+      actor: ipActor,
+      route: "/api/auth/login",
+      status: 200,
+    });
+  }
+  if (accountActor) {
+    recordAuthRateEvent({
+      eventType: "AUTH_LOGIN_SUCCESS_ACCOUNT",
+      actor: accountActor,
+      route: "/api/auth/login",
+      status: 200,
+    });
+  }
   return res;
 }

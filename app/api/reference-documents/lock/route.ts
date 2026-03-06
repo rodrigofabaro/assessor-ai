@@ -276,6 +276,15 @@ export async function POST(req: Request) {
       const selectedCodes = (mappingOverride && mappingOverride.length ? mappingOverride : pickedCodes.selectedCodes)
         .map(cleanCode)
         .filter(Boolean);
+      const docSourceMeta =
+        doc.sourceMeta && typeof doc.sourceMeta === "object" ? (doc.sourceMeta as Record<string, unknown>) : {};
+      const fidelityReport =
+        ((brief as any)?.fidelityReport && typeof (brief as any).fidelityReport === "object"
+          ? (brief as any).fidelityReport
+          : null) ||
+        (docSourceMeta.briefFidelityReport && typeof docSourceMeta.briefFidelityReport === "object"
+          ? docSourceMeta.briefFidelityReport
+          : null);
       const qualityGate = evaluateBriefLockQuality({
         assignmentCode,
         title,
@@ -286,6 +295,7 @@ export async function POST(req: Request) {
         selectedUnitCode: unit.unitCode,
         selectedUnitTitle: unit.unitTitle,
         briefDraft: brief,
+        fidelityReport,
       });
       if (!qualityGate.ok && !allowQualityGateBypass) {
         appendOpsEvent({

@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { canSendInviteEmail, sendPasswordRecoveryEmail } from "@/lib/auth/inviteEmail";
 import { normalizeLoginEmail } from "@/lib/auth/password";
 import {
+  buildAuthRateActor,
+  checkAuthRateLimit,
+  recordAuthRateEvent,
+} from "@/lib/security/authRateLimit";
+import {
   buildPasswordRecoveryUrl,
   generatePasswordRecoveryToken,
   getPasswordRecoveryTtlMinutes,
@@ -13,6 +18,9 @@ export const runtime = "nodejs";
 
 const GENERIC_SUCCESS_MESSAGE = "If the account exists, a recovery email has been sent.";
 const REQUESTS_PER_USER_PER_HOUR = 5;
+const REQUESTS_PER_IP_PER_HOUR = Number(process.env.AUTH_RATE_LIMIT_RECOVERY_IP || 15);
+const REQUESTS_PER_ACCOUNT_PER_HOUR = Number(process.env.AUTH_RATE_LIMIT_RECOVERY_ACCOUNT || 5);
+const RECOVERY_RATE_WINDOW_MS = 60 * 60 * 1000;
 
 function toSafeString(value: unknown) {
   return String(value || "").trim();
@@ -119,6 +127,9 @@ async function findRecoveryUser(email: string): Promise<RecoveryUser | null> {
 }
 
 export async function POST(req: Request) {
+  const ip = pickClientIp(req);
+  const userAgent = pickClientUserAgent(req);
+
   try {
     const { username } = await parsePayload(req);
     if (!username) {
@@ -141,6 +152,62 @@ export async function POST(req: Request) {
     const email = normalizeLoginEmail(username);
     if (!email) {
       return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
+    }
+    const ipActor = buildAuthRateActor("auth-recovery-ip", ip);
+    const accountActor = buildAuthRateActor("auth-recovery-account", email);
+
+    if (ipActor) {
+      const gate = await checkAuthRateLimit({
+        eventType: "AUTH_PASSWORD_RECOVERY_REQUEST_IP",
+        actor: ipActor,
+        limit: REQUESTS_PER_IP_PER_HOUR,
+        windowMs: RECOVERY_RATE_WINDOW_MS,
+      });
+      if (gate.limited) {
+        recordAuthRateEvent({
+          eventType: "AUTH_PASSWORD_RECOVERY_RATE_LIMITED_IP",
+          actor: ipActor,
+          windowMs: RECOVERY_RATE_WINDOW_MS,
+          route: "/api/auth/password-recovery",
+          status: 429,
+          details: { count: gate.count, limit: REQUESTS_PER_IP_PER_HOUR },
+        });
+        return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
+      }
+      recordAuthRateEvent({
+        eventType: "AUTH_PASSWORD_RECOVERY_REQUEST_IP",
+        actor: ipActor,
+        windowMs: RECOVERY_RATE_WINDOW_MS,
+        route: "/api/auth/password-recovery",
+        status: 200,
+      });
+    }
+
+    if (accountActor) {
+      const gate = await checkAuthRateLimit({
+        eventType: "AUTH_PASSWORD_RECOVERY_REQUEST_ACCOUNT",
+        actor: accountActor,
+        limit: REQUESTS_PER_ACCOUNT_PER_HOUR,
+        windowMs: RECOVERY_RATE_WINDOW_MS,
+      });
+      if (gate.limited) {
+        recordAuthRateEvent({
+          eventType: "AUTH_PASSWORD_RECOVERY_RATE_LIMITED_ACCOUNT",
+          actor: accountActor,
+          windowMs: RECOVERY_RATE_WINDOW_MS,
+          route: "/api/auth/password-recovery",
+          status: 429,
+          details: { count: gate.count, limit: REQUESTS_PER_ACCOUNT_PER_HOUR },
+        });
+        return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
+      }
+      recordAuthRateEvent({
+        eventType: "AUTH_PASSWORD_RECOVERY_REQUEST_ACCOUNT",
+        actor: accountActor,
+        windowMs: RECOVERY_RATE_WINDOW_MS,
+        route: "/api/auth/password-recovery",
+        status: 200,
+      });
     }
 
     const user = await findRecoveryUser(email);
@@ -189,8 +256,8 @@ export async function POST(req: Request) {
 
     const expiresMinutes = getPasswordRecoveryTtlMinutes();
     const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
-    const requestedIp = pickClientIp(req);
-    const requestedUa = pickClientUserAgent(req);
+    const requestedIp = ip;
+    const requestedUa = userAgent;
 
     let resetId = "";
     try {

@@ -154,3 +154,14 @@ Primary login mode:
   - optional
   - when set, provider-managed relative storage paths resolve under this root
   - scope: `uploads/*`, `reference_uploads/*`, `storage/*`, `submission_marked/*` when written via provider-aware paths
+
+## Runtime readiness probe env (M8)
+
+- `READINESS_BASE_URL`
+  - optional
+  - base URL used by `pnpm run ops:readiness-contract`
+  - fallback chain: `READINESS_BASE_URL` -> `DEPLOY_SMOKE_BASE_URL` -> `http://localhost:3000`
+
+- `HEALTH_READINESS_PROBE_OPENAI`
+  - default: `false`
+  - when `true`, `/api/health/readiness` actively probes OpenAI connectivity (`/v1/models`) instead of key-presence-only checks

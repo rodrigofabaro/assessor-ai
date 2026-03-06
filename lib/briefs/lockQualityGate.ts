@@ -19,6 +19,7 @@ type BriefGateInput = {
   selectedUnitCode?: string | null;
   selectedUnitTitle?: string | null;
   briefDraft?: any;
+  fidelityReport?: any;
 };
 
 export type BriefGateResult = {
@@ -45,12 +46,34 @@ export function evaluateBriefLockQuality(input: BriefGateInput): BriefGateResult
   );
   const rawText = String(input.rawText || "");
   const unitCriteria = Array.isArray(input.unitCriteria) ? input.unitCriteria : [];
+  const requireFidelity = !["0", "false", "no", "off"].includes(
+    String(process.env.BRIEF_REQUIRE_FIDELITY_REPORT || "true").toLowerCase().trim()
+  );
+  const fidelityReport =
+    input.fidelityReport && typeof input.fidelityReport === "object" ? (input.fidelityReport as any) : null;
 
   if (!assignmentCode) blockers.push("Missing assignment code.");
   if (!title) blockers.push("Missing assignment title.");
   if (!input.hasUnitSignal) blockers.push("Missing unit signal (unit guess or selected unit).");
   if (!selectedCodes.length) blockers.push("No criteria codes extracted for this brief.");
   if (rawText.trim().length < 400) blockers.push("Brief text extraction is too short for reliable mapping.");
+  if (requireFidelity && !fidelityReport) {
+    blockers.push("Brief fidelity report is missing. Re-extract this brief before lock.");
+  }
+  if (fidelityReport) {
+    const blockerCount = Number(fidelityReport.blockerCount || 0);
+    const warningCount = Number(fidelityReport.warningCount || 0);
+    if (blockerCount > 0) {
+      blockers.push(
+        `Brief fidelity report has ${blockerCount} unresolved blocker${blockerCount === 1 ? "" : "s"}.`
+      );
+    }
+    if (warningCount > 0) {
+      warnings.push(
+        `Brief fidelity report has ${warningCount} warning${warningCount === 1 ? "" : "s"}.`
+      );
+    }
+  }
 
   const unitByCode = new Map<string, UnitCriterionLite>();
   for (const c of unitCriteria) {

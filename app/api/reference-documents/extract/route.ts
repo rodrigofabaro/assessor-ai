@@ -6,6 +6,7 @@ import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { extractReferenceDocument } from "@/lib/extraction/index";
 import { sanitizeBriefDraftArtifacts } from "@/lib/extraction/brief/draftIntegrity";
 import { validateBriefExtractionHard } from "@/lib/extraction/brief/hardValidation";
+import { attachBriefTaskProvenance, buildBriefFidelityReport } from "@/lib/extraction/brief/fidelityReport";
 import { recoverBriefFromWholePdfWithOpenAi } from "@/lib/openai/briefWholePdfRecovery";
 
 
@@ -458,7 +459,21 @@ export async function POST(req: Request) {
     if (useHardValidation && bestCandidate.validation && !bestCandidate.validation.ok && allowHardValidationBypass) {
       warnings.push("hard validation bypassed by request");
     }
-    const extractedJson = bestCandidate.extractedJson;
+    let extractedJson = bestCandidate.extractedJson;
+    let fidelityReport: ReturnType<typeof buildBriefFidelityReport> | null = null;
+    if (isBrief && extractedJson && typeof extractedJson === "object") {
+      fidelityReport = buildBriefFidelityReport(extractedJson, bestCandidate.text || "");
+      extractedJson = attachBriefTaskProvenance(extractedJson, fidelityReport);
+      extractedJson = { ...extractedJson, fidelityReport };
+      if (fidelityReport.blockerCount > 0) {
+        warnings.push(
+          `fidelity blockers: ${fidelityReport.blockerCount} (lock will be blocked until resolved)`
+        );
+      }
+      if (fidelityReport.warningCount > 0) {
+        warnings.push(`fidelity warnings: ${fidelityReport.warningCount}`);
+      }
+    }
 
     const nextExtractSummary = summarizeExtracted(extractedJson);
     const nowIso = new Date().toISOString();
@@ -489,6 +504,12 @@ export async function POST(req: Request) {
             wholePdfRecoveryMode,
           }
         : prevMeta.hardValidation || null,
+      briefFidelityReport: fidelityReport
+        ? {
+            ...fidelityReport,
+            generatedAt: nowIso,
+          }
+        : prevMeta.briefFidelityReport || null,
       reextractHistory,
     } as any;
 
@@ -510,6 +531,7 @@ export async function POST(req: Request) {
       warnings,
       extractedJson,
       hardValidation: useHardValidation ? bestCandidate.validation : null,
+      fidelityReport,
       extractionAttempts: useHardValidation ? extractionAttempts : undefined,
       partialTaskReextract: taskNumbers.length ? taskNumbers : undefined,
       document: updatedDoc,

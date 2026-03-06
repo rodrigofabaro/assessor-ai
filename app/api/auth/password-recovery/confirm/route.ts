@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { hashPasswordRecoveryToken } from "@/lib/auth/passwordRecoveryToken";
+import {
+  buildAuthRateActor,
+  checkAuthRateLimit,
+  recordAuthRateEvent,
+} from "@/lib/security/authRateLimit";
 
 export const runtime = "nodejs";
+const CONFIRM_REQUESTS_PER_IP_PER_HOUR = Number(process.env.AUTH_RATE_LIMIT_RECOVERY_CONFIRM_IP || 20);
+const CONFIRM_RATE_WINDOW_MS = 60 * 60 * 1000;
 
 function toSafeString(value: unknown) {
   return String(value || "").trim();
@@ -78,6 +85,42 @@ export async function POST(req: Request) {
       );
     }
 
+    const requestedIp = pickClientIp(req);
+    const requestedUa = pickClientUserAgent(req);
+    const ipActor = buildAuthRateActor("auth-recovery-confirm-ip", requestedIp);
+
+    if (ipActor) {
+      const gate = await checkAuthRateLimit({
+        eventType: "AUTH_PASSWORD_RECOVERY_CONFIRM_ATTEMPT_IP",
+        actor: ipActor,
+        limit: CONFIRM_REQUESTS_PER_IP_PER_HOUR,
+        windowMs: CONFIRM_RATE_WINDOW_MS,
+      });
+      if (gate.limited) {
+        recordAuthRateEvent({
+          eventType: "AUTH_PASSWORD_RECOVERY_CONFIRM_RATE_LIMITED_IP",
+          actor: ipActor,
+          windowMs: CONFIRM_RATE_WINDOW_MS,
+          route: "/api/auth/password-recovery/confirm",
+          status: 429,
+          details: { count: gate.count, limit: CONFIRM_REQUESTS_PER_IP_PER_HOUR },
+        });
+        const res = NextResponse.json(
+          { error: "Too many recovery attempts. Request a new link and try later.", code: "AUTH_RATE_LIMITED" },
+          { status: 429 }
+        );
+        res.headers.set("Retry-After", String(gate.retryAfterSeconds || 60));
+        return res;
+      }
+      recordAuthRateEvent({
+        eventType: "AUTH_PASSWORD_RECOVERY_CONFIRM_ATTEMPT_IP",
+        actor: ipActor,
+        windowMs: CONFIRM_RATE_WINDOW_MS,
+        route: "/api/auth/password-recovery/confirm",
+        status: 200,
+      });
+    }
+
     let tokenHash = "";
     try {
       tokenHash = hashPasswordRecoveryToken(token);
@@ -105,9 +148,6 @@ export async function POST(req: Request) {
     }
 
     const now = new Date();
-    const requestedIp = pickClientIp(req);
-    const requestedUa = pickClientUserAgent(req);
-
     try {
       const tokenRow = await prisma.passwordResetToken.findFirst({
         where: {
@@ -120,6 +160,16 @@ export async function POST(req: Request) {
       });
 
       if (!tokenRow?.id || !tokenRow.userId) {
+        if (ipActor) {
+          recordAuthRateEvent({
+            eventType: "AUTH_PASSWORD_RECOVERY_CONFIRM_FAILED_IP",
+            actor: ipActor,
+            windowMs: CONFIRM_RATE_WINDOW_MS,
+            route: "/api/auth/password-recovery/confirm",
+            status: 400,
+            details: { reason: "invalid_or_expired" },
+          });
+        }
         return NextResponse.json(
           { error: "Invalid or expired recovery link.", code: "AUTH_PASSWORD_RECOVERY_INVALID_OR_EXPIRED" },
           { status: 400 }
@@ -188,6 +238,16 @@ export async function POST(req: Request) {
         );
       }
       if (String((error as { message?: string })?.message || "").includes("AUTH_PASSWORD_RECOVERY_ALREADY_USED")) {
+        if (ipActor) {
+          recordAuthRateEvent({
+            eventType: "AUTH_PASSWORD_RECOVERY_CONFIRM_FAILED_IP",
+            actor: ipActor,
+            windowMs: CONFIRM_RATE_WINDOW_MS,
+            route: "/api/auth/password-recovery/confirm",
+            status: 400,
+            details: { reason: "already_used" },
+          });
+        }
         return NextResponse.json(
           { error: "Invalid or expired recovery link.", code: "AUTH_PASSWORD_RECOVERY_INVALID_OR_EXPIRED" },
           { status: 400 }
@@ -197,6 +257,14 @@ export async function POST(req: Request) {
     }
 
     const res = NextResponse.json({ ok: true });
+    if (ipActor) {
+      recordAuthRateEvent({
+        eventType: "AUTH_PASSWORD_RECOVERY_CONFIRM_SUCCESS_IP",
+        actor: ipActor,
+        route: "/api/auth/password-recovery/confirm",
+        status: 200,
+      });
+    }
     res.cookies.set({
       name: "assessor_session",
       value: "",

@@ -42,6 +42,7 @@ Status labels:
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
 - Extraction direction (2026-03-05): add fidelity gate with source provenance, evidence-constrained fallback, and lock blocking for unresolved mismatches (see `docs/operations/brief-extraction-hardening-log-2026-03-05.md`).
 - Password recovery delivery progress (2026-03-05): tokenized recovery flow active (`POST /api/auth/password-recovery` + `POST /api/auth/password-recovery/confirm` + `/auth/reset`), provider enabled, and release-gate contract check active.
+- Deployment hardening progress (2026-03-06): `/api/health/readiness` is live, login/recovery abuse rate limits are wired, and brief extraction now persists fidelity report + provenance with lock-time blocker enforcement.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
 - Email architecture direction (2026-03-05): separate transactional sender, support inbox routing, and operational alert inbox to avoid mixed responsibilities in one mailbox.
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.

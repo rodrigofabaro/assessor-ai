@@ -50,6 +50,7 @@ function main() {
     { id: "export_pack_validation", args: ["run", "test:export-pack-validation"] },
     { id: "storage_deployment_contract", args: ["run", "ops:storage-contract"] },
     { id: "password_recovery_email_contract", args: ["run", "ops:password-recovery-contract"] },
+    { id: "runtime_readiness_contract", args: ["run", "ops:readiness-contract"] },
     { id: "deploy_smoke", args: ["run", "ops:deploy-smoke"] },
   ];
 

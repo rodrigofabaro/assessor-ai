@@ -35,6 +35,10 @@ Use this doc when the instruction is: "continue the roadmap".
    - P1: add role-specific post-login dashboards (Assessor, `ORG_ADMIN`, `SUPER_ADMIN`)
    - P1: feedback quality policy hardening (VASCR alignment + realistic annotations + concise summative feedback)
    - P1: formalize email routing architecture (transactional vs support vs alert channels)
+6. Progress update (2026-03-06):
+   - `/api/health/readiness` implemented (DB, storage, email, OpenAI checks with required/optional gating)
+   - auth abuse limits implemented for login and password recovery flows (IP + identity scoped)
+   - brief extraction now persists a fidelity report + task provenance and lock blocks unresolved fidelity blockers
 
 ## Execution lanes
 
@@ -57,7 +61,7 @@ Use this doc when the instruction is: "continue the roadmap".
   - retry path now strips optional relation/meta fields for partially migrated schemas
   - explicit schema-incompatible error raised when submission create remains incompatible
 - Deploy-smoke evidence now captures API `requestId` and server `details` payload (when present) for failed steps.
-- Remaining action: set durable storage root per runtime, ship readiness endpoint, and capture fresh production deploy-smoke PASS evidence.
+- Remaining action: set durable storage root per runtime and capture fresh production deploy-smoke PASS evidence.
 
 2. P0 M8.2 brief extraction fidelity gate (today)
 - add provenance metadata in extraction output for displayed blocks (`page`, source snippet, and reference anchor where available)
@@ -72,6 +76,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - block brief lock when unresolved fidelity blockers exist
 - add UniCourse template-aware extraction profile (layout-aware first pass) while keeping generic fallback path
 - link implementation notes: `docs/operations/brief-extraction-hardening-log-2026-03-05.md`
+- Progress (2026-03-06): persisted fidelity report + per-task provenance are now produced on brief extraction, and lock quality gate blocks unresolved fidelity blockers.
 
 3. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)
@@ -90,7 +95,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Login screen now includes `Forgot password?` flow wired to recovery endpoint.
 - Added deploy gate contract command: `pnpm run ops:password-recovery-contract`.
 - Release gate now includes password-recovery email contract check.
-- Remaining action: configure production provider, set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement, and complete auth rate-limit wiring.
+- Remaining action: configure production provider and set `AUTH_REQUIRE_RECOVERY_EMAIL=true` for hard enforcement.
 
 4. P1 M9.1 email architecture hardening
 - split outbound channels by intent:
@@ -402,7 +407,7 @@ Still missing (highest impact first):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, password-recovery email contract, deploy smoke)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, password-recovery email contract, readiness contract, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

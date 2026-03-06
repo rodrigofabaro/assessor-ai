@@ -1,6 +1,6 @@
 # Admin Briefs (`/admin/briefs`, `/admin/briefs/[briefId]`)
 
-Last updated: 2026-03-02
+Last updated: 2026-03-06
 
 ## Purpose
 
@@ -40,6 +40,21 @@ Retry behavior:
 - band distribution (P/M/D)
 - extraction text length reliability
 - mapping blockers/warnings
+- fidelity blockers/warnings from source-vs-display checks
+
+## Fidelity Report (Lock Guard)
+
+Each brief extraction now persists a fidelity report that is reused by lock quality gates.
+
+It checks:
+
+- source Task `N` coverage vs extracted Task `N`
+- per-task provenance availability (page list)
+- low source overlap signals
+- visual cue references without image tokens
+- end-matter contamination in task content
+
+Lock is blocked when fidelity blockers remain unresolved.
 
 ## Brief vs Spec Audit (New Lock Guard)
 
