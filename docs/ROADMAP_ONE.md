@@ -308,6 +308,7 @@ Done when:
 2. `/admin/iv-ad` can generate editable AI draft
    - Status (2026-03-03): in progress. Added `Run AI IV Review` action in `/admin/iv-ad`, editable draft sections backed by `/api/iv-ad/review-draft`, `reviewDraftJson` handoff into final DOCX generation, mandatory approval gate before generation, and approval/audit metadata visibility in IV-AD history.
 3. Manual completion still works when AI draft fails
+   - Status (2026-03-06): fallback contract coverage added (`scripts/iv-ad-manual-fallback-contract.test.js`) to ensure `/api/admin/iv-ad/generate` preserves heuristic narrative path and `/admin/iv-ad` keeps manual generation UX available when AI review is unavailable.
 
 ### Queue B.1 - IV-AD Phase 6 start
 

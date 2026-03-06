@@ -13,6 +13,7 @@ const tests = [
   "scripts/brief-readiness.test.js",
   "scripts/brief-scenario-warning-policy.test.js",
   "scripts/iv-ad-review-draft-schema.test.js",
+  "scripts/iv-ad-manual-fallback-contract.test.js",
   "scripts/export-pack-validation.test.js",
   "scripts/auth-scaffold-contract.test.js",
   "scripts/password-recovery-contract.test.js",

@@ -288,6 +288,7 @@ Current update (2026-03-03):
 - Draft-to-generation handoff added: `/api/admin/iv-ad/generate` now accepts `reviewDraftJson` and uses edited comments/actions when provided.
 - Approval gate added: generation requires explicit reviewer approval + approver name and persists review audit snapshot in `IvAdDocument`.
 - History visibility added: `/admin/iv-ad` history table now surfaces approval metadata and review-draft audit summary.
+- Status (2026-03-06): fallback behavior is now regression-locked via `scripts/iv-ad-manual-fallback-contract.test.js` (heuristic narrative path + manual generation UX checks).
 
 4. M8 Phase A groundwork (deployment readiness)
 - Finalize environment variable contract and secrets checklist.

@@ -57,6 +57,9 @@ Last updated: 2026-03-06
   - `/api/submissions/[submissionId]/grade` now applies this policy after bullet de-duplication and records policy adjustments in system notes
   - added regression coverage: `scripts/feedback-annotation-policy.test.js` (wired into `test:regression-pack`)
   - added deploy gate contract command `pnpm run ops:feedback-quality-contract` and wired it into `ops:release-gate`
+- IV-AD manual fallback regression lock:
+  - added `scripts/iv-ad-manual-fallback-contract.test.js` (wired into `test:regression-pack`)
+  - locks non-blocking heuristic fallback path when AI review is unavailable and ensures `/admin/iv-ad` keeps manual generation UX available
 
 ### Latest additions (2026-03-05)
 
