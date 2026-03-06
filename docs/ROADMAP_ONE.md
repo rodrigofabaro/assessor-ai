@@ -209,6 +209,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - require AI-assisted annotations to read like realistic assessor annotations.
 - keep summative feedback concise, holistic, and precise.
 - add feedback QA checks in release validation so verbose/generic output is flagged before release.
+- Progress (2026-03-06): grading now applies an annotation realism policy after bullet generation (generic low-signal notes are removed, assessor-style fallback notes are injected when needed) and regression pack now includes `scripts/feedback-annotation-policy.test.js`.
 
 ### Next (immediately after current queue)
 

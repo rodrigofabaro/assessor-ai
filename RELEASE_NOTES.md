@@ -52,6 +52,10 @@ Last updated: 2026-03-06
   - missing-scenario warnings now trigger only when a task explicitly references scenario/context language (not globally across all tasks)
   - reduced false positives where later tasks legitimately have no scenario text
   - added regression coverage: `scripts/brief-scenario-warning-policy.test.js` (wired into `test:regression-pack`)
+- Feedback quality hardening (VASCR continuation):
+  - added annotation realism policy (`lib/grading/feedbackAnnotationPolicy.ts`) to remove generic low-signal bullets and inject assessor-style fallback notes when needed
+  - `/api/submissions/[submissionId]/grade` now applies this policy after bullet de-duplication and records policy adjustments in system notes
+  - added regression coverage: `scripts/feedback-annotation-policy.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 

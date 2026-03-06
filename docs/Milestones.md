@@ -59,6 +59,7 @@ Status labels:
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
+- Feedback quality progress (2026-03-06): annotation realism policy now removes generic low-signal bullets and injects assessor-style fallback notes when needed; regression pack coverage added.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
 - Email architecture direction (2026-03-05): separate transactional sender, support inbox routing, and operational alert inbox to avoid mixed responsibilities in one mailbox.
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.

@@ -21,6 +21,7 @@ import { resolvePageNoteBannedKeywords, type PageNoteGenerationContext } from "@
 import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
 import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
+import { enforceFeedbackAnnotationPolicy } from "@/lib/grading/feedbackAnnotationPolicy";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -3483,17 +3484,28 @@ export async function POST(
       readableEvidenceLikely,
       noteToneProfile,
     });
-    const feedbackBullets = dedupeFeedbackBullets({
+    const dedupedFeedbackBullets = dedupeFeedbackBullets({
       bullets: [...baseFeedbackBullets, ...higherGradeGapBullets, ...criterionSpecificFeedbackBullets]
         .map((line) => sanitizeStudentFeedbackLine(line))
         .filter(Boolean),
       summary: feedbackSummary,
       max: Math.max(1, cfg.maxFeedbackBullets),
     });
+    const annotationPolicy = enforceFeedbackAnnotationPolicy({
+      bullets: dedupedFeedbackBullets,
+      criterionChecks: decision.criterionChecks as any,
+      maxBullets: Math.max(1, cfg.maxFeedbackBullets),
+    });
+    const feedbackBullets = annotationPolicy.bullets;
     const systemNotes: string[] = [];
     if (vascrSummary.changed) {
       systemNotes.push(
         `VASCR summary policy applied (${vascrSummary.adjustments.length} adjustment${vascrSummary.adjustments.length === 1 ? "" : "s"}).`
+      );
+    }
+    if (annotationPolicy.changed) {
+      systemNotes.push(
+        `Feedback annotation policy applied (${annotationPolicy.adjustments.length} adjustment${annotationPolicy.adjustments.length === 1 ? "" : "s"}).`
       );
     }
     if (carriedOverrideSummary && carriedOverrideSummary.appliedCount > 0) {
