@@ -1,6 +1,6 @@
 # Assessor-AI Unified Roadmap
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ## Purpose
 
@@ -45,6 +45,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - VASCR summary policy now hardens feedback output (concise, evidence-linked, actionable)
    - landing-page contact requests now persist in DB (`ContactLead`) and surface in `SUPER_ADMIN` developer console intake view
    - outbound email telemetry now persists in DB (`OutboundEmailEvent`) with `SUPER_ADMIN` delivery-health dashboard cards (24h sent/failed/skipped + channel rollup)
+   - provider lifecycle webhook ingestion is now live (`POST /api/webhooks/resend`) with signature verification and `EmailProviderEvent` persistence
 
 ## Execution lanes
 
@@ -241,7 +242,8 @@ Use this doc when the instruction is: "continue the roadmap".
 - add delivery health dashboard cards (sent/failed/bounced) using provider telemetry
 - Progress (2026-03-06): landing-page lead persistence delivered (`ContactLead`) and `/admin/developer` now includes a lead intake panel with 24h sent/failed/pending summary.
 - Progress (2026-03-06): outbound email events now persist (`OutboundEmailEvent`) and `/admin/developer` includes delivery-health cards plus channel/event tables.
-- Remaining action: provider webhook ingestion for bounce/open telemetry.
+- Progress (2026-03-06): provider webhook ingestion delivered (`POST /api/webhooks/resend`) with lifecycle rollups (delivered/bounced/opened/clicked/complained) in developer dashboard.
+- Remaining action: configure Resend webhook endpoint in each environment and capture staging evidence.
 
 7. Pre-launch development-mode UX profile
 - keep architecture complete (`organizations`, `users`, `SUPER_ADMIN`, scoped settings/secrets) to avoid future rework

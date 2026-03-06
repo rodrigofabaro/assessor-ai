@@ -29,4 +29,10 @@ This route is restricted to `SUPER_ADMIN`.
 2. Default super-admin scope is `assessor-ai` organization.
 3. Landing-page contacts are persisted in DB (`ContactLead`); email is a notification channel, not the source of record.
 4. Outbound email telemetry is persisted in DB (`OutboundEmailEvent`) for super-admin operations visibility.
-5. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.
+5. Provider lifecycle webhooks are persisted in DB (`EmailProviderEvent`) and shown in delivery cards/table when `RESEND_WEBHOOK_SECRET` is configured.
+6. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.
+
+## Related runbook
+
+1. Resend webhook lifecycle setup:
+   - `docs/operations/resend-webhook-setup.md`

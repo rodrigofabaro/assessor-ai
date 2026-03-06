@@ -594,6 +594,24 @@ model OutboundEmailEvent {
   @@index([sent, ts])
 }
 
+model EmailProviderEvent {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  provider        String
+  providerEventId String
+  eventType       String
+  messageId       String?
+  recipient       String?
+  recipientDomain String?
+  happenedAt      DateTime?
+  payload         Json?
+
+  @@unique([provider, providerEventId])
+  @@index([createdAt])
+  @@index([provider, eventType, createdAt])
+  @@index([messageId, createdAt])
+}
+
 model OpsRuntimeEvent {
   id        String   @id @default(cuid())
   ts        DateTime @default(now())

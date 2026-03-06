@@ -1,6 +1,6 @@
 # Operations Docs Index
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ## Active operations docs
 
@@ -36,6 +36,8 @@ Last updated: 2026-03-05
    - `docs/operations/vercel-bulletproof-deploy.md`
 16. Email alert trigger matrix:
    - `docs/operations/email-alert-trigger-matrix.md`
+17. Resend webhook lifecycle telemetry setup:
+   - `docs/operations/resend-webhook-setup.md`
 
 ## Archived operations snapshots
 

@@ -129,6 +129,23 @@ function collectIssues(): EnvIssue[] {
       });
     }
   }
+  if (inviteProvider === "resend") {
+    const webhookSecret = String(process.env.RESEND_WEBHOOK_SECRET || "").trim();
+    if (!webhookSecret) {
+      issues.push({
+        code: "ENV_RESEND_WEBHOOK_SECRET_MISSING",
+        detail: "Set RESEND_WEBHOOK_SECRET and configure webhook URL /api/webhooks/resend to capture delivery lifecycle events.",
+        hardFail: false,
+      });
+    }
+    if (isTruthy(process.env.RESEND_WEBHOOK_ALLOW_UNSIGNED)) {
+      issues.push({
+        code: "ENV_RESEND_WEBHOOK_UNSIGNED_ENABLED",
+        detail: "RESEND_WEBHOOK_ALLOW_UNSIGNED is enabled. Use only for local testing.",
+        hardFail: false,
+      });
+    }
+  }
   return issues;
 }
 

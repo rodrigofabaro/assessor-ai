@@ -50,6 +50,15 @@ type EmailDeliverySummary = {
   skipped24h: number;
 };
 
+type EmailLifecycleSummary = {
+  total24h: number;
+  delivered24h: number;
+  bounced24h: number;
+  opened24h: number;
+  clicked24h: number;
+  complained24h: number;
+};
+
 type EmailDeliveryChannel = {
   channel: string;
   total: number;
@@ -69,6 +78,15 @@ type EmailDeliveryEvent = {
   subject?: string | null;
   providerMessageId?: string | null;
   error?: string | null;
+};
+
+type EmailProviderEvent = {
+  id: string;
+  ts: string;
+  eventType: string;
+  lifecycle: string;
+  messageId?: string | null;
+  recipientDomain?: string | null;
 };
 
 function prettyJson(value: unknown) {
@@ -114,6 +132,15 @@ const EMPTY_EMAIL_SUMMARY: EmailDeliverySummary = {
   skipped24h: 0,
 };
 
+const EMPTY_EMAIL_LIFECYCLE: EmailLifecycleSummary = {
+  total24h: 0,
+  delivered24h: 0,
+  bounced24h: 0,
+  opened24h: 0,
+  clicked24h: 0,
+  complained24h: 0,
+};
+
 export default function DeveloperPageClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -136,8 +163,10 @@ export default function DeveloperPageClient() {
   const [contactWarning, setContactWarning] = useState("");
   const [loadingContactLeads, setLoadingContactLeads] = useState(false);
   const [emailSummary, setEmailSummary] = useState<EmailDeliverySummary>(EMPTY_EMAIL_SUMMARY);
+  const [emailLifecycle, setEmailLifecycle] = useState<EmailLifecycleSummary>(EMPTY_EMAIL_LIFECYCLE);
   const [emailChannels, setEmailChannels] = useState<EmailDeliveryChannel[]>([]);
   const [emailEvents, setEmailEvents] = useState<EmailDeliveryEvent[]>([]);
+  const [emailProviderEvents, setEmailProviderEvents] = useState<EmailProviderEvent[]>([]);
   const [emailWarning, setEmailWarning] = useState("");
   const [loadingEmailDelivery, setLoadingEmailDelivery] = useState(false);
 
@@ -248,8 +277,18 @@ export default function DeveloperPageClient() {
         failed24h: Number(summary.failed24h || 0),
         skipped24h: Number(summary.skipped24h || 0),
       });
+      const lifecycle = (json?.lifecycle || {}) as Partial<EmailLifecycleSummary>;
+      setEmailLifecycle({
+        total24h: Number(lifecycle.total24h || 0),
+        delivered24h: Number(lifecycle.delivered24h || 0),
+        bounced24h: Number(lifecycle.bounced24h || 0),
+        opened24h: Number(lifecycle.opened24h || 0),
+        clicked24h: Number(lifecycle.clicked24h || 0),
+        complained24h: Number(lifecycle.complained24h || 0),
+      });
       setEmailChannels(Array.isArray(json?.channels) ? (json.channels as EmailDeliveryChannel[]) : []);
       setEmailEvents(Array.isArray(json?.events) ? (json.events as EmailDeliveryEvent[]) : []);
+      setEmailProviderEvents(Array.isArray(json?.providerEvents) ? (json.providerEvents as EmailProviderEvent[]) : []);
       setEmailWarning(String(json?.warning || "").trim());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load email delivery telemetry.");
@@ -651,7 +690,7 @@ export default function DeveloperPageClient() {
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Email delivery health</h2>
             <p className="mt-1 text-xs text-slate-600">
-              Last 24 hours across invite, recovery, contact, alert, and test channels.
+              Last 24 hours across invite/recovery/contact/alerts plus provider lifecycle telemetry.
             </p>
           </div>
           <button
@@ -680,6 +719,33 @@ export default function DeveloperPageClient() {
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
             <div className="text-[11px] uppercase tracking-wide text-amber-700">Skipped 24h</div>
             <div className="mt-0.5 text-base font-semibold text-amber-900">{emailSummary.skipped24h}</div>
+          </div>
+        </div>
+
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-slate-500">Lifecycle 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-slate-900">{emailLifecycle.total24h}</div>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-emerald-700">Delivered</div>
+            <div className="mt-0.5 text-base font-semibold text-emerald-900">{emailLifecycle.delivered24h}</div>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-rose-700">Bounced</div>
+            <div className="mt-0.5 text-base font-semibold text-rose-900">{emailLifecycle.bounced24h}</div>
+          </div>
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-cyan-700">Opened</div>
+            <div className="mt-0.5 text-base font-semibold text-cyan-900">{emailLifecycle.opened24h}</div>
+          </div>
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-indigo-700">Clicked</div>
+            <div className="mt-0.5 text-base font-semibold text-indigo-900">{emailLifecycle.clicked24h}</div>
+          </div>
+          <div className="rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-fuchsia-700">Complained</div>
+            <div className="mt-0.5 text-base font-semibold text-fuchsia-900">{emailLifecycle.complained24h}</div>
           </div>
         </div>
 
@@ -754,6 +820,38 @@ export default function DeveloperPageClient() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-xs">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold">Provider event time</th>
+                <th className="px-3 py-2 text-left font-semibold">Event type</th>
+                <th className="px-3 py-2 text-left font-semibold">Lifecycle</th>
+                <th className="px-3 py-2 text-left font-semibold">Message id</th>
+                <th className="px-3 py-2 text-left font-semibold">Domain</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+              {emailProviderEvents.map((row) => (
+                <tr key={row.id}>
+                  <td className="px-3 py-2 align-top">{formatDateTime(row.ts)}</td>
+                  <td className="px-3 py-2 align-top">{row.eventType}</td>
+                  <td className="px-3 py-2 align-top">{row.lifecycle}</td>
+                  <td className="px-3 py-2 align-top">{clipText(String(row.messageId || "—"), 28)}</td>
+                  <td className="px-3 py-2 align-top">{row.recipientDomain || "—"}</td>
+                </tr>
+              ))}
+              {!emailProviderEvents.length ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                    No provider lifecycle events captured yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </section>
 

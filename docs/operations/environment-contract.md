@@ -1,6 +1,6 @@
 # Environment Contract
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 This is the canonical environment contract for deployment and runtime startup validation.
 
@@ -110,6 +110,16 @@ Primary login mode:
 - `AUTH_EMAIL_FROM`
   - required when `AUTH_INVITE_EMAIL_PROVIDER=resend`
   - verified sender email address in Resend (e.g. `Assessor AI <no-reply@assessor-ai.co.uk>`)
+
+- `RESEND_WEBHOOK_SECRET`
+  - recommended when `AUTH_INVITE_EMAIL_PROVIDER=resend`
+  - Svix signing secret used to verify Resend webhook signatures
+  - enables lifecycle telemetry ingestion route: `POST /api/webhooks/resend`
+
+- `RESEND_WEBHOOK_ALLOW_UNSIGNED`
+  - default: `false`
+  - local/dev fallback to accept unsigned webhook payloads when signature secret is not set
+  - do not enable in production
 
 - `CONTACT_EMAIL_FROM`
   - optional
