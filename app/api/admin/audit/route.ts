@@ -27,87 +27,122 @@ function clampTake(input: string | null) {
   return Math.max(20, Math.min(300, Math.floor(n)));
 }
 
+function dynamicQueryTake(take: number, floor: number, ceil: number, factor = 2) {
+  const scaled = Math.round(take * factor);
+  return Math.max(floor, Math.min(ceil, scaled));
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = String(searchParams.get("q") || "").trim();
   const typeFilter = String(searchParams.get("type") || "ALL").trim().toUpperCase();
   const take = clampTake(searchParams.get("take"));
+  const highTake = dynamicQueryTake(take, 60, 260, 2.2);
+  const mediumTake = dynamicQueryTake(take, 50, 180, 1.4);
+
+  const wantsLinkEvents =
+    typeFilter === "ALL" || typeFilter === "STUDENT_LINKED" || typeFilter === "STUDENT_UNLINKED";
+  const wantsExtractionEvents = typeFilter === "ALL" || typeFilter.startsWith("EXTRACTION_");
+  const wantsGradeEvents = typeFilter === "ALL" || typeFilter === "GRADE_DONE" || typeFilter === "FEEDBACK_EDITED";
+  const wantsReferenceLocked = typeFilter === "ALL" || typeFilter === "REFERENCE_LOCKED";
+  const wantsSubmissionFailed = typeFilter === "ALL" || typeFilter === "SUBMISSION_FAILED";
+  const wantsReferenceFailed = typeFilter === "ALL" || typeFilter === "REFERENCE_FAILED";
+
+  const submissionSummarySelect = {
+    id: true,
+    filename: true,
+    student: { select: { id: true, fullName: true, email: true } },
+    assignment: { select: { id: true, unitCode: true, assignmentRef: true, title: true } },
+  } as const;
 
   const [linkEvents, extractionRuns, assessments, lockedReferences, failedSubmissions, failedReferences] =
     await Promise.all([
-      prisma.submissionAuditEvent.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 250,
-        include: {
-          submission: {
+      wantsLinkEvents
+        ? prisma.submissionAuditEvent.findMany({
+            orderBy: { createdAt: "desc" },
+            take: highTake,
+            select: {
+              id: true,
+              createdAt: true,
+              type: true,
+              actor: true,
+              submissionId: true,
+              meta: true,
+              submission: { select: submissionSummarySelect },
+            },
+          })
+        : Promise.resolve([]),
+      wantsExtractionEvents
+        ? prisma.submissionExtractionRun.findMany({
+            orderBy: { startedAt: "desc" },
+            take: highTake,
+            select: {
+              id: true,
+              submissionId: true,
+              status: true,
+              overallConfidence: true,
+              isScanned: true,
+              warnings: true,
+              startedAt: true,
+              finishedAt: true,
+              submission: { select: submissionSummarySelect },
+            },
+          })
+        : Promise.resolve([]),
+      wantsGradeEvents
+        ? prisma.assessment.findMany({
+            orderBy: { createdAt: "desc" },
+            take: highTake,
+            select: {
+              id: true,
+              submissionId: true,
+              overallGrade: true,
+              feedbackText: true,
+              annotatedPdfPath: true,
+              resultJson: true,
+              createdAt: true,
+              updatedAt: true,
+              submission: { select: submissionSummarySelect },
+            },
+          })
+        : Promise.resolve([]),
+      wantsReferenceLocked
+        ? prisma.referenceDocument.findMany({
+            where: { lockedAt: { not: null } },
+            orderBy: { lockedAt: "desc" },
+            take: mediumTake,
+            select: {
+              id: true,
+              type: true,
+              title: true,
+              version: true,
+              lockedAt: true,
+              lockedBy: true,
+            },
+          })
+        : Promise.resolve([]),
+      wantsSubmissionFailed
+        ? prisma.submission.findMany({
+            where: { status: "FAILED" },
+            orderBy: { updatedAt: "desc" },
+            take: mediumTake,
             select: {
               id: true,
               filename: true,
+              updatedAt: true,
               student: { select: { id: true, fullName: true, email: true } },
               assignment: { select: { id: true, unitCode: true, assignmentRef: true, title: true } },
             },
-          },
-        },
-      }),
-      prisma.submissionExtractionRun.findMany({
-        orderBy: { startedAt: "desc" },
-        take: 250,
-        include: {
-          submission: {
-            select: {
-              id: true,
-              filename: true,
-              student: { select: { id: true, fullName: true, email: true } },
-              assignment: { select: { id: true, unitCode: true, assignmentRef: true, title: true } },
-            },
-          },
-        },
-      }),
-      prisma.assessment.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 250,
-        include: {
-          submission: {
-            select: {
-              id: true,
-              filename: true,
-              student: { select: { id: true, fullName: true, email: true } },
-              assignment: { select: { id: true, unitCode: true, assignmentRef: true, title: true } },
-            },
-          },
-        },
-      }),
-      prisma.referenceDocument.findMany({
-        where: { lockedAt: { not: null } },
-        orderBy: { lockedAt: "desc" },
-        take: 120,
-        select: {
-          id: true,
-          type: true,
-          title: true,
-          version: true,
-          lockedAt: true,
-          lockedBy: true,
-        },
-      }),
-      prisma.submission.findMany({
-        where: { status: "FAILED" },
-        orderBy: { updatedAt: "desc" },
-        take: 120,
-        select: {
-          id: true,
-          filename: true,
-          updatedAt: true,
-          student: { select: { id: true, fullName: true, email: true } },
-          assignment: { select: { id: true, unitCode: true, assignmentRef: true, title: true } },
-        },
-      }),
-      prisma.referenceDocument.findMany({
-        where: { status: "FAILED" },
-        orderBy: { updatedAt: "desc" },
-        take: 120,
-        select: { id: true, type: true, title: true, updatedAt: true },
-      }),
+          })
+        : Promise.resolve([]),
+      wantsReferenceFailed
+        ? prisma.referenceDocument.findMany({
+            where: { status: "FAILED" },
+            orderBy: { updatedAt: "desc" },
+            take: mediumTake,
+            select: { id: true, type: true, title: true, updatedAt: true },
+          })
+        : Promise.resolve([]),
     ]);
 
   const events: AuditEventDto[] = [];

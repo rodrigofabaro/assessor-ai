@@ -1,6 +1,6 @@
 # `/admin/audit` and `/admin/users` Help
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 
 ## `/admin/audit`
@@ -14,6 +14,7 @@ Use `/admin/qa` for trend analysis and reporting; use `/admin/audit` for event-l
 - Inspect event metadata
 - Open linked submission/reference records
 - Review `QA Preview to Commit Integrity` links for batch grading defensibility
+- Use type filters to narrow query scope quickly on large datasets
 
 ### Notable events
 - Extraction transitions
@@ -21,6 +22,10 @@ Use `/admin/qa` for trend analysis and reporting; use `/admin/audit` for event-l
 - Feedback edited (`FEEDBACK_EDITED`)
 - Reference lock/failure activity
 - Batch grading runs (`BATCH_GRADE_RUN`) with linked preview context for QA lane commits
+
+### Performance notes
+- The API uses adaptive query budgets based on requested `take` and selected event type.
+- When a specific event type is selected, unrelated event queries are skipped to keep page load responsive.
 
 ### QA integrity panel
 - Shows recent commit batch runs that claim a linked dry-run preview.

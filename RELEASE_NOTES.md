@@ -40,6 +40,10 @@ Last updated: 2026-03-06
   - added `GET /api/reference-documents/[documentId]` to hydrate full extracted JSON only for the currently selected document
   - review actions now show/obey a hydration state while full preview payload is loading
   - added regression contract test: `scripts/reference-inbox-projection-contract.test.js` (wired into `test:regression-pack`)
+- Admin audit API query-budget optimization (performance slice):
+  - `/api/admin/audit` now scales query take limits from requested `take` and skips unrelated event-source queries when `type` filter narrows scope
+  - reduced unnecessary relation-heavy reads for single-type audit investigations
+  - added regression contract test: `scripts/admin-audit-query-budget-contract.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 
