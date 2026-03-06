@@ -7,6 +7,7 @@ import {
   checkAuthRateLimit,
   recordAuthRateEvent,
 } from "@/lib/security/authRateLimit";
+import { maybeSendAuthAnomalyAlert } from "@/lib/security/authAnomalyAlert";
 import {
   buildPasswordRecoveryUrl,
   generatePasswordRecoveryToken,
@@ -172,6 +173,12 @@ export async function POST(req: Request) {
           status: 429,
           details: { count: gate.count, limit: REQUESTS_PER_IP_PER_HOUR },
         });
+        void maybeSendAuthAnomalyAlert({
+          kind: "PASSWORD_RECOVERY_RATE_LIMIT_IP",
+          actor: ipActor,
+          route: "/api/auth/password-recovery",
+          details: { count: gate.count, limit: REQUESTS_PER_IP_PER_HOUR },
+        });
         return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
       }
       recordAuthRateEvent({
@@ -197,6 +204,12 @@ export async function POST(req: Request) {
           windowMs: RECOVERY_RATE_WINDOW_MS,
           route: "/api/auth/password-recovery",
           status: 429,
+          details: { count: gate.count, limit: REQUESTS_PER_ACCOUNT_PER_HOUR },
+        });
+        void maybeSendAuthAnomalyAlert({
+          kind: "PASSWORD_RECOVERY_RATE_LIMIT_ACCOUNT",
+          actor: accountActor,
+          route: "/api/auth/password-recovery",
           details: { count: gate.count, limit: REQUESTS_PER_ACCOUNT_PER_HOUR },
         });
         return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });

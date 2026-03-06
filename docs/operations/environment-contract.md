@@ -165,3 +165,7 @@ Primary login mode:
 - `HEALTH_READINESS_PROBE_OPENAI`
   - default: `false`
   - when `true`, `/api/health/readiness` actively probes OpenAI connectivity (`/v1/models`) instead of key-presence-only checks
+
+- `AUTH_ANOMALY_ALERT_COOLDOWN_MINUTES`
+  - default: `30`
+  - cooldown window for repeated auth anomaly alert emails (per anomaly kind/actor/route key)

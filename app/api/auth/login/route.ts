@@ -11,6 +11,7 @@ import {
   pickClientIp,
   recordAuthRateEvent,
 } from "@/lib/security/authRateLimit";
+import { maybeSendAuthAnomalyAlert } from "@/lib/security/authAnomalyAlert";
 import {
   pickDefaultMembership,
   resolveSessionRole,
@@ -296,6 +297,12 @@ export async function POST(req: Request) {
         status: 429,
         details: { count: ipGate.count, limit: LOGIN_RATE_LIMIT_IP },
       });
+      void maybeSendAuthAnomalyAlert({
+        kind: "LOGIN_RATE_LIMIT_IP",
+        actor: ipActor,
+        route: "/api/auth/login",
+        details: { count: ipGate.count, limit: LOGIN_RATE_LIMIT_IP },
+      });
       const res = NextResponse.json(
         { error: "Too many login attempts. Please wait and try again.", code: "AUTH_RATE_LIMITED" },
         { status: 429 }
@@ -319,6 +326,12 @@ export async function POST(req: Request) {
         windowMs: LOGIN_RATE_WINDOW_MS,
         route: "/api/auth/login",
         status: 429,
+        details: { count: accountGate.count, limit: LOGIN_RATE_LIMIT_ACCOUNT },
+      });
+      void maybeSendAuthAnomalyAlert({
+        kind: "LOGIN_RATE_LIMIT_ACCOUNT",
+        actor: accountActor,
+        route: "/api/auth/login",
         details: { count: accountGate.count, limit: LOGIN_RATE_LIMIT_ACCOUNT },
       });
       const res = NextResponse.json(

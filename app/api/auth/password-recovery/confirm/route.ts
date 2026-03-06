@@ -7,6 +7,7 @@ import {
   checkAuthRateLimit,
   recordAuthRateEvent,
 } from "@/lib/security/authRateLimit";
+import { maybeSendAuthAnomalyAlert } from "@/lib/security/authAnomalyAlert";
 
 export const runtime = "nodejs";
 const CONFIRM_REQUESTS_PER_IP_PER_HOUR = Number(process.env.AUTH_RATE_LIMIT_RECOVERY_CONFIRM_IP || 20);
@@ -103,6 +104,12 @@ export async function POST(req: Request) {
           windowMs: CONFIRM_RATE_WINDOW_MS,
           route: "/api/auth/password-recovery/confirm",
           status: 429,
+          details: { count: gate.count, limit: CONFIRM_REQUESTS_PER_IP_PER_HOUR },
+        });
+        void maybeSendAuthAnomalyAlert({
+          kind: "PASSWORD_RECOVERY_CONFIRM_RATE_LIMIT_IP",
+          actor: ipActor,
+          route: "/api/auth/password-recovery/confirm",
           details: { count: gate.count, limit: CONFIRM_REQUESTS_PER_IP_PER_HOUR },
         });
         const res = NextResponse.json(

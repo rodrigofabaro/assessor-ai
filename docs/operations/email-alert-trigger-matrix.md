@@ -1,6 +1,6 @@
 # Email Alert Trigger Matrix
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 Purpose:
 - Define which runtime failures should trigger operational alert emails.
@@ -36,7 +36,7 @@ Primary channel:
 5. Auth anomaly (repeated failed recovery/lockout threshold)
 - Trigger: rate-limit or repeated auth recovery failure threshold breach
 - Severity: P2
-- Current status: pending
+- Current status: enabled
 
 ## Validation command
 

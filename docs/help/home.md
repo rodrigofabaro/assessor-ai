@@ -1,36 +1,38 @@
 # `/` Home Dashboard Help
 
-Last updated: 2026-03-03
+Last updated: 2026-03-06
 
 
 ## Purpose
 
-Landing page to enter the platform quickly and see high-level status.
+Post-login command center with role-specific focus:
+- `ASSESSOR`: grading flow and queue intervention
+- `ORG_ADMIN`: team operations and access governance
+- `SUPER_ADMIN`: platform governance and deployment readiness
 
 ## Main actions
 
-- `Go to Upload` -> start submission intake.
-- `Go to Admin` -> open the admin workspace.
-- Navigate cards:
-  - Upload
-  - Specs
-  - Briefs
-  - Students
-  - System status
-- Admin workspace shortcuts section links to:
-  - Overview, Audit, Briefs, Library, QA, Specs, Students, Users
-  - Settings is available via cog icon at the far-right of the admin section bar
-- Advanced tools (direct links): `Reference` and `Bindings`
+- Role-aware primary buttons are shown in the hero panel.
+- The stat card set changes by role scope (assessor vs org admin vs super admin).
+- `Operational pulse` and `Suggested next actions` are role-specific.
+- Role-aware action cards route to the correct work lane:
+  - Assessor lane: `Submissions`, `Specs`, `QA`, `Users`
+  - Org admin lane: `Submissions`, `Users`, `QA`, `Audit`
+  - Super admin lane: `Developer`, `Users`, `Specs`, `Audit`
 
 ## How to use
 
-1. Check status cards to confirm system readiness.
-2. If doing day-to-day marking, go to `Upload` or `Submissions`.
-3. If preparing references, go to `Admin` first.
+1. Confirm your role badge and organization scope in the hero section.
+2. Use role-specific primary actions to enter the right lane directly.
+3. Prioritize items in `Suggested next actions` before new intake.
 
 ## Typical issue
 
 - Counts look stale:
   - refresh browser page
   - confirm DB is reachable and app is running on expected environment
+
+- Role or scope looks wrong:
+  - sign out and sign in again to refresh session scope
+  - if issue persists, ask `ORG_ADMIN` or `SUPER_ADMIN` to verify membership/default org
 

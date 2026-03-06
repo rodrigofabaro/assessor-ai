@@ -7,6 +7,44 @@ import ContactEarlyAccessForm from "./ContactEarlyAccessForm";
 export const dynamic = "force-dynamic";
 
 type TinyIconName = "reference" | "submissions" | "audit" | "upload" | "qa" | "users" | "app" | "workflow";
+type DashboardAudience = "ASSESSOR" | "ORG_ADMIN" | "SUPER_ADMIN";
+
+type DashboardStat = {
+  label: string;
+  value: number;
+  hint: string;
+};
+
+type DashboardAction = {
+  icon: TinyIconName;
+  title: string;
+  desc: string;
+  href: string;
+  cta: string;
+};
+
+type DashboardProfile = {
+  badge: string;
+  summary: string;
+  primaryActions: Array<{ label: string; href: string; tone: "primary" | "secondary" }>;
+  suggestedActions: string[];
+  statCards: DashboardStat[];
+  actionCards: DashboardAction[];
+  pulseRows: Array<{ label: string; value: number; tone: "emerald" | "sky" | "amber" | "indigo" }>;
+};
+
+type DashboardStats = {
+  specs: number;
+  briefs: number;
+  submissions: number;
+  students: number;
+  lockedSpecs: number;
+  lockedBriefs: number;
+  queueBlocked: number;
+  organizations: number;
+  users: number;
+  teamUsers: number;
+};
 
 const landingWorkflow = [
   {
@@ -144,7 +182,29 @@ async function getSession() {
   return getRequestSession();
 }
 
-async function getDashboardStats() {
+function emptyDashboardStats(): DashboardStats {
+  return {
+    specs: 0,
+    briefs: 0,
+    submissions: 0,
+    students: 0,
+    lockedSpecs: 0,
+    lockedBriefs: 0,
+    queueBlocked: 0,
+    organizations: 0,
+    users: 0,
+    teamUsers: 0,
+  };
+}
+
+async function getDashboardStats(session: { orgId?: string | null; isSuperAdmin?: boolean } | null): Promise<DashboardStats> {
+  const orgId = String(session?.orgId || "").trim() || null;
+  const isSuperAdmin = !!session?.isSuperAdmin;
+  const docScope = !isSuperAdmin && orgId ? { organizationId: orgId } : {};
+  const submissionScope = !isSuperAdmin && orgId ? { organizationId: orgId } : {};
+  const studentScope = !isSuperAdmin && orgId ? { organizationId: orgId } : {};
+  const userScope = !isSuperAdmin && orgId ? { organizationId: orgId } : {};
+
   try {
     const [
       specs,
@@ -154,27 +214,230 @@ async function getDashboardStats() {
       lockedSpecs,
       lockedBriefs,
       queueBlocked,
+      organizations,
+      users,
+      teamUsers,
     ] = await Promise.all([
-      prisma.referenceDocument.count({ where: { type: "SPEC" } }),
-      prisma.referenceDocument.count({ where: { type: "BRIEF" } }),
-      prisma.submission.count(),
-      prisma.student.count(),
-      prisma.referenceDocument.count({ where: { type: "SPEC", status: "LOCKED" } }),
-      prisma.referenceDocument.count({ where: { type: "BRIEF", status: "LOCKED" } }),
-      prisma.submission.count({ where: { OR: [{ status: "FAILED" }, { status: "NEEDS_OCR" }] } }),
+      prisma.referenceDocument.count({ where: { type: "SPEC", ...docScope } }),
+      prisma.referenceDocument.count({ where: { type: "BRIEF", ...docScope } }),
+      prisma.submission.count({ where: submissionScope }),
+      prisma.student.count({ where: studentScope }),
+      prisma.referenceDocument.count({ where: { type: "SPEC", status: "LOCKED", ...docScope } }),
+      prisma.referenceDocument.count({ where: { type: "BRIEF", status: "LOCKED", ...docScope } }),
+      prisma.submission.count({ where: { OR: [{ status: "FAILED" }, { status: "NEEDS_OCR" }], ...submissionScope } }),
+      isSuperAdmin ? prisma.organization.count({ where: { isActive: true } }) : Promise.resolve(0),
+      prisma.appUser.count({ where: userScope }),
+      orgId ? prisma.appUser.count({ where: { organizationId: orgId, isActive: true } }) : Promise.resolve(0),
     ]);
-    return { specs, briefs, submissions, students, lockedSpecs, lockedBriefs, queueBlocked };
-  } catch {
     return {
-      specs: 0,
-      briefs: 0,
-      submissions: 0,
-      students: 0,
-      lockedSpecs: 0,
-      lockedBriefs: 0,
-      queueBlocked: 0,
+      specs,
+      briefs,
+      submissions,
+      students,
+      lockedSpecs,
+      lockedBriefs,
+      queueBlocked,
+      organizations,
+      users,
+      teamUsers,
+    };
+  } catch {
+    return emptyDashboardStats();
+  }
+}
+
+function resolveDashboardAudience(session: { role?: string | null; isSuperAdmin?: boolean } | null): DashboardAudience {
+  if (session?.isSuperAdmin) return "SUPER_ADMIN";
+  const role = String(session?.role || "").trim().toUpperCase();
+  if (role === "ADMIN") return "ORG_ADMIN";
+  return "ASSESSOR";
+}
+
+function buildDashboardProfile(audience: DashboardAudience, stats: DashboardStats): DashboardProfile {
+  if (audience === "SUPER_ADMIN") {
+    return {
+      badge: "Platform control tower",
+      summary:
+        "You are in super-admin mode. Prioritize environment health, organization governance, and reference integrity across tenants.",
+      primaryActions: [
+        { label: "Open developer", href: "/admin/developer", tone: "primary" },
+        { label: "Open users", href: "/admin/users", tone: "secondary" },
+        { label: "Open specs", href: "/admin/specs", tone: "secondary" },
+      ],
+      suggestedActions: [
+        "Run readiness checks before deployment (`/api/health/readiness`).",
+        "Review organization and role boundaries before onboarding new users.",
+        "Verify lock coverage for specs/briefs before grading expansion.",
+      ],
+      statCards: [
+        { label: "Organizations", value: stats.organizations, hint: "Active organizations in platform scope" },
+        { label: "Platform Users", value: stats.users, hint: "Users visible in current scope" },
+        { label: "Submissions", value: stats.submissions, hint: "Total operational workload" },
+        { label: "Queue Blocked", value: stats.queueBlocked, hint: "Submissions requiring intervention" },
+        { label: "Specs", value: stats.specs, hint: "Reference specs in scope" },
+        { label: "Briefs", value: stats.briefs, hint: "Brief records in scope" },
+      ],
+      actionCards: [
+        {
+          icon: "app",
+          title: "Developer control",
+          desc: "Manage platform-level settings, organizations, and diagnostics.",
+          href: "/admin/developer",
+          cta: "Open developer",
+        },
+        {
+          icon: "users",
+          title: "Platform users",
+          desc: "Control access, role boundaries, and login recovery behavior.",
+          href: "/admin/users",
+          cta: "Open users",
+        },
+        {
+          icon: "reference",
+          title: "Reference governance",
+          desc: "Oversee spec/brief extraction and lock quality for all lanes.",
+          href: "/admin/specs",
+          cta: "Open specs",
+        },
+        {
+          icon: "audit",
+          title: "Runtime audit",
+          desc: "Inspect platform runtime events and high-severity signals.",
+          href: "/admin/audit",
+          cta: "Open audit",
+        },
+      ],
+      pulseRows: [
+        { label: "Organizations", value: stats.organizations, tone: "indigo" },
+        { label: "Platform users", value: stats.users, tone: "sky" },
+        { label: "Submissions", value: stats.submissions, tone: "emerald" },
+        { label: "Queue blocked", value: stats.queueBlocked, tone: "amber" },
+      ],
     };
   }
+
+  if (audience === "ORG_ADMIN") {
+    return {
+      badge: "Organization operations",
+      summary:
+        "You are operating at organization-admin level. Keep team access clean, queue health stable, and reference coverage current.",
+      primaryActions: [
+        { label: "Open submissions", href: "/submissions", tone: "primary" },
+        { label: "Open users", href: "/admin/users", tone: "secondary" },
+        { label: "Open settings", href: "/admin/settings", tone: "secondary" },
+      ],
+      suggestedActions: [
+        "Resolve blocked queue items first to protect grading throughput.",
+        "Confirm assessors and IV roles are current for this organization.",
+        "Review brief/spec lock status before batch grading windows.",
+      ],
+      statCards: [
+        { label: "Team Users", value: stats.teamUsers, hint: "Active users linked to this organization" },
+        { label: "Students", value: stats.students, hint: "Student profiles in scope" },
+        { label: "Submissions", value: stats.submissions, hint: "Records in grading pipeline" },
+        { label: "Queue Blocked", value: stats.queueBlocked, hint: "Records requiring manual attention" },
+        { label: "Locked Specs", value: stats.lockedSpecs, hint: "Specs locked for grading reliability" },
+        { label: "Locked Briefs", value: stats.lockedBriefs, hint: "Briefs locked for assignment mapping" },
+      ],
+      actionCards: [
+        {
+          icon: "submissions",
+          title: "Daily operations",
+          desc: "Track intake, extraction, grading, and QA flow for your teams.",
+          href: "/submissions",
+          cta: "Open submissions",
+        },
+        {
+          icon: "users",
+          title: "Team access",
+          desc: "Manage user accounts, roles, and recovery support.",
+          href: "/admin/users",
+          cta: "Open users",
+        },
+        {
+          icon: "qa",
+          title: "Quality review",
+          desc: "Review flagged outputs and moderation checkpoints.",
+          href: "/admin/qa",
+          cta: "Open QA",
+        },
+        {
+          icon: "audit",
+          title: "Audit trail",
+          desc: "Inspect admin and runtime events for operational accountability.",
+          href: "/admin/audit",
+          cta: "Open audit",
+        },
+      ],
+      pulseRows: [
+        { label: "Team users", value: stats.teamUsers, tone: "indigo" },
+        { label: "Students", value: stats.students, tone: "sky" },
+        { label: "Submissions", value: stats.submissions, tone: "emerald" },
+        { label: "Queue blocked", value: stats.queueBlocked, tone: "amber" },
+      ],
+    };
+  }
+
+  return {
+    badge: "Assessor workspace",
+    summary:
+      "You are in assessor mode. Focus on blocked items first, then move through submissions, QA, and final audit-ready outputs.",
+    primaryActions: [
+      { label: "Open submissions", href: "/submissions", tone: "primary" },
+      { label: "Upload", href: "/upload", tone: "secondary" },
+      { label: "Open QA", href: "/admin/qa", tone: "secondary" },
+    ],
+    suggestedActions: [
+      "Review blocked queue items first to keep grading throughput stable.",
+      "Confirm spec and brief lock coverage before running grading cycles.",
+      "Use QA lane after grading runs to keep decisions moderation-ready.",
+    ],
+    statCards: [
+      { label: "Submissions", value: stats.submissions, hint: "Student evidence records" },
+      { label: "Queue Blocked", value: stats.queueBlocked, hint: "Submissions requiring intervention" },
+      { label: "Locked Specs", value: stats.lockedSpecs, hint: "Specs currently locked for grading" },
+      { label: "Locked Briefs", value: stats.lockedBriefs, hint: "Briefs currently locked for grading" },
+      { label: "Specs", value: stats.specs, hint: "Reference specs loaded" },
+      { label: "Briefs", value: stats.briefs, hint: "Assignment briefs loaded" },
+      { label: "Students", value: stats.students, hint: "Student profiles tracked" },
+    ],
+    actionCards: [
+      {
+        icon: "submissions",
+        title: "Daily operations",
+        desc: "Use Submissions for intake, extraction and grading workflow.",
+        href: "/submissions",
+        cta: "Open submissions",
+      },
+      {
+        icon: "reference",
+        title: "Specs and briefs",
+        desc: "Check lock/version status and maintain reference quality.",
+        href: "/admin/specs",
+        cta: "Open specs",
+      },
+      {
+        icon: "qa",
+        title: "QA review",
+        desc: "Review flagged outputs and moderation checks.",
+        href: "/admin/qa",
+        cta: "Open QA",
+      },
+      {
+        icon: "users",
+        title: "Users",
+        desc: "Manage access, roles and organization assignment.",
+        href: "/admin/users",
+        cta: "Open users",
+      },
+    ],
+    pulseRows: [
+      { label: "Specs locked", value: stats.lockedSpecs, tone: "emerald" },
+      { label: "Briefs locked", value: stats.lockedBriefs, tone: "sky" },
+      { label: "Queue blocked", value: stats.queueBlocked, tone: "amber" },
+      { label: "Submissions", value: stats.submissions, tone: "indigo" },
+    ],
+  };
 }
 
 async function getSessionIdentity(session: { userId?: string | null; orgId?: string | null } | null) {
@@ -216,7 +479,7 @@ async function getSessionIdentity(session: { userId?: string | null; orgId?: str
 
 export default async function LandingPage() {
   const session = await getSession();
-  const [stats, identity] = await Promise.all([getDashboardStats(), getSessionIdentity(session)]);
+  const [stats, identity] = await Promise.all([getDashboardStats(session), getSessionIdentity(session)]);
 
   if (!session) {
     return (
@@ -526,13 +789,13 @@ export default async function LandingPage() {
     );
   }
 
+  const rawRole = String((session as { role?: string | null }).role || "ASSESSOR").trim().toUpperCase();
+  const isSuperAdmin = !!(session as { isSuperAdmin?: boolean | null }).isSuperAdmin;
+  const roleLabel = isSuperAdmin ? "SUPER_ADMIN" : rawRole === "ADMIN" ? "ORG_ADMIN" : rawRole || "ASSESSOR";
+  const audience = resolveDashboardAudience(session as { role?: string | null; isSuperAdmin?: boolean | null });
+  const profile = buildDashboardProfile(audience, stats);
   const sessionOrgId = String((session as { orgId?: string | null }).orgId || "").trim() || null;
-  const pulseRows = [
-    { label: "Specs locked", value: Number(stats.lockedSpecs || 0), tone: "emerald" as const },
-    { label: "Briefs locked", value: Number(stats.lockedBriefs || 0), tone: "sky" as const },
-    { label: "Queue blocked", value: Number(stats.queueBlocked || 0), tone: "amber" as const },
-    { label: "Submissions", value: Number(stats.submissions || 0), tone: "indigo" as const },
-  ];
+  const pulseRows = profile.pulseRows;
   const pulseMax = Math.max(1, ...pulseRows.map((row) => row.value));
   const pulseTone = (tone: "emerald" | "sky" | "amber" | "indigo") => {
     if (tone === "emerald") return "bg-emerald-500";
@@ -547,38 +810,38 @@ export default async function LandingPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-800">
-              Internal workspace
+              {profile.badge}
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">Welcome back, {identity.displayName}</h1>
             <p className="mt-1 text-sm text-zinc-700">
-              Role: <span className="font-semibold text-zinc-900">{session.role}</span>
+              Role: <span className="font-semibold text-zinc-900">{roleLabel}</span>
               {" · "}
               Organization: <span className="font-semibold text-zinc-900">{identity.organizationName}</span>
-              {sessionOrgId ? " · Scoped" : " · Global"}. Use the shortcuts below to continue operations.
+              {sessionOrgId ? " · Scoped" : " · Global"}. {profile.summary}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/submissions" className="inline-flex h-10 items-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800">
-              Open submissions
-            </Link>
-            <Link href="/upload" className="inline-flex h-10 items-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
-              Upload
-            </Link>
-            <Link href="/admin" className="inline-flex h-10 items-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50">
-              Admin
-            </Link>
+            {profile.primaryActions.map((action) => (
+              <Link
+                key={`${action.href}-${action.label}`}
+                href={action.href}
+                className={
+                  action.tone === "primary"
+                    ? "inline-flex h-10 items-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
+                    : "inline-flex h-10 items-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
+                }
+              >
+                {action.label}
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Specs" value={stats.specs} hint="Reference specs loaded" />
-        <StatCard label="Briefs" value={stats.briefs} hint="Assignment briefs loaded" />
-        <StatCard label="Submissions" value={stats.submissions} hint="Student evidence records" />
-        <StatCard label="Students" value={stats.students} hint="Student profiles tracked" />
-        <StatCard label="Locked Specs" value={stats.lockedSpecs} hint="Specs currently locked for grading" />
-        <StatCard label="Locked Briefs" value={stats.lockedBriefs} hint="Briefs currently locked for grading" />
-        <StatCard label="Queue Blocked" value={stats.queueBlocked} hint="Submissions requiring intervention" />
+        {profile.statCards.map((card) => (
+          <StatCard key={card.label} label={card.label} value={card.value} hint={card.hint} />
+        ))}
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
@@ -607,42 +870,26 @@ export default async function LandingPage() {
         <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-sm font-semibold text-slate-900">Suggested next actions</h2>
           <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">Review blocked queue items first to keep grading throughput stable.</li>
-            <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">Confirm spec and brief lock coverage before batch grading cycles.</li>
-            <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">Use QA lane after grading runs to keep moderation decisions defensible.</li>
+            {profile.suggestedActions.map((action) => (
+              <li key={action} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                {action}
+              </li>
+            ))}
           </ul>
         </article>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <ActionCard
-          icon="submissions"
-          title="Daily operations"
-          desc="Use Submissions for intake, extraction and grading workflow."
-          href="/submissions"
-          cta="Open submissions"
-        />
-        <ActionCard
-          icon="reference"
-          title="Specs and briefs"
-          desc="Check lock/version status and maintain reference quality."
-          href="/admin/specs"
-          cta="Open specs"
-        />
-        <ActionCard
-          icon="qa"
-          title="QA review"
-          desc="Review flagged outputs and moderation checks."
-          href="/admin/qa"
-          cta="Open QA"
-        />
-        <ActionCard
-          icon="users"
-          title="Users"
-          desc="Manage access, roles and organization assignment."
-          href="/admin/users"
-          cta="Open users"
-        />
+        {profile.actionCards.map((card) => (
+          <ActionCard
+            key={card.title}
+            icon={card.icon}
+            title={card.title}
+            desc={card.desc}
+            href={card.href}
+            cta={card.cta}
+          />
+        ))}
       </section>
     </div>
   );

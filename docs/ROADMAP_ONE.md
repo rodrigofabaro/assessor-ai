@@ -38,7 +38,9 @@ Use this doc when the instruction is: "continue the roadmap".
 6. Progress update (2026-03-06):
    - `/api/health/readiness` implemented (DB, storage, email, OpenAI checks with required/optional gating)
    - auth abuse limits implemented for login and password recovery flows (IP + identity scoped)
+   - auth anomaly alert emails enabled for auth rate-limit threshold breaches (cooldown protected)
    - brief extraction now persists a fidelity report + task provenance and lock blocks unresolved fidelity blockers
+   - post-login dashboard is now role-specific (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions/stats
 
 ## Execution lanes
 
