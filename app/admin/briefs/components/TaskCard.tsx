@@ -28,6 +28,13 @@ interface Task {
   criteriaCodes?: string[];
   criteriaRefs?: string[];
   criteria?: string[];
+  provenance?: {
+    taskNumber?: number;
+    pages?: number[];
+    sourceAnchor?: string;
+    sourceSnippet?: string;
+    matchScore?: number;
+  };
   [key: string]: any;
 }
 
@@ -1260,6 +1267,29 @@ export function TaskCard({
   const criteria = getCriteria(task);
   const totalWords = useMemo(() => wordCount(task?.text || ""), [task?.text]);
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
+  const provenance = useMemo(() => {
+    const candidate = (task?.provenance || extractedTask?.provenance || null) as
+      | { taskNumber?: number; pages?: number[]; sourceAnchor?: string; sourceSnippet?: string; matchScore?: number }
+      | null;
+    if (!candidate || typeof candidate !== "object") return null;
+    const pPages = Array.isArray(candidate.pages)
+      ? candidate.pages.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n > 0)
+      : [];
+    const sourceAnchor = String(candidate.sourceAnchor || "").trim();
+    const sourceSnippet = String(candidate.sourceSnippet || "").trim();
+    const rawScore = Number(candidate.matchScore);
+    const matchScore = Number.isFinite(rawScore) ? Math.max(0, Math.min(1, rawScore)) : null;
+    return {
+      pages: pPages,
+      sourceAnchor,
+      sourceSnippet,
+      matchScore,
+      status: sourceSnippet || pPages.length || sourceAnchor ? "CITED" : "NEEDS_REVIEW",
+    } as const;
+  }, [task?.provenance, extractedTask?.provenance]);
+  const provenanceMatchPct = provenance?.matchScore === null || provenance?.matchScore === undefined
+    ? null
+    : Math.round((provenance?.matchScore || 0) * 100);
   
   const confidence: TaskConfidence = overrideApplied
     ? "OVERRIDDEN"
@@ -1718,6 +1748,34 @@ export function TaskCard({
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
             {pages.length > 0 && <span>Pages: {pages.join(", ")}</span>}
             {task?.aias && <span>AIAS: {task.aias}</span>}
+          </div>
+
+          <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold uppercase tracking-wide text-zinc-600">Source provenance</span>
+              <span
+                className={
+                  "rounded-full border px-2 py-0.5 text-[10px] font-semibold " +
+                  (provenance?.status === "CITED"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-800")
+                }
+              >
+                {provenance?.status === "CITED" ? "Cited" : "Needs review"}
+              </span>
+              {provenanceMatchPct !== null ? (
+                <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
+                  Match {provenanceMatchPct}%
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-1 text-zinc-600">
+              Anchor: {provenance?.sourceAnchor || `Task ${task?.n || "?"}`}
+              {provenance?.pages && provenance.pages.length ? ` · Source pages: ${provenance.pages.join(", ")}` : ""}
+            </div>
+            <p className="mt-1 line-clamp-2 text-zinc-700">
+              {provenance?.sourceSnippet || "No source snippet captured. Re-extract this task for stronger fidelity traceability."}
+            </p>
           </div>
 
           {criteria.length > 0 && (

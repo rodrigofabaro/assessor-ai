@@ -56,6 +56,11 @@ It checks:
 
 Lock is blocked when fidelity blockers remain unresolved.
 
+UI note:
+
+- Task cards now show `Source provenance` (anchor, source pages, match %, snippet).
+- If provenance is missing, card status shows `Needs review` and re-extract is recommended before lock.
+
 ## Brief vs Spec Audit (New Lock Guard)
 
 Before lock, the mapping panel now runs a `Brief vs Spec Audit` against the selected locked spec.
