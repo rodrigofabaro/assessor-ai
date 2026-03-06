@@ -4,11 +4,18 @@ import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 
+type SubmissionProjection = "summary" | "full";
+
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const { submissionId } = await ctx.params;
+  const url = new URL(req.url);
+  const projectionRaw = String(url.searchParams.get("projection") || "").trim().toLowerCase();
+  const projection: SubmissionProjection = projectionRaw === "summary" ? "summary" : "full";
+  const includeAssessmentPayload = projection === "full";
+  const includeExtractionText = projection === "full";
 
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
@@ -45,7 +52,7 @@ export async function GET(
           overallGrade: true,
           feedbackText: true,
           annotatedPdfPath: true,
-          resultJson: true,
+          resultJson: includeAssessmentPayload,
         },
       },
       extractionRuns: {
@@ -67,7 +74,7 @@ export async function GET(
             select: {
               id: true,
               pageNumber: true,
-              text: true,
+              text: includeExtractionText,
               confidence: true,
             },
           },
@@ -81,6 +88,7 @@ export async function GET(
   }
 
   return NextResponse.json({
+    projection,
     submission: {
       ...submission,
       assessments: (submission.assessments || []).map((a) => ({

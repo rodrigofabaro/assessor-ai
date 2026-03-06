@@ -20,6 +20,7 @@ const tests = [
   "scripts/qa-reliability-contract.test.js",
   "scripts/reference-inbox-projection-contract.test.js",
   "scripts/admin-audit-query-budget-contract.test.js",
+  "scripts/submission-detail-projection-contract.test.js",
 ];
 
 let failures = 0;

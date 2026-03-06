@@ -251,6 +251,7 @@ Current update (2026-03-03):
 5. Submission detail performance pass
 - Profile heavy panels (`Approval & outputs`, criterion list, run history diffs).
 - Reduce render churn on large criterion sets using memoized row segments + deferred detail panes.
+- Status (2026-03-06): delivered baseline projection split. `/submissions/[submissionId]` now loads summary payload first and lazily hydrates full extraction text/result JSON only when heavy panels are opened.
 
 6. QA reliability instrumentation
 - Add lightweight latency telemetry on preview, commit, and regrade actions.

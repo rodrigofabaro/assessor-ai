@@ -13,7 +13,7 @@ import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 type ExtractedPage = {
   id: string;
   pageNumber: number;
-  text: string;
+  text?: string | null;
   confidence: number;
 };
 
@@ -52,9 +52,10 @@ type Submission = {
     overallGrade: string | null;
     feedbackText?: string | null;
     annotatedPdfPath: string | null;
-    resultJson?: any;
+    resultJson?: any | null;
   }>;
 };
+type SubmissionProjection = "summary" | "full";
 
 type TriageInfo = {
   unitCode?: string | null;
@@ -402,6 +403,8 @@ export default function SubmissionDetailPage() {
   const submissionId = String(params?.submissionId || "");
 
   const [submission, setSubmission] = useState<Submission | null>(null);
+  const [submissionProjection, setSubmissionProjection] = useState<SubmissionProjection>("summary");
+  const [hydratingFullProjection, setHydratingFullProjection] = useState(false);
   const [triageInfo, setTriageInfo] = useState<TriageInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -481,6 +484,7 @@ export default function SubmissionDetailPage() {
   /* ---------- Extraction view state ---------- */
   const [activePage, setActivePage] = useState(0);
   const refreshSeq = useRef(0);
+  const submissionProjectionRef = useRef<SubmissionProjection>("summary");
 
   const latestRun = useMemo(() => {
     const runs = submission?.extractionRuns ?? [];
@@ -496,6 +500,7 @@ export default function SubmissionDetailPage() {
     () => [...(latestRun?.pages ?? [])].sort((a, b) => a.pageNumber - b.pageNumber),
     [latestRun]
   );
+  const hasFullSubmissionProjection = submissionProjection === "full";
 
   const active = pagesSorted[Math.min(Math.max(activePage, 0), Math.max(pagesSorted.length - 1, 0))];
   const coverMeta = useMemo(() => {
@@ -968,20 +973,43 @@ export default function SubmissionDetailPage() {
      Data loading
   ========================= */
 
-  async function refresh() {
+  async function refresh(requestedProjection?: SubmissionProjection) {
     if (!submissionId) return;
+    const projection = requestedProjection || submissionProjectionRef.current || "summary";
+    const shouldHydrateFullProjection = projection === "full";
+    if (shouldHydrateFullProjection) setHydratingFullProjection(true);
     const seq = ++refreshSeq.current;
-    const data = await jsonFetch<{ submission: Submission }>(
-      `/api/submissions/${submissionId}?t=${Date.now()}`,
-      { cache: "no-store" }
-    );
-    if (seq !== refreshSeq.current) return;
-    setSubmission(data.submission);
+    try {
+      const data = await jsonFetch<{ submission: Submission; projection?: SubmissionProjection }>(
+        `/api/submissions/${submissionId}?projection=${projection}&t=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (seq !== refreshSeq.current) return;
+      setSubmission(data.submission);
+      const resolvedProjection: SubmissionProjection = data?.projection === "summary" ? "summary" : "full";
+      submissionProjectionRef.current = resolvedProjection;
+      setSubmissionProjection(resolvedProjection);
+    } finally {
+      if (shouldHydrateFullProjection) setHydratingFullProjection(false);
+    }
+  }
+
+  async function ensureFullSubmissionProjection() {
+    if (!submissionId) return;
+    if (submissionProjectionRef.current === "full" || hydratingFullProjection) return;
+    try {
+      await refresh("full");
+    } catch (e: any) {
+      notifyToast("warn", e?.message || "Failed to load full extraction/output details.");
+    }
   }
 
   useEffect(() => {
     if (!submissionId) return;
-    refresh().catch((e) => setErr(e?.message || String(e)));
+    submissionProjectionRef.current = "summary";
+    setSubmissionProjection("summary");
+    setHydratingFullProjection(false);
+    refresh("summary").catch((e) => setErr(e?.message || String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
@@ -1419,6 +1447,9 @@ export default function SubmissionDetailPage() {
     scrollToPanel(map[target]);
   };
   const openSidePanel = (target: "quick" | "student" | "assignment" | "extraction" | "outputs") => {
+    if (target === "extraction" || target === "outputs") {
+      void ensureFullSubmissionProjection();
+    }
     const panels: Record<string, HTMLDetailsElement | null> = {
       quick: quickActionsPanelRef.current,
       student: studentPanelRef.current,
@@ -3247,6 +3278,21 @@ export default function SubmissionDetailPage() {
                     </details>
                   ) : null}
 
+                  {!hasFullSubmissionProjection ? (
+                    <div
+                      className={cx(
+                        "rounded-lg border px-2 py-1.5 text-[11px]",
+                        hydratingFullProjection
+                          ? "border-sky-200 bg-sky-50 text-sky-900"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600"
+                      )}
+                    >
+                      {hydratingFullProjection
+                        ? "Loading full extraction text and page previews..."
+                        : "Detailed extraction text loads on demand when this panel opens."}
+                    </div>
+                  ) : null}
+
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-xs font-semibold text-zinc-500">Page</div>
                     <select
@@ -3278,7 +3324,11 @@ export default function SubmissionDetailPage() {
                           <div className="text-[11px] font-semibold text-zinc-800">Page {p.pageNumber}</div>
                           <div className="text-[10px] text-zinc-500">Conf {Math.round((p.confidence || 0) * 100)}%</div>
                           <div className="mt-1 line-clamp-2 text-[10px] text-zinc-600">
-                            {String(p.text || "").trim() || "(No text preview)"}
+                            {hasFullSubmissionProjection
+                              ? String(p.text || "").trim() || "(No text preview)"
+                              : hydratingFullProjection
+                                ? "Loading full text..."
+                                : "Open panel to load full text."}
                           </div>
                         </button>
                       ))}
@@ -3289,7 +3339,13 @@ export default function SubmissionDetailPage() {
                     <summary className="cursor-pointer text-xs font-semibold text-zinc-700">Page text preview</summary>
                     <div className="mt-2 max-h-[32vh] overflow-auto rounded-lg border border-zinc-200 bg-white p-2">
                       <div className="whitespace-pre-wrap font-mono text-xs text-zinc-800">
-                        {active?.text?.trim() ? active.text : "(No meaningful text on this page yet)"}
+                        {hasFullSubmissionProjection
+                          ? active?.text?.trim()
+                            ? active.text
+                            : "(No meaningful text on this page yet)"
+                          : hydratingFullProjection
+                            ? "Loading full page text..."
+                            : "Open extraction panel to load page text."}
                       </div>
                     </div>
                   </details>
@@ -3348,6 +3404,20 @@ export default function SubmissionDetailPage() {
               </div>
             </summary>
             <div ref={outputsAccordionRef} className="grid gap-1 border-t border-zinc-200 px-2 pb-2 pt-1.5 text-sm">
+              {!hasFullSubmissionProjection ? (
+                <div
+                  className={cx(
+                    "rounded-xl border p-2 text-xs",
+                    hydratingFullProjection
+                      ? "border-sky-200 bg-sky-50 text-sky-900"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-700"
+                  )}
+                >
+                  {hydratingFullProjection
+                    ? "Loading full grading evidence and criterion detail..."
+                    : "Detailed criterion evidence loads on demand when this panel opens."}
+                </div>
+              ) : null}
               {!gradingHistory.length ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
                   No saved assessment outputs yet. Use <span className="font-semibold">Approve &amp; Save</span> to create audit outputs (feedback + marked PDF).
@@ -4084,7 +4154,7 @@ export default function SubmissionDetailPage() {
                 </details>
               ) : null}
 
-              {structuredGrading ? (
+              {hasFullSubmissionProjection && structuredGrading ? (
                 <details
                   data-output-section="true"
                   className="rounded-xl border border-zinc-200 bg-white p-3"
@@ -4241,7 +4311,7 @@ export default function SubmissionDetailPage() {
                 </details>
               ) : null}
 
-              {pageFeedbackMap.length ? (
+              {hasFullSubmissionProjection && pageFeedbackMap.length ? (
                 <details
                   data-output-section="true"
                   className="rounded-xl border border-zinc-200 bg-white p-3"

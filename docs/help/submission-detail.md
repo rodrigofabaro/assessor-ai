@@ -1,6 +1,6 @@
 # Submission Detail Guide (`/submissions/[submissionId]`)
 
-Last updated: 2026-03-02
+Last updated: 2026-03-06
 
 This is the single-submission grading workspace.
 
@@ -13,6 +13,7 @@ This is the single-submission grading workspace.
 - approval & outputs (decision screen): final confirmation, save actions, feedback editor, criterion decisions
 - technical details (collapsed): confidence, readiness checklist, evidence density, rerun diagnostics
 - notes chip: fixed bottom-right in viewer for quick page jumps
+- performance behavior: page loads in summary mode first; full extraction text and criterion-level result payload hydrate when `Extraction` or `Approval & outputs` is opened
 
 ## Fast Path (Operator Loop)
 

@@ -191,6 +191,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - submission detail heavy-panel render optimization
 - Progress (2026-03-06): reference inbox now uses explicit server pagination (`limit`/`offset` + totals) with page-size and next/prev controls in `/admin/reference`; list refresh uses summary projection (`extracted=summary`) and selected-document full hydration is loaded on demand via `GET /api/reference-documents/[documentId]`.
 - Progress (2026-03-06): `/api/admin/audit` now applies adaptive query budgets and type-scoped query skipping so filtered audit views avoid unnecessary heavy DB reads.
+- Progress (2026-03-06): submission detail now requests summary projection by default and hydrates full extraction page text + grading result payload on demand when `Extraction` or `Approval & outputs` panels open.
 
 7. QA reliability instrumentation
 - preview/commit/regrade latency metrics

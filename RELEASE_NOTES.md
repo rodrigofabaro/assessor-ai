@@ -44,6 +44,10 @@ Last updated: 2026-03-06
   - `/api/admin/audit` now scales query take limits from requested `take` and skips unrelated event-source queries when `type` filter narrows scope
   - reduced unnecessary relation-heavy reads for single-type audit investigations
   - added regression contract test: `scripts/admin-audit-query-budget-contract.test.js` (wired into `test:regression-pack`)
+- Submission detail heavy-panel projection split (performance slice):
+  - `GET /api/submissions/[submissionId]` now supports `projection=summary|full` and returns summary payloads without extraction page text / full result JSON when requested
+  - `/submissions/[submissionId]` now boots with summary projection and hydrates full payload on-demand when `Extraction` or `Approval & outputs` panels are opened
+  - added regression contract test: `scripts/submission-detail-projection-contract.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 
