@@ -52,6 +52,42 @@ function looksSuspiciousTaskWarning(warnings: string[]) {
   return lowered.some((w) => w.includes("task body: empty") || w.includes("task body: suspiciously short"));
 }
 
+function normalizePartKeys(parts: any[]) {
+  const out: string[] = [];
+  let currentParent = "";
+  for (const part of Array.isArray(parts) ? parts : []) {
+    const raw = String(part?.key || "").trim().toLowerCase();
+    if (!raw) continue;
+
+    if (/^[a-z]$/.test(raw)) {
+      currentParent = raw;
+      out.push(raw);
+      continue;
+    }
+
+    if (/^[a-z](?:\.[a-z0-9ivxlcdm]+)+$/i.test(raw)) {
+      currentParent = raw.split(".")[0] || currentParent;
+      out.push(raw);
+      continue;
+    }
+
+    if (/^(?:\d+|[ivxlcdm]+)$/i.test(raw) && currentParent) {
+      out.push(`${currentParent}.${raw}`);
+      continue;
+    }
+
+    out.push(raw);
+  }
+  return out;
+}
+
+function hasScenarioSignal(draftLike: any) {
+  const scenarios = Array.isArray(draftLike?.scenarios) ? draftLike.scenarios : [];
+  if (scenarios.some((s: any) => norm(s?.text))) return true;
+  const tasks = Array.isArray(draftLike?.tasks) ? draftLike.tasks : [];
+  return tasks.some((t: any) => norm(t?.scenarioText));
+}
+
 export function validateBriefExtractionHard(draftLike: any, sourceText = ""): BriefHardValidationResult {
   const issues: BriefHardValidationIssue[] = [];
   const kind = String(draftLike?.kind || "").toUpperCase();
@@ -73,6 +109,7 @@ export function validateBriefExtractionHard(draftLike: any, sourceText = ""): Br
   }
 
   const seenTaskNumbers = new Set<number>();
+  const requireScenarioMapping = hasScenarioSignal(draftLike);
   for (const task of tasks) {
     const n = Number(task?.n || 0);
     const taskText = String(task?.text || "");
@@ -110,9 +147,9 @@ export function validateBriefExtractionHard(draftLike: any, sourceText = ""): Br
       });
     }
 
-    if (n > 0 && !norm(task?.scenarioText)) {
+    if (requireScenarioMapping && n > 0 && !norm(task?.scenarioText)) {
       issues.push({
-        level: "BLOCKER",
+        level: "WARNING",
         code: "MISSING_SCENARIO",
         taskNumber: n,
         message: `Task ${n} has no mapped scenario/context.`,
@@ -120,8 +157,7 @@ export function validateBriefExtractionHard(draftLike: any, sourceText = ""): Br
     }
 
     const partKeySet = new Set<string>();
-    for (const part of parts) {
-      const key = String(part?.key || "").trim().toLowerCase();
+    for (const key of normalizePartKeys(parts)) {
       if (!key) continue;
       if (partKeySet.has(key)) {
         issues.push({
@@ -136,11 +172,13 @@ export function validateBriefExtractionHard(draftLike: any, sourceText = ""): Br
     }
 
     const joined = [taskText, ...parts.map((p: any) => String(p?.text || ""))].join("\n");
-    const mentionsFigure = /\b(figure\s*\d+|diagram|schematic|graph\s+below)\b/i.test(joined);
+    const mentionsFigure = /\b(figure\s*\d+|figure\s+below|diagram|schematic|graph\s+below|chart\s+below|shown\s+in\s+the\s+figure|see\s+figure|following\s+graph|in\s+the\s+graph)\b/i.test(
+      joined
+    );
     const hasImageToken = /\[\[IMG:[^\]]+\]\]/.test(joined);
     if (mentionsFigure && !hasImageToken) {
       issues.push({
-        level: "BLOCKER",
+        level: "WARNING",
         code: "FIGURE_WITHOUT_IMAGE_TOKEN",
         taskNumber: n || undefined,
         message: `Task ${n || "?"} references a figure/diagram but has no [[IMG:...]] token.`,

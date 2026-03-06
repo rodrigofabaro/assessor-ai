@@ -713,6 +713,11 @@ function buildChartSpecs(parts: StructuredPart[], fallbackBodyText: string): Tas
     const imageBasedCue =
       /\[\[img:[^\]]+\]\]/i.test(sourceAndInstructions) ||
       /\b(graph|chart)\s+(shown|below)\b/i.test(sourceAndInstructions) ||
+      /\bfigure\s*(\d+|below)\b/i.test(sourceAndInstructions) ||
+      /\bshown\s+in\s+the\s+figure\b/i.test(sourceAndInstructions) ||
+      /\bsee\s+figure\b/i.test(sourceAndInstructions) ||
+      /\bfollowing\s+graph\b/i.test(sourceAndInstructions) ||
+      /\bcircuit\s+shown\s+below\b/i.test(sourceAndInstructions) ||
       hasRecoveredImageDataCue;
     const hasTabularFailureData =
       /\bfailure reason\b/i.test(sourceText) &&

@@ -137,6 +137,35 @@ function collectReferencedEquationIdsFromBriefLike(value: any) {
   return ids;
 }
 
+function normalizePartKeys(parts: any[]) {
+  const out: string[] = [];
+  let currentParent = "";
+  for (const part of Array.isArray(parts) ? parts : []) {
+    const raw = String(part?.key || "").trim().toLowerCase();
+    if (!raw) continue;
+
+    if (/^[a-z]$/.test(raw)) {
+      currentParent = raw;
+      out.push(raw);
+      continue;
+    }
+
+    if (/^[a-z](?:\.[a-z0-9ivxlcdm]+)+$/i.test(raw)) {
+      currentParent = raw.split(".")[0] || currentParent;
+      out.push(raw);
+      continue;
+    }
+
+    if (/^(?:\d+|[ivxlcdm]+)$/i.test(raw) && currentParent) {
+      out.push(`${currentParent}.${raw}`);
+      continue;
+    }
+
+    out.push(raw);
+  }
+  return out;
+}
+
 function collectBriefValidationWarnings(draftLike: any) {
   const warnings = new Set<string>();
   const tasks = Array.isArray(draftLike?.tasks) ? draftLike.tasks : [];
@@ -147,14 +176,16 @@ function collectBriefValidationWarnings(draftLike: any) {
   const scenarioTaskIds = new Set<number>(
     scenarios.map((s: any) => Number(s?.appliesToTask)).filter((n: number) => Number.isInteger(n) && n > 0)
   );
+  const hasScenarioSignal =
+    scenarios.some((s: any) => String(s?.text || "").trim()) ||
+    tasks.some((task: any) => String(task?.scenarioText || "").trim());
 
   for (const task of tasks) {
     const n = Number(task?.n || 0);
     const parts = Array.isArray(task?.parts) ? task.parts : [];
     if (parts.length > 0) {
       const seen = new Set<string>();
-      for (const p of parts) {
-        const key = String(p?.key || "").trim().toLowerCase();
+      for (const key of normalizePartKeys(parts)) {
         if (!key) continue;
         if (seen.has(key)) {
           warnings.add(`validation: duplicate part key in Task ${n} (${key})`);
@@ -166,14 +197,19 @@ function collectBriefValidationWarnings(draftLike: any) {
     const taskText = String(task?.text || "");
     const partsText = parts.map((p: any) => String(p?.text || "")).join("\n");
     const joined = `${taskText}\n${partsText}`;
-    if (/\bfigure\s*\d+\b/i.test(joined) && !/\[\[IMG:[^\]]+\]\]/.test(joined)) {
+    if (
+      /\b(figure\s*\d+|figure\s+below|diagram|schematic|graph\s+below|chart\s+below|shown\s+in\s+the\s+figure|see\s+figure|following\s+graph|in\s+the\s+graph)\b/i.test(
+        joined
+      ) &&
+      !/\[\[IMG:[^\]]+\]\]/.test(joined)
+    ) {
       warnings.add(`validation: figure reference without image token in Task ${n}`);
     }
     if (/[∘°]\s*(?:\n\s*)?(?:퐶퐶|C\s*C|C{2,})\b/.test(joined)) {
       warnings.add(`validation: unresolved Celsius symbol artifacts in Task ${n}`);
     }
 
-    if (n > 0 && !scenarioTaskIds.has(n)) {
+    if (hasScenarioSignal && n > 0 && !scenarioTaskIds.has(n) && !String(task?.scenarioText || "").trim()) {
       warnings.add(`validation: missing scenario mapping for Task ${n}`);
     }
   }

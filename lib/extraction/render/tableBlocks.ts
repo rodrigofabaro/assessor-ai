@@ -46,7 +46,7 @@ function parseRow(line: string): string[] | null {
     .split("|")
     .map((part) => part.trim())
     .filter(Boolean);
-  if (pipeParts.length >= 3) {
+  if (pipeParts.length >= 2) {
     return pipeParts;
   }
 
@@ -57,6 +57,21 @@ function parseRow(line: string): string[] | null {
     if (isNumericOrCurrencyToken(col2) && isNumericOrCurrencyToken(col3)) {
       const col1 = tokens.slice(0, -2).join(" ").trim();
       return [col1, col2, col3];
+    }
+  }
+
+  if (tokens.length >= 2) {
+    const col2 = tokens[tokens.length - 1];
+    if (isNumericOrCurrencyToken(col2)) {
+      const col1 = tokens.slice(0, -1).join(" ").trim();
+      if (
+        col1 &&
+        /[a-z]/i.test(col1) &&
+        !/^(task|part)\s+\d+$/i.test(col1) &&
+        tokens.length <= 8
+      ) {
+        return [col1, col2];
+      }
     }
   }
 
@@ -81,6 +96,10 @@ function collapseHeaders(headerLines: string[]): string[] | null {
     return ["Output Voltage (V)", "Before QC", "After QC"];
   }
 
+  if (/\bfailure\s+reason\b/i.test(joined) && /\bnumber\s+of\s+chips\b/i.test(joined)) {
+    return ["Failure Reason", "Number of Chips"];
+  }
+
   const beforeMatch = joined.match(/\bbefore\s+qc\b/i);
   const afterMatch = joined.match(/\bafter\s+qc\b/i);
   if (!beforeMatch || !afterMatch || beforeMatch.index! >= afterMatch.index!) return null;
@@ -102,6 +121,15 @@ function startsCostingTable(lines: string[], i: number) {
     .join(" ")
     .toLowerCase();
   return /before/.test(lookahead) && /after/.test(lookahead) && /qc/.test(lookahead);
+}
+
+function startsFailureReasonTable(lines: string[], i: number) {
+  const lookahead = lines
+    .slice(i, Math.min(lines.length, i + 4))
+    .map((line) => line.trim())
+    .join(" ")
+    .toLowerCase();
+  return /\bfailure\s+reason\b/.test(lookahead) && /\bnumber\s+of\s+chips\b/.test(lookahead);
 }
 
 
@@ -135,7 +163,7 @@ function readAlignedRegion(lines: string[], start: number) {
 
 function startsTable(lines: string[], i: number) {
   const line = (lines[i] || "").trim();
-  return isTableCaption(line) || startsCostingTable(lines, i);
+  return isTableCaption(line) || startsCostingTable(lines, i) || startsFailureReasonTable(lines, i);
 }
 
 function parseSamplePowerTwoLineTable(lines: string[], i: number): StructuredTableBlock | null {

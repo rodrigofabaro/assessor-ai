@@ -238,7 +238,11 @@ function isCostingHeaderLine(line: string) {
 function isTableHeaderLikeLine(line: string) {
   const normalized = normalizeWhitespace(line || "").toLowerCase();
   if (!normalized) return false;
-  if (/(output\s+voltage|number\s+of\s+drivers|before\s+qc|after\s+qc|month\s+before\s+qc\s+after\s+qc)/i.test(normalized)) {
+  if (
+    /(output\s+voltage|number\s+of\s+drivers|before\s+qc|after\s+qc|month\s+before\s+qc\s+after\s+qc|failure\s+reason|number\s+of\s+chips)/i.test(
+      normalized
+    )
+  ) {
     return true;
   }
   return false;
@@ -250,6 +254,15 @@ function isNumericTailRow(line: string) {
   const last = tokens[tokens.length - 1];
   const secondLast = tokens[tokens.length - 2];
   return isNumericOrCurrencyToken(secondLast) && isNumericOrCurrencyToken(last);
+}
+
+function isSingleNumericTailRow(line: string) {
+  const tokens = (line || "").trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2) return false;
+  const last = tokens[tokens.length - 1];
+  if (!isNumericOrCurrencyToken(last)) return false;
+  const lead = tokens.slice(0, -1).join(" ").trim();
+  return !!lead && /[a-z]/i.test(lead) && !/^(task|part)\s+\d+$/i.test(lead);
 }
 
 function detectTableLineSpans(lines: string[]) {
@@ -278,8 +291,11 @@ function detectTableLineSpans(lines: string[]) {
     const startsTable =
       isTableCaptionLine(trimmed) ||
       startsCostingTable ||
-      (isTableHeaderLikeLine(trimmed) && i + 1 < lines.length && isNumericTailRow(lines[i + 1])) ||
-      isNumericTailRow(trimmed);
+      (isTableHeaderLikeLine(trimmed) &&
+        i + 1 < lines.length &&
+        (isNumericTailRow(lines[i + 1]) || isSingleNumericTailRow(lines[i + 1]))) ||
+      isNumericTailRow(trimmed) ||
+      isSingleNumericTailRow(trimmed);
 
     if (!startsTable) continue;
 
@@ -1974,7 +1990,7 @@ export function extractBrief(
     return /\b(equation|differentiate|differentiation|derivative|integrate|integration|integral|calculate|calculation|solve|sine|cosine|tangent|sin|cos|tan)\b/i.test(src);
   };
   const imageCueRegex =
-    /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|figure\s*\d+\b|figure\s*\d+\s*:|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure|schematic)\b/i;
+    /\b(circuit\s+shown\s+below|shown\s+below|figure\s+below|figure\s*\d+\b|figure\s*\d+\s*:|diagram\s+below|graph\s+below|chart\s+below|shown\s+in\s+the\s+figure|see\s+figure|following\s+graph|in\s+the\s+graph|schematic)\b/i;
   const injectImageToken = (textValue: string, token: string) => {
     const src = String(textValue || "");
     if (!src.trim() || hasImageToken(src) || !imageCueRegex.test(src)) return src;
@@ -1999,7 +2015,7 @@ export function extractBrief(
     }
 
     const withSentenceInsert = src.replace(
-      /(\b(?:circuit\s+shown\s+below|shown\s+below|figure\s+below|figure\s*\d+\s*:?\s*[^\n]*|diagram\s+below|graph\s+below|shown\s+in\s+the\s+figure|schematic)\b[^.\n]*[.]?)/i,
+      /(\b(?:circuit\s+shown\s+below|shown\s+below|figure\s+below|figure\s*\d+\s*:?\s*[^\n]*|diagram\s+below|graph\s+below|chart\s+below|shown\s+in\s+the\s+figure|see\s+figure|following\s+graph|in\s+the\s+graph|schematic)\b[^.\n]*[.]?)/i,
       `$1\n${token}`
     );
     if (withSentenceInsert !== src) return withSentenceInsert;

@@ -162,6 +162,21 @@ function maxHardAttemptsForRequest(body: any) {
   return Math.min(4, Math.max(1, Math.floor(raw || 2)));
 }
 
+type BriefWholePdfRecoveryMode = "OFF" | "ON_FAIL" | "ALWAYS";
+
+function wholePdfRecoveryModeForRequest(body: any): BriefWholePdfRecoveryMode {
+  if (safeBool(body?.disableWholePdfRecovery) || safeBool(body?.skipWholePdfRecovery)) return "OFF";
+  if (safeBool(body?.forceWholePdfRecovery) || safeBool(body?.alwaysWholePdfRecovery)) return "ALWAYS";
+
+  const reqModeRaw = safeStr(body?.wholePdfRecoveryMode || body?.briefWholePdfRecoveryMode).toLowerCase().trim();
+  const envModeRaw = safeStr(process.env.BRIEF_WHOLE_PDF_RECOVERY_MODE || "always").toLowerCase().trim();
+  const modeRaw = reqModeRaw || envModeRaw;
+
+  if (["off", "disabled", "0", "false", "no"].includes(modeRaw)) return "OFF";
+  if (["on_fail", "on-fail", "fail", "fallback"].includes(modeRaw)) return "ON_FAIL";
+  return "ALWAYS";
+}
+
 function summarizeHardIssues(validation: any) {
   const issues = Array.isArray(validation?.issues) ? validation.issues : [];
   return issues.map((issue: any) => {
@@ -266,6 +281,7 @@ export async function POST(req: Request) {
     const prevExtractSummary = summarizeExtracted(doc.extractedJson);
     const isBrief = doc.type === "BRIEF";
     const useHardValidation = isBrief && hardValidationEnabledForRequest(body);
+    const wholePdfRecoveryMode = isBrief ? wholePdfRecoveryModeForRequest(body) : "OFF";
     const allowHardValidationBypass = safeBool(body?.allowHardValidationBypass || body?.allowValidationBypass);
     const maxAttempts = useHardValidation ? maxHardAttemptsForRequest(body) : 1;
     const extractionAttempts: any[] = [];
@@ -339,7 +355,13 @@ export async function POST(req: Request) {
       if (!useHardValidation || (validation && validation.ok)) break;
     }
 
-    if (useHardValidation && bestCandidate && !bestCandidate.validation?.ok) {
+    const shouldAttemptWholePdfRecovery =
+      isBrief &&
+      wholePdfRecoveryMode !== "OFF" &&
+      !!bestCandidate &&
+      (wholePdfRecoveryMode === "ALWAYS" || !useHardValidation || !bestCandidate.validation?.ok);
+
+    if (shouldAttemptWholePdfRecovery && bestCandidate) {
       try {
         const pdfBytes = await fs.readFile(resolved.path);
         const fallback = await recoverBriefFromWholePdfWithOpenAi({
@@ -415,6 +437,7 @@ export async function POST(req: Request) {
               score: bestCandidate.validation.score,
               checkedAt: new Date().toISOString(),
               attempts: extractionAttempts,
+              wholePdfRecoveryMode,
             },
           } as any,
         },
@@ -463,6 +486,7 @@ export async function POST(req: Request) {
             score: Number(bestCandidate.validation?.score || 0),
             checkedAt: nowIso,
             attempts: extractionAttempts,
+            wholePdfRecoveryMode,
           }
         : prevMeta.hardValidation || null,
       reextractHistory,
