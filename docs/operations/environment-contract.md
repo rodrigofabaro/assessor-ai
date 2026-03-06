@@ -170,6 +170,13 @@ Primary login mode:
   - when `true`, alert smoke validation must not skip due to missing provider/sender/recipient config
   - used with `pnpm run ops:alert-smoke`
 
+## Pre-launch UI profile env (Queue F)
+
+- `NEXT_PUBLIC_UI_LAUNCH_MODE`
+  - default: `false`
+  - when `true`, launch-mode tenant controls are progressively surfaced in primary admin navigation (for example `/admin/users`)
+  - when `false`, navigation stays in simplified pre-launch profile while existing routes/APIs remain available
+
 ## Storage migration env (M8)
 
 - `STORAGE_BACKEND`

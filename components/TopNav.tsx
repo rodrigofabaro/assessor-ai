@@ -34,6 +34,12 @@ const ADMIN_DEVELOPER_ITEM: AdminItem = {
   href: "/admin/developer",
   accent: "fuchsia",
 };
+const ADMIN_USERS_ITEM: AdminItem = {
+  label: "Users",
+  href: "/admin/users",
+  accent: "fuchsia",
+};
+const launchModeEnabled = /^(1|true|yes|on)$/i.test(String(process.env.NEXT_PUBLIC_UI_LAUNCH_MODE || "").trim());
 
 function accentClasses(accent: string) {
   switch (accent) {
@@ -95,10 +101,12 @@ export default function TopNav() {
   const activeAdminAccent = accentFromPath(pathname);
   const showSignOut = pathname !== "/" && !pathname.startsWith("/help") && !pathname.startsWith("/login");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const adminItems = useMemo(
-    () => (isSuperAdmin ? [...ADMIN_ITEMS, ADMIN_DEVELOPER_ITEM] : ADMIN_ITEMS),
-    [isSuperAdmin]
-  );
+  const adminItems = useMemo(() => {
+    const nextItems: AdminItem[] = [...ADMIN_ITEMS];
+    if (launchModeEnabled) nextItems.push(ADMIN_USERS_ITEM);
+    if (isSuperAdmin) nextItems.push(ADMIN_DEVELOPER_ITEM);
+    return nextItems;
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (!isAdminRoute) return;

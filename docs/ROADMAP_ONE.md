@@ -267,9 +267,10 @@ Use this doc when the instruction is: "continue the roadmap".
 - implement role-specific post-login dashboards so default home reflects role scope:
   - Assessor: submissions queue and grading throughput
   - `ORG_ADMIN`: user/organization controls and usage
-  - `SUPER_ADMIN`: platform health, org fleet, and active alerts
+- `SUPER_ADMIN`: platform health, org fleet, and active alerts
 - surface platform controls only in `Developer` console for super-admin
 - define launch toggle/feature flag to progressively expose advanced tenant operations
+- Progress (2026-03-06): launch-mode UI toggle added (`NEXT_PUBLIC_UI_LAUNCH_MODE`); when enabled, tenant operations are progressively surfaced in primary admin navigation without schema/API changes.
 
 ### Later
 

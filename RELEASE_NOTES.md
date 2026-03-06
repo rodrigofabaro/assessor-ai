@@ -60,6 +60,9 @@ Last updated: 2026-03-06
 - IV-AD manual fallback regression lock:
   - added `scripts/iv-ad-manual-fallback-contract.test.js` (wired into `test:regression-pack`)
   - locks non-blocking heuristic fallback path when AI review is unavailable and ensures `/admin/iv-ad` keeps manual generation UX available
+- Pre-launch UI launch-toggle foundation:
+  - added `NEXT_PUBLIC_UI_LAUNCH_MODE` to control progressive exposure of tenant operations in admin navigation
+  - when enabled, `/admin/users` is surfaced in primary admin nav while existing routes/APIs remain unchanged
 
 ### Latest additions (2026-03-05)
 
