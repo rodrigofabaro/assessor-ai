@@ -21,6 +21,28 @@ type OrgSettingsResponse = {
   error?: string;
 };
 
+type ContactLead = {
+  id: string;
+  source: string;
+  name: string;
+  email: string;
+  organization?: string | null;
+  message: string;
+  ipAddress?: string | null;
+  createdAt: string;
+  emailDeliveredAt?: string | null;
+  emailDeliveryProvider?: string | null;
+  emailDeliveryError?: string | null;
+};
+
+type ContactLeadSummary = {
+  totalAll: number;
+  total24h: number;
+  delivered24h: number;
+  failed24h: number;
+  pending24h: number;
+};
+
 function prettyJson(value: unknown) {
   try {
     return JSON.stringify(value || {}, null, 2);
@@ -28,6 +50,34 @@ function prettyJson(value: unknown) {
     return "{}";
   }
 }
+
+function formatDateTime(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  if (!raw) return "—";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function clipText(value: string, maxLength: number) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}...`;
+}
+
+const EMPTY_CONTACT_SUMMARY: ContactLeadSummary = {
+  totalAll: 0,
+  total24h: 0,
+  delivered24h: 0,
+  failed24h: 0,
+  pending24h: 0,
+};
 
 export default function DeveloperPageClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -46,6 +96,10 @@ export default function DeveloperPageClient() {
   const [turnitinKey, setTurnitinKey] = useState("");
   const [smtpKey, setSmtpKey] = useState("");
   const [secretNames, setSecretNames] = useState<string[]>([]);
+  const [contactLeads, setContactLeads] = useState<ContactLead[]>([]);
+  const [contactSummary, setContactSummary] = useState<ContactLeadSummary>(EMPTY_CONTACT_SUMMARY);
+  const [contactWarning, setContactWarning] = useState("");
+  const [loadingContactLeads, setLoadingContactLeads] = useState(false);
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => org.id === selectedOrgId) || null,
@@ -111,9 +165,40 @@ export default function DeveloperPageClient() {
     }
   }, []);
 
+  const loadContactLeads = useCallback(async () => {
+    setLoadingContactLeads(true);
+    setContactWarning("");
+    try {
+      const res = await fetch("/api/admin/contact-leads?limit=40", { cache: "no-store" });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        throw new Error(String(json?.error || "Failed to load contact leads."));
+      }
+      const rows = Array.isArray(json?.leads) ? (json.leads as ContactLead[]) : [];
+      const summary = (json?.summary || {}) as Partial<ContactLeadSummary>;
+      setContactLeads(rows);
+      setContactSummary({
+        totalAll: Number(summary.totalAll || 0),
+        total24h: Number(summary.total24h || 0),
+        delivered24h: Number(summary.delivered24h || 0),
+        failed24h: Number(summary.failed24h || 0),
+        pending24h: Number(summary.pending24h || 0),
+      });
+      setContactWarning(String(json?.warning || "").trim());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load contact leads.");
+    } finally {
+      setLoadingContactLeads(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadOrganizations();
   }, [loadOrganizations]);
+
+  useEffect(() => {
+    void loadContactLeads();
+  }, [loadContactLeads]);
 
   useEffect(() => {
     if (!selectedOrgId) return;
@@ -282,6 +367,15 @@ export default function DeveloperPageClient() {
             >
               <TinyIcon name="refresh" className="h-3.5 w-3.5" />
               {loadingOrganizations ? "Refreshing..." : "Refresh"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadContactLeads()}
+              disabled={loadingContactLeads}
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              <TinyIcon name="audit" className="h-3.5 w-3.5" />
+              {loadingContactLeads ? "Refreshing leads..." : "Refresh leads"}
             </button>
             <Link href="/admin/users" className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">
               Users
@@ -473,6 +567,104 @@ export default function DeveloperPageClient() {
         </article>
       </section>
 
+      <section id="contact-intake" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Landing contact intake</h2>
+            <p className="mt-1 text-xs text-slate-600">
+              Leads from the early-access form are persisted in database storage. Email is notification only.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadContactLeads()}
+            disabled={loadingContactLeads}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loadingContactLeads ? "Loading..." : "Reload leads"}
+          </button>
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-slate-500">Total leads</div>
+            <div className="mt-0.5 text-base font-semibold text-slate-900">{contactSummary.totalAll}</div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-slate-500">Last 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-slate-900">{contactSummary.total24h}</div>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-emerald-700">Notified 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-emerald-900">{contactSummary.delivered24h}</div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-amber-700">Pending 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-amber-900">{contactSummary.pending24h}</div>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-rose-700">Failed 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-rose-900">{contactSummary.failed24h}</div>
+          </div>
+        </div>
+
+        {contactWarning ? (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {contactWarning}
+          </div>
+        ) : null}
+
+        <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-xs">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold">Lead</th>
+                <th className="px-3 py-2 text-left font-semibold">Organization</th>
+                <th className="px-3 py-2 text-left font-semibold">Message</th>
+                <th className="px-3 py-2 text-left font-semibold">Received</th>
+                <th className="px-3 py-2 text-left font-semibold">Email status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+              {contactLeads.map((lead) => {
+                const emailStatus = lead.emailDeliveredAt
+                  ? "Delivered"
+                  : lead.emailDeliveryError
+                    ? `Failed (${lead.emailDeliveryError})`
+                    : "Pending";
+                return (
+                  <tr key={lead.id}>
+                    <td className="px-3 py-2 align-top">
+                      <div className="font-semibold text-slate-900">{lead.name}</div>
+                      <div className="text-slate-500">{lead.email}</div>
+                    </td>
+                    <td className="px-3 py-2 align-top">{lead.organization || "—"}</td>
+                    <td className="px-3 py-2 align-top">{clipText(lead.message, 120) || "—"}</td>
+                    <td className="px-3 py-2 align-top">{formatDateTime(lead.createdAt)}</td>
+                    <td className="px-3 py-2 align-top">
+                      <div>{emailStatus}</div>
+                      {lead.emailDeliveredAt ? (
+                        <div className="text-[11px] text-slate-500">{formatDateTime(lead.emailDeliveredAt)}</div>
+                      ) : null}
+                      {!lead.emailDeliveredAt && lead.emailDeliveryProvider ? (
+                        <div className="text-[11px] text-slate-500">Provider: {lead.emailDeliveryProvider}</div>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+              {!contactLeads.length ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                    No contact leads captured yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-slate-200 bg-white/95 p-4 text-sm text-slate-700 shadow-sm">
         <div className="font-semibold text-slate-900">Developer tools</div>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -493,4 +685,3 @@ export default function DeveloperPageClient() {
     </div>
   );
 }
-

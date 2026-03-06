@@ -554,6 +554,27 @@ model SubmissionAuditEvent {
   @@index([actor])
 }
 
+model ContactLead {
+  id                   String   @id @default(cuid())
+  name                 String
+  email                String
+  organization         String?
+  message              String
+  source               String   @default("landing-page")
+  ipAddress            String?
+  userAgent            String?
+  emailDeliveryProvider String?
+  emailDeliveryId      String?
+  emailDeliveredAt     DateTime?
+  emailDeliveryError   String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([source, createdAt])
+  @@index([email, createdAt])
+}
+
 model OpsRuntimeEvent {
   id        String   @id @default(cuid())
   ts        DateTime @default(now())

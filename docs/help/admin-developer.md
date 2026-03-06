@@ -1,6 +1,6 @@
 # `/admin/developer` Help
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ## Purpose
 
@@ -9,6 +9,7 @@ Super-admin control plane for platform-level operations:
 1. organization lifecycle
 2. per-organization configuration JSON
 3. encrypted per-organization integration secrets
+4. landing-page contact lead intake and delivery status
 
 This route is restricted to `SUPER_ADMIN`.
 
@@ -18,10 +19,11 @@ This route is restricted to `SUPER_ADMIN`.
 2. Rename, activate/deactivate, or delete organizations.
 3. Select organization scope and edit config JSON.
 4. Rotate/update OpenAI, Turnitin, and SMTP API secrets.
+5. Review recent early-access/contact leads and email notification status.
 
 ## Important behavior
 
 1. Secret values are write-only in UI and encrypted at rest.
 2. Default super-admin scope is `assessor-ai` organization.
-3. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.
-
+3. Landing-page contacts are persisted in DB (`ContactLead`); email is a notification channel, not the source of record.
+4. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.

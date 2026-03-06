@@ -43,6 +43,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - brief extraction now persists a fidelity report + task provenance and lock blocks unresolved fidelity blockers
    - post-login dashboard is now role-specific (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions/stats
    - VASCR summary policy now hardens feedback output (concise, evidence-linked, actionable)
+   - landing-page contact requests now persist in DB (`ContactLead`) and surface in `SUPER_ADMIN` developer console intake view
 
 ## Execution lanes
 
@@ -237,6 +238,8 @@ Use this doc when the instruction is: "continue the roadmap".
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures
 - persist landing-page leads in DB (email remains notification channel; DB becomes system of record)
 - add delivery health dashboard cards (sent/failed/bounced) using provider telemetry
+- Progress (2026-03-06): landing-page lead persistence delivered (`ContactLead`) and `/admin/developer` now includes a lead intake panel with 24h sent/failed/pending summary.
+- Remaining action: provider telemetry expansion for bounce/open metrics.
 
 7. Pre-launch development-mode UX profile
 - keep architecture complete (`organizations`, `users`, `SUPER_ADMIN`, scoped settings/secrets) to avoid future rework
@@ -334,8 +337,9 @@ Done when:
 Done when:
 1. Transactional sender, support inbox, and alert inbox channels are explicitly configured via env (`AUTH_EMAIL_FROM`, `CONTACT_FORM_TO`, `ALERT_EMAIL_TO`)
 2. Landing-page contact notifications include `Reply-To` submitter header for direct response workflow
-3. DNS/domain deliverability baseline is documented and verified (SPF + DKIM + DMARC with report mailbox)
-4. At least one critical-path system alert is routed through the alert channel and validated in staging
+3. Landing-page contact leads are persisted in DB (email is notification channel; DB is source of record)
+4. DNS/domain deliverability baseline is documented and verified (SPF + DKIM + DMARC with report mailbox)
+5. At least one critical-path system alert is routed through the alert channel and validated in staging
 
 ### Queue F - Pre-launch development-mode UX profile
 

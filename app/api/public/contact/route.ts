@@ -6,6 +6,7 @@ import { canSendInviteEmail, sendContactLeadEmail } from "@/lib/auth/inviteEmail
 export const runtime = "nodejs";
 
 const MAX_PER_IP_PER_HOUR = 5;
+const CONTACT_SOURCE = "landing-page";
 
 function toSafeString(value: unknown) {
   return String(value || "").trim();
@@ -26,6 +27,45 @@ function pickClientIp(req: Request) {
 
 function pickClientUserAgent(req: Request) {
   return toSafeString(req.headers.get("user-agent")) || null;
+}
+
+function isContactLeadSchemaCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const message = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2021" || code === "P2022") return true;
+  return (
+    message.includes("contactlead") &&
+    ((message.includes("table") && message.includes("does not exist")) ||
+      (message.includes("column") && message.includes("does not exist")) ||
+      message.includes("unknown argument"))
+  );
+}
+
+async function updateLeadDeliveryStatus(
+  leadId: string,
+  input: {
+    provider?: string | null;
+    messageId?: string | null;
+    deliveredAt?: Date | null;
+    error?: string | null;
+  }
+) {
+  const id = toSafeString(leadId);
+  if (!id) return;
+  try {
+    await prisma.contactLead.update({
+      where: { id },
+      data: {
+        emailDeliveryProvider: toSafeString(input.provider) || null,
+        emailDeliveryId: toSafeString(input.messageId) || null,
+        emailDeliveredAt: input.deliveredAt || null,
+        emailDeliveryError: toSafeString(input.error) || null,
+      },
+      select: { id: true },
+    });
+  } catch {
+    // Do not fail the request when delivery metadata update fails.
+  }
 }
 
 async function parsePayload(req: Request) {
@@ -98,37 +138,109 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!canSendInviteEmail()) {
+    let leadId = "";
+    try {
+      const lead = await prisma.contactLead.create({
+        data: {
+          source: CONTACT_SOURCE,
+          name: payload.name,
+          email: payload.email,
+          organization: payload.organization || null,
+          message: payload.message,
+          ipAddress: ip,
+          userAgent: userAgent,
+        },
+        select: { id: true },
+      });
+      leadId = toSafeString(lead.id);
+    } catch (error) {
+      if (isContactLeadSchemaCompatError(error)) {
+        return NextResponse.json(
+          {
+            error: "Contact lead storage is not available yet in this environment. Run database migrations.",
+            code: "CONTACT_SCHEMA_MISSING",
+          },
+          { status: 503 }
+        );
+      }
+      appendOpsEvent({
+        type: "CONTACT_FORM_PERSIST_FAILED",
+        actor: ip || "anon",
+        route: "/api/public/contact",
+        status: 503,
+        details: {
+          error: String((error as { message?: string })?.message || "CONTACT_FORM_PERSIST_FAILED"),
+        },
+      });
       return NextResponse.json(
-        { error: "Contact email delivery is not configured.", code: "CONTACT_EMAIL_NOT_CONFIGURED" },
+        { error: "Unable to record your request right now. Please try again shortly.", code: "CONTACT_PERSIST_FAILED" },
         { status: 503 }
       );
     }
 
-    const sendResult = await sendContactLeadEmail({
-      name: payload.name,
-      email: payload.email,
-      organization: payload.organization,
-      message: payload.message,
-      requestIp: ip,
-      requestUserAgent: userAgent,
-    });
+    let emailAttempted = false;
+    let emailNotified = false;
+    let deliveryProvider: string | null = null;
+    let deliveryError: string | null = null;
 
-    if (!sendResult.sent) {
+    if (canSendInviteEmail()) {
+      emailAttempted = true;
+      const sendResult = await sendContactLeadEmail({
+        name: payload.name,
+        email: payload.email,
+        organization: payload.organization,
+        message: payload.message,
+        requestIp: ip,
+        requestUserAgent: userAgent,
+      });
+      deliveryProvider = toSafeString(sendResult.provider) || null;
+
+      if (!sendResult.sent) {
+        deliveryError = toSafeString(sendResult.error) || "CONTACT_SEND_FAILED";
+        await updateLeadDeliveryStatus(leadId, {
+          provider: deliveryProvider,
+          error: deliveryError,
+          deliveredAt: null,
+          messageId: null,
+        });
+        appendOpsEvent({
+          type: "CONTACT_FORM_SEND_FAILED",
+          actor: ip || "anon",
+          route: "/api/public/contact",
+          status: 502,
+          details: {
+            leadId,
+            provider: deliveryProvider,
+            error: deliveryError,
+          },
+        });
+      } else {
+        emailNotified = true;
+        await updateLeadDeliveryStatus(leadId, {
+          provider: deliveryProvider,
+          messageId: toSafeString(sendResult.id) || null,
+          deliveredAt: new Date(),
+          error: null,
+        });
+      }
+    } else {
+      deliveryError = "CONTACT_EMAIL_NOT_CONFIGURED";
+      await updateLeadDeliveryStatus(leadId, {
+        provider: null,
+        messageId: null,
+        deliveredAt: null,
+        error: deliveryError,
+      });
       appendOpsEvent({
-        type: "CONTACT_FORM_SEND_FAILED",
+        type: "CONTACT_FORM_EMAIL_SKIPPED",
         actor: ip || "anon",
         route: "/api/public/contact",
-        status: 502,
+        status: 202,
         details: {
-          provider: sendResult.provider,
-          error: sendResult.error || null,
+          leadId,
+          reason: deliveryError,
         },
       });
-      return NextResponse.json(
-        { error: "Unable to send your message right now.", code: "CONTACT_SEND_FAILED" },
-        { status: 502 }
-      );
     }
 
     appendOpsEvent({
@@ -137,8 +249,11 @@ export async function POST(req: Request) {
       route: "/api/public/contact",
       status: 200,
       details: {
-        provider: sendResult.provider,
-        id: sendResult.id || null,
+        leadId: leadId || null,
+        emailAttempted,
+        emailNotified,
+        provider: deliveryProvider,
+        deliveryError,
         emailDomain: payload.email.includes("@") ? payload.email.split("@")[1] : null,
         hasOrganization: !!payload.organization,
         messageLength: payload.message.length,

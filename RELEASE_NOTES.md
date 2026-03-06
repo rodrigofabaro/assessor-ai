@@ -1,8 +1,20 @@
 # Release Notes
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ## Unreleased
+
+### Latest additions (2026-03-06)
+
+- Landing-page contact intake persistence:
+  - added `ContactLead` model + migration (`prisma/migrations/20260306113000_add_contact_leads`)
+  - `POST /api/public/contact` now persists every valid submission in DB before notification email send
+  - contact API no longer depends on email channel availability to accept leads; email delivery status is tracked per lead
+- Super-admin contact intake visibility:
+  - added `GET /api/admin/contact-leads` (super-admin only) with latest leads + 24h delivery summary
+  - `/admin/developer` now includes `Landing contact intake` panel with sent/failed/pending status visibility
+- Docs/runbook parity:
+  - updated `docs/help/admin-developer.md`, `docs/ROADMAP_ONE.md`, and `docs/Milestones.md` for the new contact-lead workflow
 
 ### Latest additions (2026-03-05)
 
