@@ -33,6 +33,7 @@ import { extractFile } from "@/lib/extraction";
 import { maybeAutoDetectAiWritingForSubmission } from "@/lib/turnitin/service";
 import { pickTonePhrase, resolveToneProfileFromLegacy, type ToneProfile } from "@/lib/notes/toneDatabase";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
+import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
 
 export const runtime = "nodejs";
 
@@ -4010,6 +4011,23 @@ export async function POST(
       status,
       details: { requestId, submissionId, code, message: causeMessage },
     });
+    if (String(process.env.ALERT_EMAIL_TO || "").trim()) {
+      const lines = [
+        "Assessor AI alert: grading failed",
+        "",
+        "Route: /api/submissions/[submissionId]/grade",
+        `Submission ID: ${submissionId}`,
+        `Request ID: ${requestId}`,
+        `Error code: ${code}`,
+        `Status: ${status}`,
+        `Message: ${causeMessage || "-"}`,
+        `Timestamp (UTC): ${new Date().toISOString()}`,
+      ];
+      void sendOpsAlertEmail({
+        subject: `Assessor AI alert: grading failure (${code})`,
+        text: lines.join("\n"),
+      }).catch(() => {});
+    }
     return apiError({
       status,
       code,

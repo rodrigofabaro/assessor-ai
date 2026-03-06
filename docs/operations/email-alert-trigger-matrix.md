@@ -26,12 +26,12 @@ Primary channel:
 3. Extraction failure (`/api/submissions/[submissionId]/extract`)
 - Trigger: extraction run ends in `FAILED` status
 - Severity: P1
-- Current status: pending
+- Current status: enabled
 
 4. Grading failure (`/api/submissions/[submissionId]/grade`)
 - Trigger: grade endpoint returns terminal failure
 - Severity: P1
-- Current status: pending
+- Current status: enabled
 
 5. Auth anomaly (repeated failed recovery/lockout threshold)
 - Trigger: rate-limit or repeated auth recovery failure threshold breach

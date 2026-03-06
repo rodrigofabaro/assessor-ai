@@ -8,6 +8,7 @@ import { extractCoverMetadataFromPages, isCoverMetadataReady } from "@/lib/submi
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 import { maybeAutoSendTurnitinForSubmission } from "@/lib/turnitin/service";
 import { normalizeSymbolArtifacts } from "@/lib/extraction/normalize/symbols";
+import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 const MIN_MEANINGFUL_PAGE_CHARS = 120;
@@ -441,6 +442,23 @@ export async function POST(
         data: { status: "FAILED" },
       }),
     ]);
+
+    if (String(process.env.ALERT_EMAIL_TO || "").trim()) {
+      const lines = [
+        "Assessor AI alert: submission extraction failed",
+        "",
+        "Route: /api/submissions/[submissionId]/extract",
+        `Submission ID: ${submissionId}`,
+        `Run ID: ${runId}`,
+        `Request ID: ${requestId}`,
+        `Message: ${msg || "-"}`,
+        `Timestamp (UTC): ${new Date().toISOString()}`,
+      ];
+      void sendOpsAlertEmail({
+        subject: "Assessor AI alert: extraction failure",
+        text: lines.join("\n"),
+      }).catch(() => {});
+    }
 
     return apiError({
       status: 500,
