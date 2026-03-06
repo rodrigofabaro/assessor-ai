@@ -38,6 +38,101 @@ async function checkDatabase(): Promise<CheckResult> {
   }
 }
 
+async function tableExists(tableName: string) {
+  const rows = await prisma.$queryRawUnsafe(
+    `
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = $1
+      LIMIT 1
+    `,
+    tableName
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+async function columnExists(tableName: string, columnName: string) {
+  const rows = await prisma.$queryRawUnsafe(
+    `
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = $1
+        AND column_name = $2
+      LIMIT 1
+    `,
+    tableName,
+    columnName
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+async function checkSchema(): Promise<CheckResult> {
+  const required = isTruthy(process.env.AUTH_REQUIRE_SCHEMA_CONTRACT);
+  const requiredTables = [
+    "Organization",
+    "OrganizationMembership",
+    "AppUser",
+    "ReferenceDocument",
+    "Unit",
+    "PasswordResetToken",
+    "ContactLead",
+    "OutboundEmailEvent",
+    "EmailProviderEvent",
+  ];
+  const requiredColumns: Array<[string, string]> = [
+    ["AppUser", "organizationId"],
+    ["AppUser", "platformRole"],
+    ["ReferenceDocument", "organizationId"],
+    ["Unit", "organizationId"],
+  ];
+
+  try {
+    const missingTables: string[] = [];
+    const missingColumns: string[] = [];
+
+    for (const table of requiredTables) {
+      const ok = await tableExists(table);
+      if (!ok) missingTables.push(table);
+    }
+    for (const [table, column] of requiredColumns) {
+      const ok = await columnExists(table, column);
+      if (!ok) missingColumns.push(`${table}.${column}`);
+    }
+
+    if (!missingTables.length && !missingColumns.length) {
+      return {
+        ok: true,
+        required,
+        message: "Schema contract checks passed.",
+      };
+    }
+
+    const detail = {
+      missingTables,
+      missingColumns,
+    };
+    return {
+      ok: !required,
+      required,
+      message: required
+        ? "Schema contract checks failed."
+        : "Schema drift detected (optional in current mode).",
+      detail,
+    };
+  } catch (error) {
+    return {
+      ok: !required,
+      required,
+      message: required ? "Schema contract query failed." : "Schema contract query failed (optional in current mode).",
+      detail: {
+        error: safeErrorMessage(error),
+      },
+    };
+  }
+}
+
 async function checkStorage(): Promise<CheckResult> {
   const backend = String(process.env.STORAGE_BACKEND || "filesystem").trim().toLowerCase();
   if (backend === "vercel_blob") {
@@ -206,11 +301,16 @@ async function checkOpenAi(): Promise<CheckResult> {
 }
 
 export async function GET() {
-  const [database, storage, openai] = await Promise.all([checkDatabase(), checkStorage(), checkOpenAi()]);
+  const [database, storage, schema, openai] = await Promise.all([
+    checkDatabase(),
+    checkStorage(),
+    checkSchema(),
+    checkOpenAi(),
+  ]);
   const email = checkEmail();
   const emailWebhook = checkEmailWebhook();
 
-  const checks = { database, storage, email, emailWebhook, openai };
+  const checks = { database, storage, schema, email, emailWebhook, openai };
   const failures = Object.entries(checks)
     .filter(([, result]) => result.required && !result.ok)
     .map(([name]) => name);

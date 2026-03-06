@@ -47,6 +47,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - outbound email telemetry now persists in DB (`OutboundEmailEvent`) with `SUPER_ADMIN` delivery-health dashboard cards (24h sent/failed/skipped + channel rollup)
    - provider lifecycle webhook ingestion is now live (`POST /api/webhooks/resend`) with signature verification and `EmailProviderEvent` persistence
    - readiness endpoint now includes webhook configuration check (`emailWebhook`) and supports strict enforcement with `AUTH_REQUIRE_EMAIL_WEBHOOK=true`
+   - readiness endpoint now includes schema drift check (`schema`) and supports strict enforcement with `AUTH_REQUIRE_SCHEMA_CONTRACT=true`
 
 ## Execution lanes
 

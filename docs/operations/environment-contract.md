@@ -131,6 +131,7 @@ Primary login mode:
   - default: `false`
   - when `true`, release gate requires DB schema contract checks to pass (`pnpm run ops:schema-contract`)
   - validates presence of core migration objects used by organization scope and email operations
+  - readiness endpoint also treats schema as required when enabled (`checks.schema`)
 
 - `CONTACT_EMAIL_FROM`
   - optional
