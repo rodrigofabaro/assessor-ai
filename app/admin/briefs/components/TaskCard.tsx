@@ -34,6 +34,7 @@ interface Task {
     sourceAnchor?: string;
     sourceSnippet?: string;
     matchScore?: number;
+    citationStatus?: "CITED" | "NEEDS_REVIEW";
   };
   [key: string]: any;
 }
@@ -1269,7 +1270,14 @@ export function TaskCard({
   const pages = Array.isArray(task?.pages) ? task.pages.filter(Boolean) : [];
   const provenance = useMemo(() => {
     const candidate = (task?.provenance || extractedTask?.provenance || null) as
-      | { taskNumber?: number; pages?: number[]; sourceAnchor?: string; sourceSnippet?: string; matchScore?: number }
+      | {
+          taskNumber?: number;
+          pages?: number[];
+          sourceAnchor?: string;
+          sourceSnippet?: string;
+          matchScore?: number;
+          citationStatus?: "CITED" | "NEEDS_REVIEW";
+        }
       | null;
     if (!candidate || typeof candidate !== "object") return null;
     const pPages = Array.isArray(candidate.pages)
@@ -1284,7 +1292,9 @@ export function TaskCard({
       sourceAnchor,
       sourceSnippet,
       matchScore,
-      status: sourceSnippet || pPages.length || sourceAnchor ? "CITED" : "NEEDS_REVIEW",
+      status:
+        candidate.citationStatus ||
+        (sourceSnippet || pPages.length || sourceAnchor ? "CITED" : "NEEDS_REVIEW"),
     } as const;
   }, [task?.provenance, extractedTask?.provenance]);
   const provenanceMatchPct = provenance?.matchScore === null || provenance?.matchScore === undefined

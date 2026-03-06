@@ -88,12 +88,25 @@ Evaluate the resulting chart and justify the failure reasons.
 
   const missingTaskDraft = {
     kind: "BRIEF",
-    tasks: [{ n: 1, pages: [1], text: "Task one content only." }],
+    tasks: [
+      { n: 1, pages: [1], text: "Task one content only." },
+      { n: 3, pages: [2], text: "Extra extracted task without source anchor." },
+    ],
   };
   const missingReport = buildBriefFidelityReport(missingTaskDraft, source);
   assert(
     missingReport.issues.some((i) => i.code === "TASK_MISSING_FROM_EXTRACTION" && i.taskNumber === 2),
     "expected blocker for missing Task 2 extraction"
+  );
+  const missingEnriched = attachBriefTaskProvenance(missingTaskDraft, missingReport);
+  const uncitedTask = missingEnriched.tasks.find((t) => Number(t?.n) === 3);
+  assert(
+    String(uncitedTask?.provenance?.citationStatus || "") === "NEEDS_REVIEW",
+    "expected uncited task provenance to be marked NEEDS_REVIEW"
+  );
+  assert(
+    String(uncitedTask?.provenance?.sourceSnippet || "").includes("UNKNOWN / NEEDS_REVIEW"),
+    "expected uncited task snippet marker"
   );
 
   const noImageDraft = {
@@ -110,4 +123,3 @@ Evaluate the resulting chart and justify the failure reasons.
 }
 
 run();
-

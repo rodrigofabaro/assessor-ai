@@ -22,6 +22,7 @@ export type BriefTaskProvenance = {
   sourceAnchor: string;
   sourceSnippet: string;
   matchScore: number;
+  citationStatus?: "CITED" | "NEEDS_REVIEW";
 };
 
 export type BriefFidelityReport = {
@@ -247,6 +248,7 @@ export function buildBriefFidelityReport(draftLike: any, sourceText: string): Br
         sourceAnchor: `Task ${n}`,
         sourceSnippet: sourceSegment.slice(0, 260),
         matchScore: Number(score.toFixed(3)),
+        citationStatus: sourceSegment ? "CITED" : "NEEDS_REVIEW",
       });
     }
   }
@@ -295,15 +297,42 @@ export function attachBriefTaskProvenance(draftLike: any, report: BriefFidelityR
   const tasks = draftLike.tasks.map((task: any) => {
     const n = toTaskNumber(task?.n);
     const provenance = n > 0 ? byTaskNumber.get(n) : null;
-    if (!provenance) return task;
+    if (!provenance) {
+      const existingPages = Array.isArray(task?.pages)
+        ? task.pages.map((v: unknown) => Number(v)).filter((v: number) => Number.isInteger(v) && v > 0)
+        : [];
+      const mergedWarnings = Array.isArray(task?.warnings)
+        ? task.warnings.map((w: unknown) => String(w || "")).filter(Boolean)
+        : [];
+      if (!mergedWarnings.some((w) => /fidelity: source citation missing/i.test(w))) {
+        mergedWarnings.push("fidelity: source citation missing (needs review)");
+      }
+      return {
+        ...task,
+        warnings: mergedWarnings,
+        provenance: {
+          taskNumber: n || undefined,
+          pages: existingPages,
+          sourceAnchor: n > 0 ? `Task ${n}` : "Task",
+          sourceSnippet: "UNKNOWN / NEEDS_REVIEW: no source citation was found for this extracted task block.",
+          matchScore: 0,
+          citationStatus: "NEEDS_REVIEW" as const,
+        },
+      };
+    }
     return {
       ...task,
       provenance: {
         taskNumber: provenance.taskNumber,
         pages: provenance.pages,
         sourceAnchor: provenance.sourceAnchor,
-        sourceSnippet: provenance.sourceSnippet,
+        sourceSnippet:
+          provenance.sourceSnippet ||
+          (provenance.citationStatus === "NEEDS_REVIEW"
+            ? "UNKNOWN / NEEDS_REVIEW: no source citation was found for this extracted task block."
+            : ""),
         matchScore: provenance.matchScore,
+        citationStatus: provenance.citationStatus || "CITED",
       },
     };
   });
@@ -313,4 +342,3 @@ export function attachBriefTaskProvenance(draftLike: any, report: BriefFidelityR
     tasks,
   };
 }
-

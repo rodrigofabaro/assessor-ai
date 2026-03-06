@@ -60,6 +60,7 @@ UI note:
 
 - Task cards now show `Source provenance` (anchor, source pages, match %, snippet).
 - If provenance is missing, card status shows `Needs review` and re-extract is recommended before lock.
+- Uncited task blocks are explicitly tagged as `UNKNOWN / NEEDS_REVIEW` in provenance to prevent silent acceptance of inferred content.
 
 ## Brief vs Spec Audit (New Lock Guard)
 
