@@ -38,6 +38,22 @@ type BatchResult = {
   error?: string;
 };
 
+type QaBatchAction = "preview" | "commit" | "regrade";
+
+function toFiniteMs(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n);
+}
+
+function percentileMs(values: number[], ratio: number): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const clamped = Math.max(0, Math.min(1, ratio));
+  const idx = Math.floor((sorted.length - 1) * clamped);
+  return sorted[idx] || 0;
+}
+
 type ExtractionGate = ReturnType<typeof evaluateExtractionReadiness>;
 
 function parseJsonSafe(text: string) {
@@ -174,6 +190,7 @@ export async function POST(req: Request) {
     const retryFailedOnly = !!body.retryFailedOnly;
     const dryRun = !!body.dryRun;
     const forceRetry = !!body.forceRetry;
+    const qaAction: QaBatchAction = dryRun ? "preview" : retryFailedOnly || forceRetry ? "regrade" : "commit";
     const operationReason = String(body.operationReason || "").trim();
     const previewContext = {
       linkedPreviewRequestId: String(body.previewContext?.linkedPreviewRequestId || "").trim() || null,
@@ -227,7 +244,8 @@ export async function POST(req: Request) {
 
     const concurrency = Number(body.concurrency || 1);
     const jobs = targets.map(
-      (submissionId) => async (): Promise<BatchResult> => {
+      (submissionId) => async (): Promise<{ result: BatchResult; durationMs: number }> => {
+        const startedAtMs = Date.now();
         const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, req.url);
         const res = await fetch(gradeUrl.toString(), {
           method: "POST",
@@ -245,28 +263,46 @@ export async function POST(req: Request) {
 
         if (!res.ok) {
           return {
-            submissionId,
-            ok: false,
-            status: res.status,
-            error: String(json?.error || `Grade failed (${res.status})`),
+            result: {
+              submissionId,
+              ok: false,
+              status: res.status,
+              error: String(json?.error || `Grade failed (${res.status})`),
+            },
+            durationMs: Date.now() - startedAtMs,
           };
         }
 
         return {
-          submissionId,
-          ok: true,
-          status: 200,
-          grade: dryRun ? (json?.preview?.overallGrade ?? null) : (json?.assessment?.overallGrade ?? null),
-          rawGrade: dryRun ? (json?.preview?.rawOverallGrade ?? null) : null,
-          dryRun,
-          assessmentId: dryRun ? null : (json?.assessment?.id ?? null),
+          result: {
+            submissionId,
+            ok: true,
+            status: 200,
+            grade: dryRun ? (json?.preview?.overallGrade ?? null) : (json?.assessment?.overallGrade ?? null),
+            rawGrade: dryRun ? (json?.preview?.rawOverallGrade ?? null) : null,
+            dryRun,
+            assessmentId: dryRun ? null : (json?.assessment?.id ?? null),
+          },
+          durationMs: Date.now() - startedAtMs,
         };
       }
     );
 
-    const results = await runWithConcurrency(jobs, concurrency);
+    const batchStartedAtMs = Date.now();
+    const resultsWithLatency = await runWithConcurrency(jobs, concurrency);
+    const batchDurationMs = Date.now() - batchStartedAtMs;
+    const results = resultsWithLatency.map((row) => row.result);
+    const perSubmissionDurations = resultsWithLatency
+      .map((row) => toFiniteMs(row.durationMs))
+      .filter((value): value is number => value !== null);
     const okCount = results.filter((r) => r.ok).length;
     const failCount = results.length - okCount;
+    const perSubmissionLatencyP50Ms = percentileMs(perSubmissionDurations, 0.5);
+    const perSubmissionLatencyP95Ms = percentileMs(perSubmissionDurations, 0.95);
+    const perSubmissionLatencyAvgMs = perSubmissionDurations.length
+      ? Math.round(perSubmissionDurations.reduce((acc, n) => acc + n, 0) / perSubmissionDurations.length)
+      : 0;
+    const batchFailureRate = targets.length > 0 ? Number((failCount / targets.length).toFixed(4)) : 0;
     appendOpsEvent({
       type: "BATCH_GRADE_RUN",
       route: "/api/submissions/batch-grade",
@@ -287,6 +323,17 @@ export async function POST(req: Request) {
         assignmentRef: assignmentRef || null,
         reason: operationReason || null,
         previewContext,
+        qaReliability: {
+          action: qaAction,
+          batchDurationMs: toFiniteMs(batchDurationMs) || 0,
+          failureRate: batchFailureRate,
+          perSubmissionDurationMs: {
+            sampleSize: perSubmissionDurations.length,
+            p50: perSubmissionLatencyP50Ms,
+            p95: perSubmissionLatencyP95Ms,
+            avg: perSubmissionLatencyAvgMs,
+          },
+        },
       },
     });
 
@@ -301,6 +348,9 @@ export async function POST(req: Request) {
           succeeded: okCount,
           failed: failCount,
           dryRun,
+          action: qaAction,
+          batchDurationMs: toFiniteMs(batchDurationMs) || 0,
+          failureRate: batchFailureRate,
         },
         skipped,
         results,

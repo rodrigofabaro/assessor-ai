@@ -54,6 +54,7 @@ Status labels:
 - Deployment hardening progress (2026-03-06): release gate now includes database schema contract check (`pnpm run ops:schema-contract`) to prevent missing-table/column runtime failures.
 - Deployment hardening progress (2026-03-06): readiness endpoint now includes schema drift signal (`checks.schema`) aligned with `AUTH_REQUIRE_SCHEMA_CONTRACT`.
 - Deployment hardening progress (2026-03-06): release gate now includes OpenAI Responses write-scope contract (`pnpm run ops:openai-responses-contract`) aligned with strict flag `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE`.
+- QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
@@ -251,6 +252,7 @@ Current update (2026-03-03):
 6. QA reliability instrumentation
 - Add lightweight latency telemetry on preview, commit, and regrade actions.
 - Add dashboard cards for p50/p95 timings and retry/failure rates by route.
+- Status (2026-03-06): delivered in super-admin developer console via `GET /api/admin/ops/qa-reliability`, with batch-run telemetry emitted from `/api/submissions/batch-grade` (`qaReliability` payload).
 
 **Exit criteria for this queue**
 - No unresolved P1 regressions on extraction or grading integrity.

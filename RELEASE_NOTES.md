@@ -29,6 +29,11 @@ Last updated: 2026-03-06
   - added OpenAI Responses write-scope contract command `pnpm run ops:openai-responses-contract` and release-gate integration for `api.responses.write` enforcement
 - Docs/runbook parity:
   - updated `docs/help/admin-developer.md`, `docs/ROADMAP_ONE.md`, and `docs/Milestones.md` for the new contact-lead workflow
+- QA reliability instrumentation (deployment roadmap slice):
+  - `/api/submissions/batch-grade` now emits structured `qaReliability` telemetry for preview/commit/regrade runs (batch duration + per-submission latency summary + failure rate)
+  - added `GET /api/admin/ops/qa-reliability` (super-admin) to aggregate 7-day p50/p95/retry/failure metrics from ops events
+  - `/admin/developer` now includes `QA reliability telemetry` cards and tables (runs, p95 by action, retry/failure rates, recent run log)
+  - added regression contract test: `scripts/qa-reliability-contract.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 

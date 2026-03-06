@@ -17,6 +17,7 @@ const tests = [
   "scripts/storage-deployment-contract.test.js",
   "scripts/schema-contract.test.js",
   "scripts/openai-responses-contract.test.js",
+  "scripts/qa-reliability-contract.test.js",
 ];
 
 let failures = 0;

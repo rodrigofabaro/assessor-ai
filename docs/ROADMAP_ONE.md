@@ -48,6 +48,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - provider lifecycle webhook ingestion is now live (`POST /api/webhooks/resend`) with signature verification and `EmailProviderEvent` persistence
    - readiness endpoint now includes webhook configuration check (`emailWebhook`) and supports strict enforcement with `AUTH_REQUIRE_EMAIL_WEBHOOK=true`
    - readiness endpoint now includes schema drift check (`schema`) and supports strict enforcement with `AUTH_REQUIRE_SCHEMA_CONTRACT=true`
+   - QA reliability telemetry is now emitted by batch grading runs (`qaReliability`) and surfaced in `SUPER_ADMIN` developer dashboard cards/tables via `GET /api/admin/ops/qa-reliability`
 
 ## Execution lanes
 
@@ -192,6 +193,7 @@ Use this doc when the instruction is: "continue the roadmap".
 7. QA reliability instrumentation
 - preview/commit/regrade latency metrics
 - p50/p95 + retry/failure dashboard cards
+- Progress (2026-03-06): batch grading now emits structured QA latency telemetry (`qaReliability`) per run, and `/admin/developer` includes QA reliability cards/tables (7d preview/commit/regrade p50/p95, retry rate, failure rate, recent runs) backed by `GET /api/admin/ops/qa-reliability`.
 
 8. P1 M9.2 feedback quality policy hardening
 - enforce VASCR framing in assessment decisions:

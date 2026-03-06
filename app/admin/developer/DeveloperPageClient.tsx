@@ -94,6 +94,56 @@ type EmailWebhookConfig = {
   allowUnsigned: boolean;
 };
 
+type QaReliabilitySummary = {
+  totalRuns: number;
+  previewRuns: number;
+  commitRuns: number;
+  regradeRuns: number;
+  targetedTotal: number;
+  failedTotal: number;
+  retryRate: number;
+  failureRate: number;
+};
+
+type QaLatency = {
+  sampleSize: number;
+  p50Ms: number;
+  p95Ms: number;
+  avgMs: number;
+  maxMs: number;
+};
+
+type QaActionRollup = {
+  action: "preview" | "commit" | "regrade";
+  runs: number;
+  targeted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  failureRate: number;
+  batchLatency: QaLatency;
+  perSubmissionLatency: QaLatency;
+};
+
+type QaRecentRun = {
+  id: string;
+  ts: string;
+  action: "preview" | "commit" | "regrade";
+  requestId?: string | null;
+  targeted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  failureRate: number;
+  batchDurationMs: number;
+  perSubmission: {
+    p50Ms: number;
+    p95Ms: number;
+    avgMs: number;
+    sampleSize: number;
+  };
+};
+
 function prettyJson(value: unknown) {
   try {
     return JSON.stringify(value || {}, null, 2);
@@ -120,6 +170,18 @@ function clipText(value: string, maxLength: number) {
   const text = String(value || "").replace(/\s+/g, " ").trim();
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength - 1)}...`;
+}
+
+function formatPercent(value: number) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0.0%";
+  return `${(n * 100).toFixed(1)}%`;
+}
+
+function formatMs(value: number) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return `${Math.round(n)} ms`;
 }
 
 const EMPTY_CONTACT_SUMMARY: ContactLeadSummary = {
@@ -151,6 +213,17 @@ const EMPTY_WEBHOOK_CONFIG: EmailWebhookConfig = {
   allowUnsigned: false,
 };
 
+const EMPTY_QA_SUMMARY: QaReliabilitySummary = {
+  totalRuns: 0,
+  previewRuns: 0,
+  commitRuns: 0,
+  regradeRuns: 0,
+  targetedTotal: 0,
+  failedTotal: 0,
+  retryRate: 0,
+  failureRate: 0,
+};
+
 export default function DeveloperPageClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -180,10 +253,19 @@ export default function DeveloperPageClient() {
   const [emailWebhookConfig, setEmailWebhookConfig] = useState<EmailWebhookConfig>(EMPTY_WEBHOOK_CONFIG);
   const [emailWarning, setEmailWarning] = useState("");
   const [loadingEmailDelivery, setLoadingEmailDelivery] = useState(false);
+  const [qaSummary, setQaSummary] = useState<QaReliabilitySummary>(EMPTY_QA_SUMMARY);
+  const [qaByAction, setQaByAction] = useState<QaActionRollup[]>([]);
+  const [qaRecentRuns, setQaRecentRuns] = useState<QaRecentRun[]>([]);
+  const [qaWarning, setQaWarning] = useState("");
+  const [loadingQaReliability, setLoadingQaReliability] = useState(false);
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => org.id === selectedOrgId) || null,
     [organizations, selectedOrgId]
+  );
+  const qaActionMap = useMemo(
+    () => new Map(qaByAction.map((row) => [row.action, row])),
+    [qaByAction]
   );
 
   const loadOrganizations = useCallback(async () => {
@@ -313,6 +395,36 @@ export default function DeveloperPageClient() {
     }
   }, []);
 
+  const loadQaReliability = useCallback(async () => {
+    setLoadingQaReliability(true);
+    setQaWarning("");
+    try {
+      const res = await fetch("/api/admin/ops/qa-reliability?limit=60&days=7", { cache: "no-store" });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        throw new Error(String(json?.error || "Failed to load QA reliability telemetry."));
+      }
+      const summary = (json?.summary || {}) as Partial<QaReliabilitySummary>;
+      setQaSummary({
+        totalRuns: Number(summary.totalRuns || 0),
+        previewRuns: Number(summary.previewRuns || 0),
+        commitRuns: Number(summary.commitRuns || 0),
+        regradeRuns: Number(summary.regradeRuns || 0),
+        targetedTotal: Number(summary.targetedTotal || 0),
+        failedTotal: Number(summary.failedTotal || 0),
+        retryRate: Number(summary.retryRate || 0),
+        failureRate: Number(summary.failureRate || 0),
+      });
+      setQaByAction(Array.isArray(json?.byAction) ? (json.byAction as QaActionRollup[]) : []);
+      setQaRecentRuns(Array.isArray(json?.recentRuns) ? (json.recentRuns as QaRecentRun[]) : []);
+      setQaWarning(String(json?.warning || "").trim());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load QA reliability telemetry.");
+    } finally {
+      setLoadingQaReliability(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadOrganizations();
   }, [loadOrganizations]);
@@ -324,6 +436,10 @@ export default function DeveloperPageClient() {
   useEffect(() => {
     void loadEmailDelivery();
   }, [loadEmailDelivery]);
+
+  useEffect(() => {
+    void loadQaReliability();
+  }, [loadQaReliability]);
 
   useEffect(() => {
     if (!selectedOrgId) return;
@@ -510,6 +626,15 @@ export default function DeveloperPageClient() {
             >
               <TinyIcon name="status" className="h-3.5 w-3.5" />
               {loadingEmailDelivery ? "Refreshing email..." : "Refresh email"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadQaReliability()}
+              disabled={loadingQaReliability}
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              <TinyIcon name="workflow" className="h-3.5 w-3.5" />
+              {loadingQaReliability ? "Refreshing QA..." : "Refresh QA"}
             </button>
             <Link href="/admin/users" className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">
               Users
@@ -699,6 +824,149 @@ export default function DeveloperPageClient() {
             </button>
           </div>
         </article>
+      </section>
+
+      <section id="qa-reliability" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">QA reliability telemetry</h2>
+            <p className="mt-1 text-xs text-slate-600">
+              7-day run quality for preview, commit, and regrade operations.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadQaReliability()}
+            disabled={loadingQaReliability}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loadingQaReliability ? "Loading..." : "Reload telemetry"}
+          </button>
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-slate-500">Runs (7d)</div>
+            <div className="mt-0.5 text-base font-semibold text-slate-900">{qaSummary.totalRuns}</div>
+          </div>
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-cyan-700">Preview p95</div>
+            <div className="mt-0.5 text-base font-semibold text-cyan-900">
+              {formatMs(qaActionMap.get("preview")?.batchLatency?.p95Ms || 0)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-emerald-700">Commit p95</div>
+            <div className="mt-0.5 text-base font-semibold text-emerald-900">
+              {formatMs(qaActionMap.get("commit")?.batchLatency?.p95Ms || 0)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-indigo-700">Regrade p95</div>
+            <div className="mt-0.5 text-base font-semibold text-indigo-900">
+              {formatMs(qaActionMap.get("regrade")?.batchLatency?.p95Ms || 0)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-amber-700">Retry rate</div>
+            <div className="mt-0.5 text-base font-semibold text-amber-900">{formatPercent(qaSummary.retryRate)}</div>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-rose-700">Failure rate</div>
+            <div className="mt-0.5 text-base font-semibold text-rose-900">{formatPercent(qaSummary.failureRate)}</div>
+          </div>
+        </div>
+
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-slate-500">Targeted submissions</div>
+            <div className="mt-0.5 text-base font-semibold text-slate-900">{qaSummary.targetedTotal}</div>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-rose-700">Failed submissions</div>
+            <div className="mt-0.5 text-base font-semibold text-rose-900">{qaSummary.failedTotal}</div>
+          </div>
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-cyan-700">Preview runs</div>
+            <div className="mt-0.5 text-base font-semibold text-cyan-900">{qaSummary.previewRuns}</div>
+          </div>
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-indigo-700">Regrade runs</div>
+            <div className="mt-0.5 text-base font-semibold text-indigo-900">{qaSummary.regradeRuns}</div>
+          </div>
+        </div>
+
+        {qaWarning ? (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {qaWarning}
+          </div>
+        ) : null}
+
+        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Action</th>
+                  <th className="px-3 py-2 text-left font-semibold">Runs</th>
+                  <th className="px-3 py-2 text-left font-semibold">Batch p50/p95</th>
+                  <th className="px-3 py-2 text-left font-semibold">Failure</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                {qaByAction.map((row) => (
+                  <tr key={row.action}>
+                    <td className="px-3 py-2 align-top font-semibold capitalize text-slate-900">{row.action}</td>
+                    <td className="px-3 py-2 align-top">{row.runs}</td>
+                    <td className="px-3 py-2 align-top">
+                      {formatMs(row.batchLatency?.p50Ms || 0)} / {formatMs(row.batchLatency?.p95Ms || 0)}
+                    </td>
+                    <td className="px-3 py-2 align-top">{formatPercent(row.failureRate)}</td>
+                  </tr>
+                ))}
+                {!qaByAction.length ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
+                      No QA telemetry captured yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Time</th>
+                  <th className="px-3 py-2 text-left font-semibold">Action</th>
+                  <th className="px-3 py-2 text-left font-semibold">Targeted</th>
+                  <th className="px-3 py-2 text-left font-semibold">Batch duration</th>
+                  <th className="px-3 py-2 text-left font-semibold">Failure</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                {qaRecentRuns.map((run) => (
+                  <tr key={run.id}>
+                    <td className="px-3 py-2 align-top">{formatDateTime(run.ts)}</td>
+                    <td className="px-3 py-2 align-top capitalize">{run.action}</td>
+                    <td className="px-3 py-2 align-top">{run.targeted}</td>
+                    <td className="px-3 py-2 align-top">{formatMs(run.batchDurationMs)}</td>
+                    <td className="px-3 py-2 align-top">{formatPercent(run.failureRate)}</td>
+                  </tr>
+                ))}
+                {!qaRecentRuns.length ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                      No recent QA runs.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section id="email-operations" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">

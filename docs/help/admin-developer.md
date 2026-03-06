@@ -11,6 +11,7 @@ Super-admin control plane for platform-level operations:
 3. encrypted per-organization integration secrets
 4. landing-page contact lead intake and delivery status
 5. outbound email telemetry dashboard (`invite`, `recovery`, `contact`, `alerts`)
+6. QA reliability telemetry dashboard (preview/commit/regrade latency + retry/failure health)
 
 This route is restricted to `SUPER_ADMIN`.
 
@@ -22,6 +23,7 @@ This route is restricted to `SUPER_ADMIN`.
 4. Rotate/update OpenAI, Turnitin, and SMTP API secrets.
 5. Review recent early-access/contact leads and email notification status.
 6. Monitor last-24h outbound email delivery metrics and recent events by channel.
+7. Monitor 7-day QA reliability metrics (batch preview/commit/regrade p50/p95 latency, retry rate, failure rate, and recent runs).
 
 ## Important behavior
 
@@ -31,6 +33,7 @@ This route is restricted to `SUPER_ADMIN`.
 4. Outbound email telemetry is persisted in DB (`OutboundEmailEvent`) for super-admin operations visibility.
 5. Provider lifecycle webhooks are persisted in DB (`EmailProviderEvent`) and shown in delivery cards/table when `RESEND_WEBHOOK_SECRET` is configured.
 6. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.
+7. QA telemetry is derived from `BATCH_GRADE_RUN` ops events and requires migrations for `OpsRuntimeEvent`.
 
 ## Related runbook
 
