@@ -1,6 +1,6 @@
 # `/admin/settings` Help
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ## Purpose
 
@@ -33,7 +33,7 @@ Super-admin-only controls (organization lifecycle + per-organization secrets/con
 - active audit user (assessor attribution source)
 - automation policy toggles
 - Turnitin configuration and smoke test
-- favicon upload
+- favicon upload (storage-backed, served via `/api/favicon`)
 
 ## Turnitin workflow in Settings
 

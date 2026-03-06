@@ -19,6 +19,7 @@ const tests = [
   "scripts/password-recovery-contract.test.js",
   "scripts/storage-deployment-contract.test.js",
   "scripts/schema-contract.test.js",
+  "scripts/favicon-persistence-contract.test.js",
   "scripts/openai-responses-contract.test.js",
   "scripts/qa-reliability-contract.test.js",
   "scripts/reference-inbox-projection-contract.test.js",

@@ -89,6 +89,8 @@ async function checkSchema(): Promise<CheckResult> {
     ["Unit", "organizationId"],
     ["AppConfig", "turnitinConfig"],
     ["AppConfig", "automationPolicy"],
+    ["AppConfig", "faviconStoragePath"],
+    ["AppConfig", "faviconMimeType"],
   ];
 
   try {

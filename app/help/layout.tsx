@@ -122,7 +122,7 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
       <aside className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm lg:sticky lg:top-3 lg:flex lg:max-h-[calc(100vh-16px)] lg:flex-col">
         <Link href="/" className="group mb-3 flex items-center gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2">
           <span className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-zinc-100 transition group-hover:border-zinc-300">
-            <Image src="/favicon.ico" alt="Assessor AI logo" width={22} height={22} className="h-5.5 w-5.5 object-contain" />
+            <Image src="/api/favicon" alt="Assessor AI logo" width={22} height={22} className="h-5.5 w-5.5 object-contain" />
           </span>
           <span className="text-[15px] font-semibold tracking-tight text-zinc-900">
             Assessor <span className="font-medium text-zinc-500">AI</span>

@@ -686,7 +686,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       });
       const json = await res.json();
       if (!res.ok || !json?.ok) throw new Error(json?.error || "Failed to upload favicon.");
-      setAppMsg("Favicon uploaded. Hard refresh may be required.");
+      setAppMsg(String(json?.note || "Favicon uploaded."));
       setFaviconFile(null);
       await load();
     } catch (e) {
@@ -2143,7 +2143,7 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
       <section className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
         <h2 className="text-sm font-semibold text-zinc-900">Branding: favicon</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          Upload an icon used by browser tabs (`/favicon.ico`). Supported: ICO/PNG/SVG (max 2MB).
+          Upload an icon used by browser tabs. Supported: ICO/PNG/SVG (max 2MB).
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -2168,7 +2168,13 @@ export function AdminSettingsPage({ scope = "all" }: { scope?: SettingsScope }) 
         </p>
         <p className="mt-1 text-xs text-zinc-500">
           Preview:
-          <Image src="/favicon.ico" alt="Current favicon" width={16} height={16} className="ml-2 inline-block align-middle" />
+          <Image
+            src={appCfg?.faviconUpdatedAt ? `/api/favicon?v=${encodeURIComponent(appCfg.faviconUpdatedAt)}` : "/api/favicon"}
+            alt="Current favicon"
+            width={16}
+            height={16}
+            className="ml-2 inline-block align-middle"
+          />
         </p>
         {appMsg ? <p className="mt-2 text-xs text-zinc-600">{appMsg}</p> : null}
       </section>

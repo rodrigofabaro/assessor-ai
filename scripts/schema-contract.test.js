@@ -24,6 +24,8 @@ function main() {
   expectContains(script, "TurnitinSubmissionSyncState", "schema contract script");
   expectContains(script, "AppConfig\", \"turnitinConfig", "schema contract script");
   expectContains(script, "AppConfig\", \"automationPolicy", "schema contract script");
+  expectContains(script, "AppConfig\", \"faviconStoragePath", "schema contract script");
+  expectContains(script, "AppConfig\", \"faviconMimeType", "schema contract script");
   expectContains(script, "AUTH_REQUIRE_SCHEMA_CONTRACT", "schema contract script");
 
   expectContains(packageJson, "ops:schema-contract", "package.json");

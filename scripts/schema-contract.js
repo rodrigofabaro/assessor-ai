@@ -87,6 +87,8 @@ async function main() {
     ["Unit", "organizationId"],
     ["AppConfig", "turnitinConfig"],
     ["AppConfig", "automationPolicy"],
+    ["AppConfig", "faviconStoragePath"],
+    ["AppConfig", "faviconMimeType"],
   ];
 
   const missingTables = [];

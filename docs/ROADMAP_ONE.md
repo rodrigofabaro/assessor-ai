@@ -170,7 +170,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-03): persistence sweep completed.
 - Canonical classification added: `docs/operations/persistence-classification.md`.
 - Remaining `must-migrate` blockers before production-safe go-live:
-  - runtime favicon mutation path writing into `public/favicon.ico`
+  - none (all previously identified runtime persistence blockers migrated)
 - Progress (2026-03-03): first `must-migrate` item delivered.
 - Ops events now write/read from DB (`OpsRuntimeEvent`) with temporary file fallback (`.ops-events.jsonl`) for safe transition.
 - Compatibility hardening added: if DB model/migration is not yet available in a running environment, ops events auto-fallback to file sink instead of throwing runtime errors.
@@ -188,6 +188,8 @@ Use this doc when the instruction is: "continue the roadmap".
 - Turnitin config now persists via DB (`AppConfig.turnitinConfig`) with file fallback compatibility.
 - Turnitin submission sync state now persists via DB table (`TurnitinSubmissionSyncState`) with file fallback compatibility.
 - Automation policy now persists via DB (`AppConfig.automationPolicy`) with file fallback compatibility.
+- Progress (2026-03-06): favicon runtime mutation migrated off `public/`.
+- favicon uploads now persist via storage provider with DB pointer (`AppConfig.faviconStoragePath`, `AppConfig.faviconMimeType`) and are served via `/api/favicon`.
 
 6. Extraction and admin performance hardening
 - brief extraction regression stabilization

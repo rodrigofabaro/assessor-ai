@@ -73,9 +73,13 @@ Classify remaining local filesystem persistence and define what must move before
 ## D) Static asset mutation
 
 1. Runtime favicon write (`app/api/admin/favicon/route.ts` -> `public/favicon.ico`)
-- Status: `must-migrate`
+- Status: `migrated` (storage provider + DB pointer)
 - Risk: asset change lost on immutable/stateless deploy target.
-- Target: object storage + DB pointer/config, or build-time managed asset only.
+- Delivered:
+  - favicon uploads now persist via storage provider (`storage/branding/favicon.*`)
+  - active favicon pointer + mime type persisted in `AppConfig` (`faviconStoragePath`, `faviconMimeType`)
+  - runtime icon served via `/api/favicon` with bundled fallback path
+- Remaining hardening: remove any legacy assumptions around direct `/favicon.ico` mutation paths in docs/runbooks.
 
 ## E) Local/dev evidence artifacts
 
@@ -100,9 +104,9 @@ Classify remaining local filesystem persistence and define what must move before
 - settings audit
 - openai usage log
 
-3. Favicon mutation redesign:
-- remove runtime write to `public/`
-- move to stored asset reference pattern
+3. Favicon mutation redesign (completed):
+- runtime write to `public/` removed
+- stored asset reference pattern active via DB pointer + storage provider
 
 ## Deployment gate update
 

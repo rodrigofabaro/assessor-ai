@@ -72,6 +72,14 @@ Last updated: 2026-03-06
   - switched Turnitin config, Turnitin submission sync state, and automation policy to DB-primary persistence with compatibility fallback to legacy local files
   - updated readiness/schema contract checks to include the new table/columns
   - added regression contract: `scripts/turnitin-automation-persistence-contract.test.js` (wired into `test:regression-pack`)
+- Favicon persistence migration (deployment hardening slice):
+  - added migration `prisma/migrations/20260306213000_add_app_config_favicon_storage`:
+    - `AppConfig.faviconStoragePath`
+    - `AppConfig.faviconMimeType`
+  - `/api/admin/favicon` no longer writes `public/favicon.ico`; uploads now persist via storage provider (`storage/branding/favicon.*`) and DB pointer fields
+  - added runtime favicon serving route `GET /api/favicon` (storage-backed with bundled fallback)
+  - root metadata and settings/help previews now use `/api/favicon`
+  - readiness/schema contract checks now include favicon storage columns
 
 ### Latest additions (2026-03-05)
 
