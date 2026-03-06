@@ -50,6 +50,7 @@ Current UI behavior (performance hardening):
 - inbox list refresh requests `extracted=summary` to keep payloads small
 - when an item is selected, the page hydrates full extracted JSON on demand via `GET /api/reference-documents/[documentId]`
 - actions are temporarily disabled while full preview hydration is in progress
+- inbox includes explicit paging controls (page size, page number, prev/next) backed by server totals
 
 Pagination parameters:
 

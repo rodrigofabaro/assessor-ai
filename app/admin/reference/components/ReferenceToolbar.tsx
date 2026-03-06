@@ -5,11 +5,21 @@ export function ReferenceToolbar({
   setFilters,
   resetFilters,
   counts,
+  pagination,
 }: {
   filters: InboxFiltersState;
   setFilters: (next: InboxFiltersState) => void;
   resetFilters: () => void;
   counts: { total: number; shown: number; byStatus: Record<string, number> };
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalItems: number;
+    busy: boolean;
+    onPageChange: (next: number | ((prev: number) => number)) => void;
+    onPageSizeChange: (next: number | ((prev: number) => number)) => void;
+  };
 }) {
   return (
     <>
@@ -124,6 +134,59 @@ export function ReferenceToolbar({
             <span className="font-semibold text-zinc-900">{counts.total}</span>
           </div>
         </div>
+
+        {pagination ? (
+          <div className="grid gap-2 sm:grid-cols-[auto_1fr_auto_auto] sm:items-center">
+            <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
+              <span>Page size</span>
+              <select
+                value={pagination.pageSize}
+                onChange={(e) => pagination.onPageSizeChange(Math.max(20, Math.min(200, Number(e.target.value) || 120)))}
+                disabled={pagination.busy}
+                className="h-9 rounded-xl border border-zinc-300 bg-white px-2 text-xs"
+              >
+                {[40, 80, 120, 160, 200].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+              Page <span className="font-semibold text-zinc-900">{pagination.page}</span> of{" "}
+              <span className="font-semibold text-zinc-900">{Math.max(1, pagination.totalPages)}</span> ·{" "}
+              <span className="font-semibold text-zinc-900">{pagination.totalItems}</span> total
+            </div>
+            <button
+              type="button"
+              onClick={() => pagination.onPageChange((p) => Math.max(1, p - 1))}
+              disabled={pagination.busy || pagination.page <= 1}
+              className={
+                "h-9 rounded-xl border px-3 text-xs font-semibold " +
+                (pagination.busy || pagination.page <= 1
+                  ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                  : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50")
+              }
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                pagination.onPageChange((p) => Math.min(Math.max(1, pagination.totalPages), p + 1))
+              }
+              disabled={pagination.busy || pagination.page >= pagination.totalPages}
+              className={
+                "h-9 rounded-xl border px-3 text-xs font-semibold " +
+                (pagination.busy || pagination.page >= pagination.totalPages
+                  ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                  : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50")
+              }
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-2 text-xs">
           {STATUS_FILTER_OPTIONS.map((s) => (

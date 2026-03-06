@@ -15,7 +15,7 @@ function BusySpinner({ className = "h-3.5 w-3.5" }: { className?: string }) {
 }
 
 export default function ReferenceAdminPage() {
-  const vm = useReferenceAdmin();
+  const vm = useReferenceAdmin({ context: "reference" });
 
   return (
     <div className="grid min-w-0 gap-4">
@@ -176,11 +176,29 @@ function UploadCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
 function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   const f = vm.filters;
   const setF = vm.setFilters;
-  const counts = getInboxCounts(vm.documents, vm.filteredDocuments);
+  const localCounts = getInboxCounts(vm.documents, vm.filteredDocuments);
+  const counts = {
+    ...localCounts,
+    total: vm.totalItems || localCounts.total,
+  };
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <ReferenceToolbar filters={f} setFilters={setF} resetFilters={vm.resetFilters} counts={counts} />
+      <ReferenceToolbar
+        filters={f}
+        setFilters={setF}
+        resetFilters={vm.resetFilters}
+        counts={counts}
+        pagination={{
+          page: vm.page,
+          pageSize: vm.pageSize,
+          totalPages: vm.totalPages,
+          totalItems: vm.totalItems,
+          busy: !!vm.busy,
+          onPageChange: vm.setPage,
+          onPageSizeChange: vm.setPageSize,
+        }}
+      />
       <ReferenceList
         documents={vm.filteredDocuments}
         selectedDocId={vm.selectedDocId}

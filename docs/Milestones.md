@@ -245,7 +245,7 @@ Current update (2026-03-03):
 4. Reference inbox performance phase 2
 - Add explicit client pagination in `/admin/reference`.
 - Add server-side projection presets by route context (reference list vs brief detail).
-- Status (2026-03-06): projection hardening delivered. `/admin/reference` list refresh now requests `extracted=summary`, and selected documents hydrate full extracted JSON on demand via `GET /api/reference-documents/[documentId]`.
+- Status (2026-03-06): phase delivered. `/admin/reference` now uses server pagination controls (page size + prev/next with totals), list refresh requests `extracted=summary`, and selected documents hydrate full extracted JSON on demand via `GET /api/reference-documents/[documentId]`.
 
 5. Submission detail performance pass
 - Profile heavy panels (`Approval & outputs`, criterion list, run history diffs).

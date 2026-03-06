@@ -36,6 +36,7 @@ Last updated: 2026-03-06
   - added regression contract test: `scripts/qa-reliability-contract.test.js` (wired into `test:regression-pack`)
 - Reference inbox projection hardening (performance slice):
   - `/admin/reference` list refresh now requests lightweight extracted payloads (`extracted=summary`) instead of full extracted JSON for every row
+  - `/admin/reference` now uses server-backed pagination controls (page size + prev/next) with total row counts from `includeTotal`
   - added `GET /api/reference-documents/[documentId]` to hydrate full extracted JSON only for the currently selected document
   - review actions now show/obey a hydration state while full preview payload is loading
   - added regression contract test: `scripts/reference-inbox-projection-contract.test.js` (wired into `test:regression-pack`)

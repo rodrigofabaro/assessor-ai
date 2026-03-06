@@ -189,7 +189,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - brief extraction regression stabilization
 - reference inbox pagination/projection optimization
 - submission detail heavy-panel render optimization
-- Progress (2026-03-06): reference inbox list refresh now uses summary projection (`extracted=summary`) and selected-document full hydration is loaded on demand via `GET /api/reference-documents/[documentId]`, reducing large extracted JSON payload pressure during admin refresh cycles.
+- Progress (2026-03-06): reference inbox now uses explicit server pagination (`limit`/`offset` + totals) with page-size and next/prev controls in `/admin/reference`; list refresh uses summary projection (`extracted=summary`) and selected-document full hydration is loaded on demand via `GET /api/reference-documents/[documentId]`.
 
 7. QA reliability instrumentation
 - preview/commit/regrade latency metrics

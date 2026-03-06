@@ -306,6 +306,7 @@ export function getInboxCounts(documents: ReferenceDocument[], filteredDocuments
 export const STATUS_FILTER_OPTIONS = ["UPLOADED", "EXTRACTED", "LOCKED", "FAILED"] as const;
 
 export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
+  const serverPagedInbox = opts.context !== "specs" && opts.context !== "briefs";
 
   const [documents, setDocuments] = useState<ReferenceDocument[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -352,6 +353,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [rawJsonDirty, setRawJsonDirty] = useState(false);
   const [rawJsonDocId, setRawJsonDocId] = useState<string | null>(null);
   const [assignmentCodeInput, setAssignmentCodeInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(120);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Persist filters
   useEffect(() => {
@@ -361,6 +366,22 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       // ignore
     }
   }, [filters]);
+
+  useEffect(() => {
+    if (!serverPagedInbox) return;
+    setPage(1);
+  }, [
+    serverPagedInbox,
+    filters.q,
+    filters.type,
+    filters.status,
+    filters.framework,
+    filters.category,
+    filters.onlyLocked,
+    filters.onlyUnlocked,
+    pageSize,
+    opts.fixedInboxType,
+  ]);
 
   const selectedDoc = useMemo(
     () => documents.find((d) => d.id === selectedDocId) || null,
@@ -465,28 +486,30 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     const q = filters.q.trim().toLowerCase();
     let list = documents.slice();
 
-    // ✅ HARD RULE: if fixedInboxType is set (Specs page), never show anything else
-    const fixedInboxType = opts.fixedInboxType;
-    if (fixedInboxType) {
-      list = list.filter((d) => d.type === fixedInboxType);
-    } else if (filters.type) {
-      list = list.filter((d) => d.type === filters.type);
-    }
+    if (!serverPagedInbox) {
+      // ✅ HARD RULE: if fixedInboxType is set (Specs/Briefs extract inbox), never show anything else
+      const fixedInboxType = opts.fixedInboxType;
+      if (fixedInboxType) {
+        list = list.filter((d) => d.type === fixedInboxType);
+      } else if (filters.type) {
+        list = list.filter((d) => d.type === filters.type);
+      }
 
-    if (filters.status) list = list.filter((d) => d.status === filters.status);
-    if (filters.framework) {
-      const target = filters.framework.trim().toLowerCase();
-      list = list.filter((d) => String((d.sourceMeta as any)?.framework || "").trim().toLowerCase() === target);
-    }
-    if (filters.category) {
-      const target = filters.category.trim().toLowerCase();
-      list = list.filter((d) => String((d.sourceMeta as any)?.category || "").trim().toLowerCase() === target);
-    }
+      if (filters.status) list = list.filter((d) => d.status === filters.status);
+      if (filters.framework) {
+        const target = filters.framework.trim().toLowerCase();
+        list = list.filter((d) => String((d.sourceMeta as any)?.framework || "").trim().toLowerCase() === target);
+      }
+      if (filters.category) {
+        const target = filters.category.trim().toLowerCase();
+        list = list.filter((d) => String((d.sourceMeta as any)?.category || "").trim().toLowerCase() === target);
+      }
 
-    if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
-    if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
+      if (filters.onlyLocked) list = list.filter((d) => !!d.lockedAt || d.status === "LOCKED");
+      if (filters.onlyUnlocked) list = list.filter((d) => !d.lockedAt && d.status !== "LOCKED");
 
-    if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
+      if (q) list = list.filter((d) => docSearchHaystack(d).includes(q));
+    }
 
     if (filters.sort === "title") {
       list.sort((a, b) => a.title.localeCompare(b.title));
@@ -501,7 +524,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     }
 
     return list;
-  }, [documents, filters, opts.fixedInboxType]);
+  }, [documents, filters, opts.fixedInboxType, serverPagedInbox]);
 
   async function fetchSelectedDocumentDetail(documentId: string) {
     const id = String(documentId || "").trim();
@@ -523,6 +546,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   }
 
   async function refreshAll({ keepSelection }: { keepSelection?: boolean } = {}) {
+    const requestedLimit = serverPagedInbox ? Math.max(20, Math.min(200, pageSize)) : 500;
+    const requestedOffset = serverPagedInbox ? Math.max(0, (page - 1) * requestedLimit) : 0;
     const [docs, unitsRes] = await Promise.all([
       (() => {
         const params = new URLSearchParams();
@@ -537,10 +562,14 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
 
         params.set("extracted", "summary");
-        params.set("limit", "180");
-        params.set("offset", "0");
+        params.set("limit", String(requestedLimit));
+        params.set("offset", String(requestedOffset));
+        if (serverPagedInbox) params.set("includeTotal", "true");
         const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
-        return jsonFetch<{ documents: ReferenceDocument[] }>(url, { cache: "no-store" });
+        return jsonFetch<{
+          documents: ReferenceDocument[];
+          page?: { limit?: number; offset?: number; total?: number; hasMore?: boolean };
+        }>(url, { cache: "no-store" });
       })(),
 
       jsonFetch<{ units: Unit[] }>("/api/units", { cache: "no-store" }),
@@ -548,6 +577,16 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
 
     const rawDocs = docs.documents || [];
     const filteredDocs = opts.includeArchived ? rawDocs : rawDocs.filter((d) => !(d.sourceMeta as any)?.archived);
+    const total = serverPagedInbox ? Math.max(0, Number(docs.page?.total || 0)) : filteredDocs.length;
+    const pages = serverPagedInbox ? Math.max(1, Math.ceil(total / requestedLimit)) : 1;
+
+    setTotalItems(total);
+    setTotalPages(pages);
+
+    if (serverPagedInbox && page > pages) {
+      setPage(pages);
+      return;
+    }
 
     setDocuments(filteredDocs);
     setUnits(unitsRes.units || []);
@@ -557,17 +596,34 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       return;
     }
 
-    // If nothing selected, pick the first doc (prefer filtered list, else all docs)
-    if (!selectedDocId) {
-      const first = filteredDocs[0];
-      if (first) setSelectedDocId(first.id);
-    }
+    const first = filteredDocs[0];
+    setSelectedDocId(first?.id || "");
   }
 
   useEffect(() => {
+    if (serverPagedInbox) return;
     refreshAll({ keepSelection: true }).catch((e) => setError(String(e?.message || e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [serverPagedInbox]);
+
+  useEffect(() => {
+    if (!serverPagedInbox) return;
+    refreshAll({ keepSelection: true }).catch((e) => setError(String(e?.message || e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    serverPagedInbox,
+    page,
+    pageSize,
+    filters.q,
+    filters.type,
+    filters.status,
+    filters.framework,
+    filters.category,
+    filters.onlyLocked,
+    filters.onlyUnlocked,
+    opts.fixedInboxType,
+    opts.includeArchived,
+  ]);
 
   useEffect(() => {
     if (!selectedDocId) return;
@@ -1435,6 +1491,10 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     selectedDoc,
     selectedUnit,
     selectedDocId,
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
     selectedDocHydrating,
     selectedDocUsage,
     usageLoading,
@@ -1468,6 +1528,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setDocFramework,
     setDocCategory,
     setDocFile,
+    setPage,
+    setPageSize,
     setBriefUnitId,
     setMapSelected,
     setShowRawJson,
