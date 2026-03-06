@@ -1,3 +1,5 @@
+import { appendOutboundEmailEvent } from "@/lib/ops/outboundEmailLog";
+
 export type InviteEmailResult = {
   attempted: boolean;
   sent: boolean;
@@ -48,16 +50,39 @@ async function sendCredentialEmail(input: {
   subject: string;
   text: string;
   failureMessage: string;
+  channel: string;
   replyTo?: string | null;
   from?: string | null;
 }): Promise<InviteEmailResult> {
   const to = String(input.to || "").trim().toLowerCase();
+  const channel = String(input.channel || "").trim().toLowerCase() || "unknown";
+
+  async function finalize(result: InviteEmailResult, details?: Record<string, unknown>) {
+    await appendOutboundEmailEvent({
+      channel,
+      provider: result.provider,
+      attempted: result.attempted,
+      sent: result.sent,
+      recipientEmail: to,
+      subject: input.subject,
+      providerMessageId: result.id || null,
+      error: result.error || null,
+      details: details || null,
+    });
+    return result;
+  }
+
   if (!to) {
-    return { attempted: false, sent: false, provider: resolveProvider(), error: "Missing recipient email." };
+    return finalize({
+      attempted: false,
+      sent: false,
+      provider: resolveProvider(),
+      error: "Missing recipient email.",
+    });
   }
   const provider = resolveProvider();
   if (provider === "none") {
-    return { attempted: false, sent: false, provider: "none" };
+    return finalize({ attempted: false, sent: false, provider: "none" });
   }
 
   if (provider === "resend") {
@@ -65,12 +90,12 @@ async function sendCredentialEmail(input: {
     const from = String(input.from || process.env.AUTH_EMAIL_FROM || "").trim();
     const replyTo = String(input.replyTo || "").trim().toLowerCase();
     if (!apiKey || !from) {
-      return {
+      return finalize({
         attempted: true,
         sent: false,
         provider,
         error: "RESEND_API_KEY or AUTH_EMAIL_FROM is not configured.",
-      };
+      });
     }
 
     try {
@@ -91,25 +116,32 @@ async function sendCredentialEmail(input: {
 
       const payload = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
       if (!res.ok) {
-        return {
+        return finalize({
           attempted: true,
           sent: false,
           provider,
           error: String(payload?.message || `Resend returned ${res.status}.`).trim(),
-        };
+        }, {
+          statusCode: res.status,
+        });
       }
-      return { attempted: true, sent: true, provider, id: String(payload?.id || "") || undefined };
+      return finalize({
+        attempted: true,
+        sent: true,
+        provider,
+        id: String(payload?.id || "") || undefined,
+      });
     } catch (error: unknown) {
-      return {
+      return finalize({
         attempted: true,
         sent: false,
         provider,
         error: String((error as { message?: string })?.message || input.failureMessage),
-      };
+      });
     }
   }
 
-  return { attempted: false, sent: false, provider };
+  return finalize({ attempted: false, sent: false, provider });
 }
 
 export async function sendInviteEmail(input: {
@@ -140,6 +172,7 @@ export async function sendInviteEmail(input: {
     to,
     subject,
     text,
+    channel: "invite",
     failureMessage: "Invite email send failed.",
   });
 }
@@ -173,6 +206,7 @@ export async function sendPasswordRecoveryEmail(input: {
     to,
     subject,
     text,
+    channel: "password_recovery",
     failureMessage: "Password recovery email send failed.",
   });
 }
@@ -204,6 +238,7 @@ export async function sendAuthTestEmail(input: { to: string }): Promise<InviteEm
     to,
     subject,
     text,
+    channel: "auth_test",
     failureMessage: "Test email send failed.",
   });
 }
@@ -248,6 +283,7 @@ export async function sendContactLeadEmail(input: {
     to,
     subject,
     text,
+    channel: "contact_lead",
     failureMessage: "Contact lead email send failed.",
     replyTo: email,
     from: String(process.env.CONTACT_EMAIL_FROM || process.env.AUTH_EMAIL_FROM || "").trim(),
@@ -268,6 +304,7 @@ export async function sendOpsAlertEmail(input: {
     to,
     subject,
     text,
+    channel: "ops_alert",
     failureMessage: "Alert email send failed.",
     from: String(process.env.ALERT_EMAIL_FROM || process.env.AUTH_EMAIL_FROM || "").trim(),
   });

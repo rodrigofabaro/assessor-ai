@@ -46,6 +46,7 @@ Status labels:
 - Auth security progress (2026-03-06): auth anomaly alerts now route threshold breaches (login/recovery rate limits) to the operational alert channel with cooldown.
 - Email ops progress (2026-03-06): extraction and grading terminal failures now emit operational alert emails.
 - Email ops progress (2026-03-06): landing-page contact requests now persist in DB (`ContactLead`) and are visible in `/admin/developer` with 24h delivery summary.
+- Email ops progress (2026-03-06): outbound email telemetry now persists in DB (`OutboundEmailEvent`) with super-admin dashboard cards for 24h sent/failed/skipped and channel-level rollups.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).

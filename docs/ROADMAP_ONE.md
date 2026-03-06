@@ -44,6 +44,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - post-login dashboard is now role-specific (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions/stats
    - VASCR summary policy now hardens feedback output (concise, evidence-linked, actionable)
    - landing-page contact requests now persist in DB (`ContactLead`) and surface in `SUPER_ADMIN` developer console intake view
+   - outbound email telemetry now persists in DB (`OutboundEmailEvent`) with `SUPER_ADMIN` delivery-health dashboard cards (24h sent/failed/skipped + channel rollup)
 
 ## Execution lanes
 
@@ -239,7 +240,8 @@ Use this doc when the instruction is: "continue the roadmap".
 - persist landing-page leads in DB (email remains notification channel; DB becomes system of record)
 - add delivery health dashboard cards (sent/failed/bounced) using provider telemetry
 - Progress (2026-03-06): landing-page lead persistence delivered (`ContactLead`) and `/admin/developer` now includes a lead intake panel with 24h sent/failed/pending summary.
-- Remaining action: provider telemetry expansion for bounce/open metrics.
+- Progress (2026-03-06): outbound email events now persist (`OutboundEmailEvent`) and `/admin/developer` includes delivery-health cards plus channel/event tables.
+- Remaining action: provider webhook ingestion for bounce/open telemetry.
 
 7. Pre-launch development-mode UX profile
 - keep architecture complete (`organizations`, `users`, `SUPER_ADMIN`, scoped settings/secrets) to avoid future rework

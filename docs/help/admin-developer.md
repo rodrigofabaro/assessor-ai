@@ -10,6 +10,7 @@ Super-admin control plane for platform-level operations:
 2. per-organization configuration JSON
 3. encrypted per-organization integration secrets
 4. landing-page contact lead intake and delivery status
+5. outbound email telemetry dashboard (`invite`, `recovery`, `contact`, `alerts`)
 
 This route is restricted to `SUPER_ADMIN`.
 
@@ -20,10 +21,12 @@ This route is restricted to `SUPER_ADMIN`.
 3. Select organization scope and edit config JSON.
 4. Rotate/update OpenAI, Turnitin, and SMTP API secrets.
 5. Review recent early-access/contact leads and email notification status.
+6. Monitor last-24h outbound email delivery metrics and recent events by channel.
 
 ## Important behavior
 
 1. Secret values are write-only in UI and encrypted at rest.
 2. Default super-admin scope is `assessor-ai` organization.
 3. Landing-page contacts are persisted in DB (`ContactLead`); email is a notification channel, not the source of record.
-4. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.
+4. Outbound email telemetry is persisted in DB (`OutboundEmailEvent`) for super-admin operations visibility.
+5. User provisioning remains in `/admin/users`; platform configuration remains in `/admin/settings`.

@@ -575,6 +575,25 @@ model ContactLead {
   @@index([email, createdAt])
 }
 
+model OutboundEmailEvent {
+  id                String   @id @default(cuid())
+  ts                DateTime @default(now())
+  channel           String
+  provider          String
+  attempted         Boolean  @default(false)
+  sent              Boolean  @default(false)
+  recipientDomain   String?
+  subject           String?
+  providerMessageId String?
+  error             String?
+  details           Json?
+
+  @@index([ts])
+  @@index([channel, ts])
+  @@index([provider, ts])
+  @@index([sent, ts])
+}
+
 model OpsRuntimeEvent {
   id        String   @id @default(cuid())
   ts        DateTime @default(now())

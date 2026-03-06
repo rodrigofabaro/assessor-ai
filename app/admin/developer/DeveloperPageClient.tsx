@@ -43,6 +43,34 @@ type ContactLeadSummary = {
   pending24h: number;
 };
 
+type EmailDeliverySummary = {
+  total24h: number;
+  sent24h: number;
+  failed24h: number;
+  skipped24h: number;
+};
+
+type EmailDeliveryChannel = {
+  channel: string;
+  total: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+};
+
+type EmailDeliveryEvent = {
+  id: string;
+  ts: string;
+  channel: string;
+  provider: string;
+  attempted: boolean;
+  sent: boolean;
+  recipientDomain?: string | null;
+  subject?: string | null;
+  providerMessageId?: string | null;
+  error?: string | null;
+};
+
 function prettyJson(value: unknown) {
   try {
     return JSON.stringify(value || {}, null, 2);
@@ -79,6 +107,13 @@ const EMPTY_CONTACT_SUMMARY: ContactLeadSummary = {
   pending24h: 0,
 };
 
+const EMPTY_EMAIL_SUMMARY: EmailDeliverySummary = {
+  total24h: 0,
+  sent24h: 0,
+  failed24h: 0,
+  skipped24h: 0,
+};
+
 export default function DeveloperPageClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -100,6 +135,11 @@ export default function DeveloperPageClient() {
   const [contactSummary, setContactSummary] = useState<ContactLeadSummary>(EMPTY_CONTACT_SUMMARY);
   const [contactWarning, setContactWarning] = useState("");
   const [loadingContactLeads, setLoadingContactLeads] = useState(false);
+  const [emailSummary, setEmailSummary] = useState<EmailDeliverySummary>(EMPTY_EMAIL_SUMMARY);
+  const [emailChannels, setEmailChannels] = useState<EmailDeliveryChannel[]>([]);
+  const [emailEvents, setEmailEvents] = useState<EmailDeliveryEvent[]>([]);
+  const [emailWarning, setEmailWarning] = useState("");
+  const [loadingEmailDelivery, setLoadingEmailDelivery] = useState(false);
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => org.id === selectedOrgId) || null,
@@ -192,6 +232,32 @@ export default function DeveloperPageClient() {
     }
   }, []);
 
+  const loadEmailDelivery = useCallback(async () => {
+    setLoadingEmailDelivery(true);
+    setEmailWarning("");
+    try {
+      const res = await fetch("/api/admin/ops/email-delivery?limit=60", { cache: "no-store" });
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        throw new Error(String(json?.error || "Failed to load email delivery telemetry."));
+      }
+      const summary = (json?.summary || {}) as Partial<EmailDeliverySummary>;
+      setEmailSummary({
+        total24h: Number(summary.total24h || 0),
+        sent24h: Number(summary.sent24h || 0),
+        failed24h: Number(summary.failed24h || 0),
+        skipped24h: Number(summary.skipped24h || 0),
+      });
+      setEmailChannels(Array.isArray(json?.channels) ? (json.channels as EmailDeliveryChannel[]) : []);
+      setEmailEvents(Array.isArray(json?.events) ? (json.events as EmailDeliveryEvent[]) : []);
+      setEmailWarning(String(json?.warning || "").trim());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load email delivery telemetry.");
+    } finally {
+      setLoadingEmailDelivery(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadOrganizations();
   }, [loadOrganizations]);
@@ -199,6 +265,10 @@ export default function DeveloperPageClient() {
   useEffect(() => {
     void loadContactLeads();
   }, [loadContactLeads]);
+
+  useEffect(() => {
+    void loadEmailDelivery();
+  }, [loadEmailDelivery]);
 
   useEffect(() => {
     if (!selectedOrgId) return;
@@ -376,6 +446,15 @@ export default function DeveloperPageClient() {
             >
               <TinyIcon name="audit" className="h-3.5 w-3.5" />
               {loadingContactLeads ? "Refreshing leads..." : "Refresh leads"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadEmailDelivery()}
+              disabled={loadingEmailDelivery}
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              <TinyIcon name="status" className="h-3.5 w-3.5" />
+              {loadingEmailDelivery ? "Refreshing email..." : "Refresh email"}
             </button>
             <Link href="/admin/users" className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">
               Users
@@ -565,6 +644,117 @@ export default function DeveloperPageClient() {
             </button>
           </div>
         </article>
+      </section>
+
+      <section id="email-operations" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Email delivery health</h2>
+            <p className="mt-1 text-xs text-slate-600">
+              Last 24 hours across invite, recovery, contact, alert, and test channels.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadEmailDelivery()}
+            disabled={loadingEmailDelivery}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loadingEmailDelivery ? "Loading..." : "Reload telemetry"}
+          </button>
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-slate-500">Total 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-slate-900">{emailSummary.total24h}</div>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-emerald-700">Sent 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-emerald-900">{emailSummary.sent24h}</div>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-rose-700">Failed 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-rose-900">{emailSummary.failed24h}</div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-amber-700">Skipped 24h</div>
+            <div className="mt-0.5 text-base font-semibold text-amber-900">{emailSummary.skipped24h}</div>
+          </div>
+        </div>
+
+        {emailWarning ? (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {emailWarning}
+          </div>
+        ) : null}
+
+        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Channel</th>
+                  <th className="px-3 py-2 text-left font-semibold">Total</th>
+                  <th className="px-3 py-2 text-left font-semibold">Sent</th>
+                  <th className="px-3 py-2 text-left font-semibold">Failed</th>
+                  <th className="px-3 py-2 text-left font-semibold">Skipped</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                {emailChannels.map((channel) => (
+                  <tr key={channel.channel}>
+                    <td className="px-3 py-2 align-top font-semibold text-slate-900">{channel.channel}</td>
+                    <td className="px-3 py-2 align-top">{channel.total}</td>
+                    <td className="px-3 py-2 align-top">{channel.sent}</td>
+                    <td className="px-3 py-2 align-top">{channel.failed}</td>
+                    <td className="px-3 py-2 align-top">{channel.skipped}</td>
+                  </tr>
+                ))}
+                {!emailChannels.length ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                      No email telemetry captured yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Time</th>
+                  <th className="px-3 py-2 text-left font-semibold">Channel</th>
+                  <th className="px-3 py-2 text-left font-semibold">Status</th>
+                  <th className="px-3 py-2 text-left font-semibold">Domain</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                {emailEvents.map((row) => {
+                  const status = row.sent ? "Sent" : row.attempted ? `Failed (${row.error || "error"})` : "Skipped";
+                  return (
+                    <tr key={row.id}>
+                      <td className="px-3 py-2 align-top">{formatDateTime(row.ts)}</td>
+                      <td className="px-3 py-2 align-top">{row.channel}</td>
+                      <td className="px-3 py-2 align-top">{clipText(status, 50)}</td>
+                      <td className="px-3 py-2 align-top">{row.recipientDomain || "—"}</td>
+                    </tr>
+                  );
+                })}
+                {!emailEvents.length ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
+                      No recent email events.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section id="contact-intake" className="rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_10px_24px_rgba(15,23,42,0.06)]">

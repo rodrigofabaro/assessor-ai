@@ -13,6 +13,10 @@ Last updated: 2026-03-06
 - Super-admin contact intake visibility:
   - added `GET /api/admin/contact-leads` (super-admin only) with latest leads + 24h delivery summary
   - `/admin/developer` now includes `Landing contact intake` panel with sent/failed/pending status visibility
+- Outbound email telemetry and dashboard:
+  - added `OutboundEmailEvent` model + migration (`prisma/migrations/20260306121000_add_outbound_email_events`)
+  - all email send paths now emit telemetry events by channel (`invite`, `password_recovery`, `contact_lead`, `ops_alert`, `auth_test`)
+  - added `GET /api/admin/ops/email-delivery` and `Email delivery health` cards/tables in `/admin/developer`
 - Docs/runbook parity:
   - updated `docs/help/admin-developer.md`, `docs/ROADMAP_ONE.md`, and `docs/Milestones.md` for the new contact-lead workflow
 
