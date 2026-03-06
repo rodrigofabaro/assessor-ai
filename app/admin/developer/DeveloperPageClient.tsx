@@ -89,6 +89,11 @@ type EmailProviderEvent = {
   recipientDomain?: string | null;
 };
 
+type EmailWebhookConfig = {
+  configured: boolean;
+  allowUnsigned: boolean;
+};
+
 function prettyJson(value: unknown) {
   try {
     return JSON.stringify(value || {}, null, 2);
@@ -141,6 +146,11 @@ const EMPTY_EMAIL_LIFECYCLE: EmailLifecycleSummary = {
   complained24h: 0,
 };
 
+const EMPTY_WEBHOOK_CONFIG: EmailWebhookConfig = {
+  configured: false,
+  allowUnsigned: false,
+};
+
 export default function DeveloperPageClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -167,6 +177,7 @@ export default function DeveloperPageClient() {
   const [emailChannels, setEmailChannels] = useState<EmailDeliveryChannel[]>([]);
   const [emailEvents, setEmailEvents] = useState<EmailDeliveryEvent[]>([]);
   const [emailProviderEvents, setEmailProviderEvents] = useState<EmailProviderEvent[]>([]);
+  const [emailWebhookConfig, setEmailWebhookConfig] = useState<EmailWebhookConfig>(EMPTY_WEBHOOK_CONFIG);
   const [emailWarning, setEmailWarning] = useState("");
   const [loadingEmailDelivery, setLoadingEmailDelivery] = useState(false);
 
@@ -285,6 +296,11 @@ export default function DeveloperPageClient() {
         opened24h: Number(lifecycle.opened24h || 0),
         clicked24h: Number(lifecycle.clicked24h || 0),
         complained24h: Number(lifecycle.complained24h || 0),
+      });
+      const webhookConfig = (json?.webhookConfig || {}) as Partial<EmailWebhookConfig>;
+      setEmailWebhookConfig({
+        configured: !!webhookConfig.configured,
+        allowUnsigned: !!webhookConfig.allowUnsigned,
       });
       setEmailChannels(Array.isArray(json?.channels) ? (json.channels as EmailDeliveryChannel[]) : []);
       setEmailEvents(Array.isArray(json?.events) ? (json.events as EmailDeliveryEvent[]) : []);
@@ -754,6 +770,22 @@ export default function DeveloperPageClient() {
             {emailWarning}
           </div>
         ) : null}
+
+        <div
+          className={
+            "mt-3 rounded-xl border px-3 py-2 text-xs " +
+            (emailWebhookConfig.configured && !emailWebhookConfig.allowUnsigned
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-amber-200 bg-amber-50 text-amber-900")
+          }
+        >
+          Webhook signing:{" "}
+          {emailWebhookConfig.configured && !emailWebhookConfig.allowUnsigned
+            ? "configured (signed)"
+            : emailWebhookConfig.allowUnsigned
+              ? "unsigned mode enabled (local testing only)"
+              : "not configured"}
+        </div>
 
         <div className="mt-3 grid gap-3 xl:grid-cols-2">
           <div className="overflow-x-auto rounded-xl border border-slate-200">

@@ -30,6 +30,10 @@ type ChannelRollup = {
   skipped: number;
 };
 
+function isTruthy(value: unknown) {
+  return /^(1|true|yes|on)$/i.test(String(value || "").trim());
+}
+
 type LifecycleSummary = {
   total24h: number;
   delivered24h: number;
@@ -143,6 +147,10 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       ok: true,
+      webhookConfig: {
+        configured: !!String(process.env.RESEND_WEBHOOK_SECRET || "").trim(),
+        allowUnsigned: isTruthy(process.env.RESEND_WEBHOOK_ALLOW_UNSIGNED),
+      },
       summary: {
         total24h,
         sent24h,
@@ -176,6 +184,10 @@ export async function GET(req: Request) {
     if (isOutboundEmailSchemaCompatError(error)) {
       return NextResponse.json({
         ok: true,
+        webhookConfig: {
+          configured: !!String(process.env.RESEND_WEBHOOK_SECRET || "").trim(),
+          allowUnsigned: isTruthy(process.env.RESEND_WEBHOOK_ALLOW_UNSIGNED),
+        },
         summary: { total24h: 0, sent24h: 0, failed24h: 0, skipped24h: 0 },
         lifecycle: {
           total24h: 0,

@@ -21,6 +21,7 @@ Last updated: 2026-03-06
   - added `EmailProviderEvent` model + migration (`prisma/migrations/20260306132500_add_email_provider_events`)
   - added `POST /api/webhooks/resend` with Svix signature verification (`RESEND_WEBHOOK_SECRET`) and idempotent provider-event persistence
   - `GET /api/admin/ops/email-delivery` now includes lifecycle rollups (`delivered`, `bounced`, `opened`, `clicked`, `complained`) plus recent provider event rows
+  - added webhook contract command `pnpm run ops:email-webhook-contract` and release-gate step with strict toggle `AUTH_REQUIRE_EMAIL_WEBHOOK`
 - Docs/runbook parity:
   - updated `docs/help/admin-developer.md`, `docs/ROADMAP_ONE.md`, and `docs/Milestones.md` for the new contact-lead workflow
 

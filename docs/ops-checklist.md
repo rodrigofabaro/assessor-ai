@@ -118,8 +118,9 @@ What it runs:
 3. `pnpm run test:export-pack-validation`
 4. `pnpm run ops:storage-contract`
 5. `pnpm run ops:password-recovery-contract`
-6. `pnpm run ops:readiness-contract`
-7. `pnpm run ops:deploy-smoke`
+6. `pnpm run ops:email-webhook-contract`
+7. `pnpm run ops:readiness-contract`
+8. `pnpm run ops:deploy-smoke`
 
 Storage deployment contract behavior:
 - If `STORAGE_BACKEND=filesystem` and `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
@@ -129,6 +130,11 @@ Storage deployment contract behavior:
 Password recovery contract behavior:
 - If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.
 - Set `AUTH_REQUIRE_RECOVERY_EMAIL=true` in deploy/cutover environments to hard-fail when recovery email provider is not configured.
+
+Email webhook contract behavior:
+- If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.
+- If using Resend and `RESEND_WEBHOOK_SECRET` is unset, command warns and passes by default.
+- Set `AUTH_REQUIRE_EMAIL_WEBHOOK=true` to hard-fail unless signed webhook config is present and unsigned mode is disabled.
 
 Readiness contract behavior:
 - Calls `/api/health/readiness` and fails when required dependencies are not ready.

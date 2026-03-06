@@ -121,6 +121,11 @@ Primary login mode:
   - local/dev fallback to accept unsigned webhook payloads when signature secret is not set
   - do not enable in production
 
+- `AUTH_REQUIRE_EMAIL_WEBHOOK`
+  - default: `false`
+  - when `true`, release gate requires signed webhook config (`RESEND_WEBHOOK_SECRET`) and rejects unsigned mode
+  - validated by `pnpm run ops:email-webhook-contract`
+
 - `CONTACT_EMAIL_FROM`
   - optional
   - overrides contact-form sender identity; falls back to `AUTH_EMAIL_FROM` when unset

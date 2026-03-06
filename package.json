@@ -38,6 +38,7 @@
     "ops:auth-guard-smoke": "node scripts/auth-guard-smoke.js",
     "ops:password-recovery-contract": "node scripts/password-recovery-email-contract.js",
     "ops:password-recovery-email-contract": "node scripts/password-recovery-email-contract.js",
+    "ops:email-webhook-contract": "node scripts/email-webhook-contract.js",
     "ops:alert-smoke": "node scripts/ops-alert-smoke.js",
     "ops:storage-contract": "node scripts/storage-deployment-contract.js",
     "ops:readiness-contract": "node scripts/readiness-contract.js",

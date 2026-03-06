@@ -243,6 +243,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-06): landing-page lead persistence delivered (`ContactLead`) and `/admin/developer` now includes a lead intake panel with 24h sent/failed/pending summary.
 - Progress (2026-03-06): outbound email events now persist (`OutboundEmailEvent`) and `/admin/developer` includes delivery-health cards plus channel/event tables.
 - Progress (2026-03-06): provider webhook ingestion delivered (`POST /api/webhooks/resend`) with lifecycle rollups (delivered/bounced/opened/clicked/complained) in developer dashboard.
+- Progress (2026-03-06): release gate now includes webhook contract check (`pnpm run ops:email-webhook-contract`) with strict toggle `AUTH_REQUIRE_EMAIL_WEBHOOK=true`.
 - Remaining action: configure Resend webhook endpoint in each environment and capture staging evidence.
 
 7. Pre-launch development-mode UX profile
@@ -419,7 +420,7 @@ Still missing (highest impact first):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, password-recovery email contract, readiness contract, deploy smoke)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, password-recovery email contract, email-webhook contract, readiness contract, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

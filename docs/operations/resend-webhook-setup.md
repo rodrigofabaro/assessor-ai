@@ -53,4 +53,4 @@ Purpose:
 1. Send an auth test email from `/admin/users`.
 2. Trigger open/click/bounce in mailbox test flow.
 3. Confirm `/admin/developer` -> `Email delivery health` updates lifecycle cards and provider event table.
-
+4. Run `pnpm run ops:email-webhook-contract` in target environment (set `AUTH_REQUIRE_EMAIL_WEBHOOK=true` for strict gate enforcement).
