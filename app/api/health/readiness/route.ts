@@ -109,6 +109,53 @@ function checkEmail(): CheckResult {
   };
 }
 
+function checkEmailWebhook(): CheckResult {
+  const provider = String(process.env.AUTH_INVITE_EMAIL_PROVIDER || process.env.AUTH_EMAIL_PROVIDER || "none")
+    .trim()
+    .toLowerCase();
+  const required = isTruthy(process.env.AUTH_REQUIRE_EMAIL_WEBHOOK);
+  if (provider !== "resend") {
+    return {
+      ok: true,
+      required: false,
+      message: "Email webhook check skipped (provider is not resend).",
+      detail: { provider },
+    };
+  }
+
+  const webhookSecret = String(process.env.RESEND_WEBHOOK_SECRET || "").trim();
+  const allowUnsigned = isTruthy(process.env.RESEND_WEBHOOK_ALLOW_UNSIGNED);
+
+  if (!required) {
+    return {
+      ok: true,
+      required: false,
+      message: webhookSecret
+        ? "Resend webhook signing secret configured."
+        : "Resend webhook signing secret not configured (optional in current mode).",
+      detail: {
+        provider,
+        configured: !!webhookSecret,
+        allowUnsigned,
+      },
+    };
+  }
+
+  return {
+    ok: !!webhookSecret && !allowUnsigned,
+    required: true,
+    message:
+      !!webhookSecret && !allowUnsigned
+        ? "Signed Resend webhook configuration is ready."
+        : "Signed Resend webhook configuration is missing or unsigned mode is enabled.",
+    detail: {
+      provider,
+      configured: !!webhookSecret,
+      allowUnsigned,
+    },
+  };
+}
+
 async function checkOpenAi(): Promise<CheckResult> {
   const required = isTruthy(process.env.ENV_CONTRACT_REQUIRE_OPENAI);
   const resolved = resolveOpenAiApiKey("preferStandard");
@@ -161,8 +208,9 @@ async function checkOpenAi(): Promise<CheckResult> {
 export async function GET() {
   const [database, storage, openai] = await Promise.all([checkDatabase(), checkStorage(), checkOpenAi()]);
   const email = checkEmail();
+  const emailWebhook = checkEmailWebhook();
 
-  const checks = { database, storage, email, openai };
+  const checks = { database, storage, email, emailWebhook, openai };
   const failures = Object.entries(checks)
     .filter(([, result]) => result.required && !result.ok)
     .map(([name]) => name);
@@ -178,4 +226,3 @@ export async function GET() {
     { status: ready ? 200 : 503 }
   );
 }
-

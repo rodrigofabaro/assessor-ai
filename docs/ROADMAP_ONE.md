@@ -46,6 +46,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - landing-page contact requests now persist in DB (`ContactLead`) and surface in `SUPER_ADMIN` developer console intake view
    - outbound email telemetry now persists in DB (`OutboundEmailEvent`) with `SUPER_ADMIN` delivery-health dashboard cards (24h sent/failed/skipped + channel rollup)
    - provider lifecycle webhook ingestion is now live (`POST /api/webhooks/resend`) with signature verification and `EmailProviderEvent` persistence
+   - readiness endpoint now includes webhook configuration check (`emailWebhook`) and supports strict enforcement with `AUTH_REQUIRE_EMAIL_WEBHOOK=true`
 
 ## Execution lanes
 

@@ -125,6 +125,7 @@ Primary login mode:
   - default: `false`
   - when `true`, release gate requires signed webhook config (`RESEND_WEBHOOK_SECRET`) and rejects unsigned mode
   - validated by `pnpm run ops:email-webhook-contract`
+  - readiness endpoint also treats webhook config as required when enabled (`checks.emailWebhook`)
 
 - `CONTACT_EMAIL_FROM`
   - optional
