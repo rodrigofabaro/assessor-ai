@@ -210,6 +210,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - keep summative feedback concise, holistic, and precise.
 - add feedback QA checks in release validation so verbose/generic output is flagged before release.
 - Progress (2026-03-06): grading now applies an annotation realism policy after bullet generation (generic low-signal notes are removed, assessor-style fallback notes are injected when needed) and regression pack now includes `scripts/feedback-annotation-policy.test.js`.
+- Progress (2026-03-06): release gate now includes explicit feedback-quality contract enforcement via `pnpm run ops:feedback-quality-contract`.
 
 ### Next (immediately after current queue)
 
@@ -434,7 +435,7 @@ Still missing (highest impact first):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, database schema contract, password-recovery email contract, email-webhook contract, OpenAI responses contract, readiness contract, email-webhook smoke, deploy smoke)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, feedback-quality contract, export-pack validation, storage deployment contract, database schema contract, password-recovery email contract, email-webhook contract, OpenAI responses contract, readiness contract, email-webhook smoke, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

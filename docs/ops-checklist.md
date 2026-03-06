@@ -115,15 +115,16 @@ pnpm run ops:release-gate
 What it runs:
 1. `pnpm exec tsc --noEmit --incremental false`
 2. `pnpm run test:regression-pack`
-3. `pnpm run test:export-pack-validation`
-4. `pnpm run ops:storage-contract`
-5. `pnpm run ops:schema-contract`
-6. `pnpm run ops:password-recovery-contract`
-7. `pnpm run ops:email-webhook-contract`
-8. `pnpm run ops:openai-responses-contract`
-9. `pnpm run ops:readiness-contract`
-10. `pnpm run ops:email-webhook-smoke`
-11. `pnpm run ops:deploy-smoke`
+3. `pnpm run ops:feedback-quality-contract`
+4. `pnpm run test:export-pack-validation`
+5. `pnpm run ops:storage-contract`
+6. `pnpm run ops:schema-contract`
+7. `pnpm run ops:password-recovery-contract`
+8. `pnpm run ops:email-webhook-contract`
+9. `pnpm run ops:openai-responses-contract`
+10. `pnpm run ops:readiness-contract`
+11. `pnpm run ops:email-webhook-smoke`
+12. `pnpm run ops:deploy-smoke`
 
 Storage deployment contract behavior:
 - If `STORAGE_BACKEND=filesystem` and `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
@@ -148,6 +149,10 @@ OpenAI responses contract behavior:
 - Verifies live `/v1/responses` write call capability (scope `api.responses.write`) when enabled.
 - If no key or probe disabled, command warns and passes by default.
 - Set `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE=true` in deploy/cutover environments to hard-fail on missing scope.
+
+Feedback quality contract behavior:
+- Verifies grading pipeline still enforces VASCR + annotation realism policy wiring.
+- Verifies regression pack retains feedback policy tests.
 
 Email webhook smoke behavior:
 - Sends a signed synthetic lifecycle event to `POST /api/webhooks/resend` and writes evidence.

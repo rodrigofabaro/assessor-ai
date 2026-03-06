@@ -56,6 +56,7 @@ Last updated: 2026-03-06
   - added annotation realism policy (`lib/grading/feedbackAnnotationPolicy.ts`) to remove generic low-signal bullets and inject assessor-style fallback notes when needed
   - `/api/submissions/[submissionId]/grade` now applies this policy after bullet de-duplication and records policy adjustments in system notes
   - added regression coverage: `scripts/feedback-annotation-policy.test.js` (wired into `test:regression-pack`)
+  - added deploy gate contract command `pnpm run ops:feedback-quality-contract` and wired it into `ops:release-gate`
 
 ### Latest additions (2026-03-05)
 

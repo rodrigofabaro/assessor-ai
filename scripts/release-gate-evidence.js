@@ -47,6 +47,7 @@ function main() {
   const steps = [
     { id: "tsc", args: ["exec", "tsc", "--noEmit", "--incremental", "false"] },
     { id: "regression_pack", args: ["run", "test:regression-pack"] },
+    { id: "feedback_quality_contract", args: ["run", "ops:feedback-quality-contract"] },
     { id: "export_pack_validation", args: ["run", "test:export-pack-validation"] },
     { id: "storage_deployment_contract", args: ["run", "ops:storage-contract"] },
     { id: "database_schema_contract", args: ["run", "ops:schema-contract"] },
