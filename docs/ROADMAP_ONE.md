@@ -250,6 +250,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-06): release gate now includes webhook contract check (`pnpm run ops:email-webhook-contract`) with strict toggle `AUTH_REQUIRE_EMAIL_WEBHOOK=true`.
 - Progress (2026-03-06): release gate now includes webhook smoke evidence step (`pnpm run ops:email-webhook-smoke`) after readiness.
 - Progress (2026-03-06): release gate now includes DB schema drift contract (`pnpm run ops:schema-contract`) to catch missing migration objects before runtime.
+- Progress (2026-03-06): release gate now includes OpenAI Responses write-scope contract (`pnpm run ops:openai-responses-contract`) with strict toggle `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE=true`.
 - Remaining action: configure Resend webhook endpoint in each environment and capture staging evidence.
 
 7. Pre-launch development-mode UX profile
@@ -426,7 +427,7 @@ Still missing (highest impact first):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, database schema contract, password-recovery email contract, email-webhook contract, readiness contract, email-webhook smoke, deploy smoke)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, database schema contract, password-recovery email contract, email-webhook contract, OpenAI responses contract, readiness contract, email-webhook smoke, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

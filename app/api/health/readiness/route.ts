@@ -300,17 +300,96 @@ async function checkOpenAi(): Promise<CheckResult> {
   };
 }
 
+async function checkOpenAiResponsesWrite(): Promise<CheckResult> {
+  const required = isTruthy(process.env.AUTH_REQUIRE_OPENAI_RESPONSES_WRITE);
+  const probeEnabled =
+    required || isTruthy(process.env.HEALTH_READINESS_PROBE_OPENAI_RESPONSES_WRITE);
+  const resolved = resolveOpenAiApiKey("preferStandard");
+  if (!resolved.apiKey) {
+    return {
+      ok: !required,
+      required,
+      message: required
+        ? "OpenAI key is missing for responses-write check."
+        : "OpenAI key is not configured (responses-write check optional).",
+      detail: { keyType: resolved.keyType },
+    };
+  }
+
+  if (!probeEnabled) {
+    return {
+      ok: true,
+      required: false,
+      message: "OpenAI responses-write probe disabled.",
+      detail: { keyType: resolved.keyType },
+    };
+  }
+
+  const model = String(
+    process.env.OPENAI_RESPONSES_CONTRACT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini"
+  )
+    .trim()
+    .toLowerCase();
+
+  const probe = await fetchOpenAiJson(
+    "/v1/responses",
+    resolved.apiKey,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        input: "health-check",
+        max_output_tokens: 1,
+      }),
+    },
+    { timeoutMs: 7000, retries: 0 }
+  );
+
+  if (probe.ok) {
+    return {
+      ok: true,
+      required,
+      message: "OpenAI responses-write probe passed.",
+      detail: { keyType: resolved.keyType, model, status: probe.status },
+    };
+  }
+
+  return {
+    ok: !required,
+    required,
+    message: required
+      ? "OpenAI responses-write probe failed."
+      : "OpenAI responses-write probe failed (optional in current mode).",
+    detail: {
+      keyType: resolved.keyType,
+      model,
+      status: probe.status,
+      probeMessage: probe.message,
+    },
+  };
+}
+
 export async function GET() {
-  const [database, storage, schema, openai] = await Promise.all([
+  const [database, storage, schema, openai, openaiResponsesWrite] = await Promise.all([
     checkDatabase(),
     checkStorage(),
     checkSchema(),
     checkOpenAi(),
+    checkOpenAiResponsesWrite(),
   ]);
   const email = checkEmail();
   const emailWebhook = checkEmailWebhook();
 
-  const checks = { database, storage, schema, email, emailWebhook, openai };
+  const checks = {
+    database,
+    storage,
+    schema,
+    email,
+    emailWebhook,
+    openai,
+    openaiResponsesWrite,
+  };
   const failures = Object.entries(checks)
     .filter(([, result]) => result.required && !result.ok)
     .map(([name]) => name);

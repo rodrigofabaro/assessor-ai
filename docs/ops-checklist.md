@@ -120,9 +120,10 @@ What it runs:
 5. `pnpm run ops:schema-contract`
 6. `pnpm run ops:password-recovery-contract`
 7. `pnpm run ops:email-webhook-contract`
-8. `pnpm run ops:readiness-contract`
-9. `pnpm run ops:email-webhook-smoke`
-10. `pnpm run ops:deploy-smoke`
+8. `pnpm run ops:openai-responses-contract`
+9. `pnpm run ops:readiness-contract`
+10. `pnpm run ops:email-webhook-smoke`
+11. `pnpm run ops:deploy-smoke`
 
 Storage deployment contract behavior:
 - If `STORAGE_BACKEND=filesystem` and `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
@@ -142,6 +143,11 @@ Email webhook contract behavior:
 - If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.
 - If using Resend and `RESEND_WEBHOOK_SECRET` is unset, command warns and passes by default.
 - Set `AUTH_REQUIRE_EMAIL_WEBHOOK=true` to hard-fail unless signed webhook config is present and unsigned mode is disabled.
+
+OpenAI responses contract behavior:
+- Verifies live `/v1/responses` write call capability (scope `api.responses.write`) when enabled.
+- If no key or probe disabled, command warns and passes by default.
+- Set `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE=true` in deploy/cutover environments to hard-fail on missing scope.
 
 Email webhook smoke behavior:
 - Sends a signed synthetic lifecycle event to `POST /api/webhooks/resend` and writes evidence.

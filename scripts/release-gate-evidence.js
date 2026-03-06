@@ -52,6 +52,7 @@ function main() {
     { id: "database_schema_contract", args: ["run", "ops:schema-contract"] },
     { id: "password_recovery_email_contract", args: ["run", "ops:password-recovery-contract"] },
     { id: "email_webhook_contract", args: ["run", "ops:email-webhook-contract"] },
+    { id: "openai_responses_contract", args: ["run", "ops:openai-responses-contract"] },
     { id: "runtime_readiness_contract", args: ["run", "ops:readiness-contract"] },
     { id: "email_webhook_smoke", args: ["run", "ops:email-webhook-smoke"] },
     { id: "deploy_smoke", args: ["run", "ops:deploy-smoke"] },

@@ -39,6 +39,7 @@
     "ops:password-recovery-contract": "node scripts/password-recovery-email-contract.js",
     "ops:password-recovery-email-contract": "node scripts/password-recovery-email-contract.js",
     "ops:email-webhook-contract": "node scripts/email-webhook-contract.js",
+    "ops:openai-responses-contract": "node scripts/openai-responses-contract.js",
     "ops:email-webhook-smoke": "node scripts/ops-email-webhook-smoke.js",
     "ops:alert-smoke": "node scripts/ops-alert-smoke.js",
     "ops:storage-contract": "node scripts/storage-deployment-contract.js",

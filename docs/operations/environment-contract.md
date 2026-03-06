@@ -133,6 +133,20 @@ Primary login mode:
   - validates presence of core migration objects used by organization scope and email operations
   - readiness endpoint also treats schema as required when enabled (`checks.schema`)
 
+- `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE`
+  - default: `false`
+  - when `true`, release gate requires live OpenAI Responses API write probe to pass (`pnpm run ops:openai-responses-contract`)
+  - readiness endpoint treats responses-write check as required when enabled (`checks.openaiResponsesWrite`)
+
+- `OPENAI_RESPONSES_WRITE_PROBE_ENABLED`
+  - default: `false`
+  - enables live Responses API write probe in non-strict mode
+  - used by `pnpm run ops:openai-responses-contract`
+
+- `OPENAI_RESPONSES_CONTRACT_MODEL`
+  - optional
+  - model override for Responses API contract probe; falls back to `OPENAI_MODEL` or `gpt-4.1-mini`
+
 - `CONTACT_EMAIL_FROM`
   - optional
   - overrides contact-form sender identity; falls back to `AUTH_EMAIL_FROM` when unset
@@ -187,6 +201,11 @@ Primary login mode:
 - `HEALTH_READINESS_PROBE_OPENAI`
   - default: `false`
   - when `true`, `/api/health/readiness` actively probes OpenAI connectivity (`/v1/models`) instead of key-presence-only checks
+
+- `HEALTH_READINESS_PROBE_OPENAI_RESPONSES_WRITE`
+  - default: `false`
+  - when `true`, `/api/health/readiness` performs a minimal live write probe against `/v1/responses`
+  - auto-enabled when `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE=true`
 
 - `AUTH_ANOMALY_ALERT_COOLDOWN_MINUTES`
   - default: `30`

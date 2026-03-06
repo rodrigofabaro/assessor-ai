@@ -26,6 +26,7 @@ Last updated: 2026-03-06
   - added webhook smoke command `pnpm run ops:email-webhook-smoke` with evidence output (`docs/evidence/email-webhook-smoke/*.json`) and release-gate integration
   - added schema drift contract command `pnpm run ops:schema-contract` (checks required tables/columns; catches missing migration objects) and release-gate integration
   - `/api/health/readiness` now includes `schema` check to report migration drift in readiness responses
+  - added OpenAI Responses write-scope contract command `pnpm run ops:openai-responses-contract` and release-gate integration for `api.responses.write` enforcement
 - Docs/runbook parity:
   - updated `docs/help/admin-developer.md`, `docs/ROADMAP_ONE.md`, and `docs/Milestones.md` for the new contact-lead workflow
 

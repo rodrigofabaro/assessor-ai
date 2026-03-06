@@ -53,6 +53,7 @@ Status labels:
 - Deployment hardening progress (2026-03-06): release gate now runs signed webhook smoke evidence (`pnpm run ops:email-webhook-smoke`) before deploy smoke.
 - Deployment hardening progress (2026-03-06): release gate now includes database schema contract check (`pnpm run ops:schema-contract`) to prevent missing-table/column runtime failures.
 - Deployment hardening progress (2026-03-06): readiness endpoint now includes schema drift signal (`checks.schema`) aligned with `AUTH_REQUIRE_SCHEMA_CONTRACT`.
+- Deployment hardening progress (2026-03-06): release gate now includes OpenAI Responses write-scope contract (`pnpm run ops:openai-responses-contract`) aligned with strict flag `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE`.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
