@@ -156,13 +156,17 @@ export function validateRuntimeEnvContract() {
   const issues = collectIssues();
   if (!issues.length) return;
 
-  const message =
-    `Runtime env contract validation failed (${issues.length} issue(s)): ` +
-    issues.map((i) => `${i.code}: ${i.detail}`).join(" | ");
-
   const hasHardFailIssue = issues.some((i) => i.hardFail);
+  const hardCount = issues.filter((i) => i.hardFail).length;
+  const warnCount = Math.max(0, issues.length - hardCount);
+  const message =
+    hasHardFailIssue
+      ? `Runtime env contract hard-fail issues (${hardCount} hard, ${warnCount} warning): `
+      : `Runtime env contract warnings (${warnCount}): `;
+  const details = issues.map((i) => `${i.code}: ${i.detail}`).join(" | ");
+
   if (shouldFailHard() && hasHardFailIssue) {
-    throw new Error(message);
+    throw new Error(`${message}${details}`);
   }
-  console.warn(message);
+  console.warn(`${message}${details}`);
 }

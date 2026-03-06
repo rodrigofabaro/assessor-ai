@@ -253,7 +253,11 @@ export function storageFileExists(storagePath: string) {
   return Boolean(abs && fs.existsSync(abs));
 }
 
-export async function writeStorageFile(storagePath: string, data: Buffer | string) {
+export async function writeStorageFile(
+  storagePath: string,
+  data: Buffer | string,
+  options?: { allowOverwrite?: boolean }
+) {
   const normalized = normalizeInput(storagePath);
   if (!normalized) throw new Error("Invalid storage path.");
 
@@ -275,6 +279,8 @@ export async function writeStorageFile(storagePath: string, data: Buffer | strin
     token,
     access: "private",
     addRandomSuffix: false,
+    // Keep remote write semantics aligned with local fs.writeFile (overwrite by default).
+    allowOverwrite: options?.allowOverwrite ?? true,
   });
   const remoteUrl = String((uploaded as { url?: unknown })?.url || "").trim();
   if (!remoteUrl) throw new Error("Blob upload returned an empty URL.");
