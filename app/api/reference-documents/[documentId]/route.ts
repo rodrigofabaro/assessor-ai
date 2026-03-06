@@ -1,9 +1,93 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteStorageFile } from "@/lib/storage/provider";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function isOrgScopeCompatError(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
+  const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
+  if (code === "P2022") return true;
+  if (msg.includes("organizationid") && msg.includes("does not exist")) return true;
+  if (msg.includes("unknown argument") && msg.includes("organizationid")) return true;
+  return false;
+}
+
+export async function GET(_req: Request, { params }: { params: { documentId: string } }) {
+  const documentId = params?.documentId;
+  if (!documentId) {
+    return NextResponse.json({ error: "MISSING_DOCUMENT_ID", message: "Missing reference document id." }, { status: 400 });
+  }
+
+  const organizationId = await getRequestOrganizationId();
+  const scopedWhere = addOrganizationReadScope({ id: documentId }, organizationId);
+
+  let doc:
+    | {
+        id: string;
+        type: string;
+        status: string;
+        title: string;
+        version: number;
+        originalFilename: string;
+        storedFilename: string | null;
+        storagePath: string;
+        checksumSha256: string;
+        uploadedAt: Date;
+        updatedAt: Date;
+        lockedAt: Date | null;
+        sourceMeta: unknown;
+        extractionWarnings: unknown;
+        extractedJson: unknown;
+      }
+    | null = null;
+
+  const select = {
+    id: true,
+    type: true,
+    status: true,
+    title: true,
+    version: true,
+    originalFilename: true,
+    storedFilename: true,
+    storagePath: true,
+    checksumSha256: true,
+    uploadedAt: true,
+    updatedAt: true,
+    lockedAt: true,
+    sourceMeta: true,
+    extractionWarnings: true,
+    extractedJson: true,
+  } as const;
+
+  try {
+    doc = await prisma.referenceDocument.findFirst({
+      where: scopedWhere as any,
+      select,
+    });
+  } catch (error) {
+    if (!organizationId || !isOrgScopeCompatError(error)) throw error;
+    doc = await prisma.referenceDocument.findUnique({
+      where: { id: documentId },
+      select,
+    });
+  }
+
+  if (!doc) {
+    return NextResponse.json({ error: "NOT_FOUND", message: "Reference document not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    document: {
+      ...doc,
+      uploadedAt: doc.uploadedAt.toISOString(),
+      updatedAt: doc.updatedAt.toISOString(),
+      lockedAt: doc.lockedAt ? doc.lockedAt.toISOString() : null,
+    },
+  });
+}
 
 export async function DELETE(_req: Request, { params }: { params: { documentId: string } }) {
   const documentId = params?.documentId;

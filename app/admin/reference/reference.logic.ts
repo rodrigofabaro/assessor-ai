@@ -274,6 +274,20 @@ function docSearchHaystack(d: ReferenceDocument) {
   return parts.toLowerCase();
 }
 
+function hasFullExtractedProjection(doc: ReferenceDocument | null): boolean {
+  if (!doc) return false;
+  const extracted = doc.extractedJson;
+  if (!extracted || typeof extracted !== "object") return true;
+  const kind = String((extracted as any)?.kind || "").toUpperCase();
+  if (kind === "SPEC") {
+    return Array.isArray((extracted as any)?.learningOutcomes);
+  }
+  if (kind === "BRIEF") {
+    return Array.isArray((extracted as any)?.tasks);
+  }
+  return true;
+}
+
 export function getDocumentHint(d: ReferenceDocument): string {
   const meta = d.sourceMeta || {};
   return [meta.unitCode ? `Unit ${meta.unitCode}` : "", meta.assignmentCode ? meta.assignmentCode : ""]
@@ -297,6 +311,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedDocUsage, setSelectedDocUsage] = useState<ReferenceDocumentUsage | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
+  const [selectedDocHydrating, setSelectedDocHydrating] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lockConflict, setLockConflict] = useState<LockConflict | null>(null);
@@ -488,6 +503,25 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     return list;
   }, [documents, filters, opts.fixedInboxType]);
 
+  async function fetchSelectedDocumentDetail(documentId: string) {
+    const id = String(documentId || "").trim();
+    if (!id) return;
+    setSelectedDocHydrating(true);
+    try {
+      const payload = await jsonFetch<{ document?: ReferenceDocument }>(
+        `/api/reference-documents/${encodeURIComponent(id)}`,
+        { cache: "no-store" }
+      );
+      const nextDoc = payload?.document;
+      if (!nextDoc?.id) return;
+      setDocuments((prev) => prev.map((row) => (row.id === nextDoc.id ? nextDoc : row)));
+    } catch (e: any) {
+      notifyToast("warn", e?.message || "Could not load full extracted preview for this document.");
+    } finally {
+      setSelectedDocHydrating(false);
+    }
+  }
+
   async function refreshAll({ keepSelection }: { keepSelection?: boolean } = {}) {
     const [docs, unitsRes] = await Promise.all([
       (() => {
@@ -502,7 +536,9 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
         if (filters.onlyLocked) params.set("onlyLocked", "true");
         if (filters.onlyUnlocked) params.set("onlyUnlocked", "true");
 
-        params.set("extracted", "full");
+        params.set("extracted", "summary");
+        params.set("limit", "180");
+        params.set("offset", "0");
         const url = `/api/reference-documents${params.toString() ? `?${params.toString()}` : ""}`;
         return jsonFetch<{ documents: ReferenceDocument[] }>(url, { cache: "no-store" });
       })(),
@@ -532,6 +568,15 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     refreshAll({ keepSelection: true }).catch((e) => setError(String(e?.message || e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!selectedDocId) return;
+    const candidate = documents.find((doc) => doc.id === selectedDocId) || null;
+    if (!candidate) return;
+    if (hasFullExtractedProjection(candidate)) return;
+    void fetchSelectedDocumentDetail(selectedDocId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDocId, documents]);
 
   // Keep raw JSON in sync when selecting a document
   useEffect(() => {
@@ -1390,6 +1435,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     selectedDoc,
     selectedUnit,
     selectedDocId,
+    selectedDocHydrating,
     selectedDocUsage,
     usageLoading,
 

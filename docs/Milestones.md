@@ -55,6 +55,7 @@ Status labels:
 - Deployment hardening progress (2026-03-06): readiness endpoint now includes schema drift signal (`checks.schema`) aligned with `AUTH_REQUIRE_SCHEMA_CONTRACT`.
 - Deployment hardening progress (2026-03-06): release gate now includes OpenAI Responses write-scope contract (`pnpm run ops:openai-responses-contract`) aligned with strict flag `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE`.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
+- Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
@@ -244,6 +245,7 @@ Current update (2026-03-03):
 4. Reference inbox performance phase 2
 - Add explicit client pagination in `/admin/reference`.
 - Add server-side projection presets by route context (reference list vs brief detail).
+- Status (2026-03-06): projection hardening delivered. `/admin/reference` list refresh now requests `extracted=summary`, and selected documents hydrate full extracted JSON on demand via `GET /api/reference-documents/[documentId]`.
 
 5. Submission detail performance pass
 - Profile heavy panels (`Approval & outputs`, criterion list, run history diffs).

@@ -193,6 +193,8 @@ function InboxCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
 function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
   const selectedDoc = vm.selectedDoc;
   const busyText = String(vm.busy || "");
+  const selectionHydrating = !!vm.selectedDocHydrating;
+  const actionDisabled = !selectedDoc || !!vm.busy || selectionHydrating;
   const isExtracting = /^Extracting/i.test(busyText);
   const isReextracting = /^Re-extracting/i.test(busyText);
   const isLocking = /^Locking/i.test(busyText);
@@ -208,10 +210,10 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={vm.extractSelected}
-            disabled={!selectedDoc || !!vm.busy}
+            disabled={actionDisabled}
             className={
               "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-              (!selectedDoc || vm.busy
+              (actionDisabled
                 ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                 : "bg-sky-700 text-white hover:bg-sky-800")
             }
@@ -223,10 +225,10 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
           {selectedDoc?.lockedAt ? (
             <button
               onClick={vm.reextractSelected}
-              disabled={!selectedDoc || !!vm.busy}
+              disabled={actionDisabled}
               className={
                 "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-                (!selectedDoc || vm.busy
+                (actionDisabled
                   ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                   : "bg-amber-600 text-white hover:bg-amber-500")
               }
@@ -238,10 +240,10 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
 
           <button
             onClick={vm.lockSelected}
-            disabled={!selectedDoc || !!vm.busy}
+            disabled={actionDisabled}
             className={
               "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm " +
-              (!selectedDoc || vm.busy
+              (actionDisabled
                 ? "cursor-not-allowed bg-zinc-300 text-zinc-600"
                 : "bg-emerald-700 text-white hover:bg-emerald-600")
             }
@@ -256,6 +258,11 @@ function ReviewCard({ vm }: { vm: ReturnType<typeof useReferenceAdmin> }) {
         <p className="mt-4 text-sm text-zinc-600">Select a document from the inbox to review it.</p>
       ) : (
         <div className="mt-4">
+          {selectionHydrating ? (
+            <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+              Loading full extracted preview for this document...
+            </div>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Meta label="Type" value={selectedDoc.type} />
             <Meta label="Uploaded" value={formatDate(selectedDoc.uploadedAt)} />

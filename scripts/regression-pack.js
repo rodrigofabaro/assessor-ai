@@ -18,6 +18,7 @@ const tests = [
   "scripts/schema-contract.test.js",
   "scripts/openai-responses-contract.test.js",
   "scripts/qa-reliability-contract.test.js",
+  "scripts/reference-inbox-projection-contract.test.js",
 ];
 
 let failures = 0;

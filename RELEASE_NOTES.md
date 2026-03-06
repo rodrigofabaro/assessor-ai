@@ -34,6 +34,11 @@ Last updated: 2026-03-06
   - added `GET /api/admin/ops/qa-reliability` (super-admin) to aggregate 7-day p50/p95/retry/failure metrics from ops events
   - `/admin/developer` now includes `QA reliability telemetry` cards and tables (runs, p95 by action, retry/failure rates, recent run log)
   - added regression contract test: `scripts/qa-reliability-contract.test.js` (wired into `test:regression-pack`)
+- Reference inbox projection hardening (performance slice):
+  - `/admin/reference` list refresh now requests lightweight extracted payloads (`extracted=summary`) instead of full extracted JSON for every row
+  - added `GET /api/reference-documents/[documentId]` to hydrate full extracted JSON only for the currently selected document
+  - review actions now show/obey a hydration state while full preview payload is loading
+  - added regression contract test: `scripts/reference-inbox-projection-contract.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 

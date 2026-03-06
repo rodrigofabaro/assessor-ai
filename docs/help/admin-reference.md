@@ -1,6 +1,6 @@
 # Admin Reference (`/admin/reference`)
 
-Last updated: 2026-03-02
+Last updated: 2026-03-06
 
 ## Purpose
 
@@ -44,6 +44,12 @@ If unresolved blockers remain, status is set to `FAILED` (or remains `LOCKED` if
 - `extracted=none` (smallest payload, no extracted JSON)
 - `extracted=summary` (default; lightweight extracted summary)
 - `extracted=full` (full extracted JSON for deep edit/review flows)
+
+Current UI behavior (performance hardening):
+
+- inbox list refresh requests `extracted=summary` to keep payloads small
+- when an item is selected, the page hydrates full extracted JSON on demand via `GET /api/reference-documents/[documentId]`
+- actions are temporarily disabled while full preview hydration is in progress
 
 Pagination parameters:
 
