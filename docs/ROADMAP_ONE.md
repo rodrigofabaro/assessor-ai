@@ -271,6 +271,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - surface platform controls only in `Developer` console for super-admin
 - define launch toggle/feature flag to progressively expose advanced tenant operations
 - Progress (2026-03-06): launch-mode UI toggle added (`NEXT_PUBLIC_UI_LAUNCH_MODE`); when enabled, tenant operations are progressively surfaced in primary admin navigation without schema/API changes.
+- Progress (2026-03-06): operator docs now define pre-launch vs launch-mode admin navigation behavior (`docs/help/admin-index.md`).
 
 ### Later
 

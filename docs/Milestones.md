@@ -59,6 +59,7 @@ Status labels:
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - UX progress (2026-03-06): pre-launch to launch navigation toggle added via `NEXT_PUBLIC_UI_LAUNCH_MODE` so tenant controls can be progressively exposed without schema/API changes.
+- UX progress (2026-03-06): admin help docs now describe both pre-launch and launch-mode nav behavior (`docs/help/admin-index.md`).
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Feedback quality progress (2026-03-06): annotation realism policy now removes generic low-signal bullets and injects assessor-style fallback notes when needed; regression pack coverage added.
 - Feedback quality progress (2026-03-06): release gate now runs `ops:feedback-quality-contract` to enforce policy wiring before deploy.

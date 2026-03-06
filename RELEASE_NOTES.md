@@ -63,6 +63,7 @@ Last updated: 2026-03-06
 - Pre-launch UI launch-toggle foundation:
   - added `NEXT_PUBLIC_UI_LAUNCH_MODE` to control progressive exposure of tenant operations in admin navigation
   - when enabled, `/admin/users` is surfaced in primary admin nav while existing routes/APIs remain unchanged
+  - updated admin help to document pre-launch vs launch-mode navigation behavior (`docs/help/admin-index.md`)
 
 ### Latest additions (2026-03-05)
 

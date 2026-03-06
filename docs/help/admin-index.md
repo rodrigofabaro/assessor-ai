@@ -1,6 +1,6 @@
 # `/admin` Help
 
-Last updated: 2026-03-03
+Last updated: 2026-03-06
 
 
 ## Purpose
@@ -16,11 +16,14 @@ Use this page to monitor blockers, jump into QA research, and open audit/locking
 - Grade distribution snapshot
 - Recent references and recent submissions
 - Top-nav admin sections:
-  - Overview, Audit, Briefs, Library, QA, Specs, Students, Users
+  - Pre-launch profile (default): Overview, Briefs, Library, QA, Specs, Students
+  - `SUPER_ADMIN`: adds Developer
+  - Launch-mode profile (`NEXT_PUBLIC_UI_LAUNCH_MODE=true`): adds Users
   - Settings (cog icon on far-right)
 - Advanced (direct URL only):
   - `/admin/reference`
   - `/admin/bindings`
+  - `/admin/users` (still available by route when hidden in pre-launch nav)
 
 ## Recommended Flow
 
