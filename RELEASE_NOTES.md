@@ -23,6 +23,7 @@ Last updated: 2026-03-06
   - `GET /api/admin/ops/email-delivery` now includes lifecycle rollups (`delivered`, `bounced`, `opened`, `clicked`, `complained`) plus recent provider event rows
   - added webhook contract command `pnpm run ops:email-webhook-contract` and release-gate step with strict toggle `AUTH_REQUIRE_EMAIL_WEBHOOK`
   - `/api/health/readiness` now includes `emailWebhook` check and enforces signed webhook config when `AUTH_REQUIRE_EMAIL_WEBHOOK=true`
+  - added webhook smoke command `pnpm run ops:email-webhook-smoke` with evidence output (`docs/evidence/email-webhook-smoke/*.json`) and release-gate integration
 - Docs/runbook parity:
   - updated `docs/help/admin-developer.md`, `docs/ROADMAP_ONE.md`, and `docs/Milestones.md` for the new contact-lead workflow
 

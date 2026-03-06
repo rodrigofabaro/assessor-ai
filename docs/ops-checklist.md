@@ -120,7 +120,8 @@ What it runs:
 5. `pnpm run ops:password-recovery-contract`
 6. `pnpm run ops:email-webhook-contract`
 7. `pnpm run ops:readiness-contract`
-8. `pnpm run ops:deploy-smoke`
+8. `pnpm run ops:email-webhook-smoke`
+9. `pnpm run ops:deploy-smoke`
 
 Storage deployment contract behavior:
 - If `STORAGE_BACKEND=filesystem` and `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
@@ -135,6 +136,11 @@ Email webhook contract behavior:
 - If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.
 - If using Resend and `RESEND_WEBHOOK_SECRET` is unset, command warns and passes by default.
 - Set `AUTH_REQUIRE_EMAIL_WEBHOOK=true` to hard-fail unless signed webhook config is present and unsigned mode is disabled.
+
+Email webhook smoke behavior:
+- Sends a signed synthetic lifecycle event to `POST /api/webhooks/resend` and writes evidence.
+- Base URL resolution: `EMAIL_WEBHOOK_SMOKE_BASE_URL` -> `READINESS_BASE_URL` -> `DEPLOY_SMOKE_BASE_URL` -> `http://localhost:3000`.
+- If provider is not `resend` or webhook secret is missing, command skips unless strict mode is enabled.
 
 Readiness contract behavior:
 - Calls `/api/health/readiness` and fails when required dependencies are not ready.

@@ -185,3 +185,8 @@ Primary login mode:
 - `AUTH_ANOMALY_ALERT_COOLDOWN_MINUTES`
   - default: `30`
   - cooldown window for repeated auth anomaly alert emails (per anomaly kind/actor/route key)
+
+- `EMAIL_WEBHOOK_SMOKE_BASE_URL`
+  - optional
+  - base URL used by `pnpm run ops:email-webhook-smoke`
+  - fallback chain: `EMAIL_WEBHOOK_SMOKE_BASE_URL` -> `READINESS_BASE_URL` -> `DEPLOY_SMOKE_BASE_URL` -> `http://localhost:3000`

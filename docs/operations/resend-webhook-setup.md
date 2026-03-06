@@ -54,3 +54,4 @@ Purpose:
 2. Trigger open/click/bounce in mailbox test flow.
 3. Confirm `/admin/developer` -> `Email delivery health` updates lifecycle cards and provider event table.
 4. Run `pnpm run ops:email-webhook-contract` in target environment (set `AUTH_REQUIRE_EMAIL_WEBHOOK=true` for strict gate enforcement).
+5. Run `pnpm run ops:email-webhook-smoke` to post a signed synthetic lifecycle event and capture evidence under `docs/evidence/email-webhook-smoke/`.

@@ -50,6 +50,7 @@ Status labels:
 - Email ops progress (2026-03-06): provider lifecycle webhook ingestion is live at `POST /api/webhooks/resend` with `EmailProviderEvent` persistence and delivered/bounced/opened/clicked telemetry cards.
 - Email ops progress (2026-03-06): release gate now includes email-webhook contract check (`pnpm run ops:email-webhook-contract`) with strict mode flag `AUTH_REQUIRE_EMAIL_WEBHOOK`.
 - Deployment hardening progress (2026-03-06): readiness endpoint now reports webhook configuration status (`checks.emailWebhook`) and can enforce signed webhook config.
+- Deployment hardening progress (2026-03-06): release gate now runs signed webhook smoke evidence (`pnpm run ops:email-webhook-smoke`) before deploy smoke.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
