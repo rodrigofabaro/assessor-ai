@@ -166,6 +166,17 @@ function normalizePartKeys(parts: any[]) {
   return out;
 }
 
+function taskLikelyRequiresScenario(task: any) {
+  const heading = String(task?.heading || "");
+  if (/\bscenario\b/i.test(heading)) return true;
+  const taskText = String(task?.text || "");
+  const parts = Array.isArray(task?.parts) ? task.parts : [];
+  const joined = [taskText, ...parts.map((p: any) => String(p?.text || ""))].join("\n");
+  return /\b(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context|based\s+on\s+the\s+scenario|using\s+the\s+scenario|from\s+the\s+scenario|based\s+on\s+the\s+context|using\s+the\s+context|from\s+the\s+context)\b/i.test(
+    joined
+  );
+}
+
 function collectBriefValidationWarnings(draftLike: any) {
   const warnings = new Set<string>();
   const tasks = Array.isArray(draftLike?.tasks) ? draftLike.tasks : [];
@@ -176,10 +187,6 @@ function collectBriefValidationWarnings(draftLike: any) {
   const scenarioTaskIds = new Set<number>(
     scenarios.map((s: any) => Number(s?.appliesToTask)).filter((n: number) => Number.isInteger(n) && n > 0)
   );
-  const hasScenarioSignal =
-    scenarios.some((s: any) => String(s?.text || "").trim()) ||
-    tasks.some((task: any) => String(task?.scenarioText || "").trim());
-
   for (const task of tasks) {
     const n = Number(task?.n || 0);
     const parts = Array.isArray(task?.parts) ? task.parts : [];
@@ -209,7 +216,8 @@ function collectBriefValidationWarnings(draftLike: any) {
       warnings.add(`validation: unresolved Celsius symbol artifacts in Task ${n}`);
     }
 
-    if (hasScenarioSignal && n > 0 && !scenarioTaskIds.has(n) && !String(task?.scenarioText || "").trim()) {
+    const hasMappedScenario = n > 0 && (scenarioTaskIds.has(n) || !!String(task?.scenarioText || "").trim());
+    if (n > 0 && taskLikelyRequiresScenario(task) && !hasMappedScenario) {
       warnings.add(`validation: missing scenario mapping for Task ${n}`);
     }
   }

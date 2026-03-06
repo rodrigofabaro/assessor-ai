@@ -89,6 +89,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - add UniCourse template-aware extraction profile (layout-aware first pass) while keeping generic fallback path
 - link implementation notes: `docs/operations/brief-extraction-hardening-log-2026-03-05.md`
 - Progress (2026-03-06): persisted fidelity report + per-task provenance are now produced on brief extraction, and lock quality gate blocks unresolved fidelity blockers.
+- Progress (2026-03-06): missing-scenario warnings are now cue-based (only when task text explicitly requires scenario/context) to reduce false positives on briefs where later tasks legitimately have no scenario.
 
 3. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)

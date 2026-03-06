@@ -48,6 +48,10 @@ Last updated: 2026-03-06
   - `GET /api/submissions/[submissionId]` now supports `projection=summary|full` and returns summary payloads without extraction page text / full result JSON when requested
   - `/submissions/[submissionId]` now boots with summary projection and hydrates full payload on-demand when `Extraction` or `Approval & outputs` panels are opened
   - added regression contract test: `scripts/submission-detail-projection-contract.test.js` (wired into `test:regression-pack`)
+- Brief extraction warning policy hardening:
+  - missing-scenario warnings now trigger only when a task explicitly references scenario/context language (not globally across all tasks)
+  - reduced false positives where later tasks legitimately have no scenario text
+  - added regression coverage: `scripts/brief-scenario-warning-policy.test.js` (wired into `test:regression-pack`)
 
 ### Latest additions (2026-03-05)
 

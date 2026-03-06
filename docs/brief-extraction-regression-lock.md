@@ -1,6 +1,6 @@
 # Brief Extraction Regression Lock
 
-Last updated: 2026-02-19
+Last updated: 2026-03-06
 
 This file tracks non-negotiable parser behaviors that must not regress.
 
@@ -9,6 +9,7 @@ This file tracks non-negotiable parser behaviors that must not regress.
 - task boundaries stay stable
 - table content remains in correct task/part
 - false equation warnings are suppressed on non-math briefs
+- false missing-scenario warnings are suppressed on tasks that do not explicitly request scenario/context
 - LO and criteria extraction remains complete for known benchmark briefs
 - mapping code progression logic remains stable
 

@@ -242,6 +242,7 @@ Current update (2026-03-03):
 3. Brief extraction stabilization pack (post-hard-validation)
 - Add fixture coverage for multi-scenario briefs and mixed part-key formats (`1/2/3`, `i/ii`, `b.i`).
 - Add figure token/image linkage verification tests in list + detail rendering.
+- Status (2026-03-06): scenario-mapping warning policy is now cue-based to avoid false positives on tasks that do not request scenario/context.
 
 4. Reference inbox performance phase 2
 - Add explicit client pagination in `/admin/reference`.

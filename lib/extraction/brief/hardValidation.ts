@@ -81,11 +81,15 @@ function normalizePartKeys(parts: any[]) {
   return out;
 }
 
-function hasScenarioSignal(draftLike: any) {
-  const scenarios = Array.isArray(draftLike?.scenarios) ? draftLike.scenarios : [];
-  if (scenarios.some((s: any) => norm(s?.text))) return true;
-  const tasks = Array.isArray(draftLike?.tasks) ? draftLike.tasks : [];
-  return tasks.some((t: any) => norm(t?.scenarioText));
+function taskLikelyRequiresScenario(task: any) {
+  const heading = String(task?.heading || "");
+  const taskText = String(task?.text || "");
+  const parts = Array.isArray(task?.parts) ? task.parts : [];
+  const joined = [heading, taskText, ...parts.map((p: any) => String(p?.text || ""))].join("\n");
+  if (/\bscenario\b/i.test(heading)) return true;
+  return /\b(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context|based\s+on\s+the\s+scenario|using\s+the\s+scenario|from\s+the\s+scenario|based\s+on\s+the\s+context|using\s+the\s+context|from\s+the\s+context)\b/i.test(
+    joined
+  );
 }
 
 export function validateBriefExtractionHard(draftLike: any, sourceText = ""): BriefHardValidationResult {
@@ -109,7 +113,11 @@ export function validateBriefExtractionHard(draftLike: any, sourceText = ""): Br
   }
 
   const seenTaskNumbers = new Set<number>();
-  const requireScenarioMapping = hasScenarioSignal(draftLike);
+  const scenarioTaskIds = new Set<number>(
+    (Array.isArray(draftLike?.scenarios) ? draftLike.scenarios : [])
+      .map((s: any) => Number(s?.appliesToTask))
+      .filter((n: number) => Number.isInteger(n) && n > 0)
+  );
   for (const task of tasks) {
     const n = Number(task?.n || 0);
     const taskText = String(task?.text || "");
@@ -147,7 +155,8 @@ export function validateBriefExtractionHard(draftLike: any, sourceText = ""): Br
       });
     }
 
-    if (requireScenarioMapping && n > 0 && !norm(task?.scenarioText)) {
+    const hasMappedScenario = n > 0 && (scenarioTaskIds.has(n) || !!norm(task?.scenarioText));
+    if (n > 0 && taskLikelyRequiresScenario(task) && !hasMappedScenario) {
       issues.push({
         level: "WARNING",
         code: "MISSING_SCENARIO",

@@ -88,7 +88,7 @@ function run() {
     tasks: [
       {
         n: 1,
-        text: "short text",
+        text: "Based on the scenario, write a short response.",
         scenarioText: "",
         warnings: ["task body: empty"],
         parts: [{ key: "i", text: "Part one" }, { key: "i", text: "Duplicate key" }],

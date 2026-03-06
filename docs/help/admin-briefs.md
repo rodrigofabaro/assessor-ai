@@ -21,7 +21,7 @@ It blocks extraction when structural defects remain, including:
 
 - no tasks extracted
 - duplicate task numbers
-- missing scenario/context for a task
+- missing scenario/context for a task (only when the task text explicitly asks for scenario/context)
 - duplicate part keys (for example repeated `i`)
 - figure reference without image token (missing `[[IMG:...]]`)
 - unresolved Celsius OCR artifacts (for example `100 ° CC`)

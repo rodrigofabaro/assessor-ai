@@ -10,6 +10,7 @@ const tests = [
   "scripts/brief-fidelity-report.test.js",
   "scripts/brief-grading-scope-change.test.js",
   "scripts/brief-readiness.test.js",
+  "scripts/brief-scenario-warning-policy.test.js",
   "scripts/iv-ad-review-draft-schema.test.js",
   "scripts/export-pack-validation.test.js",
   "scripts/auth-scaffold-contract.test.js",
