@@ -117,16 +117,22 @@ What it runs:
 2. `pnpm run test:regression-pack`
 3. `pnpm run test:export-pack-validation`
 4. `pnpm run ops:storage-contract`
-5. `pnpm run ops:password-recovery-contract`
-6. `pnpm run ops:email-webhook-contract`
-7. `pnpm run ops:readiness-contract`
-8. `pnpm run ops:email-webhook-smoke`
-9. `pnpm run ops:deploy-smoke`
+5. `pnpm run ops:schema-contract`
+6. `pnpm run ops:password-recovery-contract`
+7. `pnpm run ops:email-webhook-contract`
+8. `pnpm run ops:readiness-contract`
+9. `pnpm run ops:email-webhook-smoke`
+10. `pnpm run ops:deploy-smoke`
 
 Storage deployment contract behavior:
 - If `STORAGE_BACKEND=filesystem` and `FILE_STORAGE_ROOT` is unset, command warns and passes by default.
 - If `STORAGE_BACKEND=vercel_blob`, command requires `BLOB_READ_WRITE_TOKEN`.
 - Set `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true` in deploy/cutover environments to hard-fail when durable filesystem storage root is not configured.
+
+Schema contract behavior:
+- Verifies key migration objects and columns exist (for org scope + auth/email ops tables).
+- If schema drift is detected (missing tables/columns), command fails.
+- Set `AUTH_REQUIRE_SCHEMA_CONTRACT=true` in deploy/cutover environments to hard-fail when DB connection is unavailable.
 
 Password recovery contract behavior:
 - If `AUTH_INVITE_EMAIL_PROVIDER=none`, command warns and passes by default.

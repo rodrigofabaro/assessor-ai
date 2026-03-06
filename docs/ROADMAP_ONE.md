@@ -61,6 +61,8 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-05): storage deployment contract gate in progress.
 - Added deploy gate contract command: `pnpm run ops:storage-contract`.
 - Release gate now includes storage deployment contract check before deploy smoke.
+- Added deploy gate contract command: `pnpm run ops:schema-contract`.
+- Release gate now includes database schema contract check before readiness/deploy smoke.
 - Added strict enforcement flag for cutover environments: `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
 - Added provider mode `STORAGE_BACKEND=vercel_blob` with `BLOB_READ_WRITE_TOKEN` support for durable Vercel storage.
 - Upload/reference/IV writers now persist provider-returned storage paths, and read paths now resolve remote-backed storage via local cache hydration.
@@ -246,6 +248,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-06): provider webhook ingestion delivered (`POST /api/webhooks/resend`) with lifecycle rollups (delivered/bounced/opened/clicked/complained) in developer dashboard.
 - Progress (2026-03-06): release gate now includes webhook contract check (`pnpm run ops:email-webhook-contract`) with strict toggle `AUTH_REQUIRE_EMAIL_WEBHOOK=true`.
 - Progress (2026-03-06): release gate now includes webhook smoke evidence step (`pnpm run ops:email-webhook-smoke`) after readiness.
+- Progress (2026-03-06): release gate now includes DB schema drift contract (`pnpm run ops:schema-contract`) to catch missing migration objects before runtime.
 - Remaining action: configure Resend webhook endpoint in each environment and capture staging evidence.
 
 7. Pre-launch development-mode UX profile
@@ -422,7 +425,7 @@ Still missing (highest impact first):
 - `pnpm -v`
 
 2. Run quality gates:
-- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, password-recovery email contract, email-webhook contract, readiness contract, email-webhook smoke, deploy smoke)
+- `pnpm run ops:release-gate` (single mandatory gate command; includes tsc, regression pack, export-pack validation, storage deployment contract, database schema contract, password-recovery email contract, email-webhook contract, readiness contract, email-webhook smoke, deploy smoke)
 
 3. Verify environment contract:
 - `DATABASE_URL`

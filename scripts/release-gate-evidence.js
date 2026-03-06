@@ -49,6 +49,7 @@ function main() {
     { id: "regression_pack", args: ["run", "test:regression-pack"] },
     { id: "export_pack_validation", args: ["run", "test:export-pack-validation"] },
     { id: "storage_deployment_contract", args: ["run", "ops:storage-contract"] },
+    { id: "database_schema_contract", args: ["run", "ops:schema-contract"] },
     { id: "password_recovery_email_contract", args: ["run", "ops:password-recovery-contract"] },
     { id: "email_webhook_contract", args: ["run", "ops:email-webhook-contract"] },
     { id: "runtime_readiness_contract", args: ["run", "ops:readiness-contract"] },

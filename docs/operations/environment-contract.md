@@ -127,6 +127,11 @@ Primary login mode:
   - validated by `pnpm run ops:email-webhook-contract`
   - readiness endpoint also treats webhook config as required when enabled (`checks.emailWebhook`)
 
+- `AUTH_REQUIRE_SCHEMA_CONTRACT`
+  - default: `false`
+  - when `true`, release gate requires DB schema contract checks to pass (`pnpm run ops:schema-contract`)
+  - validates presence of core migration objects used by organization scope and email operations
+
 - `CONTACT_EMAIL_FROM`
   - optional
   - overrides contact-form sender identity; falls back to `AUTH_EMAIL_FROM` when unset

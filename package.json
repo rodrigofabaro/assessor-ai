@@ -42,6 +42,7 @@
     "ops:email-webhook-smoke": "node scripts/ops-email-webhook-smoke.js",
     "ops:alert-smoke": "node scripts/ops-alert-smoke.js",
     "ops:storage-contract": "node scripts/storage-deployment-contract.js",
+    "ops:schema-contract": "node scripts/schema-contract.js",
     "ops:readiness-contract": "node scripts/readiness-contract.js",
     "ops:release-gate": "node scripts/release-gate-evidence.js",
     "ops:prepush-prod": "pwsh -NoLogo -NoProfile -File scripts/prepush-prod-check.ps1",
