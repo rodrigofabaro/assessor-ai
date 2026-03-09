@@ -5,6 +5,7 @@ import { getSettingsReadContext, getSettingsWriteContext } from "@/lib/admin/set
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { readAutomationPolicy, writeAutomationPolicy } from "@/lib/admin/automationPolicy";
+import { addOrganizationReadScope, getRequestOrganizationId, getRequestSession } from "@/lib/auth/requestSession";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export async function PUT(req: Request) {
   if (!ctx.canWrite) {
     return NextResponse.json({ error: "Insufficient role for app settings." }, { status: 403 });
   }
+  const session = await getRequestSession();
+  const activeOrganizationId = await getRequestOrganizationId();
+  const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
 
   const body = await req.json().catch(() => ({} as any));
   const activeAuditUserId =
@@ -46,7 +50,11 @@ export async function PUT(req: Request) {
       : String(body?.activeAuditUserId || "").trim();
 
   if (activeAuditUserId) {
-    const user = await prisma.appUser.findUnique({ where: { id: activeAuditUserId } });
+    const user = canManageAll
+      ? await prisma.appUser.findUnique({ where: { id: activeAuditUserId } })
+      : await prisma.appUser.findFirst({
+          where: addOrganizationReadScope({ id: activeAuditUserId }, activeOrganizationId) as any,
+        });
     if (!user) {
       return NextResponse.json({ error: "Active audit user not found." }, { status: 404 });
     }

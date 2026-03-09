@@ -28,6 +28,7 @@ const tests = [
   "scripts/org-scope-tenant-route-boundary.test.js",
   "scripts/org-scope-student-boundary.test.js",
   "scripts/org-settings-contract.test.js",
+  "scripts/admin-settings-org-boundary.test.js",
   "scripts/password-recovery-contract.test.js",
   "scripts/storage-deployment-contract.test.js",
   "scripts/schema-contract.test.js",

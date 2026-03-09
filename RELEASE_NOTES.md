@@ -504,4 +504,6 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - Added route-level coverage in `scripts/org-scope-brief-assessment-boundary.test.js`.
 - M10 organization settings hardening: org settings/secret writes now fail explicitly when encryption is not configured, and org config + secret rotation/deletion events are now audit logged.
 - Added contract coverage in `scripts/org-settings-contract.test.js`.
+- M10 admin settings boundary hardening: app-config and batch settings now scope `activeAuditUserId` selection to the active organization for non-superadmin sessions, preventing cross-org audit-actor assignment.
+- Added contract coverage in `scripts/admin-settings-org-boundary.test.js`.
 - Added route-level coverage in `scripts/org-scope-assignment-iv-admin-boundary.test.js`.

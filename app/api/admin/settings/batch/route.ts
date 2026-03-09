@@ -7,6 +7,7 @@ import { readGradingConfig, writeGradingConfig, type GradingConfig } from "@/lib
 import { readAutomationPolicy, writeAutomationPolicy, type AutomationPolicy } from "@/lib/admin/automationPolicy";
 import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 import { FEEDBACK_TEMPLATE_REQUIRED_TOKENS } from "@/lib/grading/feedbackDocument";
+import { addOrganizationReadScope, getRequestOrganizationId, getRequestSession } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,9 @@ export async function PUT(req: Request) {
   if (!ctx.canWrite) {
     return NextResponse.json({ error: "Insufficient role for batch settings update." }, { status: 403 });
   }
+  const session = await getRequestSession();
+  const activeOrganizationId = await getRequestOrganizationId();
+  const canManageAll = !!session?.isSuperAdmin || String(session?.userId || "").startsWith("env:");
 
   const body = (await req.json().catch(() => ({}))) as BatchBody;
   const aiRequested = !!body?.ai;
@@ -54,7 +58,11 @@ export async function PUT(req: Request) {
     const raw = body.app?.activeAuditUserId;
     nextAuditUserId = raw === null || raw === "" ? null : String(raw || "").trim();
     if (nextAuditUserId) {
-      const user = await prisma.appUser.findUnique({ where: { id: nextAuditUserId } });
+      const user = canManageAll
+        ? await prisma.appUser.findUnique({ where: { id: nextAuditUserId } })
+        : await prisma.appUser.findFirst({
+            where: addOrganizationReadScope({ id: nextAuditUserId }, activeOrganizationId) as any,
+          });
       if (!user) return NextResponse.json({ error: "Active audit user not found." }, { status: 404 });
     }
   }
