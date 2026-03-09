@@ -46,6 +46,7 @@
     "test:org-scope-student-boundary": "node scripts/org-scope-student-boundary.test.js",
     "test:org-settings-contract": "node scripts/org-settings-contract.test.js",
     "test:admin-settings-org-boundary": "node scripts/admin-settings-org-boundary.test.js",
+    "test:admin-role-boundary-contract": "node scripts/admin-role-boundary-contract.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",
     "ops:deploy-smoke": "node scripts/deploy-smoke-evidence.js",
     "ops:auth-guard-smoke": "node scripts/auth-guard-smoke.js",

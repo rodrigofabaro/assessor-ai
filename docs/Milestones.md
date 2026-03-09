@@ -365,6 +365,7 @@ Current update (2026-03-03):
 - Status (2026-03-09): remaining brief-owned/drill-down route coverage added for assignment-brief list/create/map, brief IV/rubric attachments, student submission history, and assessment feedback update flows (`scripts/org-scope-brief-assessment-boundary.test.js`).
 - Status (2026-03-09): organization settings/secrets contract coverage added for org-admin access, encryption readiness failures, and audit-safe secret/config writes (`scripts/org-settings-contract.test.js`).
 - Status (2026-03-09): admin settings boundary coverage added so org-admin settings writes cannot point `activeAuditUserId` at users outside the active organization, while `SUPER_ADMIN` retains global selection (`scripts/admin-settings-org-boundary.test.js`).
+- Status (2026-03-09): admin role-boundary coverage added for super-admin-only organization management plus org-admin user-management limits (`scripts/admin-role-boundary-contract.test.js`).
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.
