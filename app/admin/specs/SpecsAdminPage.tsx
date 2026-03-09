@@ -67,6 +67,7 @@ export default function SpecsAdminPage() {
   const importFullSpecSuite = admin.importFullSpecSuite;
   const downloadSuiteImportReport = admin.downloadSuiteImportReport;
   const archiveSelected = admin.archiveSelected;
+  const deleteSelectedDocument = vm.deleteSelectedDocument;
   const docFramework = admin.docFramework;
   const setDocFramework = admin.setDocFramework;
   const docCategory = admin.docCategory;
@@ -103,6 +104,8 @@ export default function SpecsAdminPage() {
   const [selectedSuiteUnitCodes, setSelectedSuiteUnitCodes] = useState<string[]>([]);
 
   const selectedDoc = vm.selectedDoc;
+  const selectedDocUsage = vm.selectedDocUsage;
+  const usageLoading = vm.usageLoading;
   const extractionWarnings = Array.isArray(selectedDoc?.extractionWarnings)
     ? (selectedDoc?.extractionWarnings as Array<string | null | undefined>).filter(Boolean)
     : [];
@@ -124,6 +127,8 @@ export default function SpecsAdminPage() {
     : "border-dashed border-zinc-200 bg-zinc-50 text-zinc-600";
 
   const canExtract = !!selectedDoc && !vm.busy && !isLocked;
+  const canDeleteSelectedDoc =
+    !!selectedDoc && !vm.busy && !isLocked && !usageLoading && !selectedDocUsage?.inUse;
   const selectedLabel = selectedDoc?.title || "No document selected";
   const totalDocs = vm.documents.length;
   const lockedDocs = vm.documents.filter((d: any) => !!d.lockedAt || String(d.status || "").toUpperCase() === "LOCKED").length;
@@ -1097,6 +1102,26 @@ export default function SpecsAdminPage() {
               >
                 {headerBusy === "lock" ? "Locking..." : "Lock"}
               </button>
+              <button
+                type="button"
+                onClick={() => void deleteSelectedDocument()}
+                disabled={!canDeleteSelectedDoc}
+                title={
+                  isLocked
+                    ? "Locked documents cannot be deleted."
+                    : usageLoading
+                      ? "Checking document usage..."
+                      : selectedDocUsage?.inUse
+                        ? "Documents linked to submissions cannot be deleted."
+                        : "Delete this document"
+                }
+                className={
+                  ui.btnSecondary +
+                  " border-rose-200 text-rose-900 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                }
+              >
+                Delete
+              </button>
               </div>
             </div>
 
@@ -1122,16 +1147,29 @@ export default function SpecsAdminPage() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => void deleteSelectedDocument()}
+                    disabled={!canDeleteSelectedDoc}
+                    className={
+                      "rounded-xl border px-3 py-2 text-xs font-semibold " +
+                      (!canDeleteSelectedDoc
+                        ? "cursor-not-allowed border-rose-200 bg-rose-100 text-rose-300"
+                        : "border-rose-200 bg-white text-rose-900 hover:bg-rose-100")
+                    }
+                  >
+                    Delete this record
+                  </button>
+                  <button
+                    type="button"
                     onClick={archiveSelected}
                     disabled={!!vm.busy}
                     className={
                       "rounded-xl border px-3 py-2 text-xs font-semibold " +
                       (vm.busy
-                        ? "cursor-not-allowed border-rose-200 bg-rose-100 text-rose-300"
-                        : "border-rose-200 bg-white text-rose-900 hover:bg-rose-100")
+                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50")
                     }
                   >
-                    Remove/Archive this record
+                    Archive instead
                   </button>
                 </div>
               </div>

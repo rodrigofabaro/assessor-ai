@@ -97,6 +97,25 @@ function sampleSpecWithEssentialContentEcho() {
   ].join("\n");
 }
 
+function sampleSpecWhereCriteriaTableHasCleanerLoHeading() {
+  return [
+    "Unit 64: Thermofluids",
+    "Essential Content",
+    "LO1 Review industrial thermodynamic systems and their properties",
+    "Thermodynamic systems:",
+    "Power generation plant",
+    "Significance of first law of thermodynamics",
+    "",
+    "Learning Outcomes and Assessment Criteria",
+    "Pass Merit Distinction",
+    "LO1 Review industrial thermodynamic systems and their properties",
+    "P1 Discuss the operation of industrial thermodynamic systems and their properties",
+    "P2 Describe the application of the first law of thermodynamics to industrial systems",
+    "LO2 Examine the operation of practical steam and gas turbines plants",
+    "P4 Explain the principles of operation of steam turbine plant",
+  ].join("\n");
+}
+
 async function testLoDescriptionDoesNotSwallowCriterionText() {
   const { parseSpec } = loadTsModule("lib/extraction/parsers/specParser/index.ts");
   const parsed = parseSpec(sampleSpecText(), "U64 - Spec.pdf");
@@ -145,9 +164,26 @@ async function testLoDescriptionPrefersLearningOutcomesSectionOverEssentialConte
   );
 }
 
+async function testLoDescriptionCanRecoverFromCriteriaTableHeading() {
+  const { parseSpec } = loadTsModule("lib/extraction/parsers/specParser/index.ts");
+  const parsed = parseSpec(sampleSpecWhereCriteriaTableHasCleanerLoHeading(), "u64 spec.pdf");
+  const lo1 = parsed.learningOutcomes.find((row) => row.loCode === "LO1");
+
+  assert(!!lo1, "expected LO1 in criteria-table heading sample");
+  assert(
+    lo1.description === "Review industrial thermodynamic systems and their properties",
+    `expected LO1 description from criteria-table heading, got: ${lo1.description}`
+  );
+  assert(
+    !/Thermodynamic systems:|Power generation plant/i.test(lo1.description),
+    "expected essential content body text not to bleed into LO1 description"
+  );
+}
+
 async function main() {
   await testLoDescriptionDoesNotSwallowCriterionText();
   await testLoDescriptionPrefersLearningOutcomesSectionOverEssentialContentEcho();
+  await testLoDescriptionCanRecoverFromCriteriaTableHeading();
   console.log("spec learning outcome parser tests passed.");
 }
 

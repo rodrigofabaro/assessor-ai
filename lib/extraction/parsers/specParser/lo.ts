@@ -52,6 +52,8 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     /\bpearson\b/i,
   ];
 
+  const ASSESSMENT_SECTION_RE = /\blearning\s*outcomes?\s*(?:&|and)?\s*assessment\s*criteria\b/i;
+
   function sliceLearningOutcomeRegion(lines: string[]) {
     const loHeadingIdx = lines.findIndex((line) => /^\s*Learning\s*Outcomes\b/i.test(line));
     if (loHeadingIdx >= 0) {
@@ -145,6 +147,35 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     return score;
   }
 
+  function pickBetterDescription(current: string, candidate: string) {
+    return loDescriptionScore(candidate) > loDescriptionScore(current) ? candidate : current;
+  }
+
+  function extractLoHeadingsFromCriteriaSection(lines: string[]) {
+    const start = lines.findIndex((line) => ASSESSMENT_SECTION_RE.test(line));
+    if (start < 0) return new Map<string, string>();
+
+    const picked = new Map<string, string>();
+    for (let i = start + 1; i < lines.length; i += 1) {
+      const fixed = String(lines[i] || "").replace(/\b(LO\d{1,2})(?=[A-Za-z])/g, "$1 ").trim();
+      if (!fixed) continue;
+      if (/^\s*(Recommended\s+Resources|Essential\s+Content|Journals|Links|This unit links to)\b/i.test(fixed)) break;
+      if (/^\s*(Pass|Merit|Distinction)\b/i.test(fixed)) continue;
+      if (isFooterLine(fixed)) continue;
+
+      const inline = fixed.match(LO_INLINE);
+      if (!inline) continue;
+
+      const loCode = normalizeLoCode(inline[1]);
+      const rest = cleanLoDescriptionFinal(inline[2] || "");
+      if (!rest || isCriterionLine(rest)) continue;
+
+      const existing = picked.get(loCode) || "";
+      picked.set(loCode, pickBetterDescription(existing, rest));
+    }
+    return picked;
+  }
+
   let current: Omit<LearningOutcome, "criteria"> | null = null;
 
   function flush() {
@@ -218,6 +249,13 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
   }
 
   flush();
+
+  const criteriaHeadings = extractLoHeadingsFromCriteriaSection(allLines);
+  for (const lo of out) {
+    const criteriaDescription = criteriaHeadings.get(lo.loCode) || "";
+    if (!criteriaDescription) continue;
+    lo.description = pickBetterDescription(lo.description || "", criteriaDescription);
+  }
 
   out.sort((a, b) => {
     const an = parseInt(a.loCode.replace(/\D/g, ""), 10) || 0;
