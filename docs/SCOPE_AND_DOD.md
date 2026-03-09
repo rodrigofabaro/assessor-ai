@@ -1,6 +1,6 @@
 # Scope and Definition of Done
 
-Last updated: 2026-03-03
+Last updated: 2026-03-09
 
 ## Purpose
 
@@ -57,7 +57,7 @@ A roadmap item is done only when all 4 layers are true.
 
 1. Passive auto-learning from assessor overrides/submissions.
 2. Automatic model fine-tuning from production grading feedback.
-3. Broad multi-tenant isolation features.
+3. Full multi-tenant rollout beyond the current M10 foundation (for example org-wide governance UX, full membership migration cleanup, and super-admin fleet operations).
 4. Direct LMS writeback integrations (beyond export-ready outputs).
 5. Full autonomous IV judgement without human approval.
 

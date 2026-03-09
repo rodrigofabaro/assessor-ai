@@ -35,7 +35,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ submissionId: 
   });
 
   const submission = await prisma.submission.findUnique({
-    where: { id: submissionId },
+    where: { id: sub.id },
     include: { student: true, assignment: true, extractionRuns: { orderBy: { startedAt: "desc" }, include: { pages: { orderBy: { pageNumber: "asc" } } } } },
   });
 

@@ -161,8 +161,8 @@ export async function PATCH(
           String(process.env.SUBMISSION_AUTO_REGRADE_ON_COVER_UPDATE || "true").toLowerCase()
         );
         if (autoRegradeEnabled) {
-          const s = await prisma.submission.findUnique({
-            where: { id: submissionId },
+          const s = await prisma.submission.findFirst({
+            where: addOrganizationReadScope({ id: submissionId }, scopedOrgId) as any,
             select: {
               id: true,
               status: true,

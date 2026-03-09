@@ -398,8 +398,8 @@ export async function POST(req: Request) {
         });
 
         if (existing?.briefDocumentId) {
-          const prevDoc = await prisma.referenceDocument.findUnique({
-            where: { id: existing.briefDocumentId },
+          const prevDoc = await prisma.referenceDocument.findFirst({
+            where: addOrganizationReadScope({ id: existing.briefDocumentId }, organizationId) as any,
             select: { id: true, sourceMeta: true },
           });
           if (prevDoc?.id) {

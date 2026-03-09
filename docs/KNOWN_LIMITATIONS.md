@@ -1,6 +1,6 @@
 # Known Limitations
 
-Last updated: 2026-03-06
+Last updated: 2026-03-09
 
 ## Purpose
 
@@ -40,6 +40,10 @@ Central list of current constraints so operators and developers are not surprise
 - Update (2026-03-03): OpenAI usage telemetry moved to DB primary storage (`OpenAiUsageEvent`) with file fallback during transition.
 - Update (2026-03-03): grading config and OpenAI model config moved to `AppConfig` DB JSON persistence with file fallback during transition.
 - Update (2026-03-06): Turnitin config, Turnitin submission sync state, automation policy, and favicon handling moved to DB/storage primary persistence with file fallback during transition.
+
+8. M10 rollout is still in foundation mode
+- Impact: active-organization session and tenant-owned route scoping are now largely enforced, but a few platform-global admin/config paths and schema-compatibility fallbacks remain intentionally broad during migration.
+- Mitigation: keep `AUTH_ORG_SCOPE_STRICT_READS` staged by environment, continue shrinking compatibility fallbacks, and reserve platform-global access for explicit super-admin/config workflows only.
 
 ## Operational note
 
