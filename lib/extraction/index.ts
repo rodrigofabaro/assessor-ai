@@ -25,12 +25,26 @@ function scoreSpecParse(parsed: any) {
   let dist = 0;
   let descChars = 0;
   let shortDescs = 0;
+  let loDescChars = 0;
+  let longLoDescs = 0;
+  let loEssentialEchoes = 0;
+  let loColonHeavy = 0;
   const codes = new Set<string>();
+
+  const normalize = (value: unknown) => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
 
   for (const lo of los) {
     const criteria = Array.isArray(lo?.criteria) ? lo.criteria : [];
     if (criteria.length) loWithCriteria += 1;
     totalCriteria += criteria.length;
+    const loDescription = String(lo?.description || "").trim();
+    const essentialContent = String(lo?.essentialContent || "").trim();
+    if (loDescription) {
+      loDescChars += loDescription.length;
+      if (loDescription.length > 220) longLoDescs += 1;
+      if ((loDescription.match(/:/g) || []).length >= 2) loColonHeavy += 1;
+      if (essentialContent && normalize(loDescription) === normalize(essentialContent)) loEssentialEchoes += 1;
+    }
     for (const c of criteria) {
       const code = String(c?.acCode || "").trim().toUpperCase();
       const desc = String(c?.description || "").trim();
@@ -52,14 +66,32 @@ function scoreSpecParse(parsed: any) {
     loWithCriteria * 250 +
     codes.size * 20 +
     Math.min(descChars, 12000) * 0.2 +
+    Math.min(loDescChars, 800) * 0.15 +
     (unitCode ? 40 : 0) +
     (unitTitle ? 40 : 0) -
+    longLoDescs * 80 -
+    loEssentialEchoes * 220 -
+    loColonHeavy * 25 -
     shortDescs * 35 -
     (pass === 0 ? 200 : 0) -
     (merit === 0 ? 120 : 0) -
     (dist === 0 ? 120 : 0);
 
-  return { score, totalCriteria, loCount: los.length, loWithCriteria, pass, merit, dist, shortDescs, descChars };
+  return {
+    score,
+    totalCriteria,
+    loCount: los.length,
+    loWithCriteria,
+    pass,
+    merit,
+    dist,
+    shortDescs,
+    descChars,
+    loDescChars,
+    longLoDescs,
+    loEssentialEchoes,
+    loColonHeavy,
+  };
 }
 
 export async function extractReferenceDocument(args: {
@@ -116,7 +148,7 @@ export async function extractReferenceDocument(args: {
         if (altScore.score > primaryScore.score + 120) {
           parsedSpec = fallbackParsedSpec;
           warnings.push(
-            `SPEC parser fallback selected (pdf-parse) because criteria extraction quality was higher: ${altScore.totalCriteria} vs ${primaryScore.totalCriteria}.`
+            `SPEC parser fallback selected (pdf-parse) because overall parse quality was higher: ${Math.round(altScore.score)} vs ${Math.round(primaryScore.score)}.`
           );
         }
       }

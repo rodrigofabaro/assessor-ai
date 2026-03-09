@@ -6,6 +6,10 @@ import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/r
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isDeletableDocumentType(type: string) {
+  return type === "BRIEF" || type === "SPEC";
+}
+
 function isOrgScopeCompatError(error: unknown) {
   const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
   const msg = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
@@ -141,32 +145,54 @@ export async function DELETE(_req: Request, { params }: { params: { documentId: 
     return NextResponse.json({ error: "NOT_FOUND", message: "Reference document not found." }, { status: 404 });
   }
 
-  if (doc.type !== "BRIEF") {
-    return NextResponse.json({ error: "UNSUPPORTED_TYPE", message: "Only BRIEF documents can be deleted." }, { status: 400 });
+  if (!isDeletableDocumentType(String(doc.type || ""))) {
+    return NextResponse.json(
+      { error: "UNSUPPORTED_TYPE", message: "Only SPEC and BRIEF documents can be deleted." },
+      { status: 400 }
+    );
   }
 
   if (doc.lockedAt || doc.status === "LOCKED") {
-    return NextResponse.json({ error: "BRIEF_LOCKED", message: "Locked briefs cannot be deleted." }, { status: 409 });
+    return NextResponse.json(
+      { error: "REFERENCE_LOCKED", message: "Locked reference documents cannot be deleted." },
+      { status: 409 }
+    );
   }
 
-  const linkedBriefs = await prisma.assignmentBrief.findMany({
-    where: { briefDocumentId: doc.id },
-    select: { id: true },
-  });
-  const briefIds = linkedBriefs.map((b) => b.id);
-
   let submissionCount = 0;
-  if (briefIds.length) {
-    submissionCount = await prisma.submission.count({
-      where: { assignment: { assignmentBriefId: { in: briefIds } } },
+  let briefIds: string[] = [];
+  let linkedUnitIds: string[] = [];
+
+  if (doc.type === "BRIEF") {
+    const linkedBriefs = await prisma.assignmentBrief.findMany({
+      where: { briefDocumentId: doc.id },
+      select: { id: true },
     });
+    briefIds = linkedBriefs.map((b) => b.id);
+    if (briefIds.length) {
+      submissionCount = await prisma.submission.count({
+        where: { assignment: { assignmentBriefId: { in: briefIds } } },
+      });
+    }
+  } else if (doc.type === "SPEC") {
+    const linkedUnits = await prisma.unit.findMany({
+      where: addOrganizationReadScope({ specDocumentId: doc.id }, organizationId) as any,
+      select: { id: true, unitCode: true },
+    });
+    linkedUnitIds = linkedUnits.map((unit) => unit.id);
+    const unitCodes = linkedUnits.map((unit) => String(unit.unitCode || "").trim()).filter(Boolean);
+    if (unitCodes.length) {
+      submissionCount = await prisma.submission.count({
+        where: addOrganizationReadScope({ assignment: { unitCode: { in: unitCodes } } }, organizationId) as any,
+      });
+    }
   }
 
   if (submissionCount > 0) {
     return NextResponse.json(
       {
-        error: "BRIEF_IN_USE",
-        message: `Cannot delete: ${submissionCount} submission(s) linked to this brief.`,
+        error: "REFERENCE_IN_USE",
+        message: `Cannot delete: ${submissionCount} submission(s) are linked to this reference document.`,
         submissionCount,
       },
       { status: 409 }
@@ -177,6 +203,12 @@ export async function DELETE(_req: Request, { params }: { params: { documentId: 
     await prisma.assignmentBrief.updateMany({
       where: { id: { in: briefIds } },
       data: { briefDocumentId: null },
+    });
+  }
+  if (linkedUnitIds.length) {
+    await prisma.unit.updateMany({
+      where: { id: { in: linkedUnitIds } },
+      data: { specDocumentId: null },
     });
   }
 

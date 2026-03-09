@@ -5,6 +5,10 @@ import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/r
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isSupportedDeletionType(type: string) {
+  return type === "BRIEF" || type === "SPEC";
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ documentId: string }> }) {
   const { documentId } = await params;
   const organizationId = await getRequestOrganizationId();
@@ -22,21 +26,41 @@ export async function GET(_req: Request, { params }: { params: Promise<{ documen
     return NextResponse.json({ error: "NOT_FOUND", message: "Reference document not found." }, { status: 404 });
   }
 
-  if (doc.type !== "BRIEF") {
-    return NextResponse.json({ error: "UNSUPPORTED_TYPE", message: "Only BRIEF documents are supported." }, { status: 400 });
+  if (!isSupportedDeletionType(String(doc.type || ""))) {
+    return NextResponse.json(
+      { error: "UNSUPPORTED_TYPE", message: "Only SPEC and BRIEF documents are supported." },
+      { status: 400 }
+    );
   }
 
-  const linkedBriefs = await prisma.assignmentBrief.findMany({
-    where: { briefDocumentId: doc.id },
-    select: { id: true },
-  });
-  const briefIds = linkedBriefs.map((b) => b.id);
-
+  let linkedBriefCount = 0;
+  let linkedUnitCount = 0;
   let submissionCount = 0;
-  if (briefIds.length) {
-    submissionCount = await prisma.submission.count({
-      where: { assignment: { assignmentBriefId: { in: briefIds } } },
+
+  if (doc.type === "BRIEF") {
+    const linkedBriefs = await prisma.assignmentBrief.findMany({
+      where: { briefDocumentId: doc.id },
+      select: { id: true },
     });
+    const briefIds = linkedBriefs.map((b) => b.id);
+    linkedBriefCount = briefIds.length;
+    if (briefIds.length) {
+      submissionCount = await prisma.submission.count({
+        where: { assignment: { assignmentBriefId: { in: briefIds } } },
+      });
+    }
+  } else if (doc.type === "SPEC") {
+    const linkedUnits = await prisma.unit.findMany({
+      where: addOrganizationReadScope({ specDocumentId: doc.id }, organizationId) as any,
+      select: { id: true, unitCode: true },
+    });
+    const unitCodes = linkedUnits.map((unit) => String(unit.unitCode || "").trim()).filter(Boolean);
+    linkedUnitCount = linkedUnits.length;
+    if (unitCodes.length) {
+      submissionCount = await prisma.submission.count({
+        where: addOrganizationReadScope({ assignment: { unitCode: { in: unitCodes } } }, organizationId) as any,
+      });
+    }
   }
 
   const inUse = submissionCount > 0;
@@ -47,8 +71,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ documen
     locked,
     inUse,
     submissionCount,
-    linkedBriefCount: briefIds.length,
-    canUnlock: locked && !inUse,
+    linkedBriefCount,
+    linkedUnitCount,
+    canUnlock: doc.type === "BRIEF" && locked && !inUse,
     canDelete: !locked && !inUse,
   });
 }

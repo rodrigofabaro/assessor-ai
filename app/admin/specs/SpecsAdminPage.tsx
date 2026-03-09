@@ -218,6 +218,11 @@ export default function SpecsAdminPage() {
     }
   }, [favoriteUnitCodes]);
 
+  useEffect(() => {
+    setSelectedSuiteUnitCodes([]);
+    setSuiteUnitPickerOpen(false);
+  }, [docFramework, docCategory]);
+
   const catalogRowsAll = useMemo<SpecCatalogRow[]>(() => {
     const docs = (vm.documents || []).filter((d: any) => d.type === "SPEC");
     const codeCounts = new Map<string, number>();
@@ -616,8 +621,11 @@ export default function SpecsAdminPage() {
         className="sr-only"
         onChange={(e) => {
           const selected = e.target.files?.[0];
+          const requestedUnitCodes = [...selectedSuiteUnitCodes];
           if (selected) {
-            void importFullSpecSuite(selected, selectedSuiteUnitCodes);
+            setSelectedSuiteUnitCodes([]);
+            setSuiteUnitPickerOpen(false);
+            void importFullSpecSuite(selected, requestedUnitCodes);
           }
           e.target.value = "";
         }}

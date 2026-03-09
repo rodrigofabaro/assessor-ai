@@ -10,7 +10,7 @@ import type { LearningOutcome } from "./types";
  * - Footer/copyright/page-number noise (common in Pearson PDFs)
  */
 export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "criteria">[] {
-  const lines = toLines(text);
+  const allLines = toLines(text);
   const out: Array<Omit<LearningOutcome, "criteria">> = [];
 
   const LO_INLINE = /^\s*(LO\s*\d{1,2})\b\s*[:\-–]?\s*(.*)$/i;
@@ -51,6 +51,33 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     /©/i,
     /\bpearson\b/i,
   ];
+
+  function sliceLearningOutcomeRegion(lines: string[]) {
+    const loHeadingIdx = lines.findIndex((line) => /^\s*Learning\s*Outcomes\b/i.test(line));
+    if (loHeadingIdx >= 0) {
+      const afterHeading = lines.slice(loHeadingIdx + 1);
+      const nextSectionIdx = afterHeading.findIndex((line) =>
+        /^\s*Essential\s*content\b/i.test(line) ||
+        /\blearning\s*outcomes?\s*(?:&|and)?\s*assessment\s*criteria\b/i.test(line) ||
+        /^\s*assessment\s*criteria\b/i.test(line)
+      );
+      const dedicatedLoSection = nextSectionIdx >= 0 ? afterHeading.slice(0, nextSectionIdx) : afterHeading;
+      const hasLoHeading = dedicatedLoSection.some((line) => LO_INLINE.test(line) || LO_LONG.test(line));
+      if (hasLoHeading) return dedicatedLoSection;
+    }
+
+    const criteriaStart = lines.findIndex((line) =>
+      /\blearning\s*outcomes?\s*(?:&|and)?\s*assessment\s*criteria\b/i.test(line) ||
+      /^\s*assessment\s*criteria\b/i.test(line)
+    );
+    if (criteriaStart <= 0) return lines;
+
+    const beforeCriteria = lines.slice(0, criteriaStart);
+    const hasLoHeadingBeforeCriteria = beforeCriteria.some(
+      (line) => LO_INLINE.test(line) || LO_LONG.test(line)
+    );
+    return hasLoHeadingBeforeCriteria ? beforeCriteria : lines;
+  }
 
   function isHardStop(line: string) {
     return HARD_STOPS.some((rx) => rx.test(line));
@@ -136,6 +163,8 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
     }
     current = null;
   }
+
+  const lines = sliceLearningOutcomeRegion(allLines);
 
   for (const raw of lines) {
     if (!raw) continue;

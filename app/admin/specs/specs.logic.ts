@@ -39,6 +39,17 @@ type SpecSuiteBlobTokenResponse = {
   maxBytes: number;
 };
 
+type SpecSuiteImportResponse = {
+  ok?: boolean;
+  created?: number;
+  updated?: number;
+  missingRequestedCount?: number;
+  report?: unknown;
+  error?: string;
+  message?: string;
+  code?: string;
+};
+
 type SpecSuiteJob = {
   id: string;
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
@@ -404,6 +415,7 @@ export function useSpecsAdmin() {
     let createdJobId = "";
 
     try {
+      const selectedCodes = sanitizeUnitCodes(requestedUnitCodes);
       const tokenRes = await fetch("/api/admin/spec-suite/blob-token", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -418,6 +430,39 @@ export function useSpecsAdmin() {
         message?: string;
         code?: string;
       };
+
+      if (!tokenRes.ok && tokenJson.error === "CLIENT_BLOB_UPLOAD_DISABLED") {
+        const form = new FormData();
+        form.set("file", file);
+        if (docFramework.trim()) form.set("framework", docFramework.trim());
+        if (docCategory.trim()) form.set("category", docCategory.trim());
+        if (selectedCodes.length) form.set("requestedUnitCodes", JSON.stringify(selectedCodes));
+        setSuiteImportStatus("Splitting units and importing specs...");
+        const importRes = await fetch("/api/admin/spec-suite/import", {
+          method: "POST",
+          body: form,
+        });
+        const importJson = (await importRes.json().catch(() => ({}))) as SpecSuiteImportResponse;
+        if (!importRes.ok || !importJson.ok) {
+          const reason = cleanErrorMessage(
+            importJson.error || importJson.message,
+            `Suite import failed (${importRes.status})`,
+          );
+          throw new UploadFlowError(reason, importJson.code, importRes.status);
+        }
+        await vm.refreshAll({ keepSelection: false });
+        setSuiteJob(null);
+        setSuiteJobId("");
+        pushToast(
+          "success",
+          `Suite import complete: ${Number(importJson.created || 0)} created, ${Number(importJson.updated || 0)} updated${
+            Number(importJson.missingRequestedCount || 0)
+              ? `, ${Number(importJson.missingRequestedCount || 0)} missing`
+              : ""
+          }.`,
+        );
+        return;
+      }
 
       if (!tokenRes.ok) {
         const reason = cleanErrorMessage(tokenJson.error || tokenJson.message, `Suite upload token failed (${tokenRes.status})`);
@@ -460,7 +505,6 @@ export function useSpecsAdmin() {
       setSuiteJobId(createJobJson.job.id);
       createdJobId = createJobJson.job.id;
       setSuiteImportStatus("Job queued. Starting worker...");
-      const selectedCodes = sanitizeUnitCodes(requestedUnitCodes);
 
       void fetch(`/api/admin/spec-suite/jobs/${encodeURIComponent(createJobJson.job.id)}/run`, {
         method: "POST",

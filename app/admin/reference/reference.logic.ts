@@ -1206,19 +1206,19 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     setError(null);
     if (!selectedDoc) return;
     if (selectedDoc.lockedAt) {
-      const message = "Locked briefs cannot be deleted. Unlock first if deletion is required.";
+      const message = "Locked reference documents cannot be deleted. Unlock first if deletion is required.";
       setError(message);
       notifyToast("error", message);
       return;
     }
     if (selectedDocUsage?.inUse) {
-      const message = "This brief is already linked to submissions and cannot be deleted.";
+      const message = "This reference document is already linked to submissions and cannot be deleted.";
       setError(message);
       notifyToast("error", message);
       return;
     }
 
-    const ok = window.confirm("Delete this brief PDF? This cannot be undone.");
+    const ok = window.confirm("Delete this reference document? This cannot be undone.");
     if (!ok) return;
 
     setBusy("Deleting...");
@@ -1228,8 +1228,8 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       if (!res.ok) {
         const message =
           data?.message ||
-          (data?.error === "BRIEF_IN_USE"
-            ? "This brief is already linked to submissions and cannot be deleted."
+          (data?.error === "REFERENCE_IN_USE"
+            ? "This reference document is already linked to submissions and cannot be deleted."
             : data?.error) ||
           `Delete failed (${res.status}).`;
         setError(message);
@@ -1238,7 +1238,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       }
 
       await refreshAll({ keepSelection: false });
-      notifyToast("success", "Brief deleted.");
+      notifyToast("success", "Reference document deleted.");
     } catch (e: any) {
       const message = e?.message || "Delete failed";
       setError(message);
