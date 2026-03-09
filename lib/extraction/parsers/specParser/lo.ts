@@ -123,6 +123,7 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
 
   function cleanLoDescriptionFinal(s: string) {
     let t = normalizeWhitespace(stripFooterTail(s || ""));
+    t = t.replace(/\s+\b[PMD]\s*[0-9IlO]{1,2}\b[\s\S]*$/i, "").trim();
     t = t
       .replace(/\bLearning\s*Outcomes?\s*(?:&|and)?\s*Assessment\s*Criteria\b\s*$/i, "")
       .replace(/\bPass\s+Merit\s+Distinction\b\s*$/i, "")
@@ -167,7 +168,18 @@ export function parseLearningOutcomes(text: string): Omit<LearningOutcome, "crit
       if (!inline) continue;
 
       const loCode = normalizeLoCode(inline[1]);
-      const rest = cleanLoDescriptionFinal(inline[2] || "");
+      const parts = [String(inline[2] || "").trim()].filter(Boolean);
+      for (let j = i + 1; j < lines.length; j += 1) {
+        const nextFixed = String(lines[j] || "").replace(/\b(LO\d{1,2})(?=[A-Za-z])/g, "$1 ").trim();
+        if (!nextFixed) continue;
+        if (/^\s*(Recommended\s+Resources|Essential\s+Content|Journals|Links|This unit links to)\b/i.test(nextFixed)) break;
+        if (/^\s*(Pass|Merit|Distinction)\b/i.test(nextFixed)) continue;
+        if (isFooterLine(nextFixed)) continue;
+        if (LO_INLINE.test(nextFixed) || LO_LONG.test(nextFixed) || isCriterionLine(nextFixed)) break;
+        parts.push(nextFixed);
+        i = j;
+      }
+      const rest = cleanLoDescriptionFinal(parts.join(" "));
       if (!rest || isCriterionLine(rest)) continue;
 
       const existing = picked.get(loCode) || "";

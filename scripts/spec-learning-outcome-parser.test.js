@@ -116,6 +116,15 @@ function sampleSpecWhereCriteriaTableHasCleanerLoHeading() {
   ].join("\n");
 }
 
+function sampleSpecWhereLoHeadingAndCriterionShareLine() {
+  return [
+    "Unit 64: Thermofluids",
+    "Learning Outcomes and Assessment Criteria",
+    "LO3 Illustrate the effects of viscosity in fluids D3 Compare the results of a viscosity test on a Newtonian fluid",
+    "P7 Illustrate the properties of viscosity in fluids",
+  ].join("\n");
+}
+
 async function testLoDescriptionDoesNotSwallowCriterionText() {
   const { parseSpec } = loadTsModule("lib/extraction/parsers/specParser/index.ts");
   const parsed = parseSpec(sampleSpecText(), "U64 - Spec.pdf");
@@ -180,10 +189,27 @@ async function testLoDescriptionCanRecoverFromCriteriaTableHeading() {
   );
 }
 
+async function testLoDescriptionStripsInlineCriterionTail() {
+  const { parseSpec } = loadTsModule("lib/extraction/parsers/specParser/index.ts");
+  const parsed = parseSpec(sampleSpecWhereLoHeadingAndCriterionShareLine(), "u64 spec.pdf");
+  const lo3 = parsed.learningOutcomes.find((row) => row.loCode === "LO3");
+
+  assert(!!lo3, "expected LO3 in inline-criterion-tail sample");
+  assert(
+    lo3.description === "Illustrate the effects of viscosity in fluids",
+    `expected LO3 description without inline criterion tail, got: ${lo3.description}`
+  );
+  assert(
+    !/\bD3\b|Compare the results/i.test(lo3.description),
+    "expected inline distinction criterion text to be stripped from LO description"
+  );
+}
+
 async function main() {
   await testLoDescriptionDoesNotSwallowCriterionText();
   await testLoDescriptionPrefersLearningOutcomesSectionOverEssentialContentEcho();
   await testLoDescriptionCanRecoverFromCriteriaTableHeading();
+  await testLoDescriptionStripsInlineCriterionTail();
   console.log("spec learning outcome parser tests passed.");
 }
 
