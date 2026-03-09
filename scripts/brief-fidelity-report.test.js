@@ -119,6 +119,38 @@ Evaluate the resulting chart and justify the failure reasons.
     "expected warning for visual cue without image token"
   );
 
+  const multipartSource = `
+Task 3
+One of your colleagues has handed you the schematic for a Rankine cycle shown in Figure 1 below. Assume the pump and the turbine are both isentropic machines.
+a) Determine the thermal efficiency of the system if the working fluid is water/steam.
+b) Calculate the overall plant efficiency when considering the boiler.
+`;
+  const multipartDraft = {
+    kind: "BRIEF",
+    tasks: [
+      {
+        n: 3,
+        pages: [],
+        text: "One of your colleagues has handed you the schematic for a Rankine cycle shown in Figure 1 below. Assume the pump and the turbine are both isentropic machines.\n[[IMG:p0-t3-img1]]",
+        parts: [
+          { key: "a", text: "Determine the thermal efficiency of the system if the working fluid is water/steam." },
+          { key: "b", text: "Calculate the overall plant efficiency when considering the boiler." },
+        ],
+      },
+    ],
+  };
+  const multipartReport = buildBriefFidelityReport(multipartDraft, multipartSource);
+  const task3Prov = multipartReport.taskProvenance.find((row) => row.taskNumber === 3);
+  assert(!!task3Prov, "expected task 3 provenance");
+  assert(
+    !/\ba\)\b|\bb\)\b/i.test(String(task3Prov.sourceSnippet || "")),
+    "expected provenance snippet to stop before subpart markers"
+  );
+  assert(
+    /isentropic machines\./i.test(String(task3Prov.sourceSnippet || "")),
+    "expected task stem sentence to remain in provenance snippet"
+  );
+
   console.log("brief fidelity report tests passed.");
 }
 

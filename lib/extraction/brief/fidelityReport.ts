@@ -64,12 +64,20 @@ function extractTaskSegmentsFromSource(sourceText: string) {
   const map = new Map<number, string>();
   const src = String(sourceText || "");
   const regex = /(?:^|\n)\s*Task\s*([1-9]\d?)\b[\s\S]*?(?=(?:\n\s*Task\s*[1-9]\d?\b)|$)/gi;
+
+  const trimTaskSnippet = (value: string) => {
+    const normalized = String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const partMarker = normalized.search(/(?:\n|\s)\s*[a-z]\)\s+/i);
+    const trimmed = partMarker >= 0 ? normalized.slice(0, partMarker) : normalized;
+    return normalizeText(trimmed);
+  };
+
   let match: RegExpExecArray | null;
   while ((match = regex.exec(src))) {
     const n = Number(match[1]);
     if (!Number.isInteger(n) || n < 1) continue;
     const existing = normalizeText(map.get(n) || "");
-    const candidate = normalizeText(match[0] || "");
+    const candidate = trimTaskSnippet(match[0] || "");
     if (!candidate) continue;
     if (!existing || candidate.length > existing.length) {
       map.set(n, candidate);

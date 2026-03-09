@@ -489,7 +489,7 @@ export default function InlineEquationText({
 
     if (imgTokenId) {
       const figureSrc = documentIdFromHref
-        ? `/api/reference-documents/${documentIdFromHref}/figure?token=${encodeURIComponent(imgTokenId)}`
+        ? `/api/reference-documents/${documentIdFromHref}/figure?token=${encodeURIComponent(imgTokenId)}&v=2`
         : "";
       out.push(
         <span key={`img-${imgTokenId}`} className="my-2 block rounded-md border border-sky-200 bg-sky-50 p-2 text-xs text-sky-900">
