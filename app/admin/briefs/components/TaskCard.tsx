@@ -1760,34 +1760,6 @@ export function TaskCard({
             {task?.aias && <span>AIAS: {task.aias}</span>}
           </div>
 
-          <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-700">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold uppercase tracking-wide text-zinc-600">Source provenance</span>
-              <span
-                className={
-                  "rounded-full border px-2 py-0.5 text-[10px] font-semibold " +
-                  (provenance?.status === "CITED"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-amber-200 bg-amber-50 text-amber-800")
-                }
-              >
-                {provenance?.status === "CITED" ? "Cited" : "Needs review"}
-              </span>
-              {provenanceMatchPct !== null ? (
-                <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
-                  Match {provenanceMatchPct}%
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-1 text-zinc-600">
-              Anchor: {provenance?.sourceAnchor || `Task ${task?.n || "?"}`}
-              {provenance?.pages && provenance.pages.length ? ` · Source pages: ${provenance.pages.join(", ")}` : ""}
-            </div>
-            <p className="mt-1 line-clamp-2 text-zinc-700">
-              {provenance?.sourceSnippet || "No source snippet captured. Re-extract this task for stronger fidelity traceability."}
-            </p>
-          </div>
-
           {criteria.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {criteria.map((code) => (
@@ -1901,6 +1873,34 @@ export function TaskCard({
               </div>
             </div>
           )}
+
+          <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold uppercase tracking-wide text-zinc-600">Source provenance</span>
+              <span
+                className={
+                  "rounded-full border px-2 py-0.5 text-[10px] font-semibold " +
+                  (provenance?.status === "CITED"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-800")
+                }
+              >
+                {provenance?.status === "CITED" ? "Cited" : "Needs review"}
+              </span>
+              {provenanceMatchPct !== null ? (
+                <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
+                  Match {provenanceMatchPct}%
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-1 text-zinc-600">
+              Anchor: {provenance?.sourceAnchor || `Task ${task?.n || "?"}`}
+              {provenance?.pages && provenance.pages.length ? ` · Source pages: ${provenance.pages.join(", ")}` : ""}
+            </div>
+            <p className="mt-1 whitespace-pre-wrap text-zinc-700">
+              {provenance?.sourceSnippet || "No source snippet captured. Re-extract this task for stronger fidelity traceability."}
+            </p>
+          </div>
 
           <div className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
             

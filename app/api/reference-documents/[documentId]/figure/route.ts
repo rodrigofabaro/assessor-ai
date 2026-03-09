@@ -20,6 +20,12 @@ function pageFromToken(token: string): number {
   return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
+function hasReliablePageInToken(token: string): boolean {
+  const m = String(token || "").match(/\bp(\d+)\b/i);
+  const n = Number(m?.[1] || 0);
+  return Number.isFinite(n) && n > 0;
+}
+
 function taskFromToken(token: string): number | null {
   const m = String(token || "").match(/\bt(\d+)\b/i);
   const n = Number(m?.[1] || 0);
@@ -328,6 +334,40 @@ async function renderPdfPageToPng(pdfPathAbs: string, pageNumber: number, hint: 
   }
 }
 
+async function findBestFigurePage(pdfPathAbs: string, hint: FigureHint): Promise<number | null> {
+  try {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
+    if (pdfjs?.GlobalWorkerOptions) {
+      pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
+    }
+    const bytes = await fs.readFile(pdfPathAbs);
+    const data = new Uint8Array(bytes);
+    const doc = await pdfjs.getDocument({ data, useSystemFonts: true }).promise;
+    let bestPage: number | null = null;
+    let bestScore = -1;
+
+    for (let pageNumber = 1; pageNumber <= Number(doc.numPages || 1); pageNumber += 1) {
+      const page = await doc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.25 });
+      const lines = await extractPageLines(page, viewport, pdfjs);
+      const caption = pickCaptionLine(lines, hint, Number(viewport.height || 1));
+      if (!caption) continue;
+      let score = 1;
+      if (hint.figureNumber && new RegExp(`\\bfigure\\s*${hint.figureNumber}\\b`, "i").test(caption.line.text || "")) score += 4;
+      if (/^\s*figure\s*\d+\s*[:\-]/i.test(caption.line.text || "")) score += 2;
+      if (score > bestScore) {
+        bestScore = score;
+        bestPage = pageNumber;
+      }
+    }
+
+    return bestPage;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: Request, { params }: { params: Promise<{ documentId: string }> }) {
   const { documentId } = await params;
   const url = new URL(req.url);
@@ -349,7 +389,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ document
   }
 
   const safeToken = sanitizeToken(token);
-  const outRel = toStorageRelativePath("storage", "reference_images", `${documentId}-${safeToken}-v5.png`);
+  const outRel = toStorageRelativePath("storage", "reference_images", `${documentId}-${safeToken}-v6.png`);
   const outPath = resolveStorageAbsolutePath(outRel) || path.join(process.cwd(), outRel);
 
   try {
@@ -364,8 +404,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ document
     // cache miss
   }
 
-  const page = pageFromToken(token);
   const hint = findFigureHintFromDraft(doc.extractedJson, token);
+  const page =
+    hasReliablePageInToken(token)
+      ? pageFromToken(token)
+      : (await findBestFigurePage(resolved.path, hint)) || pageFromToken(token);
   const png = await renderPdfPageToPng(resolved.path, page, hint);
   if (!png) return NextResponse.json({ error: "PAGE_RENDER_FAILED" }, { status: 500 });
 

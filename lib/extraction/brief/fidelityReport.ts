@@ -246,7 +246,7 @@ export function buildBriefFidelityReport(draftLike: any, sourceText: string): Br
         taskNumber: n,
         pages,
         sourceAnchor: `Task ${n}`,
-        sourceSnippet: sourceSegment.slice(0, 260),
+        sourceSnippet: sourceSegment.slice(0, 520),
         matchScore: Number(score.toFixed(3)),
         citationStatus: sourceSegment ? "CITED" : "NEEDS_REVIEW",
       });
