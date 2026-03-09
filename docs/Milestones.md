@@ -256,6 +256,7 @@ Current update (2026-03-03):
 2. Production build confirmation
 - Verify `pnpm build` on a clean host session using Node 20-22.
 - Clear current Prisma generate DLL lock condition and confirm whether any remaining failure is app-level or host-level.
+- Status (2026-03-09): `pnpm build` passes locally after the latest M10 control-surface work; the remaining instability is host-level Windows Prisma DLL locking (`query_engine-windows.dll.node`) when another local Node/Next process is holding the client binary, not an application build regression.
 
 3. Reference inbox performance phase 2
 - Add explicit client pagination in `/admin/reference`.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
@@ -2201,6 +2201,10 @@ export default function SubmissionDetailPage() {
   }, [submissionId, guidedStep, preferredCoverField]);
 
   const reviewReadyModeRef = useRef("");
+  const openOutputsPanel = useEffectEvent(() => {
+    openSidePanel("outputs");
+    scrollToPanel(outputsPanelRef.current);
+  });
   useEffect(() => {
     if (!submissionId) return;
     if (!reviewReadyMode) return;
@@ -2208,8 +2212,7 @@ export default function SubmissionDetailPage() {
     if (reviewReadyModeRef.current === key) return;
     reviewReadyModeRef.current = key;
     const t = window.setTimeout(() => {
-      openSidePanel("outputs");
-      scrollToPanel(outputsPanelRef.current);
+      openOutputsPanel();
     }, 40);
     return () => window.clearTimeout(t);
   }, [submissionId, reviewReadyMode, checklist.readyToUpload, checklist.gradeGenerated]);

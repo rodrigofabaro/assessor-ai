@@ -631,7 +631,6 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
     if (!candidate) return;
     if (hasFullExtractedProjection(candidate)) return;
     void fetchSelectedDocumentDetail(selectedDocId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDocId, documents]);
 
   // Keep raw JSON in sync when selecting a document
