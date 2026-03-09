@@ -38,6 +38,7 @@
     "test:org-scope-session-contract": "node scripts/org-scope-session-contract.test.js",
     "test:org-scope-reference-boundary": "node scripts/org-scope-reference-boundary.test.js",
     "test:org-scope-reference-route-boundary": "node scripts/org-scope-reference-route-boundary.test.js",
+    "test:org-scope-iv-boundary": "node scripts/org-scope-iv-boundary.test.js",
     "test:org-scope-submission-reference-ops-boundary": "node scripts/org-scope-submission-reference-ops-boundary.test.js",
     "test:org-scope-tenant-route-boundary": "node scripts/org-scope-tenant-route-boundary.test.js",
     "test:org-scope-student-boundary": "node scripts/org-scope-student-boundary.test.js",

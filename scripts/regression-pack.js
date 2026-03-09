@@ -21,6 +21,7 @@ const tests = [
   "scripts/org-scope-session-contract.test.js",
   "scripts/org-scope-reference-boundary.test.js",
   "scripts/org-scope-reference-route-boundary.test.js",
+  "scripts/org-scope-iv-boundary.test.js",
   "scripts/org-scope-submission-reference-ops-boundary.test.js",
   "scripts/org-scope-tenant-route-boundary.test.js",
   "scripts/org-scope-student-boundary.test.js",

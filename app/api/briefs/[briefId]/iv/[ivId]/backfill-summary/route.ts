@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { extractIvSummaryFromDocxBuffer } from "@/lib/iv/evidenceSummary";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
@@ -42,8 +43,9 @@ function isBlankOrPlaceholderNotes(value: unknown) {
 }
 
 async function loadBriefDoc(briefId: string) {
-  const brief = await prisma.assignmentBrief.findUnique({
-    where: { id: briefId },
+  const organizationId = await getRequestOrganizationId();
+  const brief = await prisma.assignmentBrief.findFirst({
+    where: addOrganizationReadScope({ id: briefId }, organizationId) as any,
     include: { briefDocument: true },
   });
   if (!brief) return { error: NextResponse.json({ error: "Brief not found" }, { status: 404 }) };
@@ -57,6 +59,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ briefI
   const { briefId, ivId } = await params;
   const { doc, error } = await loadBriefDoc(briefId);
   if (error) return error;
+  const organizationId = await getRequestOrganizationId();
 
   const prev = asObject(doc.sourceMeta);
   const existing = safeIvRecords(prev.ivRecords);
@@ -67,8 +70,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ briefI
     return NextResponse.json({ error: "IV record has no attachment." }, { status: 400 });
   }
 
-  const attachedDoc = await prisma.referenceDocument.findUnique({
-    where: { id: attachment.documentId },
+  const attachedDoc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id: attachment.documentId }, organizationId) as any,
     select: { id: true, originalFilename: true, storedFilename: true, storagePath: true },
   });
   if (!attachedDoc) {

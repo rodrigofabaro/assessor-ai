@@ -7,6 +7,7 @@ import { fillIvAdTemplateDocx } from "@/lib/iv-ad/docxFiller";
 import { writeIvAdBuffer } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import fs from "fs/promises";
 
 function normalizeText(s: unknown) {
@@ -70,9 +71,10 @@ export async function POST(req: Request) {
     }
 
     const useAiReview = body?.useAiReview !== false;
+    const organizationId = await getRequestOrganizationId();
 
-    const submission = await prisma.submission.findUnique({
-      where: { id: submissionId },
+    const submission = await prisma.submission.findFirst({
+      where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
       select: {
         id: true,
         student: { select: { fullName: true, courseName: true } },

@@ -497,3 +497,5 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - Added route-level coverage in `scripts/org-scope-submission-reference-ops-boundary.test.js`.
 - M10 grading/output/delete boundary hardening: submission `grade` and `marked-file` plus reference-document delete now scope raw ids through active-organization visibility checks.
 - Extended route-level coverage in `scripts/org-scope-submission-reference-ops-boundary.test.js` and `scripts/org-scope-reference-route-boundary.test.js`.
+- M10 IV boundary hardening: tenant-owned IV generate-from-submission, review-draft reference-spec lookup, and brief evidence backfill now scope raw ids through active-organization visibility checks.
+- Added route-level coverage in `scripts/org-scope-iv-boundary.test.js`.

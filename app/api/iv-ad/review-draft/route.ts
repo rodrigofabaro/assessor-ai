@@ -6,6 +6,7 @@ import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { parseIvAdReviewDraftRequest, runIvAdReviewDraft, type IvAdReviewDraftRequest } from "@/lib/iv-ad/reviewDraft";
 import { extractIvAdPreviewFromMarkedPdfBuffer, normalizeGrade } from "@/lib/iv-ad/analysis";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import fs from "fs/promises";
 import path from "path";
 
@@ -121,6 +122,7 @@ function invalidRequestResponse(
 
 async function resolveInput(req: Request, requestId: string): Promise<{ input: IvAdReviewDraftRequest } | { error: NextResponse }> {
   const contentType = String(req.headers.get("content-type") || "").toLowerCase();
+  const organizationId = await getRequestOrganizationId();
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
@@ -170,8 +172,8 @@ async function resolveInput(req: Request, requestId: string): Promise<{ input: I
       const specPreview = await extractIvAdPreviewFromMarkedPdfBuffer(specBytes);
       specExtractedText = String(specPreview.extractedText || "");
     } else if (referenceSpecId) {
-      const refSpec = await prisma.referenceDocument.findUnique({
-        where: { id: referenceSpecId },
+      const refSpec = await prisma.referenceDocument.findFirst({
+        where: addOrganizationReadScope({ id: referenceSpecId }, organizationId) as any,
         select: { id: true, type: true, storagePath: true },
       });
       if (!refSpec || refSpec.type !== "SPEC") {
