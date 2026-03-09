@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 export async function GET(
@@ -9,9 +10,10 @@ export async function GET(
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const { submissionId } = await ctx.params;
+  const organizationId = await getRequestOrganizationId();
 
-  const sub = await prisma.submission.findUnique({
-    where: { id: submissionId },
+  const sub = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
     select: { storagePath: true, filename: true },
   });
 

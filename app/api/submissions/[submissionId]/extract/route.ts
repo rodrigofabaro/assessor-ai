@@ -9,6 +9,7 @@ import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 import { maybeAutoSendTurnitinForSubmission } from "@/lib/turnitin/service";
 import { normalizeSymbolArtifacts } from "@/lib/extraction/normalize/symbols";
 import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 const MIN_MEANINGFUL_TEXT_CHARS = 200;
 const MIN_MEANINGFUL_PAGE_CHARS = 120;
@@ -105,6 +106,7 @@ export async function POST(
   const { searchParams } = new URL(request.url);
   const force = ["1", "true", "yes"].includes(String(searchParams.get("force") || "").toLowerCase());
   const mode = String(searchParams.get("mode") || "").trim().toLowerCase();
+  const organizationId = await getRequestOrganizationId();
 
   if (!submissionId) {
     return apiError({
@@ -116,8 +118,8 @@ export async function POST(
     });
   }
 
-  const submission = await prisma.submission.findUnique({
-    where: { id: submissionId },
+  const submission = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
     select: {
       id: true,
       filename: true,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, makeRequestId } from "@/lib/api/errors";
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 /**
  * UTILS & CONSTANTS
@@ -245,9 +246,10 @@ export async function POST(
   const { submissionId } = params;
   const warnings: string[] = [];
   try {
+  const organizationId = await getRequestOrganizationId();
 
-  const existing = await prisma.submission.findUnique({
-    where: { id: submissionId },
+  const existing = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
     include: {
       student: true,
       assignment: true,
@@ -324,10 +326,11 @@ export async function POST(
 
   // Resolve Student (Email -> Full Name -> UNIQUE surname match)
   let resolvedStudentId: string | null = null;
+  const scopedOrgId = String((existing as any)?.organizationId || organizationId || "").trim() || null;
 
   if (email) {
-    const s = await prisma.student.findUnique({
-      where: { email },
+    const s = await prisma.student.findFirst({
+      where: addOrganizationReadScope({ email }, scopedOrgId) as any,
       select: { id: true },
     });
     if (s) resolvedStudentId = s.id;
@@ -335,7 +338,7 @@ export async function POST(
 
   if (!resolvedStudentId && studentNameEligibleForLinking) {
     const exact = await prisma.student.findFirst({
-      where: { fullName: { equals: studentNameEligibleForLinking, mode: "insensitive" } },
+      where: addOrganizationReadScope({ fullName: { equals: studentNameEligibleForLinking, mode: "insensitive" } }, scopedOrgId) as any,
       select: { id: true },
     });
 
@@ -347,7 +350,7 @@ export async function POST(
 
       if (lastName && lastName.length > 2) {
         const matches = await prisma.student.findMany({
-          where: { fullName: { contains: lastName, mode: "insensitive" } },
+          where: addOrganizationReadScope({ fullName: { contains: lastName, mode: "insensitive" } }, scopedOrgId) as any,
           select: { id: true, fullName: true },
           take: 5,
         });
@@ -378,7 +381,7 @@ export async function POST(
 
       if (mismatch && existing.assignment?.isPlaceholder && manualCoverAssignmentOverride) {
         const found = await tx.assignment.findFirst({
-          where: { unitCode, assignmentRef },
+          where: addOrganizationReadScope({ unitCode, assignmentRef }, scopedOrgId) as any,
           select: { id: true, isPlaceholder: true },
         });
 
@@ -389,7 +392,7 @@ export async function POST(
           );
         } else {
           const unitExists = await tx.unit.findFirst({
-            where: { unitCode },
+            where: addOrganizationReadScope({ unitCode }, scopedOrgId) as any,
             select: { id: true },
           });
           if (!unitExists) {
@@ -413,6 +416,7 @@ export async function POST(
                   nameSource,
                 },
                 createdFromFilename: existing.filename,
+                ...(scopedOrgId ? { organizationId: scopedOrgId } : {}),
               },
               select: { id: true },
             });
@@ -427,7 +431,7 @@ export async function POST(
       }
     } else if (unitCode && assignmentRef) {
       const found = await tx.assignment.findFirst({
-        where: { unitCode, assignmentRef },
+        where: addOrganizationReadScope({ unitCode, assignmentRef }, scopedOrgId) as any,
         select: { id: true },
       });
 
@@ -435,7 +439,7 @@ export async function POST(
         resolvedAssignmentId = found.id;
       } else {
         const unitExists = await tx.unit.findFirst({
-          where: { unitCode },
+          where: addOrganizationReadScope({ unitCode }, scopedOrgId) as any,
           select: { id: true },
         });
         if (!unitExists) {
@@ -477,6 +481,7 @@ export async function POST(
               nameSource,
             },
             createdFromFilename: existing.filename,
+            ...(scopedOrgId ? { organizationId: scopedOrgId } : {}),
           },
           select: { id: true },
         });

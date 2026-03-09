@@ -63,6 +63,8 @@ Status labels:
 - M10 progress (2026-03-09): submission detail/linking, unit mutation, and reference debug-extract routes now enforce active-org visibility on raw id access before tenant-owned reads or writes execute.
 - M10 progress (2026-03-09): student detail/update/delete and spreadsheet import now enforce active-org visibility, and imported students are created with the active organization scope.
 - M10 progress (2026-03-09): reference-document per-id routes now enforce active-org visibility before metadata edits, file access, extraction, unlock/archive actions, and figure rendering.
+- M10 progress (2026-03-09): submission file/extract/triage and reference chart-recover routes now enforce active-org visibility before file reads, extraction work, triage links, and recovery operations.
+- M10 progress (2026-03-09): submission grade/marked-file and reference-document delete now enforce active-org visibility before grading, output-file access, and destructive document actions.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
@@ -354,6 +356,8 @@ Current update (2026-03-03):
 - Status (2026-03-09): cross-org tenant-route boundary coverage added for submission/unit/debug routes (`scripts/org-scope-tenant-route-boundary.test.js`).
 - Status (2026-03-09): student-route tenant boundary coverage added for detail/update/import flows (`scripts/org-scope-student-boundary.test.js`).
 - Status (2026-03-09): reference-document route tenant boundary coverage added for per-id actions (`scripts/org-scope-reference-route-boundary.test.js`).
+- Status (2026-03-09): submission/reference ops tenant boundary coverage added for file/extract/triage/chart-recover flows (`scripts/org-scope-submission-reference-ops-boundary.test.js`).
+- Status (2026-03-09): grading/output/delete tenant boundary coverage added for submission grade/marked-file and reference delete flows.
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.

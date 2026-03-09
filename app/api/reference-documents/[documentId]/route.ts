@@ -96,17 +96,46 @@ export async function DELETE(_req: Request, { params }: { params: { documentId: 
     return NextResponse.json({ error: "MISSING_DOCUMENT_ID", message: "Missing reference document id." }, { status: 400 });
   }
 
-  const doc = await prisma.referenceDocument.findUnique({
-    where: { id: documentId },
-    select: {
-      id: true,
-      type: true,
-      lockedAt: true,
-      status: true,
-      storagePath: true,
-      originalFilename: true,
-    },
-  });
+  const organizationId = await getRequestOrganizationId();
+  const scopedWhere = addOrganizationReadScope({ id: documentId }, organizationId);
+
+  let doc = null as
+    | {
+        id: string;
+        type: string;
+        lockedAt: Date | null;
+        status: string;
+        storagePath: string;
+        originalFilename: string;
+      }
+    | null;
+
+  try {
+    doc = await prisma.referenceDocument.findFirst({
+      where: scopedWhere as any,
+      select: {
+        id: true,
+        type: true,
+        lockedAt: true,
+        status: true,
+        storagePath: true,
+        originalFilename: true,
+      },
+    });
+  } catch (error) {
+    if (!organizationId || !isOrgScopeCompatError(error)) throw error;
+    doc = await prisma.referenceDocument.findUnique({
+      where: { id: documentId },
+      select: {
+        id: true,
+        type: true,
+        lockedAt: true,
+        status: true,
+        storagePath: true,
+        originalFilename: true,
+      },
+    });
+  }
 
   if (!doc) {
     return NextResponse.json({ error: "NOT_FOUND", message: "Reference document not found." }, { status: 404 });

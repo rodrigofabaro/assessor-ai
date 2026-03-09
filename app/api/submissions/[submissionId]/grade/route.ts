@@ -36,6 +36,7 @@ import { maybeAutoDetectAiWritingForSubmission } from "@/lib/turnitin/service";
 import { pickTonePhrase, resolveToneProfileFromLegacy, type ToneProfile } from "@/lib/notes/toneDatabase";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 
@@ -1389,6 +1390,7 @@ async function resolveRubricSupportContext(input: {
   rubricAttachment: any;
   criteriaCodes: string[];
   briefSupportNotes?: string | null;
+  organizationId?: string | null;
 }) {
   const criteriaCodes = Array.from(
     new Set(
@@ -1475,8 +1477,8 @@ async function resolveRubricSupportContext(input: {
     };
   }
 
-  const rubricDoc = await prisma.referenceDocument.findUnique({
-    where: { id: attachedDocId },
+  const rubricDoc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id: attachedDocId }, String(input.organizationId || "").trim() || null) as any,
     select: {
       id: true,
       originalFilename: true,
@@ -2481,6 +2483,7 @@ export async function POST(
   }
   const gradingStartedAt = new Date();
   const { submissionId } = await ctx.params;
+  const organizationId = await getRequestOrganizationId();
   if (!submissionId) {
     return apiError({
       status: 400,
@@ -2554,8 +2557,8 @@ export async function POST(
     },
   } as const;
 
-  let submission = await prisma.submission.findUnique({
-    where: { id: submissionId },
+  let submission = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
     include: submissionInclude,
   });
   if (!submission) {
@@ -2587,24 +2590,27 @@ export async function POST(
   // attempt to resolve to a mapped brief by unitCode + assignmentRef before failing.
   let relinked = false;
   const coverSignals = extractCoverAssignmentSignals(submission.extractionRuns?.[0]?.sourceMeta);
+  const scopedOrgId = String((submission as any)?.organizationId || organizationId || "").trim() || null;
 
   if (!submission.assignment && coverSignals.unitCode && coverSignals.assignmentRef) {
     const preferred = await prisma.assignment.findFirst({
       where: {
-        unitCode: coverSignals.unitCode,
-        assignmentRef: coverSignals.assignmentRef,
+        ...(addOrganizationReadScope(
+          { unitCode: coverSignals.unitCode, assignmentRef: coverSignals.assignmentRef },
+          scopedOrgId
+        ) as any),
         assignmentBriefId: { not: null },
-      },
+      } as any,
       orderBy: { updatedAt: "desc" },
       select: { id: true },
     });
     const fallback =
       preferred ||
       (await prisma.assignment.findFirst({
-        where: {
-          unitCode: coverSignals.unitCode,
-          assignmentRef: coverSignals.assignmentRef,
-        },
+        where: addOrganizationReadScope(
+          { unitCode: coverSignals.unitCode, assignmentRef: coverSignals.assignmentRef },
+          scopedOrgId
+        ) as any,
         orderBy: { updatedAt: "desc" },
         select: { id: true },
       }));
@@ -2623,6 +2629,7 @@ export async function POST(
     if (unitCode && assignmentRef) {
       const candidates = await prisma.assignmentBrief.findMany({
         where: {
+          ...(addOrganizationReadScope({}, scopedOrgId) as any),
           unit: { unitCode },
           assignmentCode: assignmentRef,
         },
@@ -2640,8 +2647,8 @@ export async function POST(
   }
 
   if (relinked) {
-    submission = await prisma.submission.findUnique({
-      where: { id: submissionId },
+    submission = await prisma.submission.findFirst({
+      where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
       include: submissionInclude,
     });
   }
@@ -2835,6 +2842,7 @@ export async function POST(
     rubricAttachment,
     criteriaCodes,
     briefSupportNotes: normalizeText((brief.briefDocument?.sourceMeta as any)?.rubricSupportNotes || ""),
+    organizationId: scopedOrgId,
   });
   const rubricHint = rubricSupport.hint;
   const assessmentRequirements = extractAssessmentRequirementsFromBrief(brief.briefDocument?.extractedJson);

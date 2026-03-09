@@ -106,6 +106,28 @@ async function testMetaGetScopesLookup() {
   assert(res.status === 404, "expected meta GET to reject invisible document");
 }
 
+async function testReferenceDeleteScopesLookup() {
+  const { DELETE } = loadTsModule("app/api/reference-documents/[documentId]/route.ts", {
+    "next/server": nextServerMock(),
+    "@/lib/auth/requestSession": scopedHelper(),
+    "@/lib/prisma": {
+      prisma: {
+        referenceDocument: {
+          findFirst: async (args) => {
+            assert(args.where.scoped === true, "expected reference DELETE to use scoped where");
+            assert(args.where.where.id === "doc_1", "expected reference DELETE to scope document id");
+            return null;
+          },
+        },
+      },
+    },
+    "@/lib/storage/provider": { deleteStorageFile: async () => null },
+  });
+
+  const res = await DELETE(new Request("http://localhost"), { params: { documentId: "doc_1" } });
+  assert(res.status === 404, "expected reference DELETE to reject invisible document");
+}
+
 async function testFileGetScopesLookup() {
   const { GET } = loadTsModule("app/api/reference-documents/[documentId]/file/route.ts", {
     "next/server": nextServerMock(),
@@ -269,6 +291,7 @@ async function testFigureGetScopesLookup() {
 
 async function main() {
   await testMetaGetScopesLookup();
+  await testReferenceDeleteScopesLookup();
   await testFileGetScopesLookup();
   await testUsageGetScopesLookup();
   await testArchivePostScopesLookup();

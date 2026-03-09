@@ -493,3 +493,7 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - Added route-level coverage in `scripts/org-scope-student-boundary.test.js`.
 - M10 reference-route boundary hardening: reference-document `meta`, `file`, `usage`, `archive`, `unlock`, `extract`, and `figure` routes now scope raw document ids through active-organization visibility checks.
 - Added route-level coverage in `scripts/org-scope-reference-route-boundary.test.js`.
+- M10 submission/reference ops boundary hardening: submission `file`, `extract`, and `triage` routes plus reference `chart-recover` now scope raw ids through active-organization visibility checks.
+- Added route-level coverage in `scripts/org-scope-submission-reference-ops-boundary.test.js`.
+- M10 grading/output/delete boundary hardening: submission `grade` and `marked-file` plus reference-document delete now scope raw ids through active-organization visibility checks.
+- Extended route-level coverage in `scripts/org-scope-submission-reference-ops-boundary.test.js` and `scripts/org-scope-reference-route-boundary.test.js`.

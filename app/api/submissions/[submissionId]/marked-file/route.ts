@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
@@ -11,6 +12,14 @@ export async function GET(
   ctx: { params: Promise<{ submissionId: string }> }
 ) {
   const { submissionId } = await ctx.params;
+  const organizationId = await getRequestOrganizationId();
+  const visibleSubmission = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
+    select: { id: true },
+  });
+  if (!visibleSubmission) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+  }
   const url = new URL(req.url);
   const assessmentId = String(url.searchParams.get("assessmentId") || "").trim();
   const latest = assessmentId

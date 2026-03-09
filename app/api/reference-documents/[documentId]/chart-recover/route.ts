@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { localVisionJson, shouldTryLocal, shouldTryOpenAi } from "@/lib/ai/hybrid";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -282,6 +283,7 @@ async function recoverGraphFromImage(input: {
 export async function POST(req: Request, { params }: { params: Promise<{ documentId: string }> }) {
   const { documentId } = await params;
   if (!documentId) return NextResponse.json({ error: "MISSING_DOCUMENT_ID" }, { status: 400 });
+  const organizationId = await getRequestOrganizationId();
 
   const body = await req.json().catch(() => ({} as any));
   const requestedPage = Math.max(1, Number(body?.pageNumber || 1));
@@ -293,8 +295,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ documen
     ? body.avoidLabels.map((s: any) => String(s || "").trim()).filter(Boolean)
     : [];
 
-  const doc = await prisma.referenceDocument.findUnique({
-    where: { id: documentId },
+  const doc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id: documentId }, organizationId) as any,
     select: { id: true, type: true, storagePath: true, storedFilename: true },
   });
   if (!doc) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
