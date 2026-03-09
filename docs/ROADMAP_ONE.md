@@ -279,6 +279,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-09): organization settings/secrets foundation now has explicit encryption-readiness failures plus audit coverage for org config updates and secret rotation/deletion; regression lock added in `scripts/org-settings-contract.test.js`.
 - Progress (2026-03-09): admin settings write paths now scope `activeAuditUserId` selection to the active organization for non-superadmin sessions while preserving global selection for `SUPER_ADMIN`; regression lock added in `scripts/admin-settings-org-boundary.test.js`.
 - Progress (2026-03-09): platform/org role boundaries are now regression-locked for `admin/organizations` and `admin/users`, including super-admin-only org management, org-admin cross-org guardrails, and forced session-org user creation defaults; contract added in `scripts/admin-role-boundary-contract.test.js`.
+- Progress (2026-03-09): organization lifecycle guards are now regression-locked for default-org protection plus empty-org-only deletion semantics in `admin/organizations/[organizationId]`; contract added in `scripts/admin-organization-lifecycle-contract.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures

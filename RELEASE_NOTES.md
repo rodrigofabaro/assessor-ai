@@ -508,4 +508,6 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - Added contract coverage in `scripts/admin-settings-org-boundary.test.js`.
 - M10 admin role-boundary hardening: super-admin-only organization management and org-admin user-management limits are now regression-locked across `admin/organizations` and `admin/users`.
 - Added contract coverage in `scripts/admin-role-boundary-contract.test.js`.
+- M10 organization lifecycle hardening: default organization protection and empty-org-only deletion rules are now regression-locked for `admin/organizations/[organizationId]`.
+- Added contract coverage in `scripts/admin-organization-lifecycle-contract.test.js`.
 - Added route-level coverage in `scripts/org-scope-assignment-iv-admin-boundary.test.js`.
