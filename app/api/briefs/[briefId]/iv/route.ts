@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 type IvOutcome = "APPROVED" | "CHANGES_REQUIRED" | "REJECTED";
 
@@ -41,8 +42,9 @@ function getIvRecordsFromMeta(meta: unknown) {
 }
 
 async function loadBriefDoc(briefId: string) {
-  const brief = await prisma.assignmentBrief.findUnique({
-    where: { id: briefId },
+  const organizationId = await getRequestOrganizationId();
+  const brief = await prisma.assignmentBrief.findFirst({
+    where: addOrganizationReadScope({ id: briefId }, organizationId) as any,
     include: { briefDocument: true },
   });
   if (!brief) return { error: NextResponse.json({ error: "Brief not found" }, { status: 404 }) };

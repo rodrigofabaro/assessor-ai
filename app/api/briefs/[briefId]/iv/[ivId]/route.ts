@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
@@ -33,8 +34,9 @@ function safeIvRecords(x: any) {
 }
 
 async function loadBriefDoc(briefId: string) {
-  const brief = await prisma.assignmentBrief.findUnique({
-    where: { id: briefId },
+  const organizationId = await getRequestOrganizationId();
+  const brief = await prisma.assignmentBrief.findFirst({
+    where: addOrganizationReadScope({ id: briefId }, organizationId) as any,
     include: { briefDocument: true },
   });
   if (!brief) return { error: NextResponse.json({ error: "Brief not found" }, { status: 404 }) };

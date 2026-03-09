@@ -275,6 +275,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-09): submission grade/marked-file and reference-document delete now enforce active-org visibility on raw ids; regression lock extended in `scripts/org-scope-submission-reference-ops-boundary.test.js` and `scripts/org-scope-reference-route-boundary.test.js`.
 - Progress (2026-03-09): tenant-owned IV draft/generation/backfill routes now enforce active-org visibility on submission/reference/brief attachment ids; regression lock added in `scripts/org-scope-iv-boundary.test.js`.
 - Progress (2026-03-09): assignment bindings and admin IV generate reference-spec lookup now enforce active-org visibility on tenant-owned ids; regression lock added in `scripts/org-scope-assignment-iv-admin-boundary.test.js`.
+- Progress (2026-03-09): remaining brief-owned and drill-down routes now enforce active-org visibility for assignment-brief list/create/map, brief IV/rubric attachments, student submission history, and submission assessment feedback updates; regression lock added in `scripts/org-scope-brief-assessment-boundary.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures

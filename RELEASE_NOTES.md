@@ -500,4 +500,6 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - M10 IV boundary hardening: tenant-owned IV generate-from-submission, review-draft reference-spec lookup, and brief evidence backfill now scope raw ids through active-organization visibility checks.
 - Added route-level coverage in `scripts/org-scope-iv-boundary.test.js`.
 - M10 assignment/admin-IV boundary hardening: assignment bindings and admin IV generate reference-spec selection now scope raw tenant-owned ids through active-organization visibility checks.
+- M10 brief/drill-down boundary hardening: assignment-brief list/create/map, brief IV/rubric attachment flows, student submission history, and submission assessment feedback updates now enforce active-org visibility; new brief/rubric attachments inherit the active organization id.
+- Added route-level coverage in `scripts/org-scope-brief-assessment-boundary.test.js`.
 - Added route-level coverage in `scripts/org-scope-assignment-iv-admin-boundary.test.js`.

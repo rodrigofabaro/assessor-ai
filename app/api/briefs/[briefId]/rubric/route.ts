@@ -4,6 +4,7 @@ import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import path from "path";
 import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 function asObject(x: any) {
   if (x && typeof x === "object" && !Array.isArray(x)) return x;
@@ -19,8 +20,9 @@ function safeName(name: string) {
 }
 
 async function loadBriefDoc(briefId: string) {
-  const brief = await prisma.assignmentBrief.findUnique({
-    where: { id: briefId },
+  const organizationId = await getRequestOrganizationId();
+  const brief = await prisma.assignmentBrief.findFirst({
+    where: addOrganizationReadScope({ id: briefId }, organizationId) as any,
     include: { briefDocument: true },
   });
   if (!brief) return { error: NextResponse.json({ error: "Brief not found" }, { status: 404 }) };
@@ -42,6 +44,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
   const { briefId } = await params;
   const { brief, doc, error } = await loadBriefDoc(briefId);
   if (error) return error;
+  const organizationId = await getRequestOrganizationId();
 
   const formData = await req.formData().catch(() => null);
   const file = formData?.get("file");
@@ -80,6 +83,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ briefId
       storedFilename,
       storagePath: saved.storagePath,
       checksumSha256,
+      organizationId: String(brief.organizationId || organizationId || "").trim() || null,
     },
   });
 

@@ -11,6 +11,7 @@ import { readGradingConfig } from "@/lib/grading/config";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { buildPageNotesFromCriterionChecks, extractCriterionChecksFromResultJson } from "@/lib/grading/pageNotes";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 
@@ -257,6 +258,15 @@ export async function PATCH(
 ) {
   try {
     const { submissionId, assessmentId } = await ctx.params;
+    const organizationId = await getRequestOrganizationId();
+    const visibleSubmission = await prisma.submission.findFirst({
+      where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
+      select: { id: true, storagePath: true },
+    });
+    if (!visibleSubmission) {
+      return NextResponse.json({ error: "Assessment not found for this submission." }, { status: 404 });
+    }
+
     const body = (await req.json().catch(() => ({}))) as {
       feedbackText?: string;
       studentName?: string;
@@ -272,7 +282,6 @@ export async function PATCH(
 
     const assessment = await prisma.assessment.findFirst({
       where: { id: assessmentId, submissionId },
-      include: { submission: { select: { id: true, storagePath: true } } },
     });
     if (!assessment) {
       return NextResponse.json({ error: "Assessment not found for this submission." }, { status: 404 });
@@ -533,8 +542,8 @@ export async function PATCH(
         })
       : [];
 
-    const marked = await createMarkedPdf(assessment.submission.storagePath, {
-      submissionId: assessment.submission.id,
+    const marked = await createMarkedPdf(visibleSubmission.storagePath, {
+      submissionId: visibleSubmission.id,
       overallGrade: String(finalOverallGrade || assessment.overallGrade || "REFER"),
       feedbackBullets: feedbackBullets.length ? feedbackBullets : ["Feedback generated."],
       feedbackText: feedbackText || "Feedback generated.",
