@@ -276,6 +276,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-09): tenant-owned IV draft/generation/backfill routes now enforce active-org visibility on submission/reference/brief attachment ids; regression lock added in `scripts/org-scope-iv-boundary.test.js`.
 - Progress (2026-03-09): assignment bindings and admin IV generate reference-spec lookup now enforce active-org visibility on tenant-owned ids; regression lock added in `scripts/org-scope-assignment-iv-admin-boundary.test.js`.
 - Progress (2026-03-09): remaining brief-owned and drill-down routes now enforce active-org visibility for assignment-brief list/create/map, brief IV/rubric attachments, student submission history, and submission assessment feedback updates; regression lock added in `scripts/org-scope-brief-assessment-boundary.test.js`.
+- Progress (2026-03-09): organization settings/secrets foundation now has explicit encryption-readiness failures plus audit coverage for org config updates and secret rotation/deletion; regression lock added in `scripts/org-settings-contract.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures

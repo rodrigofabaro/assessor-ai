@@ -502,4 +502,6 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - M10 assignment/admin-IV boundary hardening: assignment bindings and admin IV generate reference-spec selection now scope raw tenant-owned ids through active-organization visibility checks.
 - M10 brief/drill-down boundary hardening: assignment-brief list/create/map, brief IV/rubric attachment flows, student submission history, and submission assessment feedback updates now enforce active-org visibility; new brief/rubric attachments inherit the active organization id.
 - Added route-level coverage in `scripts/org-scope-brief-assessment-boundary.test.js`.
+- M10 organization settings hardening: org settings/secret writes now fail explicitly when encryption is not configured, and org config + secret rotation/deletion events are now audit logged.
+- Added contract coverage in `scripts/org-settings-contract.test.js`.
 - Added route-level coverage in `scripts/org-scope-assignment-iv-admin-boundary.test.js`.

@@ -15,7 +15,9 @@ export type SettingsAuditEvent = {
     | "app-config"
     | "favicon"
     | "automation-policy"
-    | "turnitin-config";
+    | "turnitin-config"
+    | "organization-settings"
+    | "organization-secret";
   changes?: Record<string, unknown>;
 };
 

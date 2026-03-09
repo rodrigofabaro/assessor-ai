@@ -363,6 +363,7 @@ Current update (2026-03-03):
 - Status (2026-03-09): IV-route tenant boundary coverage added for generate-from-submission, review-draft spec lookup, and brief evidence backfill (`scripts/org-scope-iv-boundary.test.js`).
 - Status (2026-03-09): assignment/admin-IV tenant boundary coverage added for bindings and admin IV generate spec lookup (`scripts/org-scope-assignment-iv-admin-boundary.test.js`).
 - Status (2026-03-09): remaining brief-owned/drill-down route coverage added for assignment-brief list/create/map, brief IV/rubric attachments, student submission history, and assessment feedback update flows (`scripts/org-scope-brief-assessment-boundary.test.js`).
+- Status (2026-03-09): organization settings/secrets contract coverage added for org-admin access, encryption readiness failures, and audit-safe secret/config writes (`scripts/org-settings-contract.test.js`).
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.

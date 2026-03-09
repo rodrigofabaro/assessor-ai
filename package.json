@@ -44,6 +44,7 @@
     "test:org-scope-submission-reference-ops-boundary": "node scripts/org-scope-submission-reference-ops-boundary.test.js",
     "test:org-scope-tenant-route-boundary": "node scripts/org-scope-tenant-route-boundary.test.js",
     "test:org-scope-student-boundary": "node scripts/org-scope-student-boundary.test.js",
+    "test:org-settings-contract": "node scripts/org-settings-contract.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",
     "ops:deploy-smoke": "node scripts/deploy-smoke-evidence.js",
     "ops:auth-guard-smoke": "node scripts/auth-guard-smoke.js",

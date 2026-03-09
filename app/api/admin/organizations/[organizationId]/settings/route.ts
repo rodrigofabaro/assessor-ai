@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getRequestSession } from "@/lib/auth/requestSession";
-import { encryptOrganizationSecret } from "@/lib/security/orgSecrets";
+import { canEncryptOrgSecrets, encryptOrganizationSecret } from "@/lib/security/orgSecrets";
+import { appendSettingsAuditEvent } from "@/lib/admin/settingsAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -197,6 +198,16 @@ export async function PUT(req: Request, ctx: RouteContext) {
     })
     .filter((row): row is { secretName: string; value: string } => !!row);
 
+  if (secretOps.some((row) => !!row.value) && !canEncryptOrgSecrets()) {
+    return NextResponse.json(
+      {
+        error: "Organization secret encryption is not configured in this environment.",
+        code: "ORG_SECRET_ENCRYPTION_UNAVAILABLE",
+      },
+      { status: 409 }
+    );
+  }
+
   try {
     await prisma.$transaction(async (tx) => {
       if (config !== undefined) {
@@ -208,12 +219,32 @@ export async function PUT(req: Request, ctx: RouteContext) {
             config: toInputJson(config as Record<string, unknown>),
           },
         });
+        appendSettingsAuditEvent({
+          actor,
+          role: session?.isSuperAdmin ? "SUPER_ADMIN" : String(session?.role || "SYSTEM").trim().toUpperCase() || "SYSTEM",
+          action: "ORGANIZATION_SETTINGS_UPDATED",
+          target: "organization-settings",
+          changes: {
+            organizationId: access.organizationId,
+            configKeys: Object.keys((config || {}) as Record<string, unknown>).sort(),
+          },
+        });
       }
 
       for (const row of secretOps) {
         if (!row.value) {
           await tx.organizationSecret.deleteMany({
             where: { organizationId: access.organizationId, secretName: row.secretName },
+          });
+          appendSettingsAuditEvent({
+            actor,
+            role: session?.isSuperAdmin ? "SUPER_ADMIN" : String(session?.role || "SYSTEM").trim().toUpperCase() || "SYSTEM",
+            action: "ORGANIZATION_SECRET_DELETED",
+            target: "organization-secret",
+            changes: {
+              organizationId: access.organizationId,
+              secretName: row.secretName,
+            },
           });
           continue;
         }
@@ -237,6 +268,16 @@ export async function PUT(req: Request, ctx: RouteContext) {
             encryptedValue,
             rotatedAt: new Date(),
             meta: { createdBy: actor, createdAt: new Date().toISOString() },
+          },
+        });
+        appendSettingsAuditEvent({
+          actor,
+          role: session?.isSuperAdmin ? "SUPER_ADMIN" : String(session?.role || "SYSTEM").trim().toUpperCase() || "SYSTEM",
+          action: "ORGANIZATION_SECRET_ROTATED",
+          target: "organization-secret",
+          changes: {
+            organizationId: access.organizationId,
+            secretName: row.secretName,
           },
         });
       }
