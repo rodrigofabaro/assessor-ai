@@ -52,6 +52,10 @@ Last updated: 2026-03-06
   - missing-scenario warnings now trigger only when a task explicitly references scenario/context language (not globally across all tasks)
   - reduced false positives where later tasks legitimately have no scenario text
   - added regression coverage: `scripts/brief-scenario-warning-policy.test.js` (wired into `test:regression-pack`)
+- Brief template-profile hardening (roadmap continuation):
+  - added UniCourse template profile detection and parser metadata (`parserVersion`, `extractionProfile`, `extractionProfileDetected`, `extractionProfileCandidates`) in `lib/extractors/brief.ts`
+  - extraction now runs a layout-aware UniCourse first pass with scored generic fallback selection to preserve non-template resilience
+  - added regression coverage for multi-scenario + mixed part-key patterns (`1/2/3`, `i/ii`, `b.i`) via `scripts/brief-template-profile.test.js` and wired it into `test:regression-pack`
 - Feedback quality hardening (VASCR continuation):
   - added annotation realism policy (`lib/grading/feedbackAnnotationPolicy.ts`) to remove generic low-signal bullets and inject assessor-style fallback notes when needed
   - `/api/submissions/[submissionId]/grade` now applies this policy after bullet de-duplication and records policy adjustments in system notes
@@ -64,6 +68,10 @@ Last updated: 2026-03-06
   - added `NEXT_PUBLIC_UI_LAUNCH_MODE` to control progressive exposure of tenant operations in admin navigation
   - when enabled, `/admin/users` is surfaced in primary admin nav while existing routes/APIs remain unchanged
   - updated admin help to document pre-launch vs launch-mode navigation behavior (`docs/help/admin-index.md`)
+- M10 org-scope strict-read hardening:
+  - `addOrganizationReadScope` now supports strict active-org-only mode via `AUTH_ORG_SCOPE_STRICT_READS=true` (legacy alias: `ORG_SCOPE_STRICT_READS`)
+  - default compatibility behavior is unchanged (`organizationId=<activeOrgId>` or `organizationId=null` fallback while migration remains in progress)
+  - added regression contract coverage: `scripts/org-scope-read-contract.test.js` (wired into `test:regression-pack`)
 - Runtime state persistence migration (deployment hardening slice):
   - added migration `prisma/migrations/20260306200000_add_turnitin_automation_persistence`:
     - `AppConfig.turnitinConfig` JSON

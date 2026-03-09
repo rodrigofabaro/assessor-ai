@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-03-09T09:11:07.175Z",
+  "startedAt": "2026-03-09T09:11:04.300Z",
+  "baseUrl": "http://localhost:3000",
+  "endpoint": "/api/health/readiness",
+  "status": 200,
+  "ok": true,
+  "error": null,
+  "payload": {
+    "ok": true,
+    "checkedAt": "2026-03-09T09:11:07.153Z",
+    "checks": {
+      "database": {
+        "ok": true,
+        "required": true,
+        "message": "Database reachable."
+      },
+      "storage": {
+        "ok": true,
+        "required": true,
+        "message": "Filesystem storage writable.",
+        "detail": {
+          "backend": "filesystem",
+          "root": ".local-storage"
+        }
+      },
+      "schema": {
+        "ok": true,
+        "required": false,
+        "message": "Schema contract checks passed."
+      },
+      "email": {
+        "ok": true,
+        "required": false,
+        "message": "Email provider not configured (optional in current mode).",
+        "detail": {
+          "provider": "none",
+          "configured": false,
+          "requireRecoveryEmail": false,
+          "fromConfigured": false,
+          "fromPreview": null
+        }
+      },
+      "emailWebhook": {
+        "ok": true,
+        "required": false,
+        "message": "Email webhook check skipped (provider is not resend).",
+        "detail": {
+          "provider": "none"
+        }
+      },
+      "openai": {
+        "ok": true,
+        "required": false,
+        "message": "OpenAI key present (probe disabled).",
+        "detail": {
+          "keyType": "standard"
+        }
+      },
+      "openaiResponsesWrite": {
+        "ok": true,
+        "required": false,
+        "message": "OpenAI responses-write probe disabled.",
+        "detail": {
+          "keyType": "standard"
+        }
+      }
+    },
+    "failures": []
+  }
+}

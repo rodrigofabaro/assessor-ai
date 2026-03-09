@@ -41,6 +41,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - auth anomaly alert emails enabled for auth rate-limit threshold breaches (cooldown protected)
    - extraction and grading terminal failures now emit operational alert emails
    - brief extraction now persists a fidelity report + task provenance and lock blocks unresolved fidelity blockers
+   - brief extraction now auto-detects a UniCourse template profile (layout-aware first pass) and keeps a scored generic fallback path with parser/profile metadata persisted per extraction run
    - post-login dashboard is now role-specific (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions/stats
    - VASCR summary policy now hardens feedback output (concise, evidence-linked, actionable)
    - landing-page contact requests now persist in DB (`ContactLead`) and surface in `SUPER_ADMIN` developer console intake view
@@ -49,6 +50,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - readiness endpoint now includes webhook configuration check (`emailWebhook`) and supports strict enforcement with `AUTH_REQUIRE_EMAIL_WEBHOOK=true`
    - readiness endpoint now includes schema drift check (`schema`) and supports strict enforcement with `AUTH_REQUIRE_SCHEMA_CONTRACT=true`
    - QA reliability telemetry is now emitted by batch grading runs (`qaReliability`) and surfaced in `SUPER_ADMIN` developer dashboard cards/tables via `GET /api/admin/ops/qa-reliability`
+   - org-scope strict-read enforcement toggle is now available (`AUTH_ORG_SCOPE_STRICT_READS`) so tenant APIs can enforce active-organization-only reads once compatibility migration is complete
 
 ## Execution lanes
 
@@ -90,6 +92,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - link implementation notes: `docs/operations/brief-extraction-hardening-log-2026-03-05.md`
 - Progress (2026-03-06): persisted fidelity report + per-task provenance are now produced on brief extraction, and lock quality gate blocks unresolved fidelity blockers.
 - Progress (2026-03-06): missing-scenario warnings are now cue-based (only when task text explicitly requires scenario/context) to reduce false positives on briefs where later tasks legitimately have no scenario.
+- Progress (2026-03-06): UniCourse template-aware extraction profile is enabled with automatic generic fallback scoring (`extractBrief` profile candidates + selection metadata), and regression fixture coverage is locked via `scripts/brief-template-profile.test.js`.
 
 3. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)
@@ -252,6 +255,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - add active-organization switch flow and scoped session enforcement
 - add org settings + secret storage foundations (API keys/integrations per organization)
 - keep backward compatibility during migration from single `organizationId` user model
+- Progress (2026-03-06): org-scope read helper now supports strict enforcement mode (`AUTH_ORG_SCOPE_STRICT_READS=true`) that removes legacy global-row fallback and enforces active-org-only tenant reads; regression lock added in `scripts/org-scope-read-contract.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures
@@ -386,6 +390,7 @@ Done when:
 3. Whole-PDF fallback output is evidence-constrained (`UNKNOWN/NEEDS_REVIEW` when uncited).
 4. Lock is blocked when fidelity blockers remain unresolved.
 5. Template-aware profile for UniCourse briefs is enabled and benchmarked against regression fixtures.
+- Progress (2026-03-06): template-aware profile and benchmark regression lock are now in place (`parserVersion` + `extractionProfile*` metadata, `scripts/brief-template-profile.test.js`, `scripts/regression-pack.js`).
 
 ## Production deployment steps (single runbook section)
 

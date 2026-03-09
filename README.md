@@ -1,7 +1,7 @@
 # Assessor-AI Webapp
 
 Operational documentation lives in `docs/README.md`.
-Last updated: 2026-03-03
+Last updated: 2026-03-09
 
 ## Quick start
 
@@ -39,7 +39,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 
 - Lint: `pnpm run lint`
 - Build: `pnpm run build`
-- Full test alias: `pnpm run test`
+- Lint alias (`test`): `pnpm run test`
 - Tasks tab logic test: `pnpm run test:tasks-tab`
 - AI fallback policy test: `pnpm run test:ai-fallback`
 - Word math test: `pnpm run test:word-math`
@@ -49,6 +49,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Cover metadata extraction test: `node scripts/cover-metadata.test.js`
 - Brief readiness test: `pnpm run test:brief-readiness`
 - Brief mapping codes regression: `pnpm run test:brief-mapping-codes`
+- Brief template-profile test: `pnpm run test:brief-template-profile`
 - Brief hard validation test: `node scripts/brief-hard-validation.test.js`
 - Brief vs spec audit test: `node scripts/brief-spec-audit.test.js`
 - Symbol normalization test (Greek/SI/unit OCR cleanup): `pnpm run test:symbol-normalization`
@@ -57,6 +58,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Marked PDF URL test: `node scripts/marked-pdf-url.test.js`
 - Page notes logic test: `node scripts/page-notes.test.js`
 - Mapping drift check: `pnpm run ops:mapping-drift`
+- Org-scope strict-read contract: `pnpm run test:org-scope-read-contract`
 
 ## Current behavior notes (briefs)
 
@@ -68,6 +70,7 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Brief hard validation blocks unresolved structural extraction defects (missing scenarios, duplicate parts, figure-without-image-token, Celsius OCR artifacts).
 - Whole-PDF AI fallback is attempted when brief hard validation fails after native retries.
 - Shared symbol normalization is applied in extraction paths to improve readability and unit consistency (Greek letters, SI symbols, common OCR artifacts).
+- Brief extraction now records parser/profile metadata and can auto-select a UniCourse template-aware path with generic fallback scoring.
 
 ## Current navigation notes (admin)
 
@@ -127,3 +130,14 @@ If port `3000` is already in use, Next.js will start on another port (for exampl
 - Batch controls in `/submissions` are simplified:
   - primary visible action: `Grade auto-ready`
   - secondary actions under `Batch actions`
+
+## Current verification snapshot (2026-03-09)
+
+- `pnpm lint`: passes with 2 warnings
+- `pnpm exec tsc --noEmit --incremental false`: passes
+- `pnpm run test:regression-pack`: passes
+- `node scripts/readiness-contract.js`: passes
+- Local `pnpm build`: not yet confirmed on this machine
+  - `pnpm build` currently fails inside `prisma generate` with `spawn EPERM`
+  - direct `next build` also reproduces a local `.next/trace` open `EPERM`
+  - current machine default Node version is `v24.14.0`, while the repo engine contract is `>=20 <23`

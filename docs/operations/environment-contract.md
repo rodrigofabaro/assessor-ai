@@ -55,6 +55,12 @@ Primary login mode:
   - effect: enables middleware role checks for `/admin/*` and `/api/admin/*`
   - rollout note: when enabled, signed-session login is required for all non-public routes
 
+- `AUTH_ORG_SCOPE_STRICT_READS`
+  - default: `false`
+  - when `false`, org-scoped reads allow compatibility fallback rows where `organizationId` is null
+  - when `true`, org-scoped reads enforce active-organization-only visibility (`organizationId=<activeOrgId>`) for tenant APIs using `addOrganizationReadScope`
+  - migration intent: keep `false` during mixed legacy/membership rollout, then set `true` when tenant data is fully scoped
+
 - `AUTH_SESSION_SECRET`
   - required when `AUTH_GUARDS_ENABLED=true` and using signed session cookie bootstrap
   - minimum recommended length: 32+ characters

@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-03-06T13:55:19.514Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": false,
+    "authenticated": false
+  },
+  "steps": {
+    "upload": {
+      "status": 200,
+      "ms": 3198
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2161,
+      "ok": true
+    },
+    "student": {
+      "id": "cmmeyinnm0005rx4735oji8p0",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 200,
+      "ms": 1211
+    },
+    "assignment": {
+      "id": "seed-smoke-4017-a1",
+      "unitCode": "4017",
+      "assignmentRef": "A1",
+      "title": "Deployment Smoke Assignment",
+      "source": "preferred"
+    },
+    "linkAssignment": {
+      "status": 200,
+      "ms": 1518
+    },
+    "grade": {
+      "status": 200,
+      "ms": 12587,
+      "overallGrade": "PASS",
+      "assessmentId": "6d16b032-d156-4277-9447-9b791255c3d2"
+    },
+    "poll": {
+      "status": "DONE",
+      "hasExtraction": true,
+      "hasAssessment": true,
+      "hasMarkedPdf": true,
+      "latestAssessmentId": "6d16b032-d156-4277-9447-9b791255c3d2",
+      "polledMs": 1170
+    },
+    "markedPdf": {
+      "status": 200,
+      "ms": 397,
+      "bytes": 6418
+    },
+    "exportPack": {
+      "status": 200,
+      "ms": 1647,
+      "exportId": "27339eb7485be4b38af9"
+    },
+    "replay": {
+      "status": 500,
+      "ms": 842,
+      "hashMatch": false,
+      "assessmentHashMatch": false,
+      "fileDiffCount": 0,
+      "error": "Vercel Blob: This blob already exists, use `allowOverwrite: true` if you want to overwrite it. Or `addRandomSuffix: true` to generate a unique filename. Read more about this error in our documentation: https://vercel.link/blob-allow-overwrite",
+      "code": null,
+      "requestId": null,
+      "details": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Replay failed (500)"
+  },
+  "submissionId": "18581765-535a-47a2-98f4-753603cace77"
+}

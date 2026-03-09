@@ -57,6 +57,50 @@ export type BriefEquation = {
   latexSource: "heuristic" | "manual" | null;
 };
 
+export type BriefExtractionProfile = "GENERIC" | "UNICOURSE";
+export const BRIEF_PARSER_VERSION = "brief-2026-03-06-profiled";
+
+export type BriefExtractOptions = {
+  equations?: BriefEquation[];
+  profile?: BriefExtractionProfile | "AUTO";
+};
+
+function normalizeRequestedBriefProfile(input: unknown): BriefExtractionProfile | "AUTO" {
+  const raw = String(input || "AUTO").trim().toUpperCase();
+  if (raw === "UNICOURSE") return "UNICOURSE";
+  if (raw === "GENERIC") return "GENERIC";
+  return "AUTO";
+}
+
+export function detectBriefExtractionProfile(text: string, fallbackTitle?: string): BriefExtractionProfile {
+  const source = String(text || "");
+  const preview = source.slice(0, 16000);
+  const fallback = String(fallbackTitle || "");
+
+  const hasStrongTemplateSignal =
+    /\bunicourse\b/i.test(preview) ||
+    /\bpearson\s+btec\s+higher\s+nationals\s+for\s+england\b/i.test(preview);
+  let score = 0;
+  if (/\bunicourse\b/i.test(preview)) score += 2;
+  if (/\bpearson\s+btec\s+higher\s+nationals\s+for\s+england\b/i.test(preview)) score += 2;
+  if (/\bpolicy\s+on\s+the\s+use\s+of\s+artificial\s+intelligence\b/i.test(preview)) score += 1;
+  if (/\brelevant\s+learning\s+outcomes\s+and\s+assessment\s+criteria\b/i.test(preview)) score += 1;
+  if (/\bsources\s+of\s+information\s+to\s+support\s+you\s+with\s+this\s+assignment\b/i.test(preview)) score += 1;
+  if (/\bissue\s+\d+\s*[-–]\s*\d{4}\s*\/\s*\d{2,4}\b/i.test(preview)) score += 1;
+  if (/\b(?:u|unit)\s*4\d{3}\b/i.test(fallback)) score += 0.5;
+
+  if (hasStrongTemplateSignal && score >= 3) return "UNICOURSE";
+  return "GENERIC";
+}
+
+function normalizeUniCourseLineArtifacts(line: string) {
+  return String(line || "")
+    .replace(/\bT\s*a\s*s\s*k\b/gi, "Task")
+    .replace(/\bS\s*c\s*e\s*n\s*a\s*r\s*i\s*o\b/gi, "Scenario")
+    .replace(/\bA\s*I\s*A\s*S\b/gi, "AIAS")
+    .replace(/\bL\s*O\s*(\d)\b/gi, "LO$1");
+}
+
 function normHeader(s: string) {
   return (s || "")
     .replace(/\r/g, "")
@@ -1019,7 +1063,8 @@ function extractParts(text: string): Array<{ key: string; text: string }> | null
 
 function extractBriefTasks(
   text: string,
-  pages: string[]
+  pages: string[],
+  profile: BriefExtractionProfile
 ): {
   tasks: BriefTask[];
   scenarios: BriefScenario[];
@@ -1047,6 +1092,7 @@ function extractBriefTasks(
     const lines = splitLines(pageText);
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
       let normalizedLine = normalizeLine(lines[lineIdx]);
+      if (profile === "UNICOURSE") normalizedLine = normalizeUniCourseLineArtifacts(normalizedLine);
       const compact = compactLine(normalizedLine);
       const primaryKey = getPrimaryEndMatterKeyFromWindow(lines, lineIdx);
       if (primaryKey) {
@@ -1062,7 +1108,8 @@ function extractBriefTasks(
         }
       }
 
-      const nextLine = lines[lineIdx + 1] ? normalizeLine(lines[lineIdx + 1]) : "";
+      let nextLine = lines[lineIdx + 1] ? normalizeLine(lines[lineIdx + 1]) : "";
+      if (profile === "UNICOURSE") nextLine = normalizeUniCourseLineArtifacts(nextLine);
       const taskWordCandidate = compact.replace(/^[^A-Za-z0-9]+/, "").trim();
       const isTaskWordOnly =
         /^task$/i.test(taskWordCandidate) ||
@@ -1791,13 +1838,64 @@ function inferMissingMeritBridgeCodes(inputCodes: string[]): { codes: string[]; 
   return { codes, inferred: sortCriteriaCodes(Array.from(inferred)) };
 }
 
+function scoreTaskExtractionCandidate(result: {
+  tasks: BriefTask[];
+  scenarios: BriefScenario[];
+  warnings: string[];
+}) {
+  const tasks = Array.isArray(result.tasks) ? result.tasks : [];
+  const scenarios = Array.isArray(result.scenarios) ? result.scenarios : [];
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+
+  const nonEmptyTaskCount = tasks.filter((task) => String(task?.text || "").trim().length >= 30).length;
+  const partCount = tasks.reduce(
+    (sum, task) => sum + (Array.isArray(task?.parts) ? task.parts.length : 0),
+    0
+  );
+  const scenarioCoverage = tasks.filter((task) => String(task?.scenarioText || "").trim().length > 0).length;
+  const taskWarningCount = tasks.reduce(
+    (sum, task) => sum + (Array.isArray(task?.warnings) ? task.warnings.length : 0),
+    0
+  );
+
+  return (
+    tasks.length * 100 +
+    nonEmptyTaskCount * 30 +
+    partCount * 6 +
+    scenarios.length * 8 +
+    scenarioCoverage * 5 -
+    warnings.length * 8 -
+    taskWarningCount * 4
+  );
+}
+
 export function extractBrief(
   text: string,
   fallbackTitle: string,
-  options?: { equations?: BriefEquation[] }
+  options?: BriefExtractOptions
 ) {
   const t = text || "";
   const pages = splitPages(t);
+  const requestedProfile = normalizeRequestedBriefProfile(options?.profile);
+  const detectedProfile = detectBriefExtractionProfile(t, fallbackTitle);
+  const preferredProfile = requestedProfile === "AUTO" ? detectedProfile : requestedProfile;
+  const profileCandidates: BriefExtractionProfile[] =
+    preferredProfile === "UNICOURSE" ? ["UNICOURSE", "GENERIC"] : ["GENERIC"];
+  const taskCandidates = profileCandidates.map((profile) => {
+    const tasksResult = extractBriefTasks(t, pages, profile);
+    return {
+      profile,
+      tasksResult,
+      score: scoreTaskExtractionCandidate(tasksResult),
+    };
+  });
+  taskCandidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.profile === preferredProfile && b.profile !== preferredProfile) return -1;
+    if (b.profile === preferredProfile && a.profile !== preferredProfile) return 1;
+    return 0;
+  });
+  const selectedTaskCandidate = taskCandidates[0];
   const headerSource = pages[0] || t.slice(0, 4500);
   const header = extractBriefHeaderFromPreview(headerSource);
 
@@ -1832,7 +1930,7 @@ export function extractBrief(
   const detectedCriterionCodesResult = inferMissingMeritBridgeCodes(extractCriteriaCodesFromText(t));
   const detectedCriterionCodes = detectedCriterionCodesResult.codes;
 
-  const tasksResult = extractBriefTasks(t, pages);
+  const tasksResult = selectedTaskCandidate.tasksResult;
   const taskAiasLevels = tasksResult.tasks
     .map((task) => Number(task.aias?.match(/\d/)?.[0]))
     .filter((value) => !Number.isNaN(value));
@@ -1850,6 +1948,11 @@ export function extractBrief(
     ...(header.warnings || []),
     ...(tasksResult.warnings || []),
   ];
+  if (taskCandidates.length > 1 && selectedTaskCandidate.profile !== preferredProfile) {
+    warnings.push(
+      `extraction profile fallback selected: ${selectedTaskCandidate.profile} (preferred: ${preferredProfile})`
+    );
+  }
   const inferredMeritCodes = Array.from(
     new Set([...detectedCriterionCodesResult.inferred, ...criteriaRefsResult.inferred])
   );
@@ -2335,6 +2438,15 @@ export function extractBrief(
 
   return {
     kind: "BRIEF" as const,
+    parserVersion: BRIEF_PARSER_VERSION,
+    extractionProfile: selectedTaskCandidate.profile,
+    extractionProfileDetected: detectedProfile,
+    extractionProfileCandidates: taskCandidates.map((candidate) => ({
+      profile: candidate.profile,
+      score: candidate.score,
+      taskCount: candidate.tasksResult.tasks.length,
+      warningCount: candidate.tasksResult.warnings.length,
+    })),
     title: titleFromHeader || titleFromBody || null,
     header,
     assignmentCode: codeGuess,
@@ -2356,14 +2468,17 @@ export function extractBrief(
 
 export function debugBriefExtraction(text: string) {
   const pages = splitPages(text);
+  const extractionProfile = detectBriefExtractionProfile(text, "");
   const headerSource = pages[0] || text;
   const header = extractBriefHeaderFromPreview(headerSource);
-  const tasks = extractBriefTasks(text, pages);
+  const tasks = extractBriefTasks(text, pages, extractionProfile);
   const criteriaRegion = findCriteriaRegion(pages);
   const criteriaRefs = criteriaRegion.text ? extractCriteriaRefs(criteriaRegion.text) : [];
   const loHeaders = criteriaRegion.text ? extractLoHeaders(criteriaRegion.text) : [];
 
   return {
+    parserVersion: BRIEF_PARSER_VERSION,
+    extractionProfile,
     pageCount: pages.length,
     criteriaPages: criteriaRegion.pages,
     pages: pages.map((p, idx) => ({

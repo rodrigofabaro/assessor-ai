@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 let orgScopeAvailableCache: boolean | null = null;
 
+function envFlagEnabled(value: unknown) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return ["1", "true", "yes", "on"].includes(normalized);
+}
+
 function isOrgScopeCompatError(error: unknown) {
   const code = String((error as { code?: string } | null)?.code || "").trim().toUpperCase();
   const message = String((error as { message?: string } | null)?.message || error || "").toLowerCase();
@@ -81,11 +86,17 @@ export async function isRequestSuperAdmin() {
   return !!session?.isSuperAdmin;
 }
 
+export function isOrganizationScopeStrictReadsEnabled() {
+  return envFlagEnabled(process.env.AUTH_ORG_SCOPE_STRICT_READS || process.env.ORG_SCOPE_STRICT_READS);
+}
+
 export function addOrganizationReadScope<T extends Record<string, unknown>>(where: T, organizationId: string | null) {
   if (!organizationId) return where;
+  const strictReads = isOrganizationScopeStrictReadsEnabled();
+  const visibilityScope = strictReads ? [{ organizationId }] : [{ organizationId }, { organizationId: null }];
   return {
     AND: [
-      { OR: [{ organizationId }, { organizationId: null }] },
+      { OR: visibilityScope },
       where,
     ],
   } as Record<string, unknown>;

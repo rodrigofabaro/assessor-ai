@@ -1,6 +1,6 @@
 # Project Completion Checklist
 
-Last updated: 2026-03-03
+Last updated: 2026-03-09
 
 Roadmap status:
 - Readiness checklist (not canonical roadmap).
@@ -13,7 +13,9 @@ Roadmap status:
 - UI consistency pass: completed for core Admin/QA routes, with ongoing polish as needed.
 - Lint: passing.
 - TypeScript check: passing.
-- Build: still not reliably confirmed in this environment due intermittent `.next/trace` lock/timeouts.
+- Regression pack: passing.
+- Readiness contract: passing.
+- Build: still not reliably confirmed in this environment; current local failures are `prisma generate` hitting `spawn EPERM` and direct `next build` hitting `.next/trace` open `EPERM`.
 - Git push: operational from this machine (resolved on 2026-02-27).
 
 ## Done
@@ -25,7 +27,7 @@ Roadmap status:
 
 ## Remaining
 
-1. Validate production build end-to-end on host machine.
+1. Validate production build end-to-end on a clean Node 20-22 host session.
 2. Run all script-level smoke tests and record outcomes.
 3. Manual QA pass on critical flows:
    - Upload -> extract -> resolve -> grade -> marked PDF.
@@ -68,4 +70,5 @@ pnpm run build
 
 ## Deployment blockers to clear
 
-- Intermittent local `.next/trace` lock during build; clear lock and rerun build on clean terminal/session.
+- Local build is not yet host-confirmed because `pnpm build` currently fails in `prisma generate` with `spawn EPERM`, and direct `next build` still shows a `.next/trace` open `EPERM`.
+- This machine is outside the declared engine range (`v24.14.0` vs `>=20 <23`), so the next verification pass should be done under Node 20-22 on a clean terminal/session.

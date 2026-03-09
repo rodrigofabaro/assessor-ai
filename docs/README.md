@@ -1,6 +1,6 @@
 # Assessor AI Documentation
 
-Last updated: 2026-03-03
+Last updated: 2026-03-09
 
 This folder is the operational source of truth for extraction, mapping, grading, and audit workflows.
 
@@ -62,14 +62,22 @@ node scripts/extraction-readiness.test.js
 node scripts/extraction-integrity.test.js
 node scripts/brief-readiness.test.js
 node scripts/brief-mapping-codes.test.js
+node scripts/brief-template-profile.test.js
 node scripts/brief-lo-extraction.test.js
 node scripts/brief-equation-false-positives.test.js
+node scripts/org-scope-read-contract.test.js
 node scripts/regression-pack.js
 ```
 
 ## Current Baseline
 
-As of 2026-02-20, the full extraction/grading scripted suite passes locally.
+As of 2026-03-09:
+
+- `pnpm exec tsc --noEmit --incremental false` passes locally.
+- `pnpm run test:regression-pack` passes locally, including the brief template-profile and org-scope strict-read regression locks.
+- `node scripts/readiness-contract.js` passes locally and writes evidence under `docs/evidence/readiness/`.
+- `pnpm lint` passes with two non-blocking warnings.
+- `pnpm build` is still not reliably confirmed on this machine because `prisma generate` is currently hitting `spawn EPERM`, and direct `next build` also reproduces a local `.next/trace` open `EPERM`.
 
 Navigation baseline updates:
 

@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-03-06T14:08:42.854Z",
+  "baseUrl": "https://assessor-imorspawc-rodrigos-projects-bf6c576f.vercel.app",
+  "auth": {
+    "attempted": false,
+    "authenticated": false
+  },
+  "steps": {
+    "upload": {
+      "status": 401,
+      "ms": 4164,
+      "error": null,
+      "code": null,
+      "requestId": null,
+      "details": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Upload failed (401)"
+  }
+}

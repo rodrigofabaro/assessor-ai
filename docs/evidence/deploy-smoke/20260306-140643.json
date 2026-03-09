@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-03-06T14:06:32.364Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": false,
+    "authenticated": false
+  },
+  "steps": {},
+  "result": {
+    "ok": false,
+    "message": "fetch failed"
+  }
+}

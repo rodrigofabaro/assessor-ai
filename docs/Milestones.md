@@ -43,6 +43,7 @@ Status labels:
 - Extraction direction (2026-03-05): add fidelity gate with source provenance, evidence-constrained fallback, and lock blocking for unresolved mismatches (see `docs/operations/brief-extraction-hardening-log-2026-03-05.md`).
 - Password recovery delivery progress (2026-03-05): tokenized recovery flow active (`POST /api/auth/password-recovery` + `POST /api/auth/password-recovery/confirm` + `/auth/reset`), provider enabled, and release-gate contract check active.
 - Deployment hardening progress (2026-03-06): `/api/health/readiness` is live, login/recovery abuse rate limits are wired, and brief extraction now persists fidelity report + provenance with lock-time blocker enforcement.
+- Deployment hardening progress (2026-03-06): brief extraction now auto-detects UniCourse templates, applies a layout-aware profile first pass, and keeps a scored generic fallback path with persisted parser/profile metadata (`parserVersion`, `extractionProfile*`).
 - Auth security progress (2026-03-06): auth anomaly alerts now route threshold breaches (login/recovery rate limits) to the operational alert channel with cooldown.
 - Email ops progress (2026-03-06): extraction and grading terminal failures now emit operational alert emails.
 - Email ops progress (2026-03-06): landing-page contact requests now persist in DB (`ContactLead`) and are visible in `/admin/developer` with 24h delivery summary.
@@ -56,6 +57,7 @@ Status labels:
 - Deployment hardening progress (2026-03-06): release gate now includes OpenAI Responses write-scope contract (`pnpm run ops:openai-responses-contract`) aligned with strict flag `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE`.
 - Deployment hardening progress (2026-03-06): Turnitin and automation runtime state moved to DB primary persistence (`AppConfig.turnitinConfig`, `AppConfig.automationPolicy`, `TurnitinSubmissionSyncState`) with compatibility fallback paths.
 - Deployment hardening progress (2026-03-06): favicon updates now persist via storage provider + DB pointer (`AppConfig.faviconStoragePath`, `AppConfig.faviconMimeType`) and runtime icon is served from `/api/favicon` instead of writing `public/favicon.ico`.
+- M10 progress (2026-03-06): org-scoped API read helper now supports strict tenant isolation mode (`AUTH_ORG_SCOPE_STRICT_READS`) and can remove legacy `organizationId=null` fallback rows once compatibility migration is complete.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
@@ -235,32 +237,28 @@ Current update (2026-03-03):
 
 ---
 
-## 🟨 Next implementation queue (2026-03-02)
-1. M7 export-pack endpoint + UI
-- Add one-click export per submission with deterministic bundle composition.
-- Include: grading JSON snapshot, marked PDF, feedback summary artifact, optional CSV line.
-- Persist export run metadata (who, when, source assessment id/version hash).
-
-2. Export reproducibility and replay
-- Add export regeneration route that replays an earlier export id and verifies hash parity.
-- Store immutable export manifest with file checksums.
-
-3. Brief extraction stabilization pack (post-hard-validation)
+## 🟨 Next implementation queue (2026-03-09)
+1. Brief extraction stabilization pack (post-hard-validation)
 - Add fixture coverage for multi-scenario briefs and mixed part-key formats (`1/2/3`, `i/ii`, `b.i`).
 - Add figure token/image linkage verification tests in list + detail rendering.
 - Status (2026-03-06): scenario-mapping warning policy is now cue-based to avoid false positives on tasks that do not request scenario/context.
+- Status (2026-03-06): UniCourse template profile + generic fallback scoring is now regression-locked with multi-scenario and mixed part-key fixture coverage (`scripts/brief-template-profile.test.js`, wired into `scripts/regression-pack.js`).
 
-4. Reference inbox performance phase 2
+2. Production build confirmation
+- Verify `pnpm build` on a clean host session using Node 20-22.
+- Clear current Prisma generate DLL lock condition and confirm whether any remaining failure is app-level or host-level.
+
+3. Reference inbox performance phase 2
 - Add explicit client pagination in `/admin/reference`.
 - Add server-side projection presets by route context (reference list vs brief detail).
 - Status (2026-03-06): phase delivered. `/admin/reference` now uses server pagination controls (page size + prev/next with totals), list refresh requests `extracted=summary`, and selected documents hydrate full extracted JSON on demand via `GET /api/reference-documents/[documentId]`.
 
-5. Submission detail performance pass
+4. Submission detail performance pass
 - Profile heavy panels (`Approval & outputs`, criterion list, run history diffs).
 - Reduce render churn on large criterion sets using memoized row segments + deferred detail panes.
 - Status (2026-03-06): delivered baseline projection split. `/submissions/[submissionId]` now loads summary payload first and lazily hydrates full extraction text/result JSON only when heavy panels are opened.
 
-6. QA reliability instrumentation
+5. QA reliability instrumentation
 - Add lightweight latency telemetry on preview, commit, and regrade actions.
 - Add dashboard cards for p50/p95 timings and retry/failure rates by route.
 - Status (2026-03-06): delivered in super-admin developer console via `GET /api/admin/ops/qa-reliability`, with batch-run telemetry emitted from `/api/submissions/batch-grade` (`qaReliability` payload).
@@ -345,6 +343,7 @@ Current update (2026-03-03):
 - Add org-switch flow for users with memberships in multiple organizations.
 - Add organization-scoped settings foundation (including API key secret storage contract).
 - Status (2026-03-04): started. Roadmap and implementation kickoff approved by operator.
+- Status (2026-03-06): strict org-scoped read toggle delivered (`AUTH_ORG_SCOPE_STRICT_READS`) with regression contract coverage (`scripts/org-scope-read-contract.test.js`).
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.

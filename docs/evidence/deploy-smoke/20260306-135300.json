@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-03-06T13:52:50.397Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "auth": {
+    "attempted": false,
+    "authenticated": false
+  },
+  "steps": {
+    "upload": {
+      "status": 200,
+      "ms": 6453
+    },
+    "extract": {
+      "status": 200,
+      "ms": 2646,
+      "ok": true
+    },
+    "student": {
+      "id": "cmmeyfjqi0002rx47ozsixm0d",
+      "source": "created"
+    },
+    "linkStudent": {
+      "status": 500,
+      "ms": 472,
+      "error": null,
+      "code": null,
+      "requestId": null,
+      "details": null
+    }
+  },
+  "result": {
+    "ok": false,
+    "message": "Link student failed (500)"
+  },
+  "submissionId": "63af2629-abb7-408d-90dd-3784b8cad6d6"
+}
