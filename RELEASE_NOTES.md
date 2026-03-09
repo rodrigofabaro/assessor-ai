@@ -480,3 +480,8 @@ Release Branch: `main`
 ### Rollback
 
 If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs/footer bump/perf rollout), then redeploy and run smoke checks on `/submissions`, `/submissions/[submissionId]`, `/admin/qa`, and `/admin/settings`.
+## 2026-03-09
+
+- M10 org-scope compatibility hardening: membership-aware resolution now preserves a valid switched active organization instead of snapping back to the default membership.
+- M10 strict-session enforcement: when `AUTH_ORG_SCOPE_STRICT_READS=true`, request session hydration now revalidates the session `orgId` against current memberships before tenant-scoped reads run.
+- Added regression coverage for active-organization session handling in `scripts/org-scope-session-contract.test.js` and wired it into the regression pack.

@@ -3,6 +3,32 @@ import { ensureDefaultOrganization } from "@/lib/organizations/defaults";
 
 type MembershipRole = "ORG_ADMIN" | "ASSESSOR" | "IV" | "VIEWER";
 
+export function resolvePreferredOrganizationId(input: {
+  preferredOrgId?: string | null;
+  legacyOrgId?: string | null;
+  memberships?: Array<{ organizationId?: string | null; isDefault?: boolean | null }>;
+  fallbackOrgId?: string | null;
+}) {
+  const preferredOrgId = String(input.preferredOrgId || "").trim() || null;
+  const legacyOrgId = String(input.legacyOrgId || "").trim() || null;
+  const fallbackOrgId = String(input.fallbackOrgId || "").trim() || null;
+  const memberships = Array.isArray(input.memberships) ? input.memberships : [];
+  const normalizedMemberships = memberships
+    .map((row) => ({
+      organizationId: String(row?.organizationId || "").trim() || null,
+      isDefault: !!row?.isDefault,
+    }))
+    .filter((row) => !!row.organizationId);
+
+  if (preferredOrgId) {
+    if (normalizedMemberships.some((row) => row.organizationId === preferredOrgId)) return preferredOrgId;
+    if (legacyOrgId === preferredOrgId) return preferredOrgId;
+  }
+
+  const defaultMembership = normalizedMemberships.find((row) => row.isDefault) || normalizedMemberships[0] || null;
+  return String(defaultMembership?.organizationId || legacyOrgId || fallbackOrgId || "").trim() || null;
+}
+
 function toMembershipRoleFromAppRole(role: unknown): MembershipRole {
   const normalized = String(role || "").trim().toUpperCase();
   if (normalized === "ADMIN") return "ORG_ADMIN";
@@ -92,9 +118,12 @@ export async function ensureUserOrganizationScope(input: {
   }
 
   const memberships = "memberships" in user ? (Array.isArray(user.memberships) ? user.memberships : []) : [];
-  const defaultMembership = memberships.find((row) => !!row.isDefault) || memberships[0] || null;
-  const resolvedOrgId =
-    String(defaultMembership?.organizationId || user.organizationId || preferredOrgId || defaultOrg?.id || "").trim() || null;
+  const resolvedOrgId = resolvePreferredOrganizationId({
+    preferredOrgId,
+    legacyOrgId: user.organizationId,
+    memberships,
+    fallbackOrgId: defaultOrg?.id || null,
+  });
 
   if (!resolvedOrgId) return { orgId: null as string | null, linked: false };
 

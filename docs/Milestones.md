@@ -58,6 +58,7 @@ Status labels:
 - Deployment hardening progress (2026-03-06): Turnitin and automation runtime state moved to DB primary persistence (`AppConfig.turnitinConfig`, `AppConfig.automationPolicy`, `TurnitinSubmissionSyncState`) with compatibility fallback paths.
 - Deployment hardening progress (2026-03-06): favicon updates now persist via storage provider + DB pointer (`AppConfig.faviconStoragePath`, `AppConfig.faviconMimeType`) and runtime icon is served from `/api/favicon` instead of writing `public/favicon.ico`.
 - M10 progress (2026-03-06): org-scoped API read helper now supports strict tenant isolation mode (`AUTH_ORG_SCOPE_STRICT_READS`) and can remove legacy `organizationId=null` fallback rows once compatibility migration is complete.
+- M10 progress (2026-03-09): membership-aware scope resolution now preserves a valid switched organization, and strict-read mode revalidates session `orgId` values against current memberships before tenant-scoped reads proceed.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
@@ -344,6 +345,7 @@ Current update (2026-03-03):
 - Add organization-scoped settings foundation (including API key secret storage contract).
 - Status (2026-03-04): started. Roadmap and implementation kickoff approved by operator.
 - Status (2026-03-06): strict org-scoped read toggle delivered (`AUTH_ORG_SCOPE_STRICT_READS`) with regression contract coverage (`scripts/org-scope-read-contract.test.js`).
+- Status (2026-03-09): active-organization session enforcement tightened so valid switched orgs are preserved and stale org cookies are corrected under strict-read mode (`scripts/org-scope-session-contract.test.js`).
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.

@@ -18,6 +18,7 @@ const tests = [
   "scripts/export-pack-validation.test.js",
   "scripts/auth-scaffold-contract.test.js",
   "scripts/org-scope-read-contract.test.js",
+  "scripts/org-scope-session-contract.test.js",
   "scripts/password-recovery-contract.test.js",
   "scripts/storage-deployment-contract.test.js",
   "scripts/schema-contract.test.js",

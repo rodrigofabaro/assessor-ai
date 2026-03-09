@@ -35,6 +35,7 @@
     "test:export-pack-validation": "node scripts/export-pack-validation.test.js",
     "test:auth-scaffold-contract": "node scripts/auth-scaffold-contract.test.js",
     "test:org-scope-read-contract": "node scripts/org-scope-read-contract.test.js",
+    "test:org-scope-session-contract": "node scripts/org-scope-session-contract.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",
     "ops:deploy-smoke": "node scripts/deploy-smoke-evidence.js",
     "ops:auth-guard-smoke": "node scripts/auth-guard-smoke.js",

@@ -47,14 +47,16 @@ export async function getRequestSession() {
   if (!orgScopeAvailable) {
     return { ...session, orgId: null };
   }
-  if (String(session.orgId || "").trim()) return session;
   if (String(session.userId || "").startsWith("env:")) return session;
 
   try {
-    let preferredOrgId: string | null = null;
+    const requestedOrgId = String(session.orgId || "").trim() || null;
+    if (requestedOrgId && !isOrganizationScopeStrictReadsEnabled()) return session;
+
+    let preferredOrgId: string | null = requestedOrgId;
     if (session.isSuperAdmin) {
       const superAdminOrg = await ensureSuperAdminOrganization().catch(() => null);
-      preferredOrgId = String(superAdminOrg?.id || "").trim() || null;
+      preferredOrgId = String(superAdminOrg?.id || "").trim() || requestedOrgId;
     }
     const ensured = await ensureUserOrganizationScope({
       userId: session.userId,

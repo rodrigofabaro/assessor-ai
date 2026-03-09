@@ -51,6 +51,8 @@ Use this doc when the instruction is: "continue the roadmap".
    - readiness endpoint now includes schema drift check (`schema`) and supports strict enforcement with `AUTH_REQUIRE_SCHEMA_CONTRACT=true`
    - QA reliability telemetry is now emitted by batch grading runs (`qaReliability`) and surfaced in `SUPER_ADMIN` developer dashboard cards/tables via `GET /api/admin/ops/qa-reliability`
    - org-scope strict-read enforcement toggle is now available (`AUTH_ORG_SCOPE_STRICT_READS`) so tenant APIs can enforce active-organization-only reads once compatibility migration is complete
+7. Progress update (2026-03-09):
+   - membership-aware org resolution now preserves a valid switched active organization and, when strict reads are enabled, request-session hydration revalidates the session org against current memberships before tenant-scoped reads run
 
 ## Execution lanes
 
@@ -256,6 +258,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - add org settings + secret storage foundations (API keys/integrations per organization)
 - keep backward compatibility during migration from single `organizationId` user model
 - Progress (2026-03-06): org-scope read helper now supports strict enforcement mode (`AUTH_ORG_SCOPE_STRICT_READS=true`) that removes legacy global-row fallback and enforces active-org-only tenant reads; regression lock added in `scripts/org-scope-read-contract.test.js`.
+- Progress (2026-03-09): membership-aware org resolution now keeps a valid switched org instead of snapping back to the default membership, and strict-read mode revalidates stale session org ids through `getRequestSession`; regression lock added in `scripts/org-scope-session-contract.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures

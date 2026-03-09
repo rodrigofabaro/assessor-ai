@@ -59,6 +59,7 @@ Primary login mode:
   - default: `false`
   - when `false`, org-scoped reads allow compatibility fallback rows where `organizationId` is null
   - when `true`, org-scoped reads enforce active-organization-only visibility (`organizationId=<activeOrgId>`) for tenant APIs using `addOrganizationReadScope`
+  - when `true`, request-session hydration also revalidates the signed session `orgId` against current memberships so stale switched-org cookies cannot keep an invalid tenant scope
   - migration intent: keep `false` during mixed legacy/membership rollout, then set `true` when tenant data is fully scoped
 
 - `AUTH_SESSION_SECRET`
