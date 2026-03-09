@@ -12,6 +12,24 @@ function cleanCode(input: string): string {
   return input.trim().replace(/\s+/g, "").toUpperCase();
 }
 
+function pickOrganizationId(...values: unknown[]) {
+  for (const value of values) {
+    const normalized = String(value || "").trim();
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
+function addTenantWriteScope<T extends Record<string, unknown>>(where: T, organizationId: string | null) {
+  if (!organizationId) return where;
+  return {
+    AND: [
+      { OR: [{ organizationId }, { organizationId: null }] },
+      where,
+    ],
+  } as Record<string, unknown>;
+}
+
 function deriveBriefGateText(brief: BriefDraft) {
   const raw = String((brief as any)?.rawText || "").trim();
   if (raw) return raw;
@@ -85,7 +103,7 @@ export async function POST(req: Request) {
     const docWhere = addOrganizationReadScope({ id: documentId }, fallbackOrgId);
     const doc = await prisma.referenceDocument.findFirst({ where: docWhere as any });
     if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
-    const organizationId = String((doc as any)?.organizationId || fallbackOrgId || "").trim() || null;
+    const organizationId = pickOrganizationId((doc as any)?.organizationId, fallbackOrgId);
 
     const draft: ExtractDraft | null = (draftOverride || (doc.extractedJson as any)) as any;
     if (!draft) {
@@ -120,12 +138,14 @@ export async function POST(req: Request) {
         orderBy: { createdAt: "desc" },
       });
 
+      const resolvedOrganizationId = pickOrganizationId(organizationId, (unit as any)?.organizationId);
+
       if (!unit) {
         unit = await prisma.unit.create({
           data: {
             unitCode,
             unitTitle,
-            organizationId,
+            organizationId: resolvedOrganizationId,
             status: "LOCKED" as any,
             specDocumentId: doc.type === "SPEC" ? doc.id : null,
             specIssue: (spec.unit as any)?.specIssue || (doc.sourceMeta as any)?.specIssue || null,
@@ -138,6 +158,7 @@ export async function POST(req: Request) {
         unit = await prisma.unit.update({
           where: { id: unit.id },
           data: {
+            ...(!((unit as any)?.organizationId) && resolvedOrganizationId ? { organizationId: resolvedOrganizationId } : {}),
             unitTitle,
             status: "LOCKED" as any,
             specDocumentId: doc.type === "SPEC" ? doc.id : unit.specDocumentId,
@@ -208,6 +229,7 @@ export async function POST(req: Request) {
       const updatedDoc = await prisma.referenceDocument.update({
         where: { id: doc.id },
         data: {
+          ...(!((doc as any)?.organizationId) && resolvedOrganizationId ? { organizationId: resolvedOrganizationId } : {}),
           status: "LOCKED" as any,
           lockedAt: now,
           lockedBy: lockedBy || null,
@@ -338,8 +360,19 @@ export async function POST(req: Request) {
       const existing = await prisma.assignmentBrief.findFirst({
         where: { unitId: unit.id, assignmentCode },
         orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
-        select: { id: true, status: true, briefDocumentId: true, title: true, version: true },
+        select: { id: true, status: true, briefDocumentId: true, title: true, version: true, organizationId: true },
       });
+      const resolvedOrganizationId = pickOrganizationId(
+        organizationId,
+        (unit as any)?.organizationId,
+        existing?.organizationId,
+      );
+      if (!(unit as any)?.organizationId && resolvedOrganizationId) {
+        unit = await prisma.unit.update({
+          where: { id: unit.id },
+          data: { organizationId: resolvedOrganizationId },
+        });
+      }
 
       if (
         existing &&
@@ -376,13 +409,16 @@ export async function POST(req: Request) {
         supersededBriefId = existing!.id;
         await prisma.assignmentBrief.update({
           where: { id: existing!.id },
-          data: { supersededAt: now },
+          data: {
+            supersededAt: now,
+            ...(!existing?.organizationId && resolvedOrganizationId ? { organizationId: resolvedOrganizationId } : {}),
+          },
         });
 
         briefRec = await prisma.assignmentBrief.create({
           data: {
             unitId: unit.id,
-            organizationId,
+            organizationId: resolvedOrganizationId,
             assignmentCode,
             title,
             version: nextVersion,
@@ -424,6 +460,7 @@ export async function POST(req: Request) {
         briefRec = await prisma.assignmentBrief.update({
           where: { id: existing.id },
           data: {
+            ...(!existing.organizationId && resolvedOrganizationId ? { organizationId: resolvedOrganizationId } : {}),
             title,
             status: "LOCKED" as any,
             assignmentNumber: (brief as any).assignmentNumber ?? null,
@@ -440,7 +477,7 @@ export async function POST(req: Request) {
         briefRec = await prisma.assignmentBrief.create({
           data: {
             unitId: unit.id,
-            organizationId,
+            organizationId: resolvedOrganizationId,
             assignmentCode,
             title,
             version: 1,
@@ -484,8 +521,9 @@ export async function POST(req: Request) {
 
       // Keep grading on current active brief by re-pointing assignment bindings.
       const assignmentUpdate = await prisma.assignment.updateMany({
-        where: addOrganizationReadScope({ unitCode: unit.unitCode, assignmentRef: assignmentCode }, organizationId) as any,
+        where: addTenantWriteScope({ unitCode: unit.unitCode, assignmentRef: assignmentCode }, resolvedOrganizationId) as any,
         data: {
+          ...(resolvedOrganizationId ? { organizationId: resolvedOrganizationId } : {}),
           title,
           isPlaceholder: false,
           assignmentBriefId: briefRec.id,
@@ -501,7 +539,7 @@ export async function POST(req: Request) {
             assignmentRef: assignmentCode,
             title,
             isPlaceholder: false,
-            organizationId,
+            organizationId: resolvedOrganizationId,
             assignmentBriefId: briefRec.id,
             bindingStatus: "BOUND",
             bindingLockedAt: now,
@@ -513,6 +551,7 @@ export async function POST(req: Request) {
       const updatedDoc = await prisma.referenceDocument.update({
         where: { id: doc.id },
         data: {
+          ...(!((doc as any)?.organizationId) && resolvedOrganizationId ? { organizationId: resolvedOrganizationId } : {}),
           status: "LOCKED" as any,
           lockedAt: now,
           lockedBy: lockedBy || null,

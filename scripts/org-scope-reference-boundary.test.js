@@ -225,10 +225,119 @@ async function testLockRouteScopesLookups() {
   assert(scopeCalls.length >= 2, "expected lock route to scope both document and unit lookups");
 }
 
+async function testLockRouteBackfillsLegacyOrganizationIds() {
+  let updatedUnitOrgId = null;
+  let updatedBriefOrgId = null;
+  let updatedAssignmentOrgId = null;
+  let updatedDocOrgId = null;
+
+  const { POST } = loadTsModule("app/api/reference-documents/lock/route.ts", {
+    "next/server": createNextServerMock(),
+    "@/lib/admin/permissions": {
+      isAdminMutationAllowed: async () => ({ ok: true }),
+    },
+    "@/lib/auth/requestSession": {
+      getRequestOrganizationId: async () => "org_active",
+      addOrganizationReadScope: (where, organizationId) => ({ scoped: true, where, organizationId }),
+    },
+    "@/lib/prisma": {
+      prisma: {
+        referenceDocument: {
+          findFirst: async () => ({
+            id: "doc_1",
+            type: "BRIEF",
+            title: "Legacy brief",
+            organizationId: null,
+            sourceMeta: {},
+            extractedJson: {
+              kind: "BRIEF",
+              assignmentCode: "A2",
+              title: "Vapour Power Cycles",
+              unitCodeGuess: "64",
+            },
+          }),
+          update: async (args) => {
+            updatedDocOrgId = args.data.organizationId || null;
+            return { id: "doc_1" };
+          },
+        },
+        unit: {
+          findFirst: async () => ({
+            id: "unit_1",
+            unitCode: "64",
+            unitTitle: "Thermofluids",
+            organizationId: null,
+          }),
+          update: async (args) => {
+            updatedUnitOrgId = args.data.organizationId || null;
+            return {
+              id: "unit_1",
+              unitCode: "64",
+              unitTitle: "Thermofluids",
+              organizationId: args.data.organizationId || null,
+              lockedAt: null,
+              lockedBy: null,
+            };
+          },
+        },
+        assessmentCriterion: {
+          findMany: async () => [],
+        },
+        assignmentBrief: {
+          findFirst: async () => ({
+            id: "brief_1",
+            status: "DRAFT",
+            briefDocumentId: null,
+            title: "Old brief",
+            version: 1,
+            organizationId: null,
+          }),
+          update: async (args) => {
+            updatedBriefOrgId = args.data.organizationId || null;
+            return { id: "brief_1", version: 1 };
+          },
+        },
+        assignmentCriterionMap: {
+          deleteMany: async () => ({ count: 0 }),
+        },
+        assignment: {
+          updateMany: async (args) => {
+            const whereJson = JSON.stringify(args.where);
+            assert(whereJson.includes('"organizationId":"org_active"'), "expected assignment update scope to include active org");
+            assert(whereJson.includes('"organizationId":null'), "expected assignment update scope to include legacy null-org rows");
+            updatedAssignmentOrgId = args.data.organizationId || null;
+            return { count: 1 };
+          },
+        },
+      },
+    },
+    "@/lib/briefs/lockQualityGate": { evaluateBriefLockQuality: () => ({ ok: true, blockers: [], warnings: [], metrics: {} }) },
+    "@/lib/briefs/mappingCodes": { selectBriefMappingCodes: () => ({ selectedCodes: [], baseCodes: [] }) },
+    "@/lib/ops/eventLog": { appendOpsEvent: () => null },
+  });
+
+  const req = new Request("http://localhost/api/reference-documents/lock", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      documentId: "doc_1",
+      reviewConfirmed: true,
+      draft: { kind: "BRIEF", assignmentCode: "A2", title: "Vapour Power Cycles", unitCodeGuess: "64" },
+    }),
+  });
+  const res = await POST(req);
+  assert(res.status === 200, "expected lock route to repair legacy null-org records");
+  assert(updatedUnitOrgId === "org_active", "expected unit update to stamp active organization");
+  assert(updatedBriefOrgId === "org_active", "expected assignment brief update to stamp active organization");
+  assert(updatedAssignmentOrgId === "org_active", "expected assignment binding update to stamp active organization");
+  assert(updatedDocOrgId === "org_active", "expected reference document update to stamp active organization");
+}
+
 async function main() {
   await testCommitRouteScopesDocumentLookup();
   await testCommitRouteScopesOverrideUnitLookup();
   await testLockRouteScopesLookups();
+  await testLockRouteBackfillsLegacyOrganizationIds();
   console.log("organization scope reference boundary tests passed.");
 }
 
