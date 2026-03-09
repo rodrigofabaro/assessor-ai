@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 type BindingStatus = "DRAFT" | "LOCKED";
 
@@ -13,7 +14,9 @@ function normalizeActor(raw: unknown) {
 }
 
 export async function GET() {
+  const organizationId = await getRequestOrganizationId();
   const assignments = await prisma.assignment.findMany({
+    where: addOrganizationReadScope({}, organizationId) as any,
     orderBy: [{ unitCode: "asc" }, { assignmentRef: "asc" }, { title: "asc" }],
     include: {
       assignmentBrief: {
@@ -37,6 +40,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const organizationId = await getRequestOrganizationId();
     const body = await req.json().catch(() => ({}));
     const assignmentId = String(body?.assignmentId || "").trim();
     const assignmentBriefIdRaw = body?.assignmentBriefId;
@@ -48,8 +52,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "assignmentId is required." }, { status: 400 });
     }
 
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: assignmentId },
+    const assignment = await prisma.assignment.findFirst({
+      where: addOrganizationReadScope({ id: assignmentId }, organizationId) as any,
       select: { id: true, unitCode: true, bindingStatus: true },
     });
     if (!assignment) {
@@ -87,8 +91,8 @@ export async function POST(req: Request) {
       });
     }
 
-    const brief = await prisma.assignmentBrief.findUnique({
-      where: { id: assignmentBriefId },
+    const brief = await prisma.assignmentBrief.findFirst({
+      where: addOrganizationReadScope({ id: assignmentBriefId }, organizationId) as any,
       include: {
         unit: true,
       },
@@ -152,4 +156,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e?.message || "Failed to save binding." }, { status: 500 });
   }
 }
-

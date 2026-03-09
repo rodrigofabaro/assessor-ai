@@ -66,6 +66,7 @@ Status labels:
 - M10 progress (2026-03-09): submission file/extract/triage and reference chart-recover routes now enforce active-org visibility before file reads, extraction work, triage links, and recovery operations.
 - M10 progress (2026-03-09): submission grade/marked-file and reference-document delete now enforce active-org visibility before grading, output-file access, and destructive document actions.
 - M10 progress (2026-03-09): tenant-owned IV draft/generation/backfill routes now enforce active-org visibility before loading submission, reference-spec, brief, and evidence attachment documents.
+- M10 progress (2026-03-09): assignment bindings and admin IV generate reference-spec selection now enforce active-org visibility for tenant-owned assignment, brief, and spec ids.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
@@ -360,6 +361,7 @@ Current update (2026-03-03):
 - Status (2026-03-09): submission/reference ops tenant boundary coverage added for file/extract/triage/chart-recover flows (`scripts/org-scope-submission-reference-ops-boundary.test.js`).
 - Status (2026-03-09): grading/output/delete tenant boundary coverage added for submission grade/marked-file and reference delete flows.
 - Status (2026-03-09): IV-route tenant boundary coverage added for generate-from-submission, review-draft spec lookup, and brief evidence backfill (`scripts/org-scope-iv-boundary.test.js`).
+- Status (2026-03-09): assignment/admin-IV tenant boundary coverage added for bindings and admin IV generate spec lookup (`scripts/org-scope-assignment-iv-admin-boundary.test.js`).
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.

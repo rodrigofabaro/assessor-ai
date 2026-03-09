@@ -8,6 +8,7 @@ import { writeIvAdBuffer, writeIvAdUpload } from "@/lib/iv-ad/storage";
 import { runIvAdAiReview } from "@/lib/iv-ad/aiReview";
 import { ivAdReviewDraftSchema, type IvAdReviewDraft } from "@/lib/iv-ad/reviewDraft";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import fs from "fs/promises";
 import path from "path";
 
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
 
   try {
     const formData = await req.formData();
+    const organizationId = await getRequestOrganizationId();
     const fields = parseFields(formData);
     const missing = Object.entries(fields)
       .filter(([, v]) => !String(v || "").trim())
@@ -163,8 +165,8 @@ export async function POST(req: Request) {
     }
     let selectedSpecDoc: { id: string; storagePath: string; type: string } | null = null;
     if (referenceSpecId) {
-      selectedSpecDoc = await prisma.referenceDocument.findUnique({
-        where: { id: referenceSpecId },
+      selectedSpecDoc = await prisma.referenceDocument.findFirst({
+        where: addOrganizationReadScope({ id: referenceSpecId }, organizationId) as any,
         select: { id: true, storagePath: true, type: true },
       });
       if (!selectedSpecDoc || selectedSpecDoc.type !== "SPEC") {
