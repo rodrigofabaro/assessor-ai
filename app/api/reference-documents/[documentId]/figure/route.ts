@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import { resolveStorageAbsolutePath, toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 
@@ -334,9 +335,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ document
   if (!documentId || !token) {
     return NextResponse.json({ error: "MISSING_DOCUMENT_OR_TOKEN" }, { status: 400 });
   }
+  const organizationId = await getRequestOrganizationId();
 
-  const doc = await prisma.referenceDocument.findUnique({
-    where: { id: documentId },
+  const doc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id: documentId }, organizationId) as any,
     select: { id: true, storagePath: true, storedFilename: true, extractedJson: true },
   });
   if (!doc) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

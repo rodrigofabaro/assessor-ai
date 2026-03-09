@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 
 export async function POST(req: Request, ctx: { params: Promise<{ submissionId: string }> }) {
@@ -7,8 +8,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ submissionId: 
   const body = await req.json().catch(() => ({}));
 
   const actor = await getCurrentAuditActor(body?.actor);
+  const organizationId = await getRequestOrganizationId();
 
-  const sub = await prisma.submission.findUnique({ where: { id: submissionId }, select: { studentId: true } });
+  const sub = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
+    select: { id: true, studentId: true },
+  });
   if (!sub) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
 
   await prisma.submission.update({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { unitId } = await params;
   const id = safeStr(unitId);
   if (!id) return NextResponse.json({ error: "Missing unitId" }, { status: 400 });
+  const organizationId = await getRequestOrganizationId();
+  const visibleUnit = await prisma.unit.findFirst({
+    where: addOrganizationReadScope({ id }, organizationId) as any,
+    select: { id: true },
+  });
+  if (!visibleUnit) return NextResponse.json({ error: "Unit not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({} as any));
   const data: any = {};
@@ -31,7 +38,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   try {
     const updated = await prisma.unit.update({
-      where: { id },
+      where: { id: visibleUnit.id },
       data,
     });
 
@@ -49,11 +56,12 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { unitId } = await params;
   const id = safeStr(unitId);
   if (!id) return NextResponse.json({ error: "Missing unitId" }, { status: 400 });
+  const organizationId = await getRequestOrganizationId();
 
   try {
     // Pull relations that can block deletes
-    const unit = await prisma.unit.findUnique({
-      where: { id },
+    const unit = await prisma.unit.findFirst({
+      where: addOrganizationReadScope({ id }, organizationId) as any,
       select: {
         id: true,
         status: true,

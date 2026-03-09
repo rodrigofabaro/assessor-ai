@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import * as XLSX from "xlsx";
 
 function clean(v: any): string | null {
@@ -67,6 +68,7 @@ function mergeCourses(existing: string | null, incoming: string | null): string 
 }
 
 export async function POST(req: Request) {
+  const organizationId = await getRequestOrganizationId();
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -100,14 +102,25 @@ export async function POST(req: Request) {
 
     let student = null as any;
 
-    if (externalRef) student = await prisma.student.findFirst({ where: { externalRef } });
-    if (!student && email) student = await prisma.student.findFirst({ where: { email } });
+    if (externalRef) {
+      student = await prisma.student.findFirst({
+        where: addOrganizationReadScope({ externalRef }, organizationId) as any,
+      });
+    }
+    if (!student && email) {
+      student = await prisma.student.findFirst({
+        where: addOrganizationReadScope({ email }, organizationId) as any,
+      });
+    }
 
     if (student) {
       // prevent email collision
       let safeEmail = email;
       if (email && student.email !== email) {
-        const owner = await prisma.student.findFirst({ where: { email }, select: { id: true } });
+        const owner = await prisma.student.findFirst({
+          where: addOrganizationReadScope({ email }, organizationId) as any,
+          select: { id: true },
+        });
         if (owner && owner.id !== student.id) {
           safeEmail = null;
           conflicts++;
@@ -137,14 +150,20 @@ export async function POST(req: Request) {
     } else {
       // prevent create collisions
       if (email) {
-        const owner = await prisma.student.findFirst({ where: { email }, select: { id: true } });
+        const owner = await prisma.student.findFirst({
+          where: addOrganizationReadScope({ email }, organizationId) as any,
+          select: { id: true },
+        });
         if (owner) {
           conflicts++;
           continue;
         }
       }
       if (externalRef) {
-        const owner = await prisma.student.findFirst({ where: { externalRef }, select: { id: true } });
+        const owner = await prisma.student.findFirst({
+          where: addOrganizationReadScope({ externalRef }, organizationId) as any,
+          select: { id: true },
+        });
         if (owner) {
           conflicts++;
           continue;
@@ -153,7 +172,7 @@ export async function POST(req: Request) {
 
       try {
         await prisma.student.create({
-          data: { fullName, email, externalRef, courseName, registrationDate },
+          data: { fullName, email, externalRef, courseName, registrationDate, ...(organizationId ? { organizationId } : {}) },
         });
         created++;
       } catch (e: any) {

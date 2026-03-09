@@ -53,6 +53,10 @@ Use this doc when the instruction is: "continue the roadmap".
    - org-scope strict-read enforcement toggle is now available (`AUTH_ORG_SCOPE_STRICT_READS`) so tenant APIs can enforce active-organization-only reads once compatibility migration is complete
 7. Progress update (2026-03-09):
    - membership-aware org resolution now preserves a valid switched active organization and, when strict reads are enabled, request-session hydration revalidates the session org against current memberships before tenant-scoped reads run
+   - reference import and lock routes now scope document-by-id and override-unit-by-id lookups through the active organization helper, preventing cross-org resource access by raw id during reference commit/lock flows
+   - tenant-owned detail/mutation routes now scope raw id access for submission detail/linking, unit mutation, and brief debug extraction through active-org visibility checks before reads or writes run
+   - student detail/update/delete and student spreadsheet import now enforce active-org visibility, and imported student rows inherit the active organization id at creation time
+   - reference-document per-id routes (`meta`, `file`, `usage`, `archive`, `unlock`, `extract`, `figure`) now enforce active-org visibility before document reads, updates, file access, or extraction runs
 
 ## Execution lanes
 
@@ -259,6 +263,10 @@ Use this doc when the instruction is: "continue the roadmap".
 - keep backward compatibility during migration from single `organizationId` user model
 - Progress (2026-03-06): org-scope read helper now supports strict enforcement mode (`AUTH_ORG_SCOPE_STRICT_READS=true`) that removes legacy global-row fallback and enforces active-org-only tenant reads; regression lock added in `scripts/org-scope-read-contract.test.js`.
 - Progress (2026-03-09): membership-aware org resolution now keeps a valid switched org instead of snapping back to the default membership, and strict-read mode revalidates stale session org ids through `getRequestSession`; regression lock added in `scripts/org-scope-session-contract.test.js`.
+- Progress (2026-03-09): reference commit/lock paths now enforce active-org visibility for `ReferenceDocument` and override `Unit` id lookups, and assignment rebinding in brief lock is tenant-scoped; regression lock added in `scripts/org-scope-reference-boundary.test.js`.
+- Progress (2026-03-09): submission detail/link routes, unit mutation routes, and reference debug-extract now require active-org visibility for id-based access; regression lock added in `scripts/org-scope-tenant-route-boundary.test.js`.
+- Progress (2026-03-09): student detail/update/delete and student import now enforce active-org visibility and tenant-stamped creates; regression lock added in `scripts/org-scope-student-boundary.test.js`.
+- Progress (2026-03-09): reference-document per-id routes now enforce active-org visibility on raw document ids; regression lock added in `scripts/org-scope-reference-route-boundary.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,9 +12,10 @@ export async function POST(_req: Request, { params }: Ctx) {
   if (!documentId) {
     return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
   }
+  const organizationId = await getRequestOrganizationId();
 
-  const doc = await prisma.referenceDocument.findUnique({
-    where: { id: documentId },
+  const doc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id: documentId }, organizationId) as any,
     select: { id: true, sourceMeta: true },
   });
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { sanitizeBriefDraftArtifacts } from "@/lib/extraction/brief/draftIntegrity";
 import {
   applyGradingScopeChangeMeta,
@@ -40,20 +41,26 @@ function sanitizeArtifacts(value: any): any {
 
 export async function GET(_req: Request, { params }: { params: { documentId: string } }) {
   const id = params.documentId;
-  const doc = await prisma.referenceDocument.findUnique({ where: { id } });
+  const organizationId = await getRequestOrganizationId();
+  const doc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id }, organizationId) as any,
+  });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ id: doc.id, sourceMeta: doc.sourceMeta ?? {} });
 }
 
 export async function PATCH(req: Request, { params }: { params: { documentId: string } }) {
   const id = params.documentId;
+  const organizationId = await getRequestOrganizationId();
   const body = await req.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const existing = await prisma.referenceDocument.findUnique({ where: { id } });
+  const existing = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id }, organizationId) as any,
+  });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const prev = asObject(existing.sourceMeta);

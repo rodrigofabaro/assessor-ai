@@ -59,6 +59,10 @@ Status labels:
 - Deployment hardening progress (2026-03-06): favicon updates now persist via storage provider + DB pointer (`AppConfig.faviconStoragePath`, `AppConfig.faviconMimeType`) and runtime icon is served from `/api/favicon` instead of writing `public/favicon.ico`.
 - M10 progress (2026-03-06): org-scoped API read helper now supports strict tenant isolation mode (`AUTH_ORG_SCOPE_STRICT_READS`) and can remove legacy `organizationId=null` fallback rows once compatibility migration is complete.
 - M10 progress (2026-03-09): membership-aware scope resolution now preserves a valid switched organization, and strict-read mode revalidates session `orgId` values against current memberships before tenant-scoped reads proceed.
+- M10 progress (2026-03-09): reference commit/lock flows now scope document and override-unit id lookups by active organization, and brief-lock assignment rebinding is tenant-scoped to avoid cross-org id collisions.
+- M10 progress (2026-03-09): submission detail/linking, unit mutation, and reference debug-extract routes now enforce active-org visibility on raw id access before tenant-owned reads or writes execute.
+- M10 progress (2026-03-09): student detail/update/delete and spreadsheet import now enforce active-org visibility, and imported students are created with the active organization scope.
+- M10 progress (2026-03-09): reference-document per-id routes now enforce active-org visibility before metadata edits, file access, extraction, unlock/archive actions, and figure rendering.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
@@ -346,6 +350,10 @@ Current update (2026-03-03):
 - Status (2026-03-04): started. Roadmap and implementation kickoff approved by operator.
 - Status (2026-03-06): strict org-scoped read toggle delivered (`AUTH_ORG_SCOPE_STRICT_READS`) with regression contract coverage (`scripts/org-scope-read-contract.test.js`).
 - Status (2026-03-09): active-organization session enforcement tightened so valid switched orgs are preserved and stale org cookies are corrected under strict-read mode (`scripts/org-scope-session-contract.test.js`).
+- Status (2026-03-09): cross-org reference boundary coverage added for commit/lock routes (`scripts/org-scope-reference-boundary.test.js`).
+- Status (2026-03-09): cross-org tenant-route boundary coverage added for submission/unit/debug routes (`scripts/org-scope-tenant-route-boundary.test.js`).
+- Status (2026-03-09): student-route tenant boundary coverage added for detail/update/import flows (`scripts/org-scope-student-boundary.test.js`).
+- Status (2026-03-09): reference-document route tenant boundary coverage added for per-id actions (`scripts/org-scope-reference-route-boundary.test.js`).
 
 **Exit criteria for continuation queue**
 - M7 is closed with reproducibility proof.

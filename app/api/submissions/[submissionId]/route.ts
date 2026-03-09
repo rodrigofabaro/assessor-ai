@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { isCoverMetadataReady } from "@/lib/submissions/coverMetadata";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
@@ -16,9 +17,10 @@ export async function GET(
   const projection: SubmissionProjection = projectionRaw === "summary" ? "summary" : "full";
   const includeAssessmentPayload = projection === "full";
   const includeExtractionText = projection === "full";
+  const organizationId = await getRequestOrganizationId();
 
-  const submission = await prisma.submission.findUnique({
-    where: { id: submissionId },
+  const submission = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
     select: {
       id: true,
       filename: true,
@@ -108,6 +110,15 @@ export async function PATCH(
   try {
     const { submissionId } = await ctx.params;
     const body = await req.json().catch(() => ({}));
+    const organizationId = await getRequestOrganizationId();
+    const visibleSubmission = await prisma.submission.findFirst({
+      where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
+      select: { id: true, organizationId: true },
+    });
+    if (!visibleSubmission) {
+      return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+    }
+    const scopedOrgId = String(visibleSubmission.organizationId || organizationId || "").trim() || null;
 
     const coverMetadata = body?.coverMetadata;
     if (coverMetadata && typeof coverMetadata === "object") {
@@ -186,8 +197,8 @@ export async function PATCH(
       const assignmentId = typeof assignmentIdRaw === "string" ? assignmentIdRaw.trim() : "";
 
       if (assignmentId) {
-        const assignment = await prisma.assignment.findUnique({
-          where: { id: assignmentId },
+        const assignment = await prisma.assignment.findFirst({
+          where: addOrganizationReadScope({ id: assignmentId }, scopedOrgId) as any,
           select: { id: true },
         });
         if (!assignment) {
@@ -229,7 +240,10 @@ export async function PATCH(
     }
 
     // Ensure student exists (clean 400 instead of silent foreign-key style crash)
-    const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true } });
+    const student = await prisma.student.findFirst({
+      where: addOrganizationReadScope({ id: studentId }, scopedOrgId) as any,
+      select: { id: true },
+    });
     if (!student) {
       return NextResponse.json({ error: "Student not found." }, { status: 404 });
     }

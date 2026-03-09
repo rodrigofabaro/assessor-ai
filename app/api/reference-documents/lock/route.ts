@@ -4,6 +4,7 @@ import { evaluateBriefLockQuality } from "@/lib/briefs/lockQualityGate";
 import { selectBriefMappingCodes } from "@/lib/briefs/mappingCodes";
 import { appendOpsEvent } from "@/lib/ops/eventLog";
 import { isAdminMutationAllowed } from "@/lib/admin/permissions";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 import type { ExtractDraft, SpecDraft, BriefDraft, GradeBand } from "@/lib/referenceParser";
 
@@ -80,8 +81,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
     }
 
-    const doc = await prisma.referenceDocument.findUnique({ where: { id: documentId } });
+    const fallbackOrgId = await getRequestOrganizationId();
+    const docWhere = addOrganizationReadScope({ id: documentId }, fallbackOrgId);
+    const doc = await prisma.referenceDocument.findFirst({ where: docWhere as any });
     if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    const organizationId = String((doc as any)?.organizationId || fallbackOrgId || "").trim() || null;
 
     const draft: ExtractDraft | null = (draftOverride || (doc.extractedJson as any)) as any;
     if (!draft) {
@@ -112,7 +116,7 @@ export async function POST(req: Request) {
 
       // Find existing unit by code; if multiple exist, pick newest
       let unit = await prisma.unit.findFirst({
-        where: { unitCode },
+        where: addOrganizationReadScope({ unitCode }, organizationId) as any,
         orderBy: { createdAt: "desc" },
       });
 
@@ -121,6 +125,7 @@ export async function POST(req: Request) {
           data: {
             unitCode,
             unitTitle,
+            organizationId,
             status: "LOCKED" as any,
             specDocumentId: doc.type === "SPEC" ? doc.id : null,
             specIssue: (spec.unit as any)?.specIssue || (doc.sourceMeta as any)?.specIssue || null,
@@ -237,10 +242,14 @@ export async function POST(req: Request) {
 
       // Determine unit
       let unit = null;
-      if (overrideUnitId) unit = await prisma.unit.findUnique({ where: { id: overrideUnitId } });
+      if (overrideUnitId) {
+        unit = await prisma.unit.findFirst({
+          where: addOrganizationReadScope({ id: overrideUnitId }, organizationId) as any,
+        });
+      }
       if (!unit && brief.unitCodeGuess) {
         unit = await prisma.unit.findFirst({
-          where: { unitCode: brief.unitCodeGuess },
+          where: addOrganizationReadScope({ unitCode: brief.unitCodeGuess }, organizationId) as any,
           orderBy: { createdAt: "desc" },
         });
       }
@@ -373,6 +382,7 @@ export async function POST(req: Request) {
         briefRec = await prisma.assignmentBrief.create({
           data: {
             unitId: unit.id,
+            organizationId,
             assignmentCode,
             title,
             version: nextVersion,
@@ -430,6 +440,7 @@ export async function POST(req: Request) {
         briefRec = await prisma.assignmentBrief.create({
           data: {
             unitId: unit.id,
+            organizationId,
             assignmentCode,
             title,
             version: 1,
@@ -473,7 +484,7 @@ export async function POST(req: Request) {
 
       // Keep grading on current active brief by re-pointing assignment bindings.
       const assignmentUpdate = await prisma.assignment.updateMany({
-        where: { unitCode: unit.unitCode, assignmentRef: assignmentCode },
+        where: addOrganizationReadScope({ unitCode: unit.unitCode, assignmentRef: assignmentCode }, organizationId) as any,
         data: {
           title,
           isPlaceholder: false,
@@ -490,6 +501,7 @@ export async function POST(req: Request) {
             assignmentRef: assignmentCode,
             title,
             isPlaceholder: false,
+            organizationId,
             assignmentBriefId: briefRec.id,
             bindingStatus: "BOUND",
             bindingLockedAt: now,

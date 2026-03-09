@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { resolveStoredFile } from "@/lib/extraction/storage/resolveStoredFile";
 import fs from "fs";
 
@@ -25,9 +26,10 @@ export async function GET(
   const params = await ctx.params;
   const documentId = safeStr(params?.documentId);
   if (!documentId) return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
+  const organizationId = await getRequestOrganizationId();
 
-  const doc = await prisma.referenceDocument.findUnique({
-    where: { id: documentId },
+  const doc = await prisma.referenceDocument.findFirst({
+    where: addOrganizationReadScope({ id: documentId }, organizationId) as any,
     select: {
       id: true,
       originalFilename: true,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { evaluateBriefLockQuality } from "@/lib/briefs/lockQualityGate";
 import { selectBriefMappingCodes } from "@/lib/briefs/mappingCodes";
-import { getRequestOrganizationId } from "@/lib/auth/requestSession";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 import type { ExtractDraft, SpecDraft, BriefDraft, GradeBand } from "@/lib/referenceParser";
 
@@ -58,9 +58,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing documentId or draft" }, { status: 400 });
     }
 
-    const doc = await prisma.referenceDocument.findUnique({ where: { id: documentId } });
-    if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
     const fallbackOrgId = await getRequestOrganizationId();
+    const docWhere = addOrganizationReadScope({ id: documentId }, fallbackOrgId);
+    const doc = await prisma.referenceDocument.findFirst({ where: docWhere as any });
+    if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
     const organizationId = String((doc as any)?.organizationId || fallbackOrgId || "").trim() || null;
 
     if (draft.kind === "SPEC") {
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
 
       // Find existing unit by code; if multiple exist, we pick the newest.
       let unit = await prisma.unit.findFirst({
-        where: organizationId ? { unitCode, OR: [{ organizationId }, { organizationId: null }] } : { unitCode },
+        where: addOrganizationReadScope({ unitCode }, organizationId) as any,
         orderBy: { createdAt: "desc" },
       });
 
@@ -166,13 +167,13 @@ export async function POST(req: Request) {
       // Determine unit
       let unit = null;
       if (overrideUnitId) {
-        unit = await prisma.unit.findUnique({ where: { id: overrideUnitId } });
+        unit = await prisma.unit.findFirst({
+          where: addOrganizationReadScope({ id: overrideUnitId }, organizationId) as any,
+        });
       }
       if (!unit && brief.unitCodeGuess) {
         unit = await prisma.unit.findFirst({
-          where: organizationId
-            ? { unitCode: brief.unitCodeGuess, OR: [{ organizationId }, { organizationId: null }] }
-            : { unitCode: brief.unitCodeGuess },
+          where: addOrganizationReadScope({ unitCode: brief.unitCodeGuess }, organizationId) as any,
           orderBy: { createdAt: "desc" },
         });
       }

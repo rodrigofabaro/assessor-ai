@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { pdfToText } from "@/lib/extraction/text/pdfToText";
 import { debugBriefExtraction } from "@/lib/extractors/brief";
 import { resolveStorageAbsolutePathAsync } from "@/lib/storage/provider";
@@ -13,7 +14,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
     }
 
-    const doc = await prisma.referenceDocument.findUnique({ where: { id: documentId } });
+    const organizationId = await getRequestOrganizationId();
+    const doc = await prisma.referenceDocument.findFirst({
+      where: addOrganizationReadScope({ id: documentId }, organizationId) as any,
+    });
     if (!doc) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }

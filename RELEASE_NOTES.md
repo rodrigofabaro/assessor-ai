@@ -485,3 +485,11 @@ If rollback is required, return `main` to commit `de368c3` (pre-1.0 release docs
 - M10 org-scope compatibility hardening: membership-aware resolution now preserves a valid switched active organization instead of snapping back to the default membership.
 - M10 strict-session enforcement: when `AUTH_ORG_SCOPE_STRICT_READS=true`, request session hydration now revalidates the session `orgId` against current memberships before tenant-scoped reads run.
 - Added regression coverage for active-organization session handling in `scripts/org-scope-session-contract.test.js` and wired it into the regression pack.
+- M10 cross-org boundary hardening: reference commit/lock routes now scope `ReferenceDocument` and override `Unit` id lookups by active organization, and brief-lock assignment rebinding is tenant-scoped.
+- Added route-level tenant boundary coverage in `scripts/org-scope-reference-boundary.test.js`.
+- M10 tenant-route boundary hardening: submission detail/linking, unit mutation, and reference debug-extract routes now scope raw resource ids through active-organization visibility checks.
+- Added route-level coverage in `scripts/org-scope-tenant-route-boundary.test.js`.
+- M10 student boundary hardening: student detail/update/delete and spreadsheet import now enforce active-org visibility, and student imports stamp new records with the active organization id.
+- Added route-level coverage in `scripts/org-scope-student-boundary.test.js`.
+- M10 reference-route boundary hardening: reference-document `meta`, `file`, `usage`, `archive`, `unlock`, `extract`, and `figure` routes now scope raw document ids through active-organization visibility checks.
+- Added route-level coverage in `scripts/org-scope-reference-route-boundary.test.js`.

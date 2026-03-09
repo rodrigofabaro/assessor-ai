@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { triggerAutoGradeIfAutoReady } from "@/lib/submissions/autoGrade";
 
@@ -9,11 +10,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ submissionId: 
 
   const studentId = String(body?.studentId || "");
   const actor = await getCurrentAuditActor(body?.actor);
+  const organizationId = await getRequestOrganizationId();
 
   if (!studentId) return NextResponse.json({ error: "studentId is required" }, { status: 400 });
 
-  const sub = await prisma.submission.findUnique({ where: { id: submissionId }, select: { studentId: true } });
+  const sub = await prisma.submission.findFirst({
+    where: addOrganizationReadScope({ id: submissionId }, organizationId) as any,
+    select: { id: true, studentId: true, organizationId: true },
+  });
   if (!sub) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+
+  const student = await prisma.student.findFirst({
+    where: addOrganizationReadScope({ id: studentId }, String(sub.organizationId || organizationId || "").trim() || null) as any,
+    select: { id: true },
+  });
+  if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
   await prisma.submission.update({
     where: { id: submissionId },

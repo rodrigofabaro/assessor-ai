@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
 
 // GET /api/students/[id]
 // Returns student + a small summary used by the profile page.
@@ -9,15 +10,17 @@ export async function GET(
 ) {
   try {
     const { id } = await ctx.params;
+    const organizationId = await getRequestOrganizationId();
 
-    const student = await prisma.student.findUnique({
-      where: { id },
+    const student = await prisma.student.findFirst({
+      where: addOrganizationReadScope({ id }, organizationId) as any,
       select: {
         id: true,
         fullName: true,
         email: true,
         externalRef: true,
         courseName: true,
+        organizationId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -27,10 +30,11 @@ export async function GET(
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    const scopedOrgId = String(student.organizationId || organizationId || "").trim() || null;
     const [totalSubmissions, last] = await Promise.all([
-      prisma.submission.count({ where: { studentId: id } }),
+      prisma.submission.count({ where: addOrganizationReadScope({ studentId: id }, scopedOrgId) as any }),
       prisma.submission.findFirst({
-        where: { studentId: id },
+        where: addOrganizationReadScope({ studentId: id }, scopedOrgId) as any,
         orderBy: [{ uploadedAt: "desc" }, { id: "desc" }],
         select: {
           uploadedAt: true,
@@ -42,7 +46,7 @@ export async function GET(
     // status breakdown
     const byStatusRows = await prisma.submission.groupBy({
       by: ["status"],
-      where: { studentId: id },
+      where: addOrganizationReadScope({ studentId: id }, scopedOrgId) as any,
       _count: { _all: true },
     });
 
@@ -69,9 +73,18 @@ export async function DELETE(
 ) {
   try {
     const { id } = await ctx.params;
+    const organizationId = await getRequestOrganizationId();
+    const student = await prisma.student.findFirst({
+      where: addOrganizationReadScope({ id }, organizationId) as any,
+      select: { id: true, organizationId: true },
+    });
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+    const scopedOrgId = String(student.organizationId || organizationId || "").trim() || null;
 
     // Block deletion if linked submissions exist (audit safety)
-    const cnt = await prisma.submission.count({ where: { studentId: id } });
+    const cnt = await prisma.submission.count({ where: addOrganizationReadScope({ studentId: id }, scopedOrgId) as any });
     if (cnt > 0) {
       return NextResponse.json(
         { error: "Cannot delete student: submissions exist for this student." },
@@ -79,7 +92,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.student.delete({ where: { id } });
+    await prisma.student.delete({ where: { id: student.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json(
@@ -95,6 +108,14 @@ export async function PATCH(
 ) {
   try {
     const { id } = await ctx.params;
+    const organizationId = await getRequestOrganizationId();
+    const existing = await prisma.student.findFirst({
+      where: addOrganizationReadScope({ id }, organizationId) as any,
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
     const body = await req.json().catch(() => ({}));
 
     const fullName =
@@ -118,7 +139,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.student.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         fullName,
         ...(email !== undefined ? { email } : {}),
