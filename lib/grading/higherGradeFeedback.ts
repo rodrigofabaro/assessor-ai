@@ -22,6 +22,10 @@ function canonicalText(value: string) {
     .trim();
 }
 
+function trimDanglingReasonTail(value: string) {
+  return normalizeText(value).replace(/\b(?:but|and|with|which|that)\s*$/i, "").trim();
+}
+
 function formatCriterionCodes(codes: string[], max = 12) {
   const uniq = Array.from(
     new Set(
@@ -68,6 +72,25 @@ export function stripHigherGradeDuplicateBullets(input: {
   return out;
 }
 
+export function normalizeHigherGradeReason(value: unknown, code?: string | null, maxLen = 320) {
+  let text = normalizeText(value);
+  if (!text) return "";
+  const normalizedCode = String(code || "").trim().toUpperCase();
+  if (normalizedCode) {
+    text = text.replace(new RegExp(`^${normalizedCode}:?\\s*`, "i"), "");
+  }
+  text = text.replace(/\.{3,}/g, " ");
+  text = trimDanglingReasonTail(text);
+  if (!text) return "";
+  if (text.length > maxLen) {
+    const clipped = text.slice(0, Math.max(120, maxLen));
+    const stop = Math.max(clipped.lastIndexOf(". "), clipped.lastIndexOf("! "), clipped.lastIndexOf("? "));
+    text = stop > Math.floor(maxLen * 0.55) ? clipped.slice(0, stop + 1).trim() : clipped.replace(/\s+\S*$/, "").trim();
+    text = trimDanglingReasonTail(text);
+  }
+  return ensureSentence(text);
+}
+
 export function buildNaturalHigherGradeGuidance(input: {
   currentGrade: string;
   targetBand: "PASS" | "MERIT" | "DISTINCTION";
@@ -106,9 +129,12 @@ export function buildNaturalHigherGradeGuidance(input: {
   const reasonText = reasons.length
     ? missingCodes.length === 1
       ? `At the moment, the gap is that ${lowerFirst(
-          reasons[0].replace(new RegExp(`^${String(missingCodes[0] || "").trim().toUpperCase()}:?\\s*`, "i"), "")
+          normalizeHigherGradeReason(reasons[0], String(missingCodes[0] || "")).replace(/[.!?]+$/g, "")
         )}.`
-      : `The main remaining gaps are: ${reasons.map((reason) => ensureSentence(reason)).join(" ")}`
+      : `The main remaining gaps are: ${reasons
+          .map((reason, index) => normalizeHigherGradeReason(reason, String(missingCodes[index] || "")))
+          .filter(Boolean)
+          .join(" ")}`
     : "";
 
   const capText =

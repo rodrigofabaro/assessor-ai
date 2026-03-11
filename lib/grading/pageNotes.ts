@@ -231,6 +231,15 @@ function evidenceContext(row: CriterionCheckLike) {
   return sanitizeStudentNoteText(source);
 }
 
+function evidenceContextForPage(row: CriterionCheckLike, page: number) {
+  const evidence = Array.isArray(row?.evidence) ? row.evidence : [];
+  const source = evidence
+    .filter((e) => Number(e?.page || 0) === Number(page || 0))
+    .map((e) => `${String(e?.quote || "")} ${String(e?.visualDescription || "")}`)
+    .join(" ");
+  return sanitizeStudentNoteText(source) || evidenceContext(row);
+}
+
 function summarizeReason(v: string) {
   const src = sanitizeStudentNoteText(v)
     .replace(/\b(the\s+)?criterion\b/gi, "requirement")
@@ -298,6 +307,22 @@ function hasThermofluidsEvaluationGapSignals(corpus: string) {
     /\b(superheat|regenerat|feedwater heater|moisture|practical|trade[- ]off|compare|comparison|evaluation|critical analysis|efficiency)\b/i.test(
       corpus || ""
     );
+}
+
+function thermofluidsFocusLabel(corpus: string) {
+  const text = String(corpus || "").toLowerCase();
+  const mentionsSuperheating = /\bsuperheat(?:ed|ing)?\b/i.test(text);
+  const mentionsRegeneration = /\bregenerat|feedwater heater\b/i.test(text);
+  if (mentionsSuperheating && mentionsRegeneration) return "superheating and regeneration";
+  if (mentionsSuperheating) return "superheating";
+  if (mentionsRegeneration) return "regeneration";
+  return "the cycle modification";
+}
+
+function thermofluidsPageFocus(entry: PageCriterionEntry) {
+  const pageFocus = thermofluidsFocusLabel(entry.context || "");
+  if (pageFocus !== "the cycle modification") return pageFocus;
+  return thermofluidsFocusLabel(`${entry.context} ${entry.rationale}`);
 }
 
 function extractObservedEvidenceLine(entry: PageCriterionEntry) {
@@ -446,6 +471,13 @@ function gapLine(entry: PageCriterionEntry) {
   }
 
   if (code === "D2" && entry.decision !== "ACHIEVED" && hasThermofluidsEvaluationGapSignals(corpus)) {
+    const focus = thermofluidsPageFocus(entry);
+    if (focus === "superheating") {
+      return "To evidence D2, explain how superheating changes efficiency, turbine-exit moisture, and practical plant operation, then compare those effects with regeneration.";
+    }
+    if (focus === "regeneration") {
+      return "To evidence D2, explain how regeneration changes efficiency, feedwater heating, and practical plant operation, then compare those effects with superheating.";
+    }
     return "To evidence D2, move beyond description and compare how superheating and regeneration affect efficiency, moisture at turbine exit, and practical plant operation.";
   }
 
@@ -541,6 +573,21 @@ function actionLines(entry: PageCriterionEntry): string[] {
     ];
   }
   if (code === "D2" && hasThermofluidsEvaluationGapSignals(corpus)) {
+    const focus = thermofluidsPageFocus(entry);
+    if (focus === "superheating") {
+      return [
+        "Evaluate superheating directly rather than only describing what it does in the cycle.",
+        "Explain how superheating changes efficiency, turbine-exit moisture, and plant practicality, then compare that with regeneration.",
+        "If you add a table or sketch, use it to support the judgement rather than replace the analysis.",
+      ];
+    }
+    if (focus === "regeneration") {
+      return [
+        "Evaluate regeneration directly rather than only describing the feedwater-heater arrangement.",
+        "Explain how regeneration changes efficiency, feedwater temperature, and plant practicality, then compare that with superheating.",
+        "If you add a table or sketch, use it to support the judgement rather than replace the analysis.",
+      ];
+    }
     return [
       "Compare superheating and regeneration directly rather than describing each one separately.",
       "Explain how each modification changes efficiency, moisture content at turbine exit, and practical plant operation.",
@@ -929,10 +976,10 @@ function collectPageEntries(rows: CriterionCheckLike[], minPage: number) {
     const code = normalizeCode(row?.code);
     const decision = normalizeDecisionLabel(row?.decision, row?.met);
     const rationale = sanitizeStudentNoteText(String(row?.rationale || row?.comment || ""));
-    const context = evidenceContext(row);
     for (const ev of evidenceRows) {
       const page = Number(ev?.page || 0);
       if (!Number.isInteger(page) || page < minPage) continue;
+      const context = evidenceContextForPage(row, page);
       if (!byPage.has(page)) byPage.set(page, new Map<string, PageCriterionEntry>());
       const pageMap = byPage.get(page)!;
       const existing = pageMap.get(code);

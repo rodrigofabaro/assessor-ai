@@ -17,7 +17,7 @@ import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
 import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
 import { enforceFeedbackAnnotationPolicy } from "@/lib/grading/feedbackAnnotationPolicy";
-import { buildNaturalHigherGradeGuidance } from "@/lib/grading/higherGradeFeedback";
+import { buildNaturalHigherGradeGuidance, normalizeHigherGradeReason } from "@/lib/grading/higherGradeFeedback";
 
 export const runtime = "nodejs";
 
@@ -223,7 +223,7 @@ function buildCriterionOutcomeSummary(
       continue;
     }
     outstanding.push(code);
-    const why = normalizeText(row?.rationale);
+    const why = normalizeHigherGradeReason(row?.rationale, code, 320);
     if (why) reasons.push(`${code}: ${why}`);
   }
 

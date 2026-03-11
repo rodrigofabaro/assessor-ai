@@ -312,6 +312,14 @@ function run() {
     !/\bFinish this section with one short sentence\b/i.test(thermofluidsText),
     "achieved thermofluids notes should not fall back to generic criterion-link filler"
   );
+  const page4Thermo = thermofluidsNotes.find((noteBlock) => noteBlock.page === 4);
+  const page5Thermo = thermofluidsNotes.find((noteBlock) => noteBlock.page === 5);
+  const page4ThermoText = (page4Thermo?.lines || []).join(" ");
+  const page5ThermoText = (page5Thermo?.lines || []).join(" ");
+  assert(page4ThermoText && page5ThermoText, "thermofluids D2 notes should render on both evidence pages");
+  assert(page4ThermoText !== page5ThermoText, "thermofluids D2 notes should not repeat the same text on adjacent pages");
+  assert(/\bsuperheating\b/i.test(page4ThermoText), "page 4 thermofluids note should stay grounded in the superheating evidence");
+  assert(/\bregeneration\b/i.test(page5ThermoText), "page 5 thermofluids note should stay grounded in the regeneration evidence");
 
   // Cross-submission guard (not only Unit 4): generic D1 wording may mention renewable systems,
   // but for non-energy contexts it should be replaced with a safe note.

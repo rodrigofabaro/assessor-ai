@@ -33,6 +33,7 @@
     "test:brief-fidelity-report": "node scripts/brief-fidelity-report.test.js",
     "test:brief-review-diagnostics": "node scripts/brief-review-diagnostics-contract.test.js",
     "test:page-notes": "node scripts/page-notes.test.js",
+    "test:qa-page-contract": "node scripts/qa-page-contract.test.js",
     "test:spec-learning-outcome-parser": "node scripts/spec-learning-outcome-parser.test.js",
     "test:spec-fallback-quality-contract": "node scripts/spec-fallback-quality-contract.test.js",
     "test:spec-suite-import-transport-contract": "node scripts/spec-suite-import-transport-contract.test.js",

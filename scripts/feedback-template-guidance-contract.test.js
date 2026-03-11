@@ -58,7 +58,7 @@ function assert(condition, message) {
 
 function run() {
   const { renderFeedbackTemplate, extractFeedbackSummaryFromRenderedText } = loadTsModule("lib/grading/feedbackDocument.ts");
-  const { buildNaturalHigherGradeGuidance } = loadTsModule("lib/grading/higherGradeFeedback.ts");
+  const { buildNaturalHigherGradeGuidance, normalizeHigherGradeReason } = loadTsModule("lib/grading/higherGradeFeedback.ts");
 
   const guidance = buildNaturalHigherGradeGuidance({
     currentGrade: "MERIT",
@@ -108,6 +108,18 @@ function run() {
     "expected higher-grade gap bullet to be removed when guidance placeholder is present"
   );
   assert(/Next steps[\s\S]*To move from MERIT to DISTINCTION/i.test(rendered), "expected smooth guidance text in next steps");
+  const normalizedReason = normalizeHigherGradeReason(
+    "D2: The submission includes some discussion of modifications to the Rankine cycle such as superheating and regeneration, but the evaluation lacks depth and critical analysis...",
+    "D2"
+  );
+  assert(
+    !/\.\.\./.test(normalizedReason),
+    "expected higher-grade guidance reasons to strip ellipsis fragments"
+  );
+  assert(
+    /evaluation lacks depth and critical analysis\./i.test(normalizedReason),
+    "expected higher-grade guidance reasons to retain the full cleaned sentence"
+  );
 
   const extractedSummary = extractFeedbackSummaryFromRenderedText([
     "Hello Megan,",

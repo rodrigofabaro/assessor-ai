@@ -22,7 +22,11 @@ import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
 import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
 import { enforceFeedbackAnnotationPolicy } from "@/lib/grading/feedbackAnnotationPolicy";
-import { buildNaturalHigherGradeGuidance, isHigherGradeProgressionText } from "@/lib/grading/higherGradeFeedback";
+import {
+  buildNaturalHigherGradeGuidance,
+  isHigherGradeProgressionText,
+  normalizeHigherGradeReason,
+} from "@/lib/grading/higherGradeFeedback";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -1745,7 +1749,7 @@ function buildHigherGradeGapBullets(input: {
     if (!code || rationaleByCode.has(code)) continue;
     const decision = String(row?.decision || "").trim().toUpperCase();
     if (decision === "ACHIEVED") continue;
-    const reason = firstSentence(row?.rationale || "");
+    const reason = normalizeHigherGradeReason(row?.rationale || "", code, 320);
     if (reason) rationaleByCode.set(code, reason);
   }
   const missingReasonLine = (codes: string[]) =>
@@ -1818,7 +1822,7 @@ function buildHigherGradeGuidanceText(input: {
     const code = String(row?.code || "").trim().toUpperCase();
     if (!code || rationaleByCode.has(code)) continue;
     if (String(row?.decision || "").trim().toUpperCase() === "ACHIEVED") continue;
-    const reason = firstSentence(row?.rationale || "");
+    const reason = normalizeHigherGradeReason(row?.rationale || "", code, 320);
     if (reason) rationaleByCode.set(code, reason);
   }
   const reasonsFor = (codes: string[]) =>

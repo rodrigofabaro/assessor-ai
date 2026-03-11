@@ -25,6 +25,8 @@ const BUTTON_ROW_TEAL_CLASS = `${BUTTON_ROW_BASE_CLASS} border-teal-300 bg-teal-
 const BUTTON_ROW_VIOLET_CLASS = `${BUTTON_ROW_BASE_CLASS} border-violet-300 bg-violet-50 text-violet-900 hover:bg-violet-100`;
 const BUTTON_PAGE_CLASS =
   "inline-flex h-8 items-center rounded-lg border border-zinc-300 bg-white px-2.5 text-xs font-semibold text-zinc-800 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400";
+const PANEL_CLASS = "rounded-2xl border border-zinc-200 bg-white shadow-sm";
+const SUBTLE_PANEL_CLASS = "rounded-2xl border border-zinc-200 bg-zinc-50/80 shadow-sm";
 
 type SubmissionResearchRow = {
   id: string;
@@ -133,8 +135,41 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
+function buildQaSearchParams(input: {
+  q: string;
+  course: string;
+  unit: string;
+  assignment: string;
+  grade: string;
+  status: string;
+  paginate: boolean;
+  page?: number;
+  pageSize?: number;
+}) {
+  const params = new URLSearchParams();
+  params.set("view", "qa");
+  params.set("qa", "1");
+  params.set("includeFeedback", "0");
+  params.set("timeframe", "all");
+  params.set("sortBy", "uploadedAt");
+  params.set("sortDir", "desc");
+  if (input.paginate) {
+    params.set("paginate", "1");
+    params.set("page", String(input.page || 1));
+    params.set("pageSize", String(input.pageSize || 60));
+  }
+  if (input.q) params.set("q", input.q);
+  if (input.course !== "ALL") params.set("course", input.course);
+  if (input.unit !== "ALL") params.set("unitCode", input.unit);
+  if (input.assignment !== "ALL") params.set("assignmentRef", input.assignment);
+  if (input.grade !== "ALL") params.set("grade", input.grade);
+  if (input.status !== "ALL") params.set("status", input.status);
+  return params;
+}
+
 export default function AdminQaPage() {
   const [rows, setRows] = useState<SubmissionResearchRow[]>([]);
+  const [datasetRows, setDatasetRows] = useState<SubmissionResearchRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -159,32 +194,45 @@ export default function AdminQaPage() {
     setBusy(true);
     setError("");
     try {
-      const params = new URLSearchParams();
-      params.set("view", "qa");
-      params.set("qa", "1");
-      params.set("includeFeedback", "0");
-      params.set("paginate", "1");
-      params.set("page", String(page));
-      params.set("pageSize", String(pageSize));
-      params.set("timeframe", "all");
-      params.set("sortBy", "uploadedAt");
-      params.set("sortDir", "desc");
-      if (debouncedQ) params.set("q", debouncedQ);
-      if (course !== "ALL") params.set("course", course);
-      if (unit !== "ALL") params.set("unitCode", unit);
-      if (assignment !== "ALL") params.set("assignmentRef", assignment);
-      if (grade !== "ALL") params.set("grade", grade);
-      if (status !== "ALL") params.set("status", status);
-
-      const res = await fetch(`/api/submissions?${params.toString()}`, { cache: "no-store" });
-      const json = (await res.json()) as PaginatedResponse<SubmissionResearchRow> & { error?: string };
-      if (!res.ok) throw new Error((json as any)?.error || `Submissions fetch failed (${res.status})`);
-      const nextRows = Array.isArray(json?.items) ? json.items : [];
+      const sharedParams = {
+        q: debouncedQ,
+        course,
+        unit,
+        assignment,
+        grade,
+        status,
+      };
+      const [pageRes, datasetRes] = await Promise.all([
+        fetch(
+          `/api/submissions?${buildQaSearchParams({
+            ...sharedParams,
+            paginate: true,
+            page,
+            pageSize,
+          }).toString()}`,
+          { cache: "no-store" }
+        ),
+        fetch(
+          `/api/submissions?${buildQaSearchParams({
+            ...sharedParams,
+            paginate: false,
+          }).toString()}`,
+          { cache: "no-store" }
+        ),
+      ]);
+      const pageJson = (await pageRes.json()) as PaginatedResponse<SubmissionResearchRow> & { error?: string };
+      const datasetJson = (await datasetRes.json()) as SubmissionResearchRow[] & { error?: string };
+      if (!pageRes.ok) throw new Error((pageJson as any)?.error || `Submissions fetch failed (${pageRes.status})`);
+      if (!datasetRes.ok) throw new Error((datasetJson as any)?.error || `QA summary fetch failed (${datasetRes.status})`);
+      const nextRows = Array.isArray(pageJson?.items) ? pageJson.items : [];
+      const nextDatasetRows = Array.isArray(datasetJson) ? datasetJson : [];
       setRows(nextRows);
-      setTotalItems(Math.max(0, Number(json?.pageInfo?.totalItems || 0)));
-      setTotalPages(Math.max(1, Number(json?.pageInfo?.totalPages || 1)));
+      setDatasetRows(nextDatasetRows);
+      setTotalItems(Math.max(0, Number(pageJson?.pageInfo?.totalItems || nextDatasetRows.length || 0)));
+      setTotalPages(Math.max(1, Number(pageJson?.pageInfo?.totalPages || 1)));
     } catch (e: any) {
       setRows([]);
+      setDatasetRows([]);
       setTotalItems(0);
       setTotalPages(1);
       setError(e?.message || "Failed to load QA dataset.");
@@ -277,8 +325,8 @@ export default function AdminQaPage() {
   }
 
   async function sendPageToTurnitin() {
-    if (!filtered.length) return;
-    const pending = filtered
+    if (!pageRows.length) return;
+    const pending = pageRows
       .filter((r) => {
         const hasSubmissionId = !!String(r.turnitin?.turnitinSubmissionId || "").trim();
         if (!hasSubmissionId) return true;
@@ -309,16 +357,6 @@ export default function AdminQaPage() {
   async function generateIvAdFromSubmission(row: SubmissionResearchRow) {
     const sid = String(row?.id || "").trim();
     if (!sid) return;
-    const existingUrl = String(row?.ivAd?.downloadUrl || "").trim();
-    if (row?.ivAd?.exists && existingUrl) {
-      setIvMsg(`Using existing IV-AD for ${sid}.`);
-      if (typeof window !== "undefined") {
-        const a = document.createElement("a");
-        a.href = existingUrl;
-        a.click();
-      }
-      return;
-    }
     setIvMsg("");
     setIvBusyById((prev) => ({ ...prev, [sid]: true }));
     try {
@@ -350,14 +388,15 @@ export default function AdminQaPage() {
     }
   }
 
-  const filtered = rows;
+  const pageRows = rows;
+  const filteredRows = datasetRows;
 
   const optionList = useMemo(() => {
     const courses = new Set<string>();
     const units = new Set<string>();
     const assignments = new Set<string>();
     const statuses = new Set<string>();
-    for (const r of rows) {
+    for (const r of filteredRows) {
       if (r.student?.courseName) courses.add(r.student.courseName);
       if (r.assignment?.unitCode) units.add(r.assignment.unitCode);
       if (r.assignment?.assignmentRef) assignments.add(r.assignment.assignmentRef);
@@ -369,7 +408,7 @@ export default function AdminQaPage() {
       assignments: ["ALL", ...Array.from(assignments).sort((a, b) => a.localeCompare(b))],
       statuses: ["ALL", ...Array.from(statuses).sort((a, b) => a.localeCompare(b))],
     };
-  }, [rows]);
+  }, [filteredRows]);
   
   useEffect(() => {
     if (compareUnit !== "ALL" && !optionList.units.includes(compareUnit)) {
@@ -378,7 +417,7 @@ export default function AdminQaPage() {
   }, [compareUnit, optionList.units]);
   
   const metrics = useMemo(() => {
-    const graded = filtered.filter((r) => !!asGradeBand(r.grade));
+    const graded = filteredRows.filter((r) => !!asGradeBand(r.grade));
     const points = graded.reduce((acc, r) => acc + gradePoints(asGradeBand(r.grade)), 0);
     const byGrade: Record<string, number> = {
       REFER: 0,
@@ -388,21 +427,26 @@ export default function AdminQaPage() {
       DISTINCTION: 0,
       UNGRADED: 0,
     };
-    for (const r of filtered) byGrade[asGradeBand(r.grade) || "UNGRADED"] += 1;
+    for (const r of filteredRows) byGrade[asGradeBand(r.grade) || "UNGRADED"] += 1;
+    const needsReview = filteredRows.filter((r) => Boolean(r.qaFlags?.shouldReview)).length;
+    const turnitinReady = filteredRows.filter((r) => String(r.turnitin?.status || "").trim().toUpperCase() === "COMPLETE").length;
     return {
-      total: filtered.length,
+      total: filteredRows.length,
+      currentPageTotal: pageRows.length,
       graded: graded.length,
       avgScore: graded.length ? points / graded.length : 0,
-      students: new Set(filtered.map((r) => r.student?.id).filter(Boolean)).size,
-      units: new Set(filtered.map((r) => r.assignment?.unitCode).filter(Boolean)).size,
-      courses: new Set(filtered.map((r) => r.student?.courseName).filter(Boolean)).size,
+      students: new Set(filteredRows.map((r) => r.student?.id).filter(Boolean)).size,
+      units: new Set(filteredRows.map((r) => r.assignment?.unitCode).filter(Boolean)).size,
+      courses: new Set(filteredRows.map((r) => r.student?.courseName).filter(Boolean)).size,
+      needsReview,
+      turnitinReady,
       byGrade,
     };
-  }, [filtered]);
+  }, [filteredRows, pageRows]);
   
   const byCourse = useMemo(() => {
     const map = new Map<string, { total: number; graded: number; points: number }>();
-    for (const r of filtered) {
+    for (const r of filteredRows) {
       const key = String(r.student?.courseName || "Unassigned");
       const row = map.get(key) || { total: 0, graded: 0, points: 0 };
       row.total += 1;
@@ -416,10 +460,10 @@ export default function AdminQaPage() {
     return Array.from(map.entries())
       .map(([courseName, row]) => ({ courseName, ...row, avg: row.graded ? row.points / row.graded : 0 }))
       .sort((a, b) => b.total - a.total || a.courseName.localeCompare(b.courseName));
-  }, [filtered]);
+  }, [filteredRows]);
   
   const compareRows = useMemo(() => {
-    const source = compareUnit === "ALL" ? filtered : filtered.filter((r) => r.assignment?.unitCode === compareUnit);
+    const source = compareUnit === "ALL" ? filteredRows : filteredRows.filter((r) => r.assignment?.unitCode === compareUnit);
     const map = new Map<string, { total: number; grades: Record<string, number> }>();
     for (const r of source) {
       const key = String(r.assignment?.assignmentRef || "Unknown");
@@ -435,7 +479,7 @@ export default function AdminQaPage() {
     return Array.from(map.entries())
       .map(([assignmentRef, row]) => ({ assignmentRef, ...row }))
       .sort((a, b) => a.assignmentRef.localeCompare(b.assignmentRef));
-  }, [filtered, compareUnit]);
+  }, [filteredRows, compareUnit]);
   
   const overrideInsights = useMemo(() => {
     const reasonCounts = new Map<string, number>();
@@ -444,7 +488,7 @@ export default function AdminQaPage() {
     let runsWithOverrides = 0;
     let totalOverrides = 0;
 
-    for (const r of filtered) {
+    for (const r of filteredRows) {
       const summary = r.qaFlags?.overrideSummary;
       const count = Math.max(0, Number(summary?.count || 0));
       if (count <= 0) continue;
@@ -479,13 +523,13 @@ export default function AdminQaPage() {
       topCriteria: Array.from(criterionCounts.entries()).sort(byCountDesc).slice(0, 8),
       topBriefs: Array.from(briefCounts.entries()).sort(byCountDesc).slice(0, 8),
     };
-  }, [filtered]);
+  }, [filteredRows]);
 
   function exportFiltered() {
     downloadCsv(
       "qa-filtered-submissions.csv",
       ["Submission ID", "Filename", "Student", "Course", "Unit", "AB", "Status", "Grade", "Uploaded", "Graded", "QA Review Reasons"],
-      filtered.map((r) => [
+      filteredRows.map((r) => [
         r.id,
         r.filename || "",
         r.student?.fullName || "",
@@ -503,7 +547,7 @@ export default function AdminQaPage() {
 
   return (
     <div className="grid min-w-0 gap-4">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className={`${PANEL_CLASS} p-5`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">
@@ -535,18 +579,24 @@ export default function AdminQaPage() {
           <button type="button" onClick={load} className={BUTTON_PRIMARY_TALL_CLASS}><TinyIcon name="refresh" className="h-3.5 w-3.5" />Refresh</button>
         </div>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-          <MetricCard label="Current page rows" value={metrics.total} />
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Filtered dataset" value={metrics.total} tone="sky" />
+          <MetricCard label="Rows on page" value={metrics.currentPageTotal} />
+          <MetricCard label="Needs review" value={metrics.needsReview} tone="amber" />
+          <MetricCard label="Turnitin complete" value={metrics.turnitinReady} tone="violet" />
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Graded" value={metrics.graded} />
           <MetricCard label="Students" value={metrics.students} />
           <MetricCard label="Courses" value={metrics.courses} />
           <MetricCard label="Units" value={metrics.units} />
-          <MetricCard label="Avg score" value={metrics.avgScore.toFixed(2)} />
+          <MetricCard label="Average score" value={metrics.avgScore.toFixed(2)} />
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
           <div>
-            Server results: <span className="font-semibold text-zinc-900">{totalItems}</span> rows · Page{" "}
+            Filtered results: <span className="font-semibold text-zinc-900">{totalItems}</span> rows · Page{" "}
             <span className="font-semibold text-zinc-900">{page}</span> of{" "}
             <span className="font-semibold text-zinc-900">{Math.max(1, totalPages)}</span>
           </div>
@@ -584,18 +634,27 @@ export default function AdminQaPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+        <div className={`${SUBTLE_PANEL_CLASS} mt-4 p-3`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Dataset grade mix</div>
+              <div className="mt-1 text-sm text-zinc-700">This summary is based on the full filtered dataset, not just the visible page.</div>
+            </div>
+            <div className="text-xs text-zinc-600">Export and comparison panels follow the same filtered dataset.</div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
           {Object.entries(metrics.byGrade).map(([g, n]) => (
             <span key={g} className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-1 font-semibold text-zinc-700">
               {g}: {n}
             </span>
           ))}
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button type="button" onClick={exportFiltered} className={BUTTON_NEUTRAL_CLASS}>
             <TinyIcon name="submissions" className="h-3 w-3" />
-            Export filtered report
+            Export filtered dataset
           </button>
           <Link href="/admin/audit" className={BUTTON_NEUTRAL_CLASS}>
             <TinyIcon name="audit" className="h-3 w-3" />
@@ -621,7 +680,7 @@ export default function AdminQaPage() {
 
       {error ? <section className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</section> : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <section className={PANEL_CLASS}>
         <div className="border-b border-zinc-200 px-4 py-3">
           <div className="text-sm font-semibold tracking-tight text-zinc-900">Assessor Override Insights</div>
           <div className="mt-1 text-xs text-zinc-600">
@@ -678,7 +737,7 @@ export default function AdminQaPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <section className={PANEL_CLASS}>
         <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold tracking-tight text-zinc-900">Submission QA Dataset</div>
         <div className="overflow-x-auto">
           <table className="min-w-full border-separate border-spacing-0">
@@ -700,10 +759,10 @@ export default function AdminQaPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {pageRows.length === 0 ? (
                 <tr><td colSpan={13} className="px-4 py-10 text-center text-sm text-zinc-600">No submissions found for this filter.</td></tr>
               ) : (
-                filtered.map((r) => (
+                pageRows.map((r) => (
                   <tr key={r.id} className="text-sm">
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-900">
                       <div className="font-medium">{r.student?.fullName || "Unlinked"}</div>
@@ -854,12 +913,10 @@ export default function AdminQaPage() {
                         disabled={Boolean(ivBusyById[r.id]) || busy}
                         className={BUTTON_ROW_VIOLET_CLASS}
                         title={
-                          r?.ivAd?.exists
-                            ? "Download existing IV-AD DOCX"
-                            : "Generate IV-AD DOCX from existing submission + assessment data"
+                          "Generate or reuse the active-template IV-AD DOCX from existing submission and assessment data"
                         }
                       >
-                        {ivBusyById[r.id] ? "Generating..." : r?.ivAd?.exists ? "Download IV-AD" : "Generate IV-AD"}
+                        {ivBusyById[r.id] ? "Generating..." : "Generate IV-AD"}
                       </button>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-3 text-zinc-700">{fmtDate(r.uploadedAt)}</td>
@@ -873,7 +930,7 @@ export default function AdminQaPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className={PANEL_CLASS}>
           <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900">Grades by course</div>
           <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0">
@@ -899,7 +956,7 @@ export default function AdminQaPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className={PANEL_CLASS}>
           <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
             <div className="text-sm font-semibold text-zinc-900">Compare grades within same unit</div>
             <select value={compareUnit} onChange={(e) => setCompareUnit(e.target.value)} className="h-9 rounded-lg border border-zinc-300 bg-white px-3 text-sm">
@@ -938,9 +995,25 @@ export default function AdminQaPage() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string | number }) {
+function MetricCard({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "default" | "sky" | "amber" | "violet";
+}) {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-200 bg-sky-50/70"
+      : tone === "amber"
+        ? "border-amber-200 bg-amber-50/80"
+        : tone === "violet"
+          ? "border-violet-200 bg-violet-50/80"
+          : "border-zinc-200 bg-white";
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
       <div className="mt-1 text-xl font-semibold text-zinc-900">{value}</div>
     </div>

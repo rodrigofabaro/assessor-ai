@@ -434,10 +434,18 @@ export async function GET(req: Request) {
           .filter(Boolean)
       )
     );
+    const activeIvTemplate = await prisma.ivAdTemplate.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
     const existingIvDocs =
-      markedPaths.length > 0
+      markedPaths.length > 0 && activeIvTemplate?.id
         ? await prisma.ivAdDocument.findMany({
-            where: { sourceMarkedPdfPath: { in: markedPaths } },
+            where: {
+              templateId: activeIvTemplate.id,
+              sourceMarkedPdfPath: { in: markedPaths },
+            },
             orderBy: { createdAt: "desc" },
             select: { id: true, sourceMarkedPdfPath: true, createdAt: true },
           })

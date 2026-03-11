@@ -15,6 +15,7 @@ const tests = [
   "scripts/brief-fidelity-report.test.js",
   "scripts/brief-review-diagnostics-contract.test.js",
   "scripts/page-notes.test.js",
+  "scripts/qa-page-contract.test.js",
   "scripts/brief-grading-scope-change.test.js",
   "scripts/brief-readiness.test.js",
   "scripts/brief-scenario-warning-policy.test.js",
