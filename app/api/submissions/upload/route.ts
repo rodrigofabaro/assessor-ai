@@ -7,6 +7,7 @@ import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { toStorageRelativePath, writeStorageFile } from "@/lib/storage/provider";
 import { getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
+import { enqueueSubmissionAutomationJob, triggerSubmissionAutomationRunner } from "@/lib/submissions/automationQueue";
 
 const ALLOWED_EXTS = new Set([".pdf", ".docx"]);
 const submissionCreateSelect = {
@@ -209,19 +210,23 @@ export async function POST(req: Request) {
       created.push(submission);
     }
 
-    // Best-effort trigger extraction (don’t fail upload if extraction fails)
-    const baseUrl = new URL(req.url);
-    const origin = `${baseUrl.protocol}//${baseUrl.host}`;
-
-    failStage = "trigger_extract";
+    failStage = "queue_extract";
     await Promise.allSettled(
       created.map((s) =>
-        fetch(`${origin}/api/submissions/${s.id}/extract`, { method: "POST", cache: "no-store" })
+        enqueueSubmissionAutomationJob({
+          submissionId: s.id,
+          type: "EXTRACT",
+          createdBy: "upload",
+          payload: { source: "upload" },
+        })
       )
     );
 
+    failStage = "trigger_extract_runner";
+    await triggerSubmissionAutomationRunner(req.url, Math.min(4, Math.max(1, created.length)));
+
     return NextResponse.json(
-      { submissions: created, extraction: { triggered: true }, requestId },
+      { submissions: created, extraction: { triggered: true, durableQueue: true }, requestId },
       { headers: { "x-request-id": requestId } }
     );
   } catch (err) {

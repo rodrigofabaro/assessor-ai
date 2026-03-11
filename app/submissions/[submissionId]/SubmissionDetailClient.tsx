@@ -32,6 +32,19 @@ type ExtractionRun = {
   pages: ExtractedPage[];
 };
 
+type AutomationJob = {
+  id: string;
+  type: "EXTRACT" | "GRADE";
+  status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELED";
+  attempts: number;
+  maxAttempts: number;
+  runAfterAt?: string | null;
+  claimedAt?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  lastError?: string | null;
+};
+
 type Submission = {
   id: string;
   filename: string;
@@ -47,6 +60,7 @@ type Submission = {
   studentLinkedAt?: string | null;
   studentLinkedBy?: string | null;
   extractionRuns: ExtractionRun[];
+  automationJobs?: AutomationJob[];
   assessments?: Array<{
     id: string;
     createdAt: string;
@@ -504,6 +518,10 @@ export default function SubmissionDetailPage() {
       const bt = new Date(b.finishedAt ?? b.startedAt).getTime();
       return bt - at;
     })[0];
+  }, [submission]);
+  const latestAutomationJob = useMemo(() => {
+    const jobs = submission?.automationJobs ?? [];
+    return jobs.length ? jobs[0] : null;
   }, [submission]);
 
   const pagesSorted = useMemo(
@@ -1593,6 +1611,15 @@ export default function SubmissionDetailPage() {
     if (previewFresh) return { label: "Preview ready", tone: "border-emerald-200 bg-emerald-50 text-emerald-900" };
     return { label: "Preview needed", tone: "border-zinc-200 bg-zinc-50 text-zinc-700" };
   }, [gradingBusy, canPreviewGrading, previewStale, previewFresh]);
+  const automationJobStatusText = useMemo(() => {
+    if (!latestAutomationJob) return "";
+    const typeLabel = latestAutomationJob.type === "GRADE" ? "Grading" : "Extraction";
+    const status = String(latestAutomationJob.status || "").toUpperCase();
+    if (status === "RUNNING") return `${typeLabel} job running.`;
+    if (status === "QUEUED") return `${typeLabel} job queued${latestAutomationJob.attempts > 0 ? ` for retry (${latestAutomationJob.attempts}/${latestAutomationJob.maxAttempts})` : ""}.`;
+    if (status === "FAILED") return `${typeLabel} job failed${latestAutomationJob.lastError ? `: ${latestAutomationJob.lastError}` : "."}`;
+    return "";
+  }, [latestAutomationJob]);
   const auditWorkflowStatus = useMemo(() => {
     if (checklist.readyToUpload) return { label: "Audit saved", tone: "border-emerald-200 bg-emerald-50 text-emerald-900" };
     if (checklist.gradeGenerated) return { label: "Audit partial", tone: "border-amber-200 bg-amber-50 text-amber-900" };
@@ -2307,6 +2334,9 @@ export default function SubmissionDetailPage() {
               >
                 {primaryActionLabel}
               </button>
+              {automationJobStatusText ? (
+                <span className="mt-1 max-w-[15rem] text-[10px] text-zinc-500">{automationJobStatusText}</span>
+              ) : null}
               {!checklist.readyToUpload ? (
                 <button
                   type="button"
@@ -2468,7 +2498,7 @@ export default function SubmissionDetailPage() {
             <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Extraction</div>
             <div className="mt-0.5 text-sm font-semibold text-zinc-900">{latestRun?.status || "Not run"}</div>
             <div className="mt-0.5 text-xs text-zinc-600">
-              Cover {coverReady ? "reviewed" : "needs review"} · Uploaded {safeDate(submission?.uploadedAt)}
+              {automationJobStatusText || `Cover ${coverReady ? "reviewed" : "needs review"} · Uploaded ${safeDate(submission?.uploadedAt)}`}
             </div>
           </div>
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">

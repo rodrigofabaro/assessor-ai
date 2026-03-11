@@ -55,6 +55,8 @@ const tests = [
   "scripts/blob-overwrite-contract.test.js",
   "scripts/turnitin-automation-persistence-contract.test.js",
   "scripts/turnitin-storage-resolution-contract.test.js",
+  "scripts/submission-automation-queue-contract.test.js",
+  "scripts/submission-automation-cron-contract.test.js",
   "scripts/ui-launch-mode-contract.test.js",
 ];
 

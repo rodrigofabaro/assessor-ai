@@ -1,3 +1,8 @@
 {
-  "buildCommand": "pnpm run build:vercel"
+  "crons": [
+    {
+      "path": "/api/cron/submission-automation",
+      "schedule": "* * * * *"
+    }
+  ]
 }

@@ -61,6 +61,18 @@ Use this doc when the instruction is: "continue the roadmap".
    - submission grade and marked-file routes plus reference-document delete now enforce active-org visibility before grading, output-file access, or destructive document actions run on raw ids
    - tenant-owned IV and brief-evidence routes now enforce active-org visibility when loading submission, reference-spec, brief, and attachment documents for IV draft/generation backfill flows
    - assignment bindings and admin IV generate reference-spec lookup now enforce active-org visibility on tenant-owned assignment/brief/reference ids
+8. Progress update (2026-03-11):
+   - `/admin/settings/organization` is now a first-class org-scoped settings workspace with in-page organization switching and audited tenant config/secret management
+   - `/admin/briefs/[briefId]` now shows extraction-route, page-grounding, scenario-source, and image-token diagnostics in the review UI
+   - manual assessor feedback saves now reapply the same VASCR-aligned feedback policy passes used in auto-grading before audit save and marked-PDF regeneration
+   - `/admin/qa` now computes analytics, comparison views, and CSV export from the full filtered dataset rather than the visible page, and IV-AD generation now defers reuse/regeneration decisions to the backend against the active template
+   - higher-grade guidance and page-note wording were tightened to reduce repetition and remove fragmentary placeholder output
+   - Turnitin original-upload reads now resolve through the storage provider instead of assuming a local `uploads/` filesystem path
+   - submission automation is now backed by a durable DB queue (`SubmissionAutomationJob`) with a runner route (`POST /api/submissions/automation-jobs/run`); upload/blob-finalize now enqueue extraction jobs, auto-ready grading now enqueues grade jobs, and submission detail surfaces the latest queued/running job state
+   - always-on runner orchestration is now in place for Vercel deployments via `GET /api/cron/submission-automation` plus `vercel.json` minute cron schedule; bearer-secret fallback is supported outside native Vercel cron
+9. Platform truth note:
+   - extraction and grading are now durably enqueued after upload/queue actions, with retryable job state persisted in DB
+   - the remaining M8 gap is queue observability/control depth (job metrics, targeted retry/cancel, oldest-queued alerts), plus deeper throughput controls and telemetry
 
 ## Execution lanes
 
@@ -234,16 +246,17 @@ Use this doc when the instruction is: "continue the roadmap".
 
 ### Next (immediately after current queue)
 
-1. IV-AD Phase 4
-- `POST /api/iv-ad/review-draft`
-- strict request/response schema
-- structured error taxonomy and request-id logging
+1. M8 queue-first processing hardening
+- Progress (2026-03-11): upload/blob-finalize now enqueue durable extraction jobs, auto-ready grading now enqueues durable grade jobs, retry/backoff state is persisted in `SubmissionAutomationJob`, and `POST /api/submissions/automation-jobs/run` can claim and execute queued work.
+- Progress (2026-03-11): always-on scheduled execution added for Vercel via `GET /api/cron/submission-automation` and `vercel.json` minute cron schedule, with bearer-secret fallback for non-Vercel scheduler callers.
+- Remaining:
+  - add queue metrics/dashboard visibility for job depth, retry rate, and oldest queued age
+  - extend operator controls for targeted retry/cancel from admin surfaces
 
-2. IV-AD Phase 5
-- `Run AI IV Review` action in `/admin/iv-ad`
-- editable draft sections
-- evidence snippet panel
-- manual fallback preserved
+2. M8/M9 performance hardening phase 2
+- verify DB index coverage for the heaviest filters/sorts (`Submissions`, `QA`, `Audit`, `Reference`)
+- add production-sized dataset profiling evidence for p95 page/API latency
+- add adaptive batch concurrency controls and per-org/token budget guardrails
 
 3. M8 Phase A groundwork
 - production env contract
@@ -284,7 +297,11 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-09): organization lifecycle guards are now regression-locked for default-org protection plus empty-org-only deletion semantics in `admin/organizations/[organizationId]`; contract added in `scripts/admin-organization-lifecycle-contract.test.js`.
 - Progress (2026-03-11): per-organization config/secrets are now exposed as a first-class `/admin/settings/organization` workspace scoped to the active organization, with in-page org switching support and settings-nav entry; regression lock added in `scripts/org-settings-page-contract.test.js`.
 
-6. M9.1 email operations continuation
+6. QA/help/release parity lock
+- keep `ROADMAP_ONE`, `Milestones`, help docs, and release notes aligned with shipped behavior in the same change batch
+- require QA docs to describe full-filter analytics, active-template IV-AD generation, and current Turnitin behavior
+
+7. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures
 - persist landing-page leads in DB (email remains notification channel; DB becomes system of record)
 - add delivery health dashboard cards (sent/failed/bounced) using provider telemetry
@@ -297,7 +314,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-06): release gate now includes OpenAI Responses write-scope contract (`pnpm run ops:openai-responses-contract`) with strict toggle `AUTH_REQUIRE_OPENAI_RESPONSES_WRITE=true`.
 - Remaining action: configure Resend webhook endpoint in each environment and capture staging evidence.
 
-7. Pre-launch development-mode UX profile
+8. Pre-launch development-mode UX profile
 - keep architecture complete (`organizations`, `users`, `SUPER_ADMIN`, scoped settings/secrets) to avoid future rework
 - provide a simplified operator-facing UI until launch (hide advanced platform controls by default)
 - implement role-specific post-login dashboards so default home reflects role scope:
@@ -342,11 +359,11 @@ Progress (2026-03-03):
 
 Done when:
 1. Review-draft endpoint is merged and test-covered
-   - Status (2026-03-03): `POST /api/iv-ad/review-draft` added with strict request/response schema validation and request-id + ops-event logging.
+   - Status (2026-03-03): complete. `POST /api/iv-ad/review-draft` added with strict request/response schema validation and request-id + ops-event logging.
 2. `/admin/iv-ad` can generate editable AI draft
-   - Status (2026-03-03): in progress. Added `Run AI IV Review` action in `/admin/iv-ad`, editable draft sections backed by `/api/iv-ad/review-draft`, `reviewDraftJson` handoff into final DOCX generation, mandatory approval gate before generation, and approval/audit metadata visibility in IV-AD history.
+   - Status (2026-03-11): complete. `Run AI IV Review` is live in `/admin/iv-ad`, editable draft sections are backed by `/api/iv-ad/review-draft`, `reviewDraftJson` is handed into final DOCX generation, and approval/audit metadata is visible in IV-AD history.
 3. Manual completion still works when AI draft fails
-   - Status (2026-03-06): fallback contract coverage added (`scripts/iv-ad-manual-fallback-contract.test.js`) to ensure `/api/admin/iv-ad/generate` preserves heuristic narrative path and `/admin/iv-ad` keeps manual generation UX available when AI review is unavailable.
+   - Status (2026-03-06): complete. Fallback contract coverage added (`scripts/iv-ad-manual-fallback-contract.test.js`) to ensure `/api/admin/iv-ad/generate` preserves heuristic narrative path and `/admin/iv-ad` keeps manual generation UX available when AI review is unavailable.
 
 ### Queue B.1 - IV-AD Phase 6 start
 

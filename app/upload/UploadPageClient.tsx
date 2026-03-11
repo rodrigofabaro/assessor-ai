@@ -215,7 +215,7 @@ export function UploadPageClient() {
       const okCount = settled.filter((r) => r.ok).length;
       const failCount = settled.length - okCount;
       if (okCount > 0 && failCount === 0) {
-        setMsg(`Uploaded ${okCount} file${okCount === 1 ? "" : "s"}. Extraction has been queued automatically.`);
+        setMsg(`Uploaded ${okCount} file${okCount === 1 ? "" : "s"}. Extraction was requested automatically.`);
         setFiles([]);
       }
       if (failCount > 0) {

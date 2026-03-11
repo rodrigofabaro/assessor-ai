@@ -37,6 +37,7 @@ Status labels:
 - M10 multi-organization rollout (super admin, org admin, org switch, per-org settings and secrets).
 - IV-AD AI review rollout tracked in `docs/grading/iv-ad-ai-review-roadmap.md` (supporting feature roadmap).
 - M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production + production OpenAI key scopes (`api.responses.write`) for grade/extraction.
+- Throughput/performance gaps remain: queue metrics/control depth, DB index verification on heavy filters/sorts, production-sized latency profiling, and adaptive concurrency/budget controls.
 - Operator-confirmed (2026-03-04): production storage places are not configured yet.
 - Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
@@ -71,6 +72,12 @@ Status labels:
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
+- QA progress (2026-03-11): `/admin/qa` now loads paginated table rows plus a full filtered dataset for analytics, comparison views, and CSV export, so moderation summaries are no longer biased to the visible page.
+- QA progress (2026-03-11): QA IV-AD generation now defers reuse/regeneration decisions to the backend against the active template instead of trusting stale client-side file state.
+- Feedback quality progress (2026-03-11): higher-grade guidance and page-note wording were tightened to reduce repetition, remove fragmentary placeholder output, and keep advice aligned with the active feedback-policy rules.
+- Turnitin progress (2026-03-11): original-upload submission sync now resolves files through the storage provider instead of assuming a local `uploads/` path.
+- Queue-first processing progress (2026-03-11): submission automation is now backed by durable DB jobs (`SubmissionAutomationJob`) plus runner route `POST /api/submissions/automation-jobs/run`; upload/blob-finalize enqueue extraction jobs, auto-ready grading enqueues grade jobs, and submission detail exposes latest queued/running job state.
+- Queue-first processing progress (2026-03-11): always-on scheduled execution is now configured for Vercel deployments via `GET /api/cron/submission-automation` plus `vercel.json` minute cron, with bearer-secret fallback for external scheduler callers.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - UX progress (2026-03-06): pre-launch to launch navigation toggle added via `NEXT_PUBLIC_UI_LAUNCH_MODE` so tenant controls can be progressively exposed without schema/API changes.
 - UX progress (2026-03-06): admin help docs now describe both pre-launch and launch-mode nav behavior (`docs/help/admin-index.md`).
@@ -103,7 +110,8 @@ Status labels:
 
 **Operational rule**
 - Default UX must not require the tutor to use extraction/debug/mapping/governance screens.
-- System runs extraction -> validation -> grading automatically in the background.
+- System auto-triggers extraction -> validation -> grading after upload/queue actions.
+- Durable retryable background-job orchestration is still an M8 hardening item; the current flow is automation-first, not a completed worker queue.
 - Tutor sees only actionable status and final outputs.
 
 **Acceptance**
@@ -452,6 +460,9 @@ Phase 7 progress (2026-03-03):
 3. Queue-first processing
 - Move extraction/grading work to background jobs with retry policy.
 - Keep UI async with observable job states (queued/running/retry/failed/done).
+- Current state (2026-03-11): first durable slice delivered. Upload/finalize now enqueue DB-backed extraction jobs, auto-ready grading enqueues DB-backed grade jobs, and runner route `POST /api/submissions/automation-jobs/run` claims queued work with retry/backoff state.
+- Current state (2026-03-11): always-on scheduled execution delivered for Vercel through `GET /api/cron/submission-automation` and a minute cron entry in `vercel.json`.
+- Remaining: add queue depth/retry/age telemetry and operator retry/cancel controls.
 
 4. Observability baseline
 - Add per-upload trace id across upload -> extraction -> grading.
@@ -519,6 +530,8 @@ Phase 7 progress (2026-03-03):
 - Break up oversized client/API modules in high-traffic paths.
 - Remove avoidable request waterfalls and duplicate fetches.
 - Verify DB index coverage for top filters/sorts and status dashboards.
+- Add explicit production-sized dataset profiling evidence for heavy pages.
+- Add adaptive concurrency and per-org throughput controls where queue volume justifies it.
 
 4. Help/docs parity
 - Remove remaining placeholder screenshot TODOs.

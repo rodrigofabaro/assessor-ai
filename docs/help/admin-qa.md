@@ -1,6 +1,6 @@
 # Admin QA (`/admin/qa`)
 
-Last updated: 2026-02-27
+Last updated: 2026-03-11
 
 ## Purpose
 
@@ -21,14 +21,14 @@ It combines:
 5. Prioritize rows with QA flags, evidence gaps, drift, or low confidence.
 6. Open Turnitin report for any row requiring plagiarism/AI-writing checks.
 7. When ready, use `Generate IV-AD` in-row.
-8. If IV-AD already exists, use `Download IV-AD` (reuses existing file).
-9. Export filtered CSV where moderation evidence is required.
+8. Use `Download IV-AD` when a current-template IV-AD already exists for that submission.
+9. Export filtered CSV where moderation evidence is required; the export and summary cards are based on the full filtered dataset, not only the visible page.
 
 ## IV-AD from QA rows
 
 Row action behavior:
-- `Generate IV-AD`: builds a new IV document from submission + assessment + mapped spec context already in DB.
-- `Download IV-AD`: appears when a valid IV file already exists for that marked submission/template.
+- `Generate IV-AD`: sends the row to the backend IV-AD generation route, which decides whether to reuse the active-template document or regenerate against the current template/context.
+- `Download IV-AD`: appears when a valid IV file already exists for the current marked submission and active IV-AD template.
 
 Auto-populated fields include:
 - student/programme/unit/assignment details from DB
@@ -37,7 +37,7 @@ Auto-populated fields include:
 - assessor + verifier signature block email and current date
 
 Important:
-- If an old IV exists with placeholder assignment naming, the system regenerates once with corrected assignment title, then reuses.
+- QA no longer trusts stale client-side IV file presence alone. Reuse/regeneration is decided server-side against the active template so outdated template files do not silently bypass regeneration.
 
 ## Turnitin in QA
 
@@ -52,6 +52,10 @@ You can:
 
 Page-level action:
 - `Send page to Turnitin` queues all visible unsent rows.
+
+Analytics note:
+- Summary cards, override insights, compare tables, and filtered CSV export use the full filtered dataset.
+- The dataset table remains paginated for speed, so the visible rows can be smaller than the dataset used by the analytics above it.
 
 ## What to analyze
 

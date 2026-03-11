@@ -82,6 +82,23 @@ export async function GET(
           },
         },
       },
+      automationJobs: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          attempts: true,
+          maxAttempts: true,
+          runAfterAt: true,
+          claimedAt: true,
+          startedAt: true,
+          finishedAt: true,
+          lastError: true,
+          createdAt: true,
+        },
+      },
     },
   });
 

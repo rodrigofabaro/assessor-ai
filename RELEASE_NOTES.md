@@ -6,6 +6,21 @@ Last updated: 2026-03-11
 
 ### Latest additions (2026-03-11)
 
+- Durable submission automation queue foundation:
+  - added DB-backed `SubmissionAutomationJob` queue plus runner route `POST /api/submissions/automation-jobs/run`
+  - upload and blob-finalize now enqueue extraction jobs instead of directly calling the extract route
+  - auto-ready grading now enqueues grade jobs with persisted retry/backoff state
+  - submission detail now shows the latest queued/running extraction or grading job status
+  - added regression lock: `scripts/submission-automation-queue-contract.test.js` (wired into `test:regression-pack`)
+- Always-on submission automation runner:
+  - added protected cron endpoint `GET /api/cron/submission-automation`
+  - added `vercel.json` minute cron schedule so queued extraction/grading work continues independently of the original enqueue request on Vercel
+  - added bearer-secret fallback (`SUBMISSION_AUTOMATION_CRON_SECRET`) for non-Vercel scheduler callers
+  - added regression lock: `scripts/submission-automation-cron-contract.test.js` (wired into `test:regression-pack`)
+- QA workspace parity and correctness hardening:
+  - `/admin/qa` now loads paginated table rows plus the full filtered dataset separately, so summary cards, compare views, override insights, and CSV export reflect the full filtered result set rather than the visible page only
+  - QA IV-AD row actions now always call backend generation so reuse/regeneration is resolved against the active IV-AD template instead of stale client-side document state
+  - updated QA help doc to describe full-filter analytics and active-template IV-AD behavior (`docs/help/admin-qa.md`)
 - Brief review diagnostics hardening (brief fidelity continuation):
   - task cards in `/admin/briefs/[briefId]` now surface extraction-route, page-grounding, scenario-source, and visual-token diagnostics directly in the review UI
   - scenario/context display is now cue-gated so normal task intro text is no longer automatically labeled as scenario/context when `scenarioText` is absent
@@ -27,6 +42,14 @@ Last updated: 2026-03-11
   - feedback-policy system notes are refreshed on the saved assessment payload so audit output reflects the current post-edit policy passes
   - added regression lock: `scripts/manual-feedback-policy-contract.test.js` (wired into `test:regression-pack`)
   - extended deploy-gate contract: `scripts/feedback-quality-contract.js` now requires the manual assessment update route to keep the same policy wiring as the grading route
+- Feedback wording cleanup:
+  - higher-grade guidance now renders as complete prose rather than fragmentary placeholder text when templates include `{higherGradeGuidance}`
+  - duplicate progression advice is removed from `{feedbackBullets}` when `{higherGradeGuidance}` is also present
+  - page-note generation now varies note wording more carefully by page context to reduce repetitive repeated comments
+- Turnitin storage resolution hardening:
+  - Turnitin original-upload reads now resolve through the storage provider, fixing failures caused by assuming a local `uploads/` path when storage is provider-backed
+- Tutor/operator wording alignment:
+  - upload success messaging now says extraction was requested automatically, which matches the current best-effort trigger behavior without implying durable queued-worker execution
 
 ### Latest additions (2026-03-06)
 

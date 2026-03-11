@@ -5,6 +5,7 @@ import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { toStorageRelativePath } from "@/lib/storage/provider";
 import { getRequestOrganizationId } from "@/lib/auth/requestSession";
 import { sendOpsAlertEmail } from "@/lib/auth/inviteEmail";
+import { enqueueSubmissionAutomationJob, triggerSubmissionAutomationRunner } from "@/lib/submissions/automationQueue";
 
 const MAX_SUBMISSION_UPLOAD_BYTES = 250 * 1024 * 1024; // 250MB
 
@@ -272,14 +273,19 @@ export async function POST(req: Request) {
       } catch {}
     }
 
-    failStage = "trigger_extract";
-    const baseUrl = new URL(req.url);
-    const origin = `${baseUrl.protocol}//${baseUrl.host}`;
-    await fetch(`${origin}/api/submissions/${submission.id}/extract`, { method: "POST", cache: "no-store" }).catch(() => null);
+    failStage = "queue_extract";
+    await enqueueSubmissionAutomationJob({
+      submissionId: submission.id,
+      type: "EXTRACT",
+      createdBy: "blob_finalize",
+      payload: { source: "blob_finalize" },
+    });
+    failStage = "trigger_extract_runner";
+    await triggerSubmissionAutomationRunner(req.url);
 
     return NextResponse.json({
       submission,
-      extraction: { triggered: true },
+      extraction: { triggered: true, durableQueue: true },
     });
   } catch (error) {
     const raw = String((error as { message?: unknown } | null)?.message || error || "").trim();

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { deriveAutomationState } from "@/lib/submissions/automation";
 import { computeExtractionQuality } from "@/lib/submissions/extractionQuality";
+import { enqueueSubmissionAutomationJob, triggerSubmissionAutomationRunner } from "@/lib/submissions/automationQueue";
 
 function envBool(name: string, fallback = false) {
   const raw = String(process.env[name] ?? "").trim().toLowerCase();
@@ -101,11 +102,19 @@ export async function triggerAutoGradeIfAutoReady(submissionId: string, requestU
     return { queued: false, reason: "not-auto-ready" as const, automationState: automation.state };
   }
 
-  const gradeUrl = new URL(`/api/submissions/${submissionId}/grade`, requestUrl);
-  const res = await fetch(gradeUrl.toString(), { method: "POST", cache: "no-store" });
+  const { job, deduped } = await enqueueSubmissionAutomationJob({
+    submissionId,
+    type: "GRADE",
+    createdBy: "auto_ready",
+    payload: { source: "auto_ready" },
+    priority: 120,
+    maxAttempts: 2,
+  });
+  const res = await triggerSubmissionAutomationRunner(requestUrl);
   return {
-    queued: res.ok,
-    reason: res.ok ? ("queued" as const) : ("grade-request-failed" as const),
+    queued: true,
+    reason: deduped ? ("queued" as const) : ("queued" as const),
     status: res.status,
+    jobId: job.id,
   };
 }

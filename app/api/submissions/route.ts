@@ -183,6 +183,7 @@ function mapWorkspaceSubmission(
   const latest = s.assessments?.[0] || null;
   const feedbackText = opts.includeWorkspaceFeedback ? sanitizeStudentFeedbackText(latest?.feedbackText || null) || null : null;
   const latestRun = s.extractionRuns?.[0] || null;
+  const latestAutomationJob = s.automationJobs?.[0] || null;
   const extractionQuality = computeExtractionQuality({
     submissionStatus: s.status,
     extractedText: null,
@@ -237,6 +238,19 @@ function mapWorkspaceSubmission(
     automationReason: automation.reason,
     automationExceptionCode: automation.exceptionCode,
     automationRecommendedAction: automation.recommendedAction,
+    automationJob: latestAutomationJob
+      ? {
+          id: latestAutomationJob.id,
+          type: latestAutomationJob.type,
+          status: latestAutomationJob.status,
+          attempts: latestAutomationJob.attempts,
+          maxAttempts: latestAutomationJob.maxAttempts,
+          runAfterAt: latestAutomationJob.runAfterAt,
+          claimedAt: latestAutomationJob.claimedAt,
+          finishedAt: latestAutomationJob.finishedAt,
+          lastError: latestAutomationJob.lastError || null,
+        }
+      : null,
     extractionQuality,
     qaFlags,
     turnitin: opts.turnitinStateBySubmissionId?.[s.id] || null,
@@ -566,6 +580,21 @@ export async function GET(req: Request) {
             sourceMeta: true,
           },
         },
+        automationJobs: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            attempts: true,
+            maxAttempts: true,
+            runAfterAt: true,
+            claimedAt: true,
+            finishedAt: true,
+            lastError: true,
+          },
+        },
       },
     });
 
@@ -643,6 +672,21 @@ export async function GET(req: Request) {
                 pageCount: true,
                 warnings: true,
                 sourceMeta: true,
+              },
+            },
+            automationJobs: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                type: true,
+                status: true,
+                attempts: true,
+                maxAttempts: true,
+                runAfterAt: true,
+                claimedAt: true,
+                finishedAt: true,
+                lastError: true,
               },
             },
           },
@@ -746,6 +790,21 @@ export async function GET(req: Request) {
             pageCount: true,
             warnings: true,
             sourceMeta: true,
+          },
+        },
+        automationJobs: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            attempts: true,
+            maxAttempts: true,
+            runAfterAt: true,
+            claimedAt: true,
+            finishedAt: true,
+            lastError: true,
           },
         },
       },

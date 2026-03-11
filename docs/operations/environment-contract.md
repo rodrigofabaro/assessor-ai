@@ -229,3 +229,15 @@ Primary login mode:
   - optional
   - base URL used by `pnpm run ops:email-webhook-smoke`
   - fallback chain: `EMAIL_WEBHOOK_SMOKE_BASE_URL` -> `READINESS_BASE_URL` -> `DEPLOY_SMOKE_BASE_URL` -> `http://localhost:3000`
+
+## Submission automation runner env (M8)
+
+- `SUBMISSION_AUTOMATION_RUNNER_LIMIT`
+  - default: `4`
+  - maximum number of queued submission automation jobs claimed per cron run
+  - used by `GET /api/cron/submission-automation`
+
+- `SUBMISSION_AUTOMATION_CRON_SECRET`
+  - optional when using native Vercel cron
+  - required when an external scheduler calls `GET /api/cron/submission-automation`
+  - caller must send `Authorization: Bearer <SUBMISSION_AUTOMATION_CRON_SECRET>`

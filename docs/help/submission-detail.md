@@ -8,12 +8,14 @@ This is the single-submission grading workspace.
 
 - header (identity + single status line): current state, current step, next action
 - at-a-glance summary: student, assignment, extraction, audit output readiness
+- queue-aware action header: if extraction or grading is queued/running in the durable automation queue, the latest job state is shown next to the primary action and in the extraction summary card
 - left workflow rail (numbered): `1 Cover review` -> `2 Assignment` -> `3 Preview` -> `4 Student` -> `5 Approval & outputs`
 - PDF viewer: source and marked outputs
 - approval & outputs (decision screen): final confirmation, save actions, feedback editor, criterion decisions
 - technical details (collapsed): confidence, readiness checklist, evidence density, rerun diagnostics
 - notes chip: fixed bottom-right in viewer for quick page jumps
 - performance behavior: page loads in summary mode first; full extraction text and criterion-level result payload hydrate when `Extraction` or `Approval & outputs` is opened
+- automation behavior: upload/auto-ready actions can enqueue durable extraction/grading jobs; the page shows the latest queued/running job state when present
 
 ## Fast Path (Operator Loop)
 

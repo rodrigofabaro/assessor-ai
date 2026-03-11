@@ -85,6 +85,19 @@ enum SpecSuiteImportJobStatus {
   FAILED
 }
 
+enum SubmissionAutomationJobType {
+  EXTRACT
+  GRADE
+}
+
+enum SubmissionAutomationJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
 model Organization {
   id        String   @id @default(cuid())
   slug      String   @unique
@@ -292,6 +305,7 @@ model Submission {
   extractionRuns SubmissionExtractionRun[]
   assessments    Assessment[]
   turnitinSyncState TurnitinSubmissionSyncState?
+  automationJobs SubmissionAutomationJob[]
 
   // Extraction provenance (recommended)
   extractedTextHash String?
@@ -308,6 +322,32 @@ model Submission {
   @@index([organizationId])
   @@index([uploadedAt, id])
   @@index([status, uploadedAt])
+}
+
+model SubmissionAutomationJob {
+  id         String                      @id @default(uuid())
+  type       SubmissionAutomationJobType
+  status     SubmissionAutomationJobStatus @default(QUEUED)
+  priority   Int                         @default(100)
+  attempts   Int                         @default(0)
+  maxAttempts Int                        @default(3)
+  runAfterAt DateTime                    @default(now())
+  claimedAt  DateTime?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  lastError  String?
+  payload    Json?
+  resultJson Json?
+  createdBy  String?
+  createdAt  DateTime                    @default(now())
+  updatedAt  DateTime                    @updatedAt
+
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAfterAt, priority, createdAt])
+  @@index([submissionId, type, status])
+  @@index([submissionId, createdAt])
 }
 
 model TurnitinSubmissionSyncState {
