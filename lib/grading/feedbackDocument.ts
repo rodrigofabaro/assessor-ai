@@ -1,3 +1,5 @@
+import { stripHigherGradeDuplicateBullets } from "@/lib/grading/higherGradeFeedback";
+
 export type FeedbackTemplateInput = {
   template: string;
   studentFirstName: string;
@@ -41,11 +43,17 @@ export const FEEDBACK_TEMPLATE_ALL_TOKENS = [
 const DEFAULT_TEMPLATE = [
   "Hello {studentFirstName},",
   "",
+  "Overall summary",
   "{feedbackSummary}",
   "",
+  "Criteria and evidence",
   "{criterionOutcomeSummary}",
   "",
+  "Improvement priorities",
   "{feedbackBullets}",
+  "",
+  "Next steps",
+  "{higherGradeGuidance}",
   "",
   "Final grade: {overallGrade}",
   "",
@@ -64,6 +72,65 @@ function bulletBlock(bullets: string[]) {
   return list.length ? list.map((b) => `- ${b}`).join("\n") : "- Feedback generated.";
 }
 
+function splitParagraphs(text: string) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split(/\n\s*\n/)
+    .map((part) => clean(part))
+    .filter(Boolean);
+}
+
+function isFeedbackSectionHeading(text: string) {
+  return /^(overall summary|criteria and evidence|improvement priorities|next steps)$/i.test(clean(text));
+}
+
+function isFeedbackMetaLine(text: string) {
+  return /^(final grade:|assessor:|date:)/i.test(clean(text));
+}
+
+function stripFeedbackSummaryPrefixNoise(text: string) {
+  let next = clean(text);
+  if (!next) return "";
+  next = next.replace(/^(?:(?:hello\s+[^,]+,\s*)?overall summary\s*)+/i, "");
+  next = next.replace(/^(hello\s+[^,]+,\s*)+/i, "");
+  next = next.replace(/\b(criteria and evidence|improvement priorities|next steps|final grade:|assessor:|date:)\b[\s\S]*$/i, "");
+  return clean(next);
+}
+
+export function extractFeedbackSummaryFromRenderedText(text: string) {
+  const paragraphs = splitParagraphs(text);
+  if (!paragraphs.length) return "";
+
+  const lines = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").map((line) => clean(line));
+  const overallIdx = lines.findIndex((line) => /^overall summary$/i.test(line));
+  if (overallIdx >= 0) {
+    const collected: string[] = [];
+    for (let i = overallIdx + 1; i < lines.length; i += 1) {
+      const line = clean(lines[i]);
+      if (!line) {
+        if (collected.length) break;
+        continue;
+      }
+      if (isFeedbackSectionHeading(line) || isFeedbackMetaLine(line)) break;
+      collected.push(line);
+    }
+    const joined = stripFeedbackSummaryPrefixNoise(collected.join(" "));
+    if (joined) return joined;
+  }
+
+  const candidate = paragraphs.find((part) => {
+    if (/^hello\s+[^,]+,?$/i.test(part)) return false;
+    if (isFeedbackSectionHeading(part) || isFeedbackMetaLine(part)) return false;
+    if (/^criteria (?:achieved|still to evidence clearly):/i.test(part)) return false;
+    if (/^why these are still open:/i.test(part)) return false;
+    if (/^learning outcomes/i.test(part)) return false;
+    if (/^[-*•]\s+/.test(part)) return false;
+    return true;
+  });
+  return stripFeedbackSummaryPrefixNoise(String(candidate || ""));
+}
+
 export function getDefaultFeedbackTemplate() {
   return DEFAULT_TEMPLATE;
 }
@@ -77,11 +144,16 @@ export function renderFeedbackTemplate(input: FeedbackTemplateInput) {
       : clean(input.confidence ?? "");
   const higherGradeGuidance = clean(input.higherGradeGuidance);
   const criterionOutcomeSummary = clean(input.criterionOutcomeSummary);
+  const filteredBullets = stripHigherGradeDuplicateBullets({
+    bullets: Array.isArray(input.feedbackBullets) ? input.feedbackBullets : [],
+    higherGradeGuidance,
+    template,
+  });
   const map: Record<string, string> = {
     studentFirstName: clean(input.studentFirstName) || "Student",
     studentFullName: clean(input.studentFullName) || clean(input.studentFirstName) || "Student",
     feedbackSummary: clean(input.feedbackSummary) || "Feedback generated.",
-    feedbackBullets: bulletBlock(input.feedbackBullets),
+    feedbackBullets: bulletBlock(filteredBullets),
     overallGrade: clean(input.overallGrade).toUpperCase() || "REFER",
     assessorName: clean(input.assessorName) || "Assessor",
     date: clean(input.markedDate) || new Date().toLocaleDateString("en-GB"),

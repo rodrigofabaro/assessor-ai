@@ -63,6 +63,7 @@ type IvAdReviewDraft = {
   academicIntegrityCheck: string;
   generalComments: string;
   actionRequired: string;
+  feedbackReviewReport: string;
   warnings: string[];
   confidence: number;
   evidenceSnippets: Array<{
@@ -790,6 +791,11 @@ function IvAdAdminPageContent() {
                     value={reviewDraft.actionRequired}
                     onChange={(value) => setReviewDraft((prev) => (prev ? { ...prev, actionRequired: value } : prev))}
                   />
+                  <EditableField
+                    label="Feedback review report"
+                    value={reviewDraft.feedbackReviewReport}
+                    onChange={(value) => setReviewDraft((prev) => (prev ? { ...prev, feedbackReviewReport: value } : prev))}
+                  />
                   <ReadOnlyField label="confidence" value={Number(reviewDraft.confidence).toFixed(2)} />
                   <ReadOnlyField label="warnings" value={reviewDraft.warnings.join(" | ") || "—"} multiline />
                   <ReadOnlyField
@@ -1070,6 +1076,7 @@ function IvAdAdminPageContent() {
                   <ReadOnlyField label="academicIntegrityCheck" value={String((auditDetail.reviewDraftJson as any).draft.academicIntegrityCheck || "—")} multiline />
                   <ReadOnlyField label="generalComments" value={String((auditDetail.reviewDraftJson as any).draft.generalComments || "—")} multiline />
                   <ReadOnlyField label="actionRequired" value={String((auditDetail.reviewDraftJson as any).draft.actionRequired || "—")} multiline />
+                  <ReadOnlyField label="feedbackReviewReport" value={String((auditDetail.reviewDraftJson as any).draft.feedbackReviewReport || "—")} multiline />
                   <ReadOnlyField label="warnings" value={Array.isArray((auditDetail.reviewDraftJson as any).draft.warnings) ? (auditDetail.reviewDraftJson as any).draft.warnings.join(" | ") : "—"} multiline />
                   <ReadOnlyField
                     label="evidenceSnippets"

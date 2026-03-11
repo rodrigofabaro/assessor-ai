@@ -1,5 +1,5 @@
-import fs from "node:fs/promises";
 import type { ResolvedTurnitinConfig } from "@/lib/turnitin/config";
+import { readStorageFile } from "@/lib/storage/provider";
 
 export class TurnitinApiError extends Error {
   status: number;
@@ -192,7 +192,7 @@ export async function uploadTurnitinOriginal(input: {
   storagePath: string;
   filename: string;
 }) {
-  const file = await fs.readFile(input.storagePath);
+  const file = await readStorageFile(input.storagePath);
   const name = String(input.filename || "submission.pdf").trim() || "submission.pdf";
   const queryName = encodeURIComponent(name);
   const contentDisposition = `attachment; filename=${queryName}`;

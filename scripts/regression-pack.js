@@ -5,6 +5,7 @@ const tests = [
   "scripts/grading-schema.test.js",
   "scripts/feedback-vascr-policy.test.js",
   "scripts/feedback-annotation-policy.test.js",
+  "scripts/feedback-template-guidance-contract.test.js",
   "scripts/manual-feedback-policy-contract.test.js",
   "scripts/resend-webhook-parsing.test.js",
   "scripts/extraction-readiness.test.js",
@@ -13,6 +14,7 @@ const tests = [
   "scripts/brief-template-profile.test.js",
   "scripts/brief-fidelity-report.test.js",
   "scripts/brief-review-diagnostics-contract.test.js",
+  "scripts/page-notes.test.js",
   "scripts/brief-grading-scope-change.test.js",
   "scripts/brief-readiness.test.js",
   "scripts/brief-scenario-warning-policy.test.js",
@@ -51,6 +53,7 @@ const tests = [
   "scripts/submission-feedback-editor-contract.test.js",
   "scripts/blob-overwrite-contract.test.js",
   "scripts/turnitin-automation-persistence-contract.test.js",
+  "scripts/turnitin-storage-resolution-contract.test.js",
   "scripts/ui-launch-mode-contract.test.js",
 ];
 

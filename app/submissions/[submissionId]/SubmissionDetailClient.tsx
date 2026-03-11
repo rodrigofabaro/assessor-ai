@@ -9,6 +9,7 @@ import { summarizeFeedbackText } from "@/lib/grading/feedbackDocument";
 import { buildPageNotesFromCriterionChecks } from "@/lib/grading/pageNotes";
 import { buildMarkedPdfUrl } from "@/lib/submissions/markedPdfUrl";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
+import { STUDENT_MARKED_FEEDBACK_RULES } from "@/lib/grading/feedbackQualityRules";
 
 type ExtractedPage = {
   id: string;
@@ -4056,6 +4057,17 @@ export default function SubmissionDetailPage() {
                   className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs text-zinc-900"
                   placeholder="Edit the feedback text shown in audit and marked PDF."
                 />
+                <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50 p-2">
+                  <div className="text-[11px] font-semibold text-sky-900">Marked-version feedback rules</div>
+                  <div className="mt-1 text-[11px] text-sky-950">
+                    Default marked feedback now renders as overall summary, criteria and evidence, improvement priorities, and next steps.
+                  </div>
+                  <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-sky-950">
+                    {STUDENT_MARKED_FEEDBACK_RULES.map((rule) => (
+                      <li key={rule}>{rule}</li>
+                    ))}
+                  </ul>
+                </div>
                 {unsavedFeedbackDiff ? (
                   <div className="mt-2">
                     <FeedbackDiffPreview

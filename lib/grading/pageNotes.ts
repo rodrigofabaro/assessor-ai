@@ -239,7 +239,7 @@ function summarizeReason(v: string) {
     .replace(/\bthe\s+(submission|report|work)\b/gi, "your work");
   if (!src) return "";
   const firstSentence = src.split(/[.!?]/)[0] || src;
-  return compactLine(firstSentence, 130);
+  return compactLine(firstSentence.replace(/\b(?:but the|but|which|with|that|and)\s*$/i, "").trim(), 130);
 }
 
 function hasSpecificEvidenceSignal(entry: PageCriterionEntry) {
@@ -279,6 +279,25 @@ function hasMathsMethodSignals(corpus: string) {
 function hasSoftwareConfirmationSignals(corpus: string) {
   return /\b(software|geogebra|desmos|graph|plot|screenshot|cursor|marker|overlay)\b/i.test(corpus || "") &&
     /\b(calculation|analytical|equation|value|result|confirmation|compare|comparison)\b/i.test(corpus || "");
+}
+
+function hasThermofluidsCycleSignals(corpus: string) {
+  return /\b(rankine|brayton|carnot|steam|gas turbine|combined cycle|boiler|condenser|feedwater|superheat|regenerat|turbine|thermal efficien|isentropic)\b/i.test(
+    corpus || ""
+  );
+}
+
+function hasThermofluidsCalculationSignals(corpus: string) {
+  return /\b(steam tables?|enthalp|pump work|turbine work|heat input|boiler efficiency|thermal efficiency|state \d|state point|saturated liquid)\b/i.test(
+    corpus || ""
+  );
+}
+
+function hasThermofluidsEvaluationGapSignals(corpus: string) {
+  return hasThermofluidsCycleSignals(corpus) &&
+    /\b(superheat|regenerat|feedwater heater|moisture|practical|trade[- ]off|compare|comparison|evaluation|critical analysis|efficiency)\b/i.test(
+      corpus || ""
+    );
 }
 
 function extractObservedEvidenceLine(entry: PageCriterionEntry) {
@@ -352,7 +371,18 @@ function strengthLine(entry: PageCriterionEntry) {
   const code = entry.code;
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
 
+  if (code === "P5") {
+    if (hasThermofluidsCalculationSignals(corpus)) {
+      return "Your steam-table method and efficiency calculations are clear and traceable here.";
+    }
+    if (/\bcalculation|equation|formula|working\b/i.test(corpus)) return "Your calculation method is laid out clearly on this page.";
+    return extractObservedEvidenceLine(entry) || "";
+  }
+
   if (code === "P6") {
+    if (hasThermofluidsCycleSignals(corpus) && /\b(brayton|combined cycle|gas turbine|rankine)\b/i.test(corpus)) {
+      return "You explain the cycle operation clearly here and link the gas and steam stages appropriately.";
+    }
     if (/\bphasor|rl|triangle\b/i.test(corpus)) return "You show the correct phasor triangle method here.";
     if (/\bsin|cos|current|time|wave\b/i.test(corpus)) return "Your sinusoidal rearrangement steps are clear here.";
     if (hasMathsMethodSignals(corpus)) return "Your pass-level sinusoidal method is clear on this page.";
@@ -415,6 +445,10 @@ function gapLine(entry: PageCriterionEntry) {
     return "To meet M2, show one alternative milestone monitoring method and explain clearly why it is suitable for tracking progress.";
   }
 
+  if (code === "D2" && entry.decision !== "ACHIEVED" && hasThermofluidsEvaluationGapSignals(corpus)) {
+    return "To evidence D2, move beyond description and compare how superheating and regeneration affect efficiency, moisture at turbine exit, and practical plant operation.";
+  }
+
   if (code === "D2" && entry.decision !== "ACHIEVED" && (hasSoftwareConfirmationSignals(corpus) || hasMathsMethodSignals(corpus))) {
     return "To evidence D2, make the software-to-calculation confirmation explicit across at least three distinct problems.";
   }
@@ -472,6 +506,9 @@ function visualDevelopmentSuggestionLine(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
   if (entry.decision === "ACHIEVED") return "";
   if (String(entry.code || "").toUpperCase() === "P1") return "";
+  if (String(entry.code || "").toUpperCase() === "D2" && hasThermofluidsEvaluationGapSignals(corpus)) {
+    return "A labelled comparison table can support this section, but the key gap is the missing evaluation of efficiency, moisture content, and practical trade-offs.";
+  }
   const hasVisualEvidence =
     /\b(image|figure|diagram|chart|graph|plot|waveform|screenshot|photo|table|sketch)\b/i.test(corpus);
   if (hasVisualEvidence) return "";
@@ -501,6 +538,13 @@ function actionLines(entry: PageCriterionEntry): string[] {
       "Choose one clear focus example and evaluate it using relevant performance criteria and trade-offs.",
       "Add one sentence that states your judgement clearly and explains why the evidence supports D1.",
       "A comparison table or labelled diagram could strengthen the evaluation and make your reasoning easier to follow.",
+    ];
+  }
+  if (code === "D2" && hasThermofluidsEvaluationGapSignals(corpus)) {
+    return [
+      "Compare superheating and regeneration directly rather than describing each one separately.",
+      "Explain how each modification changes efficiency, moisture content at turbine exit, and practical plant operation.",
+      "If you add a table or sketch, use it to support the judgement rather than replace the analysis.",
     ];
   }
   if (code === "D2" && (hasSoftwareConfirmationSignals(corpus) || hasMathsMethodSignals(corpus))) {
@@ -680,6 +724,7 @@ function softenSupportiveActionLine(value: string) {
 
 function shouldIncludeLinkItem(entry: PageCriterionEntry) {
   const corpus = `${entry.context} ${entry.rationale}`.toLowerCase();
+  if (entry.decision === "ACHIEVED") return false;
   if (!corpus) return true;
   if (/\bbecause\b|\btherefore\b|\bthis (shows|demonstrates|supports|meets)\b/i.test(corpus)) return false;
   if (/\bcriterion\b|\brequirement\b|\bmeets?\s+[pmd]\d{1,2}\b/i.test(corpus)) return false;

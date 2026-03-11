@@ -58,6 +58,7 @@ function assert(condition, message) {
 
 function run() {
   const { parseIvAdReviewDraftRequest, parseIvAdReviewDraftModelOutput } = loadTsModule("lib/iv-ad/reviewDraft.ts");
+  const reviewDraftSource = fs.readFileSync(path.resolve("lib/iv-ad/reviewDraft.ts"), "utf8");
 
   const validRequest = parseIvAdReviewDraftRequest({
     studentName: "Student A",
@@ -94,6 +95,7 @@ function run() {
       academicIntegrityCheck: "No obvious integrity concern identified from provided text.",
       generalComments: "Assessor decision is acceptable with minor evidence-link improvements needed.",
       actionRequired: "Add explicit criterion references in final feedback for each judgement.",
+      feedbackReviewReport: "1. General weaknesses in the current notes\n- Notes are vague.\n\n2. How the notes should improve in general\n- Make them criterion-led.\n\n3. Holistic weaknesses in the overall feedback approach\n- Final feedback is fragmented.\n\n4. Improved tutor margin notes\n| Original note | Problem with note | Improved version |\n| --- | --- | --- |\n| Add more detail | Vague | Explain which evidence is missing and why it matters. |\n\n5. Improved final feedback\nStrengths, gaps, next steps, and overall summary.\n\n6. Feedback quality rules for future assessments\n- Use VASCR-led wording.",
       warnings: ["Evidence for M criteria is thin in the provided excerpts."],
       confidence: 0.78,
       evidenceSnippets: [
@@ -115,6 +117,7 @@ function run() {
       academicIntegrityCheck: "ok",
       generalComments: "ok",
       actionRequired: "ok",
+      feedbackReviewReport: "",
       warnings: [],
       confidence: 1.2,
       evidenceSnippets: [],
@@ -122,6 +125,12 @@ function run() {
     "gpt-4o-mini"
   );
   assert(!invalidModelOutput.success, "expected invalid model output to fail schema validation");
+  assert(reviewDraftSource.includes("feedbackReviewReport"), "expected review-draft schema to require feedbackReviewReport");
+  assert(
+    reviewDraftSource.includes("General weaknesses in the current notes"),
+    "expected review-draft prompt to include structured tutor-feedback review headings"
+  );
+  assert(reviewDraftSource.includes("VASCR"), "expected review-draft prompt to mention VASCR guidance");
 
   console.log("iv-ad review draft schema tests passed.");
 }

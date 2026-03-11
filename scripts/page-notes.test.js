@@ -243,6 +243,76 @@ function run() {
     "incomplete advice phrasing should not appear in final note output"
   );
 
+  const thermofluidsNotes = buildPageNotesFromCriterionChecks(
+    [
+      {
+        code: "D2",
+        decision: "NOT_ACHIEVED",
+        rationale:
+          "The submission includes some discussion of modifications to the Rankine cycle such as superheating and regeneration, but the evaluation lacks depth and critical analysis required for distinction. The benefits are mentioned but not thoroughly evaluated with detailed thermodynamic or practical implications.",
+        evidence: [
+          {
+            page: 4,
+            quote:
+              "Superheated steam prevents premature condensation within the system which stops erosive droplets from damaging the turbine blades.",
+          },
+          {
+            page: 5,
+            quote:
+              "The thermal efficiency has increased from 41.5% to 44.6%. The increase in efficiency is because regeneration raises the average temperature at which heat is added into the boiler.",
+          },
+        ],
+      },
+      {
+        code: "P5",
+        decision: "ACHIEVED",
+        rationale:
+          "The submission includes detailed calculations of overall steam turbine plant efficiencies using steam tables and thermodynamic equations. The work includes turbine work, pump work, heat input, boiler efficiency, and overall plant efficiency.",
+        evidence: [{ page: 7, quote: "Thermal efficiency calculations using steam tables and equations." }],
+      },
+      {
+        code: "P6",
+        decision: "ACHIEVED",
+        rationale:
+          "The principles of operation of gas turbine plants are discussed, including the Brayton cycle and combined cycle gas turbine operation. The explanation includes thermodynamic processes and the interaction between gas and steam cycles to improve efficiency.",
+        evidence: [{ page: 3, quote: "The Ideal Combined Cycle Gas Turbine (CCGT) combines the Brayton and Rankine cycles." }],
+      },
+    ],
+    {
+      tone: "supportive",
+      maxPages: 6,
+      maxLinesPerPage: 10,
+      includeCriterionCode: false,
+      context: {
+        unitCode: "64",
+        assignmentCode: "A2",
+        assignmentTitle: "Vapour Power Cycles",
+        criteriaSet: ["D2", "P5", "P6"],
+      },
+    }
+  );
+  const thermofluidsText = thermofluidsNotes.flatMap((n) => n.lines || []).join(" ");
+  assert(
+    /\befficiency\b/i.test(thermofluidsText) && /\bmoisture\b/i.test(thermofluidsText),
+    "thermofluids D2 notes should explain the missing evaluation in technical terms"
+  );
+  assert(
+    /\bcomparison table can support this section, but the key gap\b/i.test(thermofluidsText),
+    "thermofluids D2 notes should distinguish presentation aid from the actual criterion gap"
+  );
+  assert(
+    /\bsteam-table method and efficiency calculations are clear and traceable\b/i.test(thermofluidsText),
+    "thermofluids P5 achieved note should use specific calculation praise"
+  );
+  assert(
+    /\bcycle operation clearly here and link the gas and steam stages appropriately\b/i.test(thermofluidsText),
+    "thermofluids P6 achieved note should use specific cycle-explanation praise"
+  );
+  assert(
+    !/\bFinish this section with one short sentence\b/i.test(thermofluidsText),
+    "achieved thermofluids notes should not fall back to generic criterion-link filler"
+  );
+
   // Cross-submission guard (not only Unit 4): generic D1 wording may mention renewable systems,
   // but for non-energy contexts it should be replaced with a safe note.
   const nonEnergyNotes = buildPageNotesFromCriterionChecks(

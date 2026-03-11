@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createMarkedPdf } from "@/lib/grading/markedPdf";
 import {
   deriveBulletsFromFeedbackText,
+  extractFeedbackSummaryFromRenderedText,
   getDefaultFeedbackTemplate,
   renderFeedbackTemplate,
   summarizeFeedbackText,
@@ -16,6 +17,7 @@ import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
 import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
 import { enforceFeedbackAnnotationPolicy } from "@/lib/grading/feedbackAnnotationPolicy";
+import { buildNaturalHigherGradeGuidance } from "@/lib/grading/higherGradeFeedback";
 
 export const runtime = "nodejs";
 
@@ -246,23 +248,69 @@ function buildHigherGradeGuidance(input: {
   finalGrade: string;
   rawGrade: string;
   missing: { pass: string[]; merit: string[]; distinction: string[] };
+  criterionChecks?: Array<{ code?: string; decision?: string; rationale?: string }>;
 }) {
   const finalGrade = normalizeGradeBand(input.finalGrade);
   const rawGrade = normalizeGradeBand(input.rawGrade);
   const missingPass = Array.isArray(input.missing?.pass) ? input.missing.pass : [];
   const missingMerit = Array.isArray(input.missing?.merit) ? input.missing.merit : [];
   const missingDistinction = Array.isArray(input.missing?.distinction) ? input.missing.distinction : [];
+  const rationaleByCode = new Map<string, string>();
+  for (const row of Array.isArray(input.criterionChecks) ? input.criterionChecks : []) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!/^[PMD]\d{1,2}$/.test(code) || rationaleByCode.has(code)) continue;
+    if (normalizeDecisionLabel(row?.decision) === "ACHIEVED") continue;
+    const why = normalizeText(row?.rationale);
+    if (why) rationaleByCode.set(code, why);
+  }
+  const reasonsFor = (codes: string[]) =>
+    codes
+      .map((code) => {
+        const normalized = String(code || "").trim().toUpperCase();
+        const reason = rationaleByCode.get(normalized);
+        return normalized && reason ? `${normalized}: ${reason}` : "";
+      })
+      .filter(Boolean)
+      .slice(0, 2);
 
-  if (finalGrade === "REFER") return formatNextBandRequirementLine("PASS", missingPass);
+  if (finalGrade === "REFER") {
+    return buildNaturalHigherGradeGuidance({
+      currentGrade: finalGrade,
+      targetBand: "PASS",
+      missingCodes: missingPass,
+      reasons: reasonsFor(missingPass),
+    });
+  }
   if (finalGrade === "PASS" || finalGrade === "PASS_ON_RESUBMISSION") {
-    if (missingMerit.length) return formatNextBandRequirementLine("MERIT", missingMerit);
+    if (missingMerit.length) {
+      return buildNaturalHigherGradeGuidance({
+        currentGrade: finalGrade,
+        targetBand: "MERIT",
+        missingCodes: missingMerit,
+        reasons: reasonsFor(missingMerit),
+        resubmissionCapped: finalGrade === "PASS_ON_RESUBMISSION",
+      });
+    }
     if (rawGrade === "DISTINCTION" && missingDistinction.length) {
-      return formatNextBandRequirementLine("DISTINCTION", missingDistinction);
+      return buildNaturalHigherGradeGuidance({
+        currentGrade: finalGrade,
+        targetBand: "DISTINCTION",
+        missingCodes: missingDistinction,
+        reasons: reasonsFor(missingDistinction),
+        resubmissionCapped: finalGrade === "PASS_ON_RESUBMISSION",
+      });
     }
     return "Maintain this standard and add stronger critical depth to progress to higher bands.";
   }
   if (finalGrade === "MERIT") {
-    if (missingDistinction.length) return formatNextBandRequirementLine("DISTINCTION", missingDistinction);
+    if (missingDistinction.length) {
+      return buildNaturalHigherGradeGuidance({
+        currentGrade: finalGrade,
+        targetBand: "DISTINCTION",
+        missingCodes: missingDistinction,
+        reasons: reasonsFor(missingDistinction),
+      });
+    }
     return "Merit is secure. To progress further, increase critical judgement and synthesis quality consistently.";
   }
   return "Distinction criteria are met across the mapped brief scope.";
@@ -445,6 +493,7 @@ export async function PATCH(
       finalGrade: finalOverallGrade,
       rawGrade: gradePolicy.rawGrade,
       missing: bandCap.missing,
+      criterionChecks: effectiveCriterionChecks as any,
     });
     const feedbackPolicyNotes: string[] = [];
     const recordFeedbackPolicyNote = (note: string) => {
@@ -510,6 +559,8 @@ export async function PATCH(
       return next;
     };
     let feedbackSummaryForPayload =
+      extractFeedbackSummaryFromRenderedText(String(resultJson?.response?.feedbackSummary || "")) ||
+      extractFeedbackSummaryFromRenderedText(existingFeedbackText || feedbackText || "") ||
       normalizeText(resultJson?.response?.feedbackSummary) ||
       summarizeFeedbackText(existingFeedbackText || feedbackText || "Feedback generated.");
     let feedbackBulletsForPayload =
@@ -551,7 +602,10 @@ export async function PATCH(
     }
     feedbackText = applyFeedbackTextPolicy(feedbackText || "Feedback generated.");
     feedbackSummaryForPayload = applySummaryPolicy(
-      summarizeFeedbackText(feedbackText || "Feedback generated.") || feedbackSummaryForPayload || "Feedback generated."
+      extractFeedbackSummaryFromRenderedText(feedbackText || "") ||
+        summarizeFeedbackText(feedbackText || "Feedback generated.") ||
+        feedbackSummaryForPayload ||
+        "Feedback generated."
     );
     const feedbackBullets = applyAnnotationPolicy(
       deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets)

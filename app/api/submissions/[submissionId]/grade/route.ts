@@ -22,6 +22,7 @@ import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
 import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
 import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
 import { enforceFeedbackAnnotationPolicy } from "@/lib/grading/feedbackAnnotationPolicy";
+import { buildNaturalHigherGradeGuidance, isHigherGradeProgressionText } from "@/lib/grading/higherGradeFeedback";
 import { sanitizeStudentFeedbackBullets, sanitizeStudentFeedbackLine } from "@/lib/grading/studentFeedback";
 import { getOrCreateAppConfig } from "@/lib/admin/appConfig";
 import { fetchOpenAiJson, resolveOpenAiApiKey } from "@/lib/openai/client";
@@ -1796,6 +1797,86 @@ function buildHigherGradeGapBullets(input: {
   return out;
 }
 
+function buildHigherGradeGuidanceText(input: {
+  finalGrade: string;
+  rawGrade: string;
+  gradePolicy: { wasCapped?: boolean; capReason?: string | null };
+  bandCapPolicy: {
+    missing?: { pass?: string[]; merit?: string[]; distinction?: string[] };
+  };
+  criterionChecks: Array<{ code?: string; decision?: string; rationale?: string }>;
+}) {
+  const finalGrade = String(input.finalGrade || "").trim().toUpperCase();
+  const rawGrade = String(input.rawGrade || "").trim().toUpperCase();
+  const missingPass = Array.isArray(input.bandCapPolicy?.missing?.pass) ? input.bandCapPolicy.missing.pass : [];
+  const missingMerit = Array.isArray(input.bandCapPolicy?.missing?.merit) ? input.bandCapPolicy.missing.merit : [];
+  const missingDistinction = Array.isArray(input.bandCapPolicy?.missing?.distinction)
+    ? input.bandCapPolicy.missing.distinction
+    : [];
+  const rationaleByCode = new Map<string, string>();
+  for (const row of Array.isArray(input.criterionChecks) ? input.criterionChecks : []) {
+    const code = String(row?.code || "").trim().toUpperCase();
+    if (!code || rationaleByCode.has(code)) continue;
+    if (String(row?.decision || "").trim().toUpperCase() === "ACHIEVED") continue;
+    const reason = firstSentence(row?.rationale || "");
+    if (reason) rationaleByCode.set(code, reason);
+  }
+  const reasonsFor = (codes: string[]) =>
+    codes
+      .map((code) => {
+        const normalized = String(code || "").trim().toUpperCase();
+        const reason = rationaleByCode.get(normalized);
+        return normalized && reason ? `${normalized}: ${reason}` : "";
+      })
+      .filter(Boolean)
+      .slice(0, 2);
+
+  if (finalGrade === "REFER") {
+    return buildNaturalHigherGradeGuidance({
+      currentGrade: finalGrade,
+      targetBand: "PASS",
+      missingCodes: missingPass,
+      reasons: reasonsFor(missingPass),
+      resubmissionCapped: Boolean(input.gradePolicy?.wasCapped && String(input.gradePolicy?.capReason || "").includes("RESUBMISSION")),
+    });
+  }
+  if (finalGrade === "PASS" || finalGrade === "PASS_ON_RESUBMISSION") {
+    if (missingMerit.length) {
+      return buildNaturalHigherGradeGuidance({
+        currentGrade: finalGrade,
+        targetBand: "MERIT",
+        missingCodes: missingMerit,
+        reasons: reasonsFor(missingMerit),
+        resubmissionCapped: finalGrade === "PASS_ON_RESUBMISSION",
+      });
+    }
+    if (rawGrade === "DISTINCTION" && missingDistinction.length) {
+      return buildNaturalHigherGradeGuidance({
+        currentGrade: finalGrade,
+        targetBand: "DISTINCTION",
+        missingCodes: missingDistinction,
+        reasons: reasonsFor(missingDistinction),
+        resubmissionCapped: finalGrade === "PASS_ON_RESUBMISSION",
+      });
+    }
+    return finalGrade === "PASS_ON_RESUBMISSION"
+      ? "This work remains capped at PASS on resubmission policy until the reassessment conditions are met."
+      : "Continue strengthening criterion-linked evidence to progress to higher bands.";
+  }
+  if (finalGrade === "MERIT") {
+    if (missingDistinction.length) {
+      return buildNaturalHigherGradeGuidance({
+        currentGrade: finalGrade,
+        targetBand: "DISTINCTION",
+        missingCodes: missingDistinction,
+        reasons: reasonsFor(missingDistinction),
+      });
+    }
+    return "Merit is secure. To progress further, make your evaluative judgements more explicit and consistently evidence them.";
+  }
+  return "Distinction criteria are met across the mapped brief scope.";
+}
+
 function buildCriterionSpecificFeedbackBullets(input: {
   unitCode: string;
   assignmentCode: string;
@@ -3453,6 +3534,9 @@ export async function POST(
     const finalConfidence = confidenceResult.finalConfidence;
     const templateLooksLikeItGreetsStudent =
       /\{studentFirstName\}|\{studentFullName\}|(?:^|\n)\s*hello\b/i.test(String(feedbackTemplate || ""));
+    const templateHasSplitHigherGradeGuidance =
+      String(feedbackTemplate || "").includes("{feedbackBullets}") &&
+      String(feedbackTemplate || "").includes("{higherGradeGuidance}");
     const feedbackSummaryRaw = templateLooksLikeItGreetsStudent
       ? stripLeadingStudentAddress(String(decision.feedbackSummary || ""), studentFirstName)
       : personalizeFeedbackSummary(decision.feedbackSummary, studentFirstName);
@@ -3492,10 +3576,13 @@ export async function POST(
       readableEvidenceLikely,
       noteToneProfile,
     });
+    const bulletCandidates = [...baseFeedbackBullets, ...higherGradeGapBullets, ...criterionSpecificFeedbackBullets]
+      .map((line) => sanitizeStudentFeedbackLine(line))
+      .filter(Boolean);
     const dedupedFeedbackBullets = dedupeFeedbackBullets({
-      bullets: [...baseFeedbackBullets, ...higherGradeGapBullets, ...criterionSpecificFeedbackBullets]
-        .map((line) => sanitizeStudentFeedbackLine(line))
-        .filter(Boolean),
+      bullets: templateHasSplitHigherGradeGuidance
+        ? bulletCandidates.filter((line) => !isHigherGradeProgressionText(line))
+        : bulletCandidates,
       summary: feedbackSummary,
       max: Math.max(1, cfg.maxFeedbackBullets),
     });
@@ -3619,9 +3706,13 @@ export async function POST(
       completedAtIso,
     });
     const feedbackDate = toUkDate(completedAtIso);
-    const higherGradeGuidance = higherGradeGapBullets.length
-      ? higherGradeGapBullets.join(" ")
-      : "To progress to a higher band, make each criterion link explicit with page-based evidence.";
+    const higherGradeGuidance = buildHigherGradeGuidanceText({
+      finalGrade: overallGrade,
+      rawGrade: rawOverallGrade,
+      gradePolicy,
+      bandCapPolicy,
+      criterionChecks: decision.criterionChecks as any,
+    });
     const criterionOutcomeSummary = buildCriterionOutcomeSummaryBlock({
       criteria: criteria as any,
       criterionChecks: decision.criterionChecks as any,
