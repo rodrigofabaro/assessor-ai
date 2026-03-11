@@ -21,15 +21,21 @@ function expectContains(haystack, needle, label) {
 
 function main() {
   const gradeRoute = read("app/api/submissions/[submissionId]/grade/route.ts");
+  const assessmentRoute = read("app/api/submissions/[submissionId]/assessments/[assessmentId]/route.ts");
   const regressionPack = read("scripts/regression-pack.js");
 
   expectContains(gradeRoute, "enforceFeedbackVascrPolicy", "grading route");
   expectContains(gradeRoute, "enforceFeedbackAnnotationPolicy", "grading route");
   expectContains(gradeRoute, "lintOverallFeedbackClaims", "grading route");
   expectContains(gradeRoute, "lintOverallFeedbackPearsonPolicy", "grading route");
+  expectContains(assessmentRoute, "enforceFeedbackVascrPolicy", "assessment update route");
+  expectContains(assessmentRoute, "enforceFeedbackAnnotationPolicy", "assessment update route");
+  expectContains(assessmentRoute, "lintOverallFeedbackClaims", "assessment update route");
+  expectContains(assessmentRoute, "lintOverallFeedbackPearsonPolicy", "assessment update route");
 
   expectContains(regressionPack, "feedback-vascr-policy.test.js", "regression pack");
   expectContains(regressionPack, "feedback-annotation-policy.test.js", "regression pack");
+  expectContains(regressionPack, "manual-feedback-policy-contract.test.js", "regression pack");
 
   console.log("feedback quality contract passed.");
 }

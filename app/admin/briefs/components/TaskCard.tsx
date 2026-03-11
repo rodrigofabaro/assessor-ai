@@ -125,6 +125,26 @@ function normalizeText(text: string) {
     .trim();
 }
 
+function looksLikeScenarioCue(text: string) {
+  const src = String(text || "").trim();
+  if (!src) return false;
+  return /\b(vocational\s+scenario(?:\s+or\s+context)?|scenario\s+or\s+context|based\s+on\s+the\s+scenario|using\s+the\s+scenario|from\s+the\s+scenario|based\s+on\s+the\s+context|using\s+the\s+context|from\s+the\s+context)\b/i.test(
+    src
+  );
+}
+
+function taskHasImageToken(task: Task | null | undefined) {
+  const values: string[] = [
+    String(task?.text || ""),
+    String(task?.prompt || ""),
+    String(task?.scenarioText || ""),
+  ];
+  if (Array.isArray(task?.parts)) {
+    for (const part of task.parts) values.push(String(part?.text || ""));
+  }
+  return values.some((value) => /\[\[IMG:[^\]]+\]\]/i.test(value));
+}
+
 function normalizeComparable(text: string) {
   return String(text || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
@@ -590,6 +610,54 @@ function buildStructuredParts(partsInput: unknown): StructuredPart[] {
   }
 
   return topLevel.filter((part) => part.text || part.children.length > 0);
+}
+
+function flattenStructuredPartTexts(parts: StructuredPart[]): string[] {
+  const out: string[] = [];
+  for (const part of parts) {
+    if (part?.text) out.push(String(part.text));
+    for (const child of part?.children || []) {
+      if (child?.text) out.push(String(child.text));
+    }
+  }
+  return out;
+}
+
+function extractTrailingTextAfterStructuredParts(text: string, parts: StructuredPart[]): string {
+  const source = normalizeText(text || "");
+  if (!source || !parts.length) return "";
+
+  const flattened = flattenStructuredPartTexts(parts).map((value) => normalizeText(value)).filter(Boolean);
+  if (!flattened.length) return "";
+
+  const lastRenderedText = flattened[flattened.length - 1] || "";
+  if (lastRenderedText) {
+    const lastIndex = source.lastIndexOf(lastRenderedText);
+    if (lastIndex >= 0) {
+      return source.slice(lastIndex + lastRenderedText.length).trim();
+    }
+  }
+
+  const sourceLines = source.split("\n");
+  const lastRenderedLine = lastRenderedText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-1)[0];
+  if (lastRenderedLine) {
+    const comparable = normalizeComparable(lastRenderedLine);
+    for (let i = sourceLines.length - 1; i >= 0; i -= 1) {
+      if (normalizeComparable(sourceLines[i] || "") !== comparable) continue;
+      return sourceLines.slice(i + 1).join("\n").trim();
+    }
+  }
+
+  for (let i = sourceLines.length - 1; i >= 0; i -= 1) {
+    if (!/\[\[IMG:[^\]]+\]\]/i.test(sourceLines[i] || "")) continue;
+    return sourceLines.slice(i).join("\n").trim();
+  }
+
+  return "";
 }
 
 function normalizeManualLatex(raw: string) {
@@ -1314,6 +1382,11 @@ export function TaskCard({
     [task, warningItems, overrideApplied]
   );
   const hasMathLayoutWarning = warningItems.some((w) => /math layout: broken line wraps/i.test(w));
+  const usedWholePdfFallback = warningItems.some((w) => /whole-pdf fallback/i.test(String(w || "")));
+  const hasImageToken = useMemo(() => taskHasImageToken(task), [task]);
+  const hasDirectTaskPages = pages.length > 0;
+  const hasProvenancePages = !!(provenance?.pages && provenance.pages.length > 0);
+  const imageDisplayDependsOnPdfAsset = hasImageToken && !!openPdfHref;
 
   // Logic: Isolate context lines (metadata often found at start of task)
   const { contextLines, textWithoutContext } = useMemo(() => {
@@ -1339,9 +1412,15 @@ export function TaskCard({
     [textWithoutContext]
   );
   const extractedScenarioText = typeof task?.scenarioText === "string" ? task.scenarioText.trim() : "";
-  const scenarioText = extractedScenarioText || introText;
+  const introLooksLikeScenario = useMemo(() => looksLikeScenarioCue(introText), [introText]);
+  const scenarioText = extractedScenarioText || (introLooksLikeScenario ? introText : "");
   const { scenarioOnly, proposalText } = useMemo(() => splitScenarioProposalText(scenarioText), [scenarioText]);
   const scenarioDisplayText = proposalText ? scenarioOnly : scenarioText;
+  const scenarioSourceLabel = extractedScenarioText
+    ? "Explicit scenario mapping"
+    : introLooksLikeScenario
+      ? "Scenario inferred from intro cues"
+      : "No scenario mapping";
   const contextualIntroLine = useMemo(() => {
     if (!introText || !extractedScenarioText) return "";
     const introNorm = normalizeComparable(introText);
@@ -1627,6 +1706,10 @@ export function TaskCard({
     const firstKey = structuredParts[0]?.key || null;
     return extractIntroBeforeFirstPartMarker(taskBodyText, firstKey);
   }, [structuredParts, task?.title, taskBodyText]);
+  const structuredPartsTrailingText = useMemo(
+    () => extractTrailingTextAfterStructuredParts(taskBodyText, structuredParts),
+    [taskBodyText, structuredParts]
+  );
 
   // Diff Logic
   const diffData = useMemo(() => {
@@ -1847,6 +1930,7 @@ export function TaskCard({
           {scenarioDisplayText && (
             <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm text-zinc-700">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Vocational Scenario or Context</div>
+              <div className="mt-1 text-[11px] text-zinc-500">{scenarioSourceLabel}</div>
               <div className="break-words">
                 {renderPdfTextBlocks(scenarioDisplayText, "scenario", {
                   equationsById,
@@ -1875,6 +1959,52 @@ export function TaskCard({
           )}
 
           <div className="col-span-full w-full lg:[grid-column:1/-1] rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-700">
+            <div className="mb-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                <div className="font-semibold text-zinc-900">Extraction route</div>
+                <div className="mt-1">{usedWholePdfFallback ? "AI whole-PDF fallback" : "Task parser / page-grounded"}</div>
+                <div className="mt-1 text-zinc-500">
+                  {usedWholePdfFallback
+                    ? "Treat wording cautiously when task pages or provenance are empty."
+                    : "Task structure came from the normal brief parser."}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                <div className="font-semibold text-zinc-900">Page grounding</div>
+                <div className="mt-1">
+                  {hasDirectTaskPages || hasProvenancePages
+                    ? `Pages ${Array.from(new Set([...(pages as Array<string | number>), ...((provenance?.pages || []) as number[])])).join(", ")}`
+                    : "No task-level pages captured"}
+                </div>
+                <div className="mt-1 text-zinc-500">
+                  {hasDirectTaskPages || hasProvenancePages
+                    ? "Task is linked back to source pages."
+                    : "Strong signal that this task needs manual review or re-extraction."}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                <div className="font-semibold text-zinc-900">Scenario mapping</div>
+                <div className="mt-1">{scenarioSourceLabel}</div>
+                <div className="mt-1 text-zinc-500">
+                  {extractedScenarioText
+                    ? "Scenario/context came from extraction."
+                    : introLooksLikeScenario
+                      ? "Scenario box is inferred from intro wording only."
+                      : "No explicit scenario/context is mapped for this task."}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                <div className="font-semibold text-zinc-900">Visual evidence</div>
+                <div className="mt-1">{hasImageToken ? "Image token present" : "No image token detected"}</div>
+                <div className="mt-1 text-zinc-500">
+                  {hasImageToken
+                    ? imageDisplayDependsOnPdfAsset
+                      ? "If the figure box below fails to load, the image crop/asset is missing, not just the text display."
+                      : "Token exists, but this view does not have a source-PDF figure link."
+                    : "If the task references a figure, extraction likely missed the token."}
+                </div>
+              </div>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold uppercase tracking-wide text-zinc-600">Source provenance</span>
               <span
@@ -1952,6 +2082,17 @@ export function TaskCard({
                                 reflowWrappedLines: hasMathLayoutWarning,
                               })}
                     </div>
+                    {structuredPartsTrailingText ? (
+                      <div className="mt-2">
+                        {renderPdfTextBlocks(structuredPartsTrailingText, "task-tail-no-segment", {
+                          equationsById,
+                          openPdfHref,
+                          canEditLatex,
+                          onSaveEquationLatex,
+                          reflowWrappedLines: hasMathLayoutWarning,
+                        })}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
                 {contentSegments.map((segment, segmentIndex) =>
@@ -1987,6 +2128,17 @@ export function TaskCard({
                                 reflowWrappedLines: hasMathLayoutWarning,
                               })}
                             </div>
+                            {structuredPartsTrailingText ? (
+                              <div className="mt-2">
+                                {renderPdfTextBlocks(structuredPartsTrailingText, `task-tail-${segmentIndex}`, {
+                                  equationsById,
+                                  openPdfHref,
+                                  canEditLatex,
+                                  onSaveEquationLatex,
+                                  reflowWrappedLines: hasMathLayoutWarning,
+                                })}
+                              </div>
+                            ) : null}
                           </>
                         ) : null
                       ) : (

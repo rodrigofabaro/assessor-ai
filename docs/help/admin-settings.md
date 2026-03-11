@@ -1,18 +1,19 @@
 # `/admin/settings` Help
 
-Last updated: 2026-03-06
+Last updated: 2026-03-11
 
 ## Purpose
 
-Configure platform behavior in three scoped sections:
+Configure platform behavior in four scoped sections:
 
 1. `AI`: model + connectivity
 2. `Grading`: tone/strictness/template/page-notes
 3. `App`: audit actor, automation policy, branding, and Turnitin
+4. `Organization`: active-tenant JSON config and encrypted integration secrets
 
 This page is the policy control surface for operations and QA.
 
-Super-admin-only controls (organization lifecycle + per-organization secrets/config) are now in:
+Super-admin-only controls for organization lifecycle remain in:
 
 - `/admin/developer`
 
@@ -34,6 +35,13 @@ Super-admin-only controls (organization lifecycle + per-organization secrets/con
 - automation policy toggles
 - Turnitin configuration and smoke test
 - favicon upload (storage-backed, served via `/api/favicon`)
+
+4. Organization
+- edits the current active organization from session scope
+- supports switching active organization in-page before loading tenant settings
+- stores audited JSON config per tenant
+- stores encrypted secret identifiers per tenant (`OPENAI_API_KEY`, `TURNITIN_API_KEY`, `SMTP_API_KEY`)
+- uses the same underlying org-settings API as the developer console, but in the normal org-admin settings flow
 
 ## Turnitin workflow in Settings
 
@@ -71,3 +79,4 @@ Use this order for high-safety changes:
 - `Reset defaults` applies baseline defaults for that section.
 - Saved values are auditable through settings audit events.
 - Write access is based on signed-in session role (`ADMIN` or `SUPER_ADMIN`), while `active audit user` is attribution context for audit logs.
+- `Organization` settings are scoped to the active organization in session. Switch org first if you need to edit a different tenant.

@@ -22,6 +22,35 @@ type Props = {
   onSaveLatex?: (equationId: string, latex: string) => Promise<void> | void;
 };
 
+function FigureTokenImage({ figureSrc, imgTokenId }: { figureSrc: string; imgTokenId: string }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  if (!figureSrc) {
+    return <span>Image token present, but the source PDF link is unavailable in this view.</span>;
+  }
+
+  if (loadFailed) {
+    return (
+      <span className="block rounded border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] text-amber-900">
+        Image token <span className="font-semibold">{imgTokenId}</span> exists, but the extracted figure asset could not be loaded.
+        This usually means the text extraction found a figure reference while the image crop/serve path is missing or failed.
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={figureSrc}
+      alt={`Extracted figure ${imgTokenId}`}
+      className="max-h-[460px] w-full rounded border border-sky-100 bg-white object-contain"
+      loading="lazy"
+      onError={() => setLoadFailed(true)}
+      onLoad={() => setLoadFailed(false)}
+    />
+  );
+}
+
 const TOKEN_RE = /(\[\[(?:EQ|IMG):[^\]]+\]\])/g;
 const HEURISTIC_MATH_TOKEN_RE = /(\[\[MATH:[\s\S]*?\]\])/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
@@ -493,17 +522,7 @@ export default function InlineEquationText({
         : "";
       out.push(
         <span key={`img-${imgTokenId}`} className="my-2 block rounded-md border border-sky-200 bg-sky-50 p-2 text-xs text-sky-900">
-          {figureSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={figureSrc}
-              alt={`Extracted figure ${imgTokenId}`}
-              className="max-h-[460px] w-full rounded border border-sky-100 bg-white object-contain"
-              loading="lazy"
-            />
-          ) : (
-            <span>diagram reference from PDF image</span>
-          )}
+          <FigureTokenImage figureSrc={figureSrc} imgTokenId={imgTokenId} />
           {openPdfHref ? (
             <span className="mt-2 block">
               <a href={openPdfHref} target="_blank" rel="noreferrer" className="underline underline-offset-2">

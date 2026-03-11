@@ -1,6 +1,6 @@
 # Assessor-AI Unified Roadmap
 
-Last updated: 2026-03-06
+Last updated: 2026-03-11
 
 ## Purpose
 
@@ -103,6 +103,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-06): persisted fidelity report + per-task provenance are now produced on brief extraction, and lock quality gate blocks unresolved fidelity blockers.
 - Progress (2026-03-06): missing-scenario warnings are now cue-based (only when task text explicitly requires scenario/context) to reduce false positives on briefs where later tasks legitimately have no scenario.
 - Progress (2026-03-06): UniCourse template-aware extraction profile is enabled with automatic generic fallback scoring (`extractBrief` profile candidates + selection metadata), and regression fixture coverage is locked via `scripts/brief-template-profile.test.js`.
+- Progress (2026-03-11): brief review task cards now distinguish whole-PDF fallback, missing page provenance, scenario inference, and image-token-without-asset states; scenario display is cue-gated so ordinary task intros are no longer mislabeled as scenario/context, and figure-token render failures now explain asset-missing vs display-missing behavior (`scripts/brief-review-diagnostics-contract.test.js`).
 
 3. P0 M9 password recovery email enablement (today)
 - enable transactional email provider for password recovery path (not `mailto` fallback)
@@ -229,6 +230,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - add feedback QA checks in release validation so verbose/generic output is flagged before release.
 - Progress (2026-03-06): grading now applies an annotation realism policy after bullet generation (generic low-signal notes are removed, assessor-style fallback notes are injected when needed) and regression pack now includes `scripts/feedback-annotation-policy.test.js`.
 - Progress (2026-03-06): release gate now includes explicit feedback-quality contract enforcement via `pnpm run ops:feedback-quality-contract`.
+- Progress (2026-03-11): manual assessor feedback edits and criterion-override refresh now reapply VASCR summary shaping, annotation realism, contradictory-claim softening, and Pearson-style leak guards before saving audit output or regenerating marked PDFs; regression lock added in `scripts/manual-feedback-policy-contract.test.js`.
 
 ### Next (immediately after current queue)
 
@@ -280,6 +282,7 @@ Use this doc when the instruction is: "continue the roadmap".
 - Progress (2026-03-09): admin settings write paths now scope `activeAuditUserId` selection to the active organization for non-superadmin sessions while preserving global selection for `SUPER_ADMIN`; regression lock added in `scripts/admin-settings-org-boundary.test.js`.
 - Progress (2026-03-09): platform/org role boundaries are now regression-locked for `admin/organizations` and `admin/users`, including super-admin-only org management, org-admin cross-org guardrails, and forced session-org user creation defaults; contract added in `scripts/admin-role-boundary-contract.test.js`.
 - Progress (2026-03-09): organization lifecycle guards are now regression-locked for default-org protection plus empty-org-only deletion semantics in `admin/organizations/[organizationId]`; contract added in `scripts/admin-organization-lifecycle-contract.test.js`.
+- Progress (2026-03-11): per-organization config/secrets are now exposed as a first-class `/admin/settings/organization` workspace scoped to the active organization, with in-page org switching support and settings-nav entry; regression lock added in `scripts/org-settings-page-contract.test.js`.
 
 6. M9.1 email operations continuation
 - add internal alert email dispatch plumbing (`ALERT_EMAIL_TO`) for critical runtime failures

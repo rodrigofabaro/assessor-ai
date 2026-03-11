@@ -86,6 +86,22 @@ function run() {
   assert(Number(cover.confidence) > 0.5, "expected positive cover confidence");
   assert(isCoverMetadataReady(cover) === true, "expected cover metadata readiness true");
 
+  const titleBlockPages = [
+    {
+      pageNumber: 1,
+      text: `
+        Unit 64 – M/615/1526 – Thermofluids
+        Assignment 2: Vapour Power Cycles
+        Megan Newton
+      `,
+    },
+  ];
+
+  const titleBlockCover = extractCoverMetadataFromPages(titleBlockPages);
+  assert(titleBlockCover.unitCode?.value === "64", "expected title-block unit extraction");
+  assert(titleBlockCover.assignmentCode?.value === "A2", "expected title-block assignment extraction");
+  assert(titleBlockCover.studentName?.value === "Megan Newton", "expected title-block student name extraction");
+
   console.log("cover metadata extraction tests passed.");
 }
 

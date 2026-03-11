@@ -662,14 +662,22 @@ export default function AdminUsersPage() {
             <div id="organization-management" className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Platform controls</div>
               <p className="mt-2 text-xs text-slate-600">
-                Organization lifecycle and per-tenant configuration moved to the Developer console.
+                Organization lifecycle stays in the Developer console. Per-tenant configuration now lives in Settings.
               </p>
-              <Link
-                href="/admin/developer#organization-management"
-                className="mt-3 inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50"
-              >
-                Open developer console
-              </Link>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/admin/settings/organization"
+                  className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+                >
+                  Open organization settings
+                </Link>
+                <Link
+                  href="/admin/developer#organization-management"
+                  className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+                >
+                  Open developer console
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">

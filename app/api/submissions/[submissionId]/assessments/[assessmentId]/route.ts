@@ -12,6 +12,10 @@ import { getCurrentAuditActor } from "@/lib/admin/appConfig";
 import { buildPageNotesFromCriterionChecks, extractCriterionChecksFromResultJson } from "@/lib/grading/pageNotes";
 import { sanitizeStudentFeedbackText } from "@/lib/grading/studentFeedback";
 import { addOrganizationReadScope, getRequestOrganizationId } from "@/lib/auth/requestSession";
+import { lintOverallFeedbackClaims } from "@/lib/grading/feedbackClaimLint";
+import { lintOverallFeedbackPearsonPolicy } from "@/lib/grading/feedbackPearsonPolicyLint";
+import { enforceFeedbackVascrPolicy } from "@/lib/grading/feedbackVascrPolicy";
+import { enforceFeedbackAnnotationPolicy } from "@/lib/grading/feedbackAnnotationPolicy";
 
 export const runtime = "nodejs";
 
@@ -24,10 +28,22 @@ const OVERRIDE_REASON_CODES = [
   "OTHER",
 ] as const;
 
+const FEEDBACK_POLICY_NOTE_PREFIXES = [
+  "VASCR summary policy applied",
+  "Feedback annotation policy applied",
+  "Overall feedback wording lint softened",
+  "Pearson feedback style lint normalized",
+] as const;
+
 type DecisionLabel = "ACHIEVED" | "NOT_ACHIEVED" | "UNCLEAR";
 
 function normalizeText(v: unknown) {
   return String(v || "").replace(/\s+/g, " ").trim();
+}
+
+function isFeedbackPolicySystemNote(value: unknown) {
+  const note = String(value || "").trim();
+  return FEEDBACK_POLICY_NOTE_PREFIXES.some((prefix) => note.startsWith(prefix));
 }
 
 function normalizeDecisionLabel(value: unknown): DecisionLabel {
@@ -430,6 +446,69 @@ export async function PATCH(
       rawGrade: gradePolicy.rawGrade,
       missing: bandCap.missing,
     });
+    const feedbackPolicyNotes: string[] = [];
+    const recordFeedbackPolicyNote = (note: string) => {
+      if (note && !feedbackPolicyNotes.includes(note)) feedbackPolicyNotes.push(note);
+    };
+    const feedbackPolicyContext = {
+      unitCode: String(resultJson?.referenceContextSnapshot?.unit?.unitCode || ""),
+      assignmentCode: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.assignmentCode || ""),
+      assignmentTitle: String(resultJson?.referenceContextSnapshot?.assignmentBrief?.title || ""),
+    };
+    const applySummaryPolicy = (summary: string) => {
+      const vascrSummary = enforceFeedbackVascrPolicy({
+        summary,
+        overallGrade: finalOverallGrade,
+        criterionChecks: effectiveCriterionChecks as any,
+        maxSentences: 4,
+      });
+      if (vascrSummary.changed) {
+        recordFeedbackPolicyNote(
+          `VASCR summary policy applied (${vascrSummary.adjustments.length} adjustment${vascrSummary.adjustments.length === 1 ? "" : "s"}).`
+        );
+      }
+      return vascrSummary.summary;
+    };
+    const applyAnnotationPolicy = (bullets: unknown[]) => {
+      const annotationPolicy = enforceFeedbackAnnotationPolicy({
+        bullets,
+        criterionChecks: effectiveCriterionChecks as any,
+        maxBullets: Math.max(1, gradingCfg.maxFeedbackBullets),
+      });
+      if (annotationPolicy.changed) {
+        recordFeedbackPolicyNote(
+          `Feedback annotation policy applied (${annotationPolicy.adjustments.length} adjustment${annotationPolicy.adjustments.length === 1 ? "" : "s"}).`
+        );
+      }
+      return annotationPolicy.bullets;
+    };
+    const applyFeedbackTextPolicy = (text: string) => {
+      let next = text;
+      const feedbackClaimLint = lintOverallFeedbackClaims({
+        text: next,
+        criterionChecks: effectiveCriterionChecks as any,
+        overallGrade: finalOverallGrade,
+      });
+      next = feedbackClaimLint.text;
+      if (feedbackClaimLint.changed) {
+        recordFeedbackPolicyNote(
+          `Overall feedback wording lint softened ${feedbackClaimLint.changedLines} contradictory claim line(s) for unachieved criteria.`
+        );
+      }
+      const feedbackPearsonLint = lintOverallFeedbackPearsonPolicy({
+        text: next,
+        criterionChecks: effectiveCriterionChecks as any,
+        overallGrade: finalOverallGrade,
+        context: feedbackPolicyContext,
+      });
+      next = feedbackPearsonLint.text;
+      if (feedbackPearsonLint.changed) {
+        recordFeedbackPolicyNote(
+          `Pearson feedback style lint normalized ${feedbackPearsonLint.changedLines} line adjustment(s) (grade tone/work-focus/spill guard).`
+        );
+      }
+      return next;
+    };
     let feedbackSummaryForPayload =
       normalizeText(resultJson?.response?.feedbackSummary) ||
       summarizeFeedbackText(existingFeedbackText || feedbackText || "Feedback generated.");
@@ -438,6 +517,8 @@ export async function PATCH(
       resultJson.response.feedbackBullets.some((b: unknown) => normalizeText(b))
         ? resultJson.response.feedbackBullets.map((b: unknown) => normalizeText(b)).filter(Boolean)
         : deriveBulletsFromFeedbackText(existingFeedbackText || feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
+    feedbackSummaryForPayload = applySummaryPolicy(feedbackSummaryForPayload || "Feedback generated.");
+    feedbackBulletsForPayload = applyAnnotationPolicy(feedbackBulletsForPayload);
     if (shouldAutoRefreshFeedback) {
       const template = String(resultJson?.feedbackTemplateUsed || getDefaultFeedbackTemplate());
       const studentFirstName = String(studentName || "Student")
@@ -467,10 +548,15 @@ export async function PATCH(
         higherGradeGuidance,
         criterionOutcomeSummary,
       });
-      feedbackSummaryForPayload = summarizeFeedbackText(feedbackText || "Feedback generated.");
-      feedbackBulletsForPayload = deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
     }
-    const feedbackBullets = deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets);
+    feedbackText = applyFeedbackTextPolicy(feedbackText || "Feedback generated.");
+    feedbackSummaryForPayload = applySummaryPolicy(
+      summarizeFeedbackText(feedbackText || "Feedback generated.") || feedbackSummaryForPayload || "Feedback generated."
+    );
+    const feedbackBullets = applyAnnotationPolicy(
+      deriveBulletsFromFeedbackText(feedbackText || "Feedback generated.", gradingCfg.maxFeedbackBullets)
+    );
+    feedbackBulletsForPayload = feedbackBullets;
 
     const responsePayload =
       resultJson?.response && typeof resultJson.response === "object"
@@ -505,8 +591,10 @@ export async function PATCH(
     const withoutOldOverrideNotes = existingSystemNotes.filter(
       (n: unknown) => !String(n || "").startsWith("Assessor criterion overrides:")
     );
+    const withoutOldPolicyNotes = withoutOldOverrideNotes.filter((n: unknown) => !isFeedbackPolicySystemNote(n));
     const systemNotes = [
-      ...withoutOldOverrideNotes,
+      ...withoutOldPolicyNotes,
+      ...feedbackPolicyNotes,
       overrideRows.length
         ? `Assessor criterion overrides: ${overrideRows.length} criteria updated (${overrideSummary.reasonCodes.join(", ")}).`
         : null,

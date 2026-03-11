@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { jsonFetch } from "@/lib/http";
 import { notifyToast } from "@/lib/ui/toast";
@@ -203,6 +203,15 @@ function safeDate(s?: string | null) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
+}
+
+function formatDateInputValue(value?: string | Date | null) {
+  const d = value instanceof Date ? value : new Date(String(value || ""));
+  if (Number.isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function normalizeUnitCodeForMatch(value?: string | null) {
@@ -1736,25 +1745,26 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => {
     const a = selectedAssessment;
+    const defaultStudentName = String(submission?.student?.fullName || coverStudentName || "").trim();
+    const todayInput = formatDateInputValue(new Date());
     if (!a) {
       setFeedbackDraft("");
-      setFeedbackStudentName("");
-      setFeedbackMarkedDate("");
+      setFeedbackStudentName(defaultStudentName);
+      setFeedbackMarkedDate(todayInput);
+      setFeedbackBaseline({ text: "", studentName: defaultStudentName, date: todayInput });
       return;
     }
     const rj: any = a.resultJson || {};
     const override = rj?.feedbackOverride || {};
-    const studentName = String(override?.studentName || rj?.studentFirstNameUsed || submission?.student?.fullName || coverStudentName || "").trim();
+    const studentName = String(override?.studentName || rj?.studentFirstNameUsed || defaultStudentName || "").trim();
     const dateCandidate = String(override?.markedDate || "").trim();
-    const iso = dateCandidate || String(a.createdAt || "");
-    const d = new Date(iso);
-    const dateInput = Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+    const dateInput = formatDateInputValue(dateCandidate || new Date());
     setFeedbackDraft(String(a.feedbackText || ""));
     setFeedbackStudentName(studentName);
     setFeedbackMarkedDate(dateInput);
     setFeedbackBaseline({ text: String(a.feedbackText || ""), studentName, date: dateInput });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAssessment?.id, selectedAssessment?.feedbackText, selectedAssessment?.resultJson, selectedAssessment?.createdAt]);
+  }, [selectedAssessment?.id, selectedAssessment?.feedbackText, selectedAssessment?.resultJson, submission?.student?.fullName, coverStudentName]);
 
   useEffect(() => {
     const rows = Array.isArray(structuredGrading?.criterionChecks) ? structuredGrading.criterionChecks : [];
@@ -2201,10 +2211,6 @@ export default function SubmissionDetailPage() {
   }, [submissionId, guidedStep, preferredCoverField]);
 
   const reviewReadyModeRef = useRef("");
-  const openOutputsPanel = useEffectEvent(() => {
-    openSidePanel("outputs");
-    scrollToPanel(outputsPanelRef.current);
-  });
   useEffect(() => {
     if (!submissionId) return;
     if (!reviewReadyMode) return;
@@ -2212,9 +2218,11 @@ export default function SubmissionDetailPage() {
     if (reviewReadyModeRef.current === key) return;
     reviewReadyModeRef.current = key;
     const t = window.setTimeout(() => {
-      openOutputsPanel();
+      openSidePanel("outputs");
+      scrollToPanel(outputsPanelRef.current);
     }, 40);
     return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId, reviewReadyMode, checklist.readyToUpload, checklist.gradeGenerated]);
 
   useEffect(() => {

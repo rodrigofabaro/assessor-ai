@@ -1,6 +1,6 @@
 # Assessor‑AI — Milestones
 
-Last updated: 2026-03-06
+Last updated: 2026-03-11
 
 Canonical planning source:
 - `docs/ROADMAP.md` (index)
@@ -67,6 +67,7 @@ Status labels:
 - M10 progress (2026-03-09): submission grade/marked-file and reference-document delete now enforce active-org visibility before grading, output-file access, and destructive document actions.
 - M10 progress (2026-03-09): tenant-owned IV draft/generation/backfill routes now enforce active-org visibility before loading submission, reference-spec, brief, and evidence attachment documents.
 - M10 progress (2026-03-09): assignment bindings and admin IV generate reference-spec selection now enforce active-org visibility for tenant-owned assignment, brief, and spec ids.
+- M10 progress (2026-03-11): `/admin/settings/organization` is now a real tenant settings workspace for the active organization (instead of a redirect), with session-org switching support and org-admin-usable config/secret editing over the existing organization settings API; regression lock added in `scripts/org-settings-page-contract.test.js`.
 - QA reliability progress (2026-03-06): `/api/submissions/batch-grade` now emits `qaReliability` latency/failure metadata and `/admin/developer` now shows 7-day preview/commit/regrade p50/p95 plus retry/failure cards from `GET /api/admin/ops/qa-reliability`.
 - Performance progress (2026-03-06): `/admin/reference` now uses summary projection for list refresh and fetches full extracted payload only for the selected document.
 - Performance progress (2026-03-06): `/api/admin/audit` now scales query volume by requested `take` and skips unrelated event queries when type filters are applied.
@@ -76,6 +77,7 @@ Status labels:
 - Feedback quality progress (2026-03-06): VASCR summary policy now enforces concise evidence-linked feed-forward wording in grading feedback.
 - Feedback quality progress (2026-03-06): annotation realism policy now removes generic low-signal bullets and injects assessor-style fallback notes when needed; regression pack coverage added.
 - Feedback quality progress (2026-03-06): release gate now runs `ops:feedback-quality-contract` to enforce policy wiring before deploy.
+- Feedback quality progress (2026-03-11): manual assessment feedback edits and criterion-override refresh now reapply VASCR summary shaping, annotation realism, contradictory-claim softening, and Pearson-style leak guards before audit save / marked-PDF regeneration; regression lock added in `scripts/manual-feedback-policy-contract.test.js`.
 - Landing-page lead capture progress (2026-03-05): early-access section now posts to `POST /api/public/contact` for inbox email notifications (no longer `mailto`-only).
 - Email architecture direction (2026-03-05): separate transactional sender, support inbox routing, and operational alert inbox to avoid mixed responsibilities in one mailbox.
 - Storage deployment contract progress (2026-03-05): added `pnpm run ops:storage-contract` and wired it into `ops:release-gate`; strict storage-root enforcement available via `ENV_CONTRACT_REQUIRE_STORAGE_ROOT=true`.
@@ -252,6 +254,7 @@ Current update (2026-03-03):
 - Add figure token/image linkage verification tests in list + detail rendering.
 - Status (2026-03-06): scenario-mapping warning policy is now cue-based to avoid false positives on tasks that do not request scenario/context.
 - Status (2026-03-06): UniCourse template profile + generic fallback scoring is now regression-locked with multi-scenario and mixed part-key fixture coverage (`scripts/brief-template-profile.test.js`, wired into `scripts/regression-pack.js`).
+- Status (2026-03-11): task-card diagnostics now surface whole-PDF fallback, page grounding, scenario-source, and image-token state; inferred scenario display is cue-gated and missing figure assets now show explicit token-present/asset-missing guidance (`scripts/brief-review-diagnostics-contract.test.js`).
 
 2. Production build confirmation
 - Verify `pnpm build` on a clean host session using Node 20-22.

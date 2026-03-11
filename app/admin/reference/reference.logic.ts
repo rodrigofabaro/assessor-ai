@@ -455,6 +455,7 @@ export function useReferenceAdmin(opts: ReferenceAdminOptions = {}) {
       selectedUnitCode: selectedUnit?.unitCode || null,
       selectedUnitTitle: selectedUnit?.unitTitle || null,
       briefDraft: draft,
+      fidelityReport: draft?.fidelityReport || null,
     });
     setMappingHealth({
       ok: !!gate.ok,

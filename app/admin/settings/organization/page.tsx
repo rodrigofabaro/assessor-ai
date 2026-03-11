@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import OrganizationSettingsPageClient from "./OrganizationSettingsPageClient";
 
-export default function OrganizationSettingsRedirectPage() {
-  redirect("/admin/developer#organization-settings");
+export default function AdminSettingsOrganizationPage() {
+  return <OrganizationSettingsPageClient />;
 }
-

@@ -1,6 +1,6 @@
 # Submission Detail Guide (`/submissions/[submissionId]`)
 
-Last updated: 2026-03-06
+Last updated: 2026-03-11
 
 This is the single-submission grading workspace.
 
@@ -48,6 +48,11 @@ System behavior:
   - actor + timestamp
 - Recomputes final grade policy from overridden criterion decisions.
 - Auto-regenerates feedback text when overrides are applied without manual feedback input, so `overallGrade` and `Final grade:` narrative stay consistent.
+- Reapplies feedback-quality safeguards on manual feedback edits and override refreshes before save:
+  - VASCR-style concise summary shaping
+  - generic-bullet cleanup for assessor-style annotations
+  - contradictory criterion-claim softening
+  - Pearson-style wording/leak cleanup
 - Regenerates marked PDF and page notes from effective decisions.
 - Shows override state inline (`Overridden`) on criterion rows.
 

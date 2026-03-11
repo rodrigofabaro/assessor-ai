@@ -1,6 +1,6 @@
 # Admin Briefs (`/admin/briefs`, `/admin/briefs/[briefId]`)
 
-Last updated: 2026-03-06
+Last updated: 2026-03-11
 
 ## Purpose
 
@@ -59,8 +59,14 @@ Lock is blocked when fidelity blockers remain unresolved.
 UI note:
 
 - Task cards now show `Source provenance` (anchor, source pages, match %, snippet).
+- Task cards now show an `Extraction diagnostics` summary:
+  - extraction route (`whole-PDF fallback` vs parser/page-grounded)
+  - page grounding presence/absence
+  - scenario source (`explicit mapping` vs `inferred from intro cues`)
+  - visual token state (`image token present` vs `missing token`)
 - If provenance is missing, card status shows `Needs review` and re-extract is recommended before lock.
 - Uncited task blocks are explicitly tagged as `UNKNOWN / NEEDS_REVIEW` in provenance to prevent silent acceptance of inferred content.
+- If an `[[IMG:...]]` token exists but the figure cannot render, the card now explains that the text token was extracted but the figure asset/crop is missing or failed to serve.
 
 ## Brief vs Spec Audit (New Lock Guard)
 

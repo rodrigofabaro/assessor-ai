@@ -1,8 +1,32 @@
 # Release Notes
 
-Last updated: 2026-03-06
+Last updated: 2026-03-11
 
 ## Unreleased
+
+### Latest additions (2026-03-11)
+
+- Brief review diagnostics hardening (brief fidelity continuation):
+  - task cards in `/admin/briefs/[briefId]` now surface extraction-route, page-grounding, scenario-source, and visual-token diagnostics directly in the review UI
+  - scenario/context display is now cue-gated so normal task intro text is no longer automatically labeled as scenario/context when `scenarioText` is absent
+  - inline `[[IMG:...]]` rendering now explains token-present but asset-missing failures, so operators can distinguish missing figure crops/assets from plain display issues
+  - added regression lock: `scripts/brief-review-diagnostics-contract.test.js` (wired into `test:regression-pack`)
+- Organization settings workspace promotion (M10 continuation):
+  - replaced `/admin/settings/organization` redirect with a dedicated org-scoped settings workspace
+  - added in-page active-organization switching support so settings can be loaded against the current tenant context without leaving the settings flow
+  - exposed audited tenant config JSON and encrypted secret management (`OPENAI_API_KEY`, `TURNITIN_API_KEY`, `SMTP_API_KEY`) in the normal admin settings surface
+  - linked `Organization` into the main `/admin/settings` navigation and updated `/admin/users` platform-controls guidance to point to the new path
+  - added regression lock: `scripts/org-settings-page-contract.test.js` (wired into `test:regression-pack`)
+- Manual feedback policy parity (roadmap continuation):
+  - `/api/submissions/[submissionId]/assessments/[assessmentId]` now reapplies the same feedback-quality safeguards used in the grading route before saving manual review edits or regenerating marked PDFs
+  - manual review saves now re-run:
+    - VASCR summary shaping
+    - annotation realism cleanup
+    - contradictory criterion-claim softening
+    - Pearson-style wording/template-leak normalization
+  - feedback-policy system notes are refreshed on the saved assessment payload so audit output reflects the current post-edit policy passes
+  - added regression lock: `scripts/manual-feedback-policy-contract.test.js` (wired into `test:regression-pack`)
+  - extended deploy-gate contract: `scripts/feedback-quality-contract.js` now requires the manual assessment update route to keep the same policy wiring as the grading route
 
 ### Latest additions (2026-03-06)
 
