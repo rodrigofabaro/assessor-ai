@@ -57,6 +57,7 @@ const tests = [
   "scripts/turnitin-storage-resolution-contract.test.js",
   "scripts/submission-automation-queue-contract.test.js",
   "scripts/submission-automation-cron-contract.test.js",
+  "scripts/vercel-build-contract.test.js",
   "scripts/ui-launch-mode-contract.test.js",
 ];
 

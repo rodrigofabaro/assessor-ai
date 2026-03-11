@@ -9,17 +9,24 @@ function run(bin, args) {
 
 const env = String(process.env.VERCEL_ENV || "").toLowerCase();
 const migrateFlag = String(process.env.PRISMA_MIGRATE_ON_BUILD || "").toLowerCase().trim();
-const shouldRunMigrations = migrateFlag === "1" || migrateFlag === "true";
+const skipMigrateFlag = String(process.env.PRISMA_SKIP_MIGRATE_ON_BUILD || "").toLowerCase().trim();
 const hasDatabaseUrl = !!String(process.env.DATABASE_URL || "").trim();
+const explicitEnable = migrateFlag === "1" || migrateFlag === "true";
+const explicitSkip = skipMigrateFlag === "1" || skipMigrateFlag === "true";
+const productionDefault = env === "production";
+const shouldRunMigrations = hasDatabaseUrl && !explicitSkip && (explicitEnable || productionDefault);
 
-if (shouldRunMigrations && hasDatabaseUrl) {
-  console.log("[vercel-build] Running prisma migrate deploy (PRISMA_MIGRATE_ON_BUILD enabled)...");
-  run("pnpm", ["prisma", "migrate", "deploy"]);
-} else if (shouldRunMigrations && !hasDatabaseUrl) {
+if (!hasDatabaseUrl) {
   console.log("[vercel-build] Skipping prisma migrate deploy (DATABASE_URL is missing).");
+} else if (explicitSkip) {
+  console.log("[vercel-build] Skipping prisma migrate deploy (PRISMA_SKIP_MIGRATE_ON_BUILD enabled).");
+} else if (shouldRunMigrations) {
+  const reason = explicitEnable ? "PRISMA_MIGRATE_ON_BUILD enabled" : "default production behavior";
+  console.log(`[vercel-build] Running prisma migrate deploy (${reason})...`);
+  run("pnpm", ["prisma", "migrate", "deploy"]);
 } else {
   console.log(
-    `[vercel-build] Skipping prisma migrate deploy (VERCEL_ENV=${env || "unknown"}; set PRISMA_MIGRATE_ON_BUILD=1 to enable).`
+    `[vercel-build] Skipping prisma migrate deploy (VERCEL_ENV=${env || "unknown"}; set PRISMA_MIGRATE_ON_BUILD=1 to enable outside production).`
   );
 }
 

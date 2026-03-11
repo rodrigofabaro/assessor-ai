@@ -183,6 +183,11 @@ What it does:
 5. Runs `pnpm run ops:deploy-smoke`
 6. Runs `pnpm run ops:release-gate`
 
+Vercel production build behavior:
+- `pnpm run build:vercel` now runs `pnpm prisma migrate deploy` automatically in Production when `DATABASE_URL` is present.
+- Keep explicit cutover migration in place anyway; build-time migration is a safety net, not a replacement for controlled cutover.
+- Use `PRISMA_SKIP_MIGRATE_ON_BUILD=true` only as an emergency override.
+
 Output:
 - Writes `docs/evidence/cutover-prod/YYYYMMDD-HHMMSS.json`
 - Fails on first failed step with evidence reference

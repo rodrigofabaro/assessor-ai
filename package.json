@@ -61,6 +61,7 @@
     "test:submission-feedback-editor": "node scripts/submission-feedback-editor-contract.test.js",
     "test:submission-automation-queue": "node scripts/submission-automation-queue-contract.test.js",
     "test:submission-automation-cron": "node scripts/submission-automation-cron-contract.test.js",
+    "test:vercel-build-contract": "node scripts/vercel-build-contract.test.js",
     "test:turnitin-storage-resolution": "node scripts/turnitin-storage-resolution-contract.test.js",
     "test:reference-document-delete-lifecycle": "node scripts/reference-document-delete-lifecycle.test.js",
     "ops:export-pack-evidence": "node scripts/export-pack-evidence.js",

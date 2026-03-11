@@ -75,7 +75,8 @@ pnpm run build:vercel
 ```
 
 2. This runs `prisma migrate deploy` automatically in Production builds (`VERCEL_ENV=production`).
-3. Set `PRISMA_MIGRATE_ON_BUILD=1` in Production if you want the build script to apply migrations automatically before the app build.
+3. `PRISMA_MIGRATE_ON_BUILD=1` is only needed if you want migrate-on-build outside Production.
+4. `PRISMA_SKIP_MIGRATE_ON_BUILD=1` is an emergency escape hatch and should normally stay unset.
 
 Manual fallback:
 
