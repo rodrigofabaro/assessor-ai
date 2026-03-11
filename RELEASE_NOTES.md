@@ -10,6 +10,7 @@ Last updated: 2026-03-11
   - `scripts/vercel-build.cjs` now runs `pnpm prisma migrate deploy` by default for Vercel Production builds when `DATABASE_URL` is present
   - added explicit escape hatch `PRISMA_SKIP_MIGRATE_ON_BUILD=true` for exceptional cases, while preserving `PRISMA_MIGRATE_ON_BUILD=true` as an opt-in outside production
   - added regression lock: `scripts/vercel-build-contract.test.js` (wired into `test:regression-pack`)
+  - post-guard production deploy-smoke PASS evidence captured after redeploy: `docs/evidence/deploy-smoke/20260311-173727.json`
 - Production deployment verification:
   - production deploy for `origin/main` commit `809be3f` succeeded on `https://www.assessor-ai.co.uk`
   - production deploy-smoke passed after applying pending Prisma migration `20260311133500_add_submission_automation_jobs`
