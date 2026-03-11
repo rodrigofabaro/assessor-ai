@@ -69,7 +69,7 @@ Use this doc when the instruction is: "continue the roadmap".
    - higher-grade guidance and page-note wording were tightened to reduce repetition and remove fragmentary placeholder output
    - Turnitin original-upload reads now resolve through the storage provider instead of assuming a local `uploads/` filesystem path
    - submission automation is now backed by a durable DB queue (`SubmissionAutomationJob`) with a runner route (`POST /api/submissions/automation-jobs/run`); upload/blob-finalize now enqueue extraction jobs, auto-ready grading now enqueues grade jobs, and submission detail surfaces the latest queued/running job state
-   - always-on runner orchestration is now in place for Vercel deployments via `GET /api/cron/submission-automation` plus `vercel.json` minute cron schedule; bearer-secret fallback is supported outside native Vercel cron
+   - scheduled runner orchestration is now in place for deployments via `GET /api/cron/submission-automation`, a Hobby-safe daily `vercel.json` cron, and bearer-secret fallback outside native Vercel cron
 9. Platform truth note:
    - extraction and grading are now durably enqueued after upload/queue actions, with retryable job state persisted in DB
    - the remaining M8 gap is queue observability/control depth (job metrics, targeted retry/cancel, oldest-queued alerts), plus deeper throughput controls and telemetry
@@ -248,7 +248,7 @@ Use this doc when the instruction is: "continue the roadmap".
 
 1. M8 queue-first processing hardening
 - Progress (2026-03-11): upload/blob-finalize now enqueue durable extraction jobs, auto-ready grading now enqueues durable grade jobs, retry/backoff state is persisted in `SubmissionAutomationJob`, and `POST /api/submissions/automation-jobs/run` can claim and execute queued work.
-- Progress (2026-03-11): always-on scheduled execution added for Vercel via `GET /api/cron/submission-automation` and `vercel.json` minute cron schedule, with bearer-secret fallback for non-Vercel scheduler callers.
+- Progress (2026-03-11): scheduled execution added via `GET /api/cron/submission-automation`, a Hobby-safe daily `vercel.json` cron, and bearer-secret fallback for non-Vercel scheduler callers that need higher frequency.
 - Remaining:
   - add queue metrics/dashboard visibility for job depth, retry rate, and oldest queued age
   - extend operator controls for targeted retry/cancel from admin surfaces

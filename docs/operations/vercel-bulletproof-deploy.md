@@ -60,6 +60,11 @@ Environment isolation rule:
 1. Production DB/storage credentials must exist only in Production env scope.
 2. Preview and Development must use separate DB/storage credentials.
 
+Submission automation scheduling note:
+1. Hobby-tier Vercel cron is limited to daily execution.
+2. This repo keeps a daily native Vercel cron as a safety net.
+3. If extraction/grading queue processing needs higher frequency, configure an external scheduler that calls `GET /api/cron/submission-automation` with `Authorization: Bearer <SUBMISSION_AUTOMATION_CRON_SECRET>`, or move the project to Vercel Pro.
+
 ## 5) Run DB migrations for target DB
 
 Preferred (automatic):

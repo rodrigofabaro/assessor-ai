@@ -238,6 +238,7 @@ Primary login mode:
   - used by `GET /api/cron/submission-automation`
 
 - `SUBMISSION_AUTOMATION_CRON_SECRET`
-  - optional when using native Vercel cron
+  - optional when using native Vercel cron only
   - required when an external scheduler calls `GET /api/cron/submission-automation`
   - caller must send `Authorization: Bearer <SUBMISSION_AUTOMATION_CRON_SECRET>`
+  - recommended on Vercel Hobby because native cron is limited to a daily schedule

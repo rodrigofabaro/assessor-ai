@@ -20,7 +20,7 @@ function run() {
   assert(authHelper.includes("x-vercel-cron"), "expected automation cron auth helper to allow Vercel cron requests");
   assert(authHelper.includes("SUBMISSION_AUTOMATION_CRON_SECRET"), "expected automation cron auth helper to support bearer-secret fallback");
   assert(vercelConfig.includes("\"/api/cron/submission-automation\""), "expected vercel cron config for submission automation route");
-  assert(vercelConfig.includes("\"* * * * *\""), "expected submission automation cron to run every minute");
+  assert(vercelConfig.includes("\"0 0 * * *\""), "expected submission automation cron to use a hobby-safe daily Vercel schedule");
 
   console.log("submission automation cron contract tests passed.");
 }

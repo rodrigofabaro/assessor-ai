@@ -77,7 +77,7 @@ Status labels:
 - Feedback quality progress (2026-03-11): higher-grade guidance and page-note wording were tightened to reduce repetition, remove fragmentary placeholder output, and keep advice aligned with the active feedback-policy rules.
 - Turnitin progress (2026-03-11): original-upload submission sync now resolves files through the storage provider instead of assuming a local `uploads/` path.
 - Queue-first processing progress (2026-03-11): submission automation is now backed by durable DB jobs (`SubmissionAutomationJob`) plus runner route `POST /api/submissions/automation-jobs/run`; upload/blob-finalize enqueue extraction jobs, auto-ready grading enqueues grade jobs, and submission detail exposes latest queued/running job state.
-- Queue-first processing progress (2026-03-11): always-on scheduled execution is now configured for Vercel deployments via `GET /api/cron/submission-automation` plus `vercel.json` minute cron, with bearer-secret fallback for external scheduler callers.
+- Queue-first processing progress (2026-03-11): scheduled execution is now configured for deployments via `GET /api/cron/submission-automation`, a Hobby-safe daily `vercel.json` cron, and bearer-secret fallback for external scheduler callers that need higher frequency.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - UX progress (2026-03-06): pre-launch to launch navigation toggle added via `NEXT_PUBLIC_UI_LAUNCH_MODE` so tenant controls can be progressively exposed without schema/API changes.
 - UX progress (2026-03-06): admin help docs now describe both pre-launch and launch-mode nav behavior (`docs/help/admin-index.md`).
@@ -461,7 +461,7 @@ Phase 7 progress (2026-03-03):
 - Move extraction/grading work to background jobs with retry policy.
 - Keep UI async with observable job states (queued/running/retry/failed/done).
 - Current state (2026-03-11): first durable slice delivered. Upload/finalize now enqueue DB-backed extraction jobs, auto-ready grading enqueues DB-backed grade jobs, and runner route `POST /api/submissions/automation-jobs/run` claims queued work with retry/backoff state.
-- Current state (2026-03-11): always-on scheduled execution delivered for Vercel through `GET /api/cron/submission-automation` and a minute cron entry in `vercel.json`.
+- Current state (2026-03-11): scheduled execution delivered through `GET /api/cron/submission-automation`, a Hobby-safe daily Vercel cron entry, and bearer-secret fallback for external schedulers or higher-frequency Pro setups.
 - Remaining: add queue depth/retry/age telemetry and operator retry/cancel controls.
 
 4. Observability baseline

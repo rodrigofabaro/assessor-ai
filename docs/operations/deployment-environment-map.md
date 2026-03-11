@@ -88,6 +88,11 @@ Current update (2026-03-05):
 1. `STORAGE_BACKEND=vercel_blob` is now supported for runtime upload/read/write paths.
 2. Keep `BLOB_READ_WRITE_TOKEN` set in preview/production Vercel environments before enabling `vercel_blob`.
 
+Current update (2026-03-11):
+1. Submission automation runner scheduling uses `GET /api/cron/submission-automation`.
+2. Native Vercel cron is configured as a daily safety net so Hobby deployments remain deployable.
+3. Higher-frequency processing requires an external scheduler using `SUBMISSION_AUTOMATION_CRON_SECRET`, or a Vercel Pro cron setup.
+
 ## Required Vercel env groups
 
 Set these separately for Preview and Production:

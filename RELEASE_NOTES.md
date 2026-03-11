@@ -14,8 +14,7 @@ Last updated: 2026-03-11
   - added regression lock: `scripts/submission-automation-queue-contract.test.js` (wired into `test:regression-pack`)
 - Always-on submission automation runner:
   - added protected cron endpoint `GET /api/cron/submission-automation`
-  - added `vercel.json` minute cron schedule so queued extraction/grading work continues independently of the original enqueue request on Vercel
-  - added bearer-secret fallback (`SUBMISSION_AUTOMATION_CRON_SECRET`) for non-Vercel scheduler callers
+  - added a Hobby-safe `vercel.json` daily cron plus bearer-secret fallback (`SUBMISSION_AUTOMATION_CRON_SECRET`) so queued extraction/grading can be driven by native Vercel cron, an external scheduler, or a higher-frequency Pro setup
   - added regression lock: `scripts/submission-automation-cron-contract.test.js` (wired into `test:regression-pack`)
 - QA workspace parity and correctness hardening:
   - `/admin/qa` now loads paginated table rows plus the full filtered dataset separately, so summary cards, compare views, override insights, and CSV export reflect the full filtered result set rather than the visible page only
