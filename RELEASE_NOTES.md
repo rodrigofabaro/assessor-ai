@@ -6,6 +6,11 @@ Last updated: 2026-03-11
 
 ### Latest additions (2026-03-11)
 
+- Production deployment verification:
+  - production deploy for `origin/main` commit `809be3f` succeeded on `https://www.assessor-ai.co.uk`
+  - production deploy-smoke passed after applying pending Prisma migration `20260311133500_add_submission_automation_jobs`
+  - PASS evidence artifact: `docs/evidence/deploy-smoke/20260311-170425.json`
+  - operational note: use the custom domain for deploy smoke; the raw `.vercel.app` deployment URL is Vercel-auth protected and can produce false smoke failures
 - Durable submission automation queue foundation:
   - added DB-backed `SubmissionAutomationJob` queue plus runner route `POST /api/submissions/automation-jobs/run`
   - upload and blob-finalize now enqueue extraction jobs instead of directly calling the extract route

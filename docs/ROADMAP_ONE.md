@@ -70,7 +70,11 @@ Use this doc when the instruction is: "continue the roadmap".
    - Turnitin original-upload reads now resolve through the storage provider instead of assuming a local `uploads/` filesystem path
    - submission automation is now backed by a durable DB queue (`SubmissionAutomationJob`) with a runner route (`POST /api/submissions/automation-jobs/run`); upload/blob-finalize now enqueue extraction jobs, auto-ready grading now enqueues grade jobs, and submission detail surfaces the latest queued/running job state
    - scheduled runner orchestration is now in place for deployments via `GET /api/cron/submission-automation`, a Hobby-safe daily `vercel.json` cron, and bearer-secret fallback outside native Vercel cron
-9. Platform truth note:
+9. Production verification update (2026-03-11):
+   - production deploy is live on `https://www.assessor-ai.co.uk`
+   - deploy-smoke PASS evidence captured: `docs/evidence/deploy-smoke/20260311-170425.json`
+   - immediate deployment lesson: `pnpm prisma migrate deploy` must run before smoke for schema-changing releases; this rollout initially failed `/api/submissions` until migration `20260311133500_add_submission_automation_jobs` was applied
+10. Platform truth note:
    - extraction and grading are now durably enqueued after upload/queue actions, with retryable job state persisted in DB
    - the remaining M8 gap is queue observability/control depth (job metrics, targeted retry/cancel, oldest-queued alerts), plus deeper throughput controls and telemetry
 
@@ -97,7 +101,7 @@ Use this doc when the instruction is: "continue the roadmap".
   - retry path now strips optional relation/meta fields for partially migrated schemas
   - explicit schema-incompatible error raised when submission create remains incompatible
 - Deploy-smoke evidence now captures API `requestId` and server `details` payload (when present) for failed steps.
-- Remaining action: set durable storage root per runtime and capture fresh production deploy-smoke PASS evidence.
+- Remaining action: set durable storage root per runtime and enforce migration-before-smoke in production cutover so schema-changing releases cannot reach runtime drift.
 
 2. P0 M8.2 brief extraction fidelity gate (today)
 - add provenance metadata in extraction output for displayed blocks (`page`, source snippet, and reference anchor where available)

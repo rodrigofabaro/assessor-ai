@@ -75,6 +75,7 @@ pnpm run build:vercel
 ```
 
 2. This runs `prisma migrate deploy` automatically in Production builds (`VERCEL_ENV=production`).
+3. Set `PRISMA_MIGRATE_ON_BUILD=1` in Production if you want the build script to apply migrations automatically before the app build.
 
 Manual fallback:
 
@@ -88,13 +89,14 @@ pnpm prisma generate --no-engine
 Run smoke against deployed URL:
 
 ```powershell
-$env:DEPLOY_SMOKE_BASE_URL="https://your-domain.com"
+$env:DEPLOY_SMOKE_BASE_URL="https://www.assessor-ai.co.uk"
 $env:DEPLOY_SMOKE_USERNAME="your-login-user"
 $env:DEPLOY_SMOKE_PASSWORD="your-login-password"
 pnpm run ops:deploy-smoke
 ```
 
 Verify evidence artifact in `docs/evidence/deploy-smoke/`.
+Use the custom domain, not the raw `.vercel.app` deployment URL; the latter may be Vercel-auth protected and cause false smoke failures.
 
 Also confirm:
 1. Runtime file writes are backed by durable object storage (not local ephemeral filesystem).

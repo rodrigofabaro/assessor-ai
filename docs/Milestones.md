@@ -39,7 +39,7 @@ Status labels:
 - M8 deployment hardening gaps remain: durable object storage backend + strict env separation between preview and production + production OpenAI key scopes (`api.responses.write`) for grade/extraction.
 - Throughput/performance gaps remain: queue metrics/control depth, DB index verification on heavy filters/sorts, production-sized latency profiling, and adaptive concurrency/budget controls.
 - Operator-confirmed (2026-03-04): production storage places are not configured yet.
-- Current deploy-smoke blocker (2026-03-04): upload fails at `create_submission` on production.
+- Production verification update (2026-03-11): deploy-smoke now passes on `https://www.assessor-ai.co.uk`; latest PASS evidence: `docs/evidence/deploy-smoke/20260311-170425.json`.
 - Today direction (2026-03-05): storage deployment + password recovery email moved to immediate priorities.
 - Extraction direction (2026-03-05): add fidelity gate with source provenance, evidence-constrained fallback, and lock blocking for unresolved mismatches (see `docs/operations/brief-extraction-hardening-log-2026-03-05.md`).
 - Password recovery delivery progress (2026-03-05): tokenized recovery flow active (`POST /api/auth/password-recovery` + `POST /api/auth/password-recovery/confirm` + `/auth/reset`), provider enabled, and release-gate contract check active.
@@ -78,6 +78,7 @@ Status labels:
 - Turnitin progress (2026-03-11): original-upload submission sync now resolves files through the storage provider instead of assuming a local `uploads/` path.
 - Queue-first processing progress (2026-03-11): submission automation is now backed by durable DB jobs (`SubmissionAutomationJob`) plus runner route `POST /api/submissions/automation-jobs/run`; upload/blob-finalize enqueue extraction jobs, auto-ready grading enqueues grade jobs, and submission detail exposes latest queued/running job state.
 - Queue-first processing progress (2026-03-11): scheduled execution is now configured for deployments via `GET /api/cron/submission-automation`, a Hobby-safe daily `vercel.json` cron, and bearer-secret fallback for external scheduler callers that need higher frequency.
+- Deployment hardening progress (2026-03-11): production deploy verification recovered after applying pending migration `20260311133500_add_submission_automation_jobs`; deploy-smoke PASS evidence captured at `docs/evidence/deploy-smoke/20260311-170425.json`.
 - UX progress (2026-03-06): post-login home now adapts by role (`ASSESSOR`, `ORG_ADMIN`, `SUPER_ADMIN`) with scoped actions and operational cards.
 - UX progress (2026-03-06): pre-launch to launch navigation toggle added via `NEXT_PUBLIC_UI_LAUNCH_MODE` so tenant controls can be progressively exposed without schema/API changes.
 - UX progress (2026-03-06): admin help docs now describe both pre-launch and launch-mode nav behavior (`docs/help/admin-index.md`).
