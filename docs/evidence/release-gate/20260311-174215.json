@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-03-11T17:42:15.863Z",
+  "gate": "release",
+  "steps": [
+    {
+      "id": "tsc",
+      "command": "pnpm exec tsc --noEmit --incremental false",
+      "startedAt": "2026-03-11T17:42:15.864Z",
+      "endedAt": "2026-03-11T17:42:28.145Z",
+      "durationMs": 12281,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "regression_pack",
+      "command": "pnpm run test:regression-pack",
+      "startedAt": "2026-03-11T17:42:28.145Z",
+      "endedAt": "2026-03-11T17:42:44.590Z",
+      "durationMs": 16445,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "feedback_quality_contract",
+      "command": "pnpm run ops:feedback-quality-contract",
+      "startedAt": "2026-03-11T17:42:44.590Z",
+      "endedAt": "2026-03-11T17:42:45.195Z",
+      "durationMs": 605,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "export_pack_validation",
+      "command": "pnpm run test:export-pack-validation",
+      "startedAt": "2026-03-11T17:42:45.195Z",
+      "endedAt": "2026-03-11T17:42:45.814Z",
+      "durationMs": 619,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "storage_deployment_contract",
+      "command": "pnpm run ops:storage-contract",
+      "startedAt": "2026-03-11T17:42:45.814Z",
+      "endedAt": "2026-03-11T17:42:46.460Z",
+      "durationMs": 646,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "database_schema_contract",
+      "command": "pnpm run ops:schema-contract",
+      "startedAt": "2026-03-11T17:42:46.460Z",
+      "endedAt": "2026-03-11T17:42:47.455Z",
+      "durationMs": 995,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "password_recovery_email_contract",
+      "command": "pnpm run ops:password-recovery-contract",
+      "startedAt": "2026-03-11T17:42:47.455Z",
+      "endedAt": "2026-03-11T17:42:48.110Z",
+      "durationMs": 655,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "email_webhook_contract",
+      "command": "pnpm run ops:email-webhook-contract",
+      "startedAt": "2026-03-11T17:42:48.110Z",
+      "endedAt": "2026-03-11T17:42:48.706Z",
+      "durationMs": 596,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "openai_responses_contract",
+      "command": "pnpm run ops:openai-responses-contract",
+      "startedAt": "2026-03-11T17:42:48.707Z",
+      "endedAt": "2026-03-11T17:42:49.313Z",
+      "durationMs": 606,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "runtime_readiness_contract",
+      "command": "pnpm run ops:readiness-contract",
+      "startedAt": "2026-03-11T17:42:49.313Z",
+      "endedAt": "2026-03-11T17:42:55.498Z",
+      "durationMs": 6185,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "email_webhook_smoke",
+      "command": "pnpm run ops:email-webhook-smoke",
+      "startedAt": "2026-03-11T17:42:55.498Z",
+      "endedAt": "2026-03-11T17:42:56.085Z",
+      "durationMs": 587,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    },
+    {
+      "id": "deploy_smoke",
+      "command": "pnpm run ops:deploy-smoke",
+      "startedAt": "2026-03-11T17:42:56.085Z",
+      "endedAt": "2026-03-11T17:43:24.307Z",
+      "durationMs": 28222,
+      "status": 0,
+      "ok": true,
+      "spawnError": null
+    }
+  ],
+  "summary": {
+    "ok": true,
+    "failedStep": null,
+    "totalSteps": 12,
+    "passedSteps": 12
+  }
+}

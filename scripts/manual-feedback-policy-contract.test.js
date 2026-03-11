@@ -122,6 +122,7 @@ async function testManualFeedbackEditsReapplyQualityPolicies() {
     },
     "@/lib/grading/feedbackDocument": {
       deriveBulletsFromFeedbackText,
+      extractFeedbackSummaryFromRenderedText: (text) => String(text || "").split(/\n+/).map((line) => String(line || "").trim()).find(Boolean) || "",
       getDefaultFeedbackTemplate: () => "{feedbackSummary}\n{feedbackBullets}",
       renderFeedbackTemplate: ({ feedbackSummary, feedbackBullets }) =>
         [feedbackSummary, ...(Array.isArray(feedbackBullets) ? feedbackBullets : [])].join("\n"),

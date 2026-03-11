@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-03-11T17:42:55.460Z",
+  "startedAt": "2026-03-11T17:42:49.890Z",
+  "baseUrl": "https://www.assessor-ai.co.uk",
+  "endpoint": "/api/health/readiness",
+  "auth": {
+    "attempted": true,
+    "authenticated": true,
+    "status": 200
+  },
+  "status": 200,
+  "ok": true,
+  "error": null,
+  "payload": {
+    "ok": true,
+    "checkedAt": "2026-03-11T17:42:55.414Z",
+    "checks": {
+      "database": {
+        "ok": true,
+        "required": true,
+        "message": "Database reachable."
+      },
+      "storage": {
+        "ok": true,
+        "required": true,
+        "message": "Blob storage backend configured.",
+        "detail": {
+          "backend": "vercel_blob"
+        }
+      },
+      "schema": {
+        "ok": true,
+        "required": false,
+        "message": "Schema contract checks passed."
+      },
+      "email": {
+        "ok": true,
+        "required": false,
+        "message": "Email provider configured.",
+        "detail": {
+          "provider": "resend",
+          "configured": true,
+          "requireRecoveryEmail": false,
+          "fromConfigured": true,
+          "fromPreview": "Assessor AI <no-reply@assessor-ai.co.uk>"
+        }
+      },
+      "emailWebhook": {
+        "ok": true,
+        "required": false,
+        "message": "Resend webhook signing secret not configured (optional in current mode).",
+        "detail": {
+          "provider": "resend",
+          "configured": false,
+          "allowUnsigned": false
+        }
+      },
+      "openai": {
+        "ok": true,
+        "required": false,
+        "message": "OpenAI key present (probe disabled).",
+        "detail": {
+          "keyType": "standard"
+        }
+      },
+      "openaiResponsesWrite": {
+        "ok": true,
+        "required": false,
+        "message": "OpenAI responses-write probe disabled.",
+        "detail": {
+          "keyType": "standard"
+        }
+      }
+    },
+    "failures": []
+  }
+}

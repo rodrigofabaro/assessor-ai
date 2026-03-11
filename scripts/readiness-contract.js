@@ -25,17 +25,48 @@ function resolveBaseUrl() {
   return raw;
 }
 
+function toSafeString(value) {
+  return String(value || "").trim();
+}
+
+function firstCookiePair(setCookie) {
+  return String(setCookie || "").split(";")[0].trim();
+}
+
 async function main() {
   const baseUrl = resolveBaseUrl();
+  const authUsername = toSafeString(process.env.DEPLOY_SMOKE_USERNAME || process.env.AUTH_LOGIN_USERNAME);
+  const authPassword = toSafeString(process.env.DEPLOY_SMOKE_PASSWORD || process.env.AUTH_LOGIN_PASSWORD);
   const url = `${baseUrl}/api/health/readiness`;
   const startedAt = new Date().toISOString();
   let status = 0;
   let payload = null;
   let ok = false;
   let error = null;
+  let auth = { attempted: false, authenticated: false, status: 0 };
 
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const headers = {};
+    if (authUsername && authPassword) {
+      auth.attempted = true;
+      const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: authUsername, password: authPassword }),
+      });
+      auth.status = loginRes.status;
+      const cookie = firstCookiePair(loginRes.headers.get("set-cookie"));
+      if (loginRes.ok && cookie) {
+        headers.cookie = cookie;
+        auth.authenticated = true;
+      } else if (!loginRes.ok) {
+        const text = await loginRes.text().catch(() => "");
+        throw new Error(`Readiness auth login failed (${loginRes.status}): ${text || "unknown error"}`);
+      }
+    }
+
+    const res = await fetch(url, { cache: "no-store", headers });
     status = res.status;
     const text = await res.text();
     try {
@@ -56,6 +87,7 @@ async function main() {
     startedAt,
     baseUrl,
     endpoint: "/api/health/readiness",
+    auth,
     status,
     ok,
     error,
@@ -82,4 +114,3 @@ main().catch((err) => {
   console.error(`readiness contract crashed: ${String(err?.message || err)}`);
   process.exit(1);
 });
-

@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-03-11T17:42:56.050Z",
+  "gate": "ops-email-webhook-smoke",
+  "provider": "resend",
+  "requireWebhook": false,
+  "dryRun": false,
+  "endpoint": "https://www.assessor-ai.co.uk/api/webhooks/resend",
+  "eventType": "email.delivered",
+  "messageId": "msg_smoke_1773250976050",
+  "recipient": "ops-smoke@assessor-ai.local",
+  "webhookConfig": {
+    "configured": false,
+    "allowUnsigned": false
+  },
+  "result": {
+    "ok": true,
+    "status": "skipped",
+    "message": "Webhook smoke skipped: RESEND_WEBHOOK_SECRET is not configured.",
+    "responseStatus": null,
+    "responseBody": null
+  }
+}

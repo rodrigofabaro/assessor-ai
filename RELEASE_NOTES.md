@@ -11,6 +11,15 @@ Last updated: 2026-03-11
   - added explicit escape hatch `PRISMA_SKIP_MIGRATE_ON_BUILD=true` for exceptional cases, while preserving `PRISMA_MIGRATE_ON_BUILD=true` as an opt-in outside production
   - added regression lock: `scripts/vercel-build-contract.test.js` (wired into `test:regression-pack`)
   - post-guard production deploy-smoke PASS evidence captured after redeploy: `docs/evidence/deploy-smoke/20260311-173727.json`
+- Release-gate auth hardening:
+  - `scripts/readiness-contract.js` now authenticates with smoke/login credentials before checking `/api/health/readiness` when auth guards are enabled
+  - fixed manual feedback policy contract drift by updating the feedback-document mock to include `extractFeedbackSummaryFromRenderedText`
+  - added regression lock: `scripts/readiness-contract-auth.test.js` (wired into `test:regression-pack`)
+  - latest PASS artifacts:
+    - readiness: `docs/evidence/readiness/20260311-174255.json`
+    - email webhook smoke: `docs/evidence/email-webhook-smoke/20260311-174256.json`
+    - deploy smoke: `docs/evidence/deploy-smoke/20260311-174324.json`
+    - release gate: `docs/evidence/release-gate/20260311-174215.json`
 - Production deployment verification:
   - production deploy for `origin/main` commit `809be3f` succeeded on `https://www.assessor-ai.co.uk`
   - production deploy-smoke passed after applying pending Prisma migration `20260311133500_add_submission_automation_jobs`
